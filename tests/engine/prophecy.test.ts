@@ -38,6 +38,23 @@ describe('prophecy', () => {
     const seen = versets.map(() => nextProphecy(gv, 1, s, rng).verse)
     expect(new Set(seen)).toEqual(new Set(versets))
   })
+  it('generative verses: no repeated book until all seen, format ok, old bag size ignored', () => {
+    const livres = ['A', 'B', 'C', 'D', 'E', 'F']
+    const gv: Grammar = { niveau1: ['Q|corps|{verset}'], verset_livre: livres, verset_ref: ['1:1', '2:22', '13:13'] }
+    const s = store()
+    s.setItem('rvj-bags', JSON.stringify({ verset: { order: [0, 1], pos: 1 }, verset_livre: { order: [0, 1], pos: 1 } }))
+    const rng = mulberry32(11)
+    const verses = Array.from({ length: 12 }, () => nextProphecy(gv, 1, s, rng).verse)
+    for (const v of verses) expect(v).toMatch(/^[\p{Lu}][^|]* \d{1,2}:\d{1,2}$/u)
+    const books = verses.map((v) => v.split(' ')[0])
+    expect(new Set(books.slice(0, 6)).size).toBe(6)
+    expect(new Set(books.slice(6)).size).toBe(6)
+    books.slice(1).forEach((b, i) => expect(b).not.toBe(books[i]))
+  })
+  it('old `verset` table still works when the new tables are missing', () => {
+    const gv: Grammar = { niveau1: ['Q|corps|{verset}'], verset: ['Vieux 1:1'] }
+    expect(nextProphecy(gv, 1, store(), mulberry32(1)).verse).toBe('Vieux 1:1')
+  })
   it('door line falls back when key is missing', () => {
     expect(nextDoorLine(g, 4, store(), mulberry32(1), 'fallback')).toBe('fallback')
     expect(nextDoorLine(g, 1, store(), mulberry32(1), 'fallback')).toMatch(/^Toc [ab]$/)

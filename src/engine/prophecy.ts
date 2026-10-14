@@ -47,11 +47,20 @@ export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng:
   const templates = templatesFor(grammar, level)
   if (templates.length === 0) return { question: '', body: '', verse: '', arcane: EMPTY_ARCANE }
   let tpl = templates[drawPersisted(store, `niveau${level}`, templates.length, rng)]
-  // Le verset passe aussi par un sac persisté : pas de répétition avant d’avoir tout vu.
-  const versets = strings(grammar, 'verset')
-  if (versets.length > 0 && tpl.includes('{verset}')) {
-    const verset = versets[drawPersisted(store, 'verset', versets.length, rng)]
-    tpl = tpl.replaceAll('{verset}', () => verset)
+  // Verset = livre + référence : le livre passe par un sac persisté (pas de répétition avant d’avoir tout vu,
+  // donc jamais deux fois le même verset de suite), la référence est tirée au hasard.
+  // Repli : ancienne table `verset` (chaînes complètes) si les deux nouvelles tables manquent.
+  if (tpl.includes('{verset}')) {
+    const livres = strings(grammar, 'verset_livre')
+    const refs = strings(grammar, 'verset_ref')
+    const anciens = strings(grammar, 'verset')
+    let verset = ''
+    if (livres.length > 0 && refs.length > 0) {
+      verset = `${livres[drawPersisted(store, 'verset_livre', livres.length, rng)]} ${refs[Math.floor(rng() * refs.length)]}`
+    } else if (anciens.length > 0) {
+      verset = anciens[drawPersisted(store, 'verset', anciens.length, rng)]
+    }
+    if (verset) tpl = tpl.replaceAll('{verset}', () => verset)
   }
   const [question = '', body = '', verse = ''] = expandTemplate(grammar, tpl, rng).split('|')
   return { question, body, verse, arcane: drawArcane(grammar, level, rng) }

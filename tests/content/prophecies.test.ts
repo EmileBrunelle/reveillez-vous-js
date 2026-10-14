@@ -18,7 +18,7 @@ function* expansions(prefix: 'niveau' | 'porte' | 'rate') {
     const templates = prophecies[key] as string[]
     for (const [i, tpl] of templates.entries()) {
       for (let seed = 1; seed <= SEEDS; seed++) {
-        yield { key, i, seed, out: expandTemplate(prophecies, tpl, mulberry32(seed * 7919 + i)) }
+        yield { key, i, seed, out: expandTemplate(prophecies, tpl.replaceAll('{verset}', '{verset_livre} {verset_ref}'), mulberry32(seed * 7919 + i)) }
       }
     }
   }
@@ -164,5 +164,28 @@ describe('prophecies content', () => {
         for (const w of BANNED) expect(out, `${w} in ${key}[${i}] seed ${seed}`).not.toMatch(bannedRe(w))
       }
     })
+  })
+})
+
+describe('versets (livre + référence)', () => {
+  const livres = prophecies.verset_livre as string[]
+  const refs = prophecies.verset_ref as string[]
+  it('tables are deduped and well formed', () => {
+    expect(livres.length).toBeGreaterThanOrEqual(35)
+    expect(refs.length).toBeGreaterThanOrEqual(20)
+    expect(new Set(livres).size).toBe(livres.length)
+    expect(new Set(refs).size).toBe(refs.length)
+    for (const r of refs) expect(r).toMatch(/^\d{1,2}:\d{1,2}$/)
+    expect(refs).not.toContain('9:11')
+    expect(refs).not.toContain('4:20')
+  })
+  it('every book × reference matches the verse format and no banned word', () => {
+    for (const l of livres)
+      for (const r of refs) {
+        const v = `${l} ${r}`
+        expect(v).toMatch(/^[\p{Lu}][^|]* \d{1,2}:\d{1,2}$/u)
+        expect(v).not.toContain("'")
+        for (const w of BANNED) expect(v).not.toMatch(bannedRe(w))
+      }
   })
 })
