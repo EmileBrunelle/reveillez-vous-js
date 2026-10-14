@@ -42,7 +42,7 @@ Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches)
 | UnoCSS | styles utilitaires | [unocss.dev](https://unocss.dev) | [unocss/unocss](https://github.com/unocss/unocss) |
 | VueUse | composables (écouteurs, minuteries, parallaxe, vibration) | [vueuse.org](https://vueuse.org) | [vueuse/vueuse](https://github.com/vueuse/vueuse) |
 | motion-v | animations | [motion.dev](https://motion.dev/docs/vue) | [motiondivision/motion-vue](https://github.com/motiondivision/motion-vue) |
-| Vuetify0 (`@vuetify/v0`) | dialogue accessible de la fenêtre « À propos » (primitives sans style) | [0.vuetifyjs.com](https://0.vuetifyjs.com) | [vuetifyjs/0](https://github.com/vuetifyjs/0) |
+| Vuetify0 (`@vuetify/v0`) | primitives de composants sans style, à personnaliser — ici, le dialogue accessible de la fenêtre « À propos » | [0.vuetifyjs.com](https://0.vuetifyjs.com) | [vuetifyjs/0](https://github.com/vuetifyjs/0) |
 | vgpu | WebGPU : filtre CRT et fond 3D (shaders WGSL) | [vgpu.sh](https://vgpu.sh) | [vercel-labs/vgpu](https://github.com/vercel-labs/vgpu) |
 | unplugin-icons + Iconify | icônes (game-icons, Simple Icons) | [iconify.design](https://iconify.design) | [unplugin/unplugin-icons](https://github.com/unplugin/unplugin-icons) |
 | Fontsource | polices auto-hébergées | [fontsource.org](https://fontsource.org) | [fontsource/fontsource](https://github.com/fontsource/fontsource) |
