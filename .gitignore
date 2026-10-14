@@ -27,3 +27,6 @@ dist-ssr
 .env*
 coverage
 HANDOFF.md
+
+# Worktrees des agents Claude Code
+.claude/worktrees/
