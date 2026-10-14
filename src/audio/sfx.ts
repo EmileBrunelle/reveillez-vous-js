@@ -3,7 +3,7 @@ import { ref } from 'vue'
 export const muted = ref(false)
 
 let ctx: AudioContext | null = null
-const ac = (): AudioContext | null => {
+export const ac = (): AudioContext | null => {
   if (ctx?.state === 'closed') ctx = null
   if (!ctx) {
     const C = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
@@ -18,7 +18,7 @@ export const unlock = () => {
   if (c && c.state !== 'running') void c.resume()
 }
 
-const noiseBuffer = (c: AudioContext, seconds: number) => {
+export const noiseBuffer = (c: AudioContext, seconds: number) => {
   const buf = c.createBuffer(1, Math.max(1, Math.floor(c.sampleRate * seconds)), c.sampleRate)
   const d = buf.getChannelData(0)
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
