@@ -146,6 +146,7 @@ const onClosed = () => {
               @open="onDone"
               @about="openAbout"
               @reset="resetOpen = true"
+              @reset-level="resetLevel"
               @listening="(v) => (listening = v)"
               @impact="shake"
               @closed="onClosed"
@@ -159,11 +160,11 @@ const onClosed = () => {
               <div class="flex flex-none flex-wrap gap-3 justify-center">
                 <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="restart">Fermer la porte</button>
               </div>
+              <Vigilance class="flex-none bg-[#000] px-2 py-[0.2rem]" :level="level" @reset="resetLevel" />
             </section>
           </Motion>
         </AnimatePresence>
       </main>
-      <Vigilance class="fixed left-[0.6rem] bottom-[0.6rem] z-10 bg-[#000] px-2 py-[0.2rem]" :level="level" @reset="resetLevel" />
     </template>
   </MotionConfig>
   <AboutTempleOS v-model="aboutOpen" />

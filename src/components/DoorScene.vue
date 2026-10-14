@@ -16,7 +16,7 @@ import SparkPool from './SparkPool.vue'
 import KnockPattern from './KnockPattern.vue'
 
 const props = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean }>()
-const emit = defineEmits<{ open: []; about: []; reset: []; impact: [number]; closed: []; listening: [boolean] }>()
+const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; closed: []; listening: [boolean] }>()
 const reduced = useReducedMotion()
 
 const stage = ref<HTMLElement>()
@@ -25,6 +25,7 @@ const glow = ref<HTMLElement>()
 const spill = ref<HTMLElement>()
 const seer = ref<HTMLElement>()
 const dustLayer = ref<HTMLElement>()
+const strip = ref<HTMLElement>()
 const ui = ref<HTMLElement>()
 const sparks = ref<InstanceType<typeof SparkPool>>()
 const captionLayer = ref<HTMLElement>()
@@ -84,12 +85,21 @@ const jitter = (intensity: number) => {
   dust(2 + Math.round(intensity * 4))
 }
 
-/** Coup de la voyante, de l’intérieur : le battant pousse vers nous (charnière), plus discret, sans poussière. */
+/** Coup de la voyante, de l’intérieur : le battant pousse vers nous (charnière + léger zoom), poussière du cadre et filet de lumière sous la porte. */
+let lastJolt = 0
 const jitterInside = (intensity: number) => {
   const el = leaf.value
   if (!el || reduced.value) return
-  snap(el, { rotateY: -(1.5 + 2.5 * intensity), x: 0 })
-  go(el, { rotateY: 0 }, { type: 'spring', stiffness: 600, damping: 12 })
+  // Rafale au retour d’un onglet caché : un seul sursaut, pas une pile d’animations.
+  const t = performance.now()
+  if (t - lastJolt < 90) return
+  lastJolt = t
+  snap(el, { rotateY: -(1.5 + 2.5 * intensity), scale: 1.012, x: 0 })
+  go(el, { rotateY: 0, scale: 1 }, { type: 'spring', stiffness: 600, damping: 12 })
+  dust(2 + Math.round(intensity * 2))
+  // Seul changement de luminance : filet mince (≈2 px), delta modeste.
+  snap(strip.value, { opacity: 0.55 })
+  go(strip.value, { opacity: 0 }, { duration: 0.18, ease: 'easeOut' })
 }
 
 const intensity = () => knockIntensity(props.level)
@@ -311,6 +321,7 @@ const onSceneClick = (e: MouseEvent) => {
       <div ref="leaf" data-leaf class="absolute inset-0 origin-[0_50%] backface-hidden select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]" role="img" :aria-label="door.label">
         <component :is="door.component" />
       </div>
+      <div ref="strip" class="absolute left-[8%] right-[8%] -bottom-px h-[2px] opacity-0 bg-[#ffd56a] shadow-[0_0_6px_1px_rgb(255_213_106/0.6)] pointer-events-none" aria-hidden="true" />
       <button v-if="!closing" class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] focus-visible:[outline:3px_solid_var(--accent)] focus-visible:outline-offset-[6px]" type="button" aria-label="Ouvrir la porte" :aria-describedby="phase === 'invite' ? 'door-said' : undefined" :data-phase="phase" @click="onDoor" @keydown="onDoorKeydown" @mousedown="onDoorMousedown" />
       <div ref="captionLayer" class="absolute left-1/2 top-[18%] h-0 pointer-events-none" aria-hidden="true">
         <span v-for="n in CAPTIONS" :key="n" class="absolute top-0 left-0 -translate-x-1/2 text-[1.3rem] font-bold tracking-[0.1em] text-accent opacity-0">TOC</span>
@@ -324,7 +335,7 @@ const onSceneClick = (e: MouseEvent) => {
       <KnockPattern v-if="phase !== 'invite'" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
       <p class="m-0 text-[0.9rem] min-h-[1.35em]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'La voyante cogne…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
       <p class="sr-only" role="status" aria-live="polite">{{ announce }}</p>
-      <SiteFooter :can-reset="level > 1" @about="emit('about')" @reset="emit('reset')" />
+      <SiteFooter :can-reset="level > 1" :level="level" @about="emit('about')" @reset="emit('reset')" @reset-level="emit('resetLevel')" />
     </div>
     <SparkPool ref="sparks" />
   </section>
