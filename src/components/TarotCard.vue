@@ -30,6 +30,7 @@ const faceUp = ref(false)
 const settled = ref(false)
 
 // Title size by length (container-width units); body size is fitted in px by fitBody() (grows and shrinks).
+const maskUrl = computed(() => emblemMask(props.arcane.symbole))
 const titleSize = computed(() => {
   const n = props.title.length
   return n < 40 ? 5.4 : n < 70 ? 4.6 : 3.9
@@ -291,7 +292,7 @@ onUnmounted(() => {
                   class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] bottom-[-1.5cqw] right-[-1.5cqw]"
                 />
                 <div class="tarot__numero font-title text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">{{ arcane.numero }}</div>
-                <div class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]" :style="{ '--emblem-mask': emblemMask(arcane.symbole) }"><TarotEmblem :symbole="arcane.symbole" /></div>
+                <div class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]" :style="{ '--emblem-mask': maskUrl }"><TarotEmblem :symbole="arcane.symbole" /></div>
                 <h2 class="tarot__title font-title m-0 [font-size:var(--title)] leading-[1.15] text-center uppercase [overflow-wrap:anywhere]" :data-text="title">{{ title }}</h2>
                 <div
                   ref="panelEl"

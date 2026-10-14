@@ -11,6 +11,7 @@ defineProps<{ level: number }>()
 const emit = defineEmits<{ pick: [index: 0 | 1 | 2] }>()
 const reduced = useReducedMotion()
 
+const deckEl = ref<HTMLElement>()
 const chosen = ref<0 | 1 | 2 | null>(null)
 const EXIT_MS = 480
 const EXIT_REDUCED_MS = 150
@@ -23,6 +24,7 @@ const { start } = useTimeoutFn(
 const choose = (i: 0 | 1 | 2) => {
   if (chosen.value !== null) return
   chosen.value = i
+  deckEl.value?.focus() // les boutons se désactivent puis disparaissent : le focus reste dans la coupe au lieu de tomber sur <body>
   start()
 }
 const cards = [0, 1, 2] as const
@@ -34,7 +36,15 @@ const cards = [0, 1, 2] as const
     class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
   >
     <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
-      <div class="deck relative aspect-[7/12]" :class="{ 'deck--reduced': reduced, 'deck--chosen': chosen !== null }" role="group" aria-labelledby="deck-prompt">
+      <div
+        ref="deckEl"
+        tabindex="-1"
+        class="deck relative outline-none aspect-[7/12]"
+        :class="{ 'deck--reduced': reduced, 'deck--chosen': chosen !== null }"
+        role="group"
+        aria-labelledby="deck-prompt"
+      >
+        <p class="absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ chosen !== null ? 'Carte choisie.' : '' }}</p>
         <p id="deck-prompt" class="deck__prompt absolute inset-x-0 top-[12cqw] m-0 font-ui text-[7cqw] leading-[1.1] [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]">Choisissez une carte.</p>
         <button
           v-for="i in cards"
