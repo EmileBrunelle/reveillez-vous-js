@@ -145,7 +145,7 @@ const skip = () => {
             <li>
               <a
                 class="select-text text-[#0000aa] underline visited:text-[#550055] focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px]"
-                href="https://en.wikipedia.org/wiki/Terry_A._Davis"
+                href="https://fr.wikipedia.org/wiki/Terry_A._Davis"
                 target="_blank"
                 rel="noopener noreferrer"
                 >Terry A. Davis — Wikipédia</a

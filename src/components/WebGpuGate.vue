@@ -60,7 +60,7 @@ const howBox =
     <footer class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8rem]">
       <a
         class="linklike opacity-90"
-        href="https://en.wikipedia.org/wiki/Terry_A._Davis"
+        href="https://fr.wikipedia.org/wiki/Terry_A._Davis"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Hommage à Terry A. Davis (1969–2018), Wikipédia (nouvel onglet)"

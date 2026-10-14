@@ -121,7 +121,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
           </a>
           <a
             :class="item"
-            href="https://en.wikipedia.org/wiki/Terry_A._Davis"
+            href="https://fr.wikipedia.org/wiki/Terry_A._Davis"
             target="_blank"
             rel="noopener noreferrer"
             role="menuitem"
