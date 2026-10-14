@@ -51,9 +51,21 @@ export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng:
   return { question, body, verse, arcane: drawArcane(grammar, level, rng) }
 }
 
-/** Next door knock line of `level` (shuffle bag), or `fallback` when the key is missing. */
-export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => {
-  const lines = doorLinesFor(grammar, level)
+/** Next line of table `key` (shuffle bag, expanded), or `fallback` when the table is missing. */
+export const nextLine = (grammar: Grammar, key: string, store: Store, rng: Rng, fallback: string): string => {
+  const lines = strings(grammar, key)
   if (lines.length === 0) return fallback
-  return expandTemplate(grammar, lines[drawPersisted(store, `porte${level}`, lines.length, rng)], rng)
+  return expandTemplate(grammar, lines[drawPersisted(store, key, lines.length, rng)], rng)
 }
+
+/** Next door knock line of `level` (shuffle bag), or `fallback` when the key is missing. */
+export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string =>
+  nextLine(grammar, `porte${level}`, store, rng, fallback)
+
+/** Mockery after a failed rhythm (table `rate<N>`). */
+export const nextFailLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string =>
+  nextLine(grammar, `rate${level}`, store, rng, fallback)
+
+/** Give-up line after three failures (table `entrez`). */
+export const nextEntrezLine = (grammar: Grammar, store: Store, rng: Rng, fallback: string): string =>
+  nextLine(grammar, 'entrez', store, rng, fallback)

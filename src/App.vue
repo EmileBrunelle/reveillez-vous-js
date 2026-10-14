@@ -2,12 +2,12 @@
 import { computed, nextTick, ref, shallowRef, watch, watchEffect } from 'vue'
 import { AnimatePresence, Motion, MotionConfig, animate, useReducedMotion } from 'motion-v'
 import DoorScene from './components/DoorScene.vue'
-import Concentration from './components/Concentration.vue'
 import TarotCard from './components/TarotCard.vue'
 import CrtOverlay from './components/CrtOverlay.vue'
 import MuteToggle from './components/MuteToggle.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
 import AboutTempleOS from './components/AboutTempleOS.vue'
+import ResetConfirm from './components/ResetConfirm.vue'
 import Vigilance from './components/Vigilance.vue'
 import { bumpVisits, levelForVisits, readVisits, resetVisits } from './composables/useVisits'
 import { backgrounds, doors } from './content/scenes'
@@ -15,10 +15,11 @@ import { prophecies } from './content/prophecies'
 import { nextDoorLine, nextProphecy, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import { pickVariant } from './engine/variant'
+import { requestOrientationPermission } from './composables/useTilt'
 import { safeStorage } from './composables/safeStorage'
 import { hymn, unlock } from './audio/sfx'
 
-type Phase = 'door' | 'concentration' | 'reading'
+type Phase = 'door' | 'reading'
 const rng = secureRng()
 const FALLBACK_LINE = 'Toc toc toc… Avez-vous un moment pour parler de votre avenir ?'
 
@@ -44,6 +45,7 @@ const level = ref(levelForVisits(readVisits()))
 const paranoia = computed(() => (level.value - 1) / 4)
 watchEffect(() => document.documentElement.style.setProperty('--paranoia', String(paranoia.value)))
 
+const resetOpen = ref(false)
 const resetLevel = () => {
   resetVisits()
   level.value = levelForVisits(readVisits())
@@ -93,6 +95,7 @@ const restart = () => {
 const awaiting = ref(!navigator.userActivation?.hasBeenActive)
 const approach = () => {
   unlock()
+  requestOrientationPermission()
   // Give the context a moment to reach 'running' so scheduleKnocks sees it live.
   window.setTimeout(() => (awaiting.value = false), 120)
 }
@@ -138,14 +141,12 @@ const onClosed = () => {
               :line="doorLine"
               :level="level"
               :closing="closing"
-              @open="phase = 'concentration'"
+              @open="onDone"
               @about="openAbout"
+              @reset="resetOpen = true"
               @impact="shake"
               @closed="onClosed"
             />
-          </Motion>
-          <Motion v-else-if="phase === 'concentration'" key="concentration" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0, scale: 0.96 }" :animate="{ opacity: 1, scale: 1 }" :exit="{ opacity: 0, scale: 1.04 }" :transition="{ duration: 0.25 }">
-            <Concentration @done="onDone" />
           </Motion>
           <Motion v-else key="reading" class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:520px)]:max-w-[48rem]" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
             <section class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:520px)]:flex-row [@media(orientation:landscape)_and_(max-height:520px)]:gap-4">
@@ -163,4 +164,5 @@ const onClosed = () => {
     </template>
   </MotionConfig>
   <AboutTempleOS v-model="aboutOpen" />
+  <ResetConfirm v-model="resetOpen" @confirm="resetLevel" />
 </template>

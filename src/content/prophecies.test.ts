@@ -12,7 +12,7 @@ const CONTRACTIONS = [' de le ', ' de les ', ' à le ', ' à les ']
 const bannedRe = (w: string) => new RegExp(`(?<![\\p{L}\\p{N}])${w}(?![\\p{L}\\p{N}])`, 'iu')
 
 /** Every (key, template, seed) expansion of the real content. */
-function* expansions(prefix: 'niveau' | 'porte') {
+function* expansions(prefix: 'niveau' | 'porte' | 'rate') {
   for (const n of levels) {
     const key = `${prefix}${n}`
     const templates = prophecies[key] as string[]
@@ -24,9 +24,23 @@ function* expansions(prefix: 'niveau' | 'porte') {
   }
 }
 
+/** Single-table keys (no level suffix) joined to the same checks. */
+function* entrezExpansions() {
+  for (const [i, tpl] of (prophecies.entrez as string[]).entries()) {
+    for (let seed = 1; seed <= SEEDS; seed++) {
+      yield { key: 'entrez', i, seed, out: expandTemplate(prophecies, tpl, mulberry32(seed * 7919 + i)) }
+    }
+  }
+}
+
+const allExpansions = function* (prefixes: ('niveau' | 'porte' | 'rate')[]) {
+  for (const p of prefixes) yield* expansions(p)
+  yield* entrezExpansions()
+}
+
 describe('prophecies content', () => {
   it('has niveau1..5 and porte1..5 as non-empty string tables', () => {
-    for (const p of ['niveau', 'porte']) {
+    for (const p of ['niveau', 'porte', 'rate']) {
       for (const n of levels) {
         const t = prophecies[`${p}${n}`]
         expect(Array.isArray(t) && t.length > 0 && typeof t[0] === 'string', `${p}${n}`).toBe(true)
@@ -34,10 +48,19 @@ describe('prophecies content', () => {
     }
   })
 
-  for (const prefix of ['niveau', 'porte'] as const) {
+  it('rate1..5 have at least 4 short lines each; entrez has 3', () => {
+    for (const n of levels) {
+      const t = prophecies[`rate${n}`] as string[]
+      expect(t.length, `rate${n}`).toBeGreaterThanOrEqual(4)
+      for (const l of t) expect(l.length, l).toBeLessThanOrEqual(110)
+    }
+    expect(prophecies.entrez).toHaveLength(3)
+  })
+
+  for (const prefix of ['niveau', 'porte', 'rate', 'entrez'] as const) {
     it(`${prefix}*: typography and grammar of every expansion`, () => {
       let count = 0
-      for (const { key, i, seed, out } of expansions(prefix)) {
+      for (const { key, i, seed, out } of prefix === 'entrez' ? entrezExpansions() : expansions(prefix)) {
         const ctx = `${key}[${i}] seed ${seed}: ${out}`
         count++
         expect(out, ctx).not.toMatch(/[{}]/)
@@ -45,7 +68,7 @@ describe('prophecies content', () => {
         expect(out, ctx).not.toMatch(/ {2}/)
         for (const c of CONTRACTIONS) expect(out.toLowerCase(), ctx).not.toContain(c)
       }
-      expect(count).toBeGreaterThanOrEqual(5 * 9 * SEEDS)
+      expect(count).toBeGreaterThanOrEqual((prefix === 'rate' ? 5 * 4 : prefix === 'entrez' ? 3 : 5 * 9) * SEEDS)
     })
   }
 
@@ -58,8 +81,8 @@ describe('prophecies content', () => {
     }
   })
 
-  it('porte*: no | in output', () => {
-    for (const { key, i, seed, out } of expansions('porte')) {
+  it('porte*, rate*, entrez: no | in output', () => {
+    for (const { key, i, seed, out } of allExpansions(['porte', 'rate'])) {
       expect(out, `${key}[${i}] seed ${seed}: ${out}`).not.toContain('|')
     }
   })
@@ -137,10 +160,8 @@ describe('prophecies content', () => {
       })
     }
     it('absent from every expanded output', () => {
-      for (const prefix of ['niveau', 'porte'] as const) {
-        for (const { key, i, seed, out } of expansions(prefix)) {
-          for (const w of BANNED) expect(out, `${w} in ${key}[${i}] seed ${seed}`).not.toMatch(bannedRe(w))
-        }
+      for (const { key, i, seed, out } of allExpansions(['niveau', 'porte', 'rate'])) {
+        for (const w of BANNED) expect(out, `${w} in ${key}[${i}] seed ${seed}`).not.toMatch(bannedRe(w))
       }
     })
   })

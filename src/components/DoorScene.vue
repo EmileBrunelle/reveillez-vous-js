@@ -3,11 +3,20 @@ import SiteFooter from './SiteFooter.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { animate, useReducedMotion } from 'motion-v'
 import type { SceneVariant } from '../content/scenes'
-import { creak, scheduleKnocks, slam, unlock, type KnockHandle } from '../audio/sfx'
+import { creak, knock, scheduleKnocks, slam, unlock, type KnockHandle } from '../audio/sfx'
+import { knockIntensity } from '../engine/knock'
+import { judge, rhythmFor, toOffsets, type Gap, type Verdict } from '../engine/rhythm'
+import { nextEntrezLine, nextFailLine } from '../engine/prophecy'
+import { prophecies } from '../content/prophecies'
+import { requestOrientationPermission } from '../composables/useTilt'
+import { safeStorage } from '../composables/safeStorage'
+import { secureRng } from '../engine/rng'
 import Seer from './Seer.vue'
+import SparkPool from './SparkPool.vue'
+import KnockPattern from './KnockPattern.vue'
 
 const props = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean }>()
-const emit = defineEmits<{ open: []; about: []; impact: [number]; closed: [] }>()
+const emit = defineEmits<{ open: []; about: []; reset: []; impact: [number]; closed: [] }>()
 const reduced = useReducedMotion()
 
 const stage = ref<HTMLElement>()
@@ -17,7 +26,9 @@ const spill = ref<HTMLElement>()
 const seer = ref<HTMLElement>()
 const dustLayer = ref<HTMLElement>()
 const ui = ref<HTMLElement>()
-const hint = ref(false)
+const sparks = ref<InstanceType<typeof SparkPool>>()
+const captionLayer = ref<HTMLElement>()
+const CAPTIONS = 4
 
 type State = 'idle' | 'opening' | 'gone'
 let state: State = 'idle'
@@ -39,6 +50,7 @@ const snap = (el: Element | NodeListOf<Element> | undefined | null, kf: Record<s
 const wait = (ms: number) => new Promise<void>((r) => timers.push(window.setTimeout(r, ms)))
 const halt = () => {
   knocks?.cancel()
+  clearTimeout(silence)
   timers.forEach(clearTimeout)
   timers = []
   running.forEach((r) => r.stop())
@@ -56,14 +68,10 @@ const dust = (n: number) => {
   })
 }
 
-const onKnock = (_i: number, intensity: number) => {
+/** Bascule la porte sous un coup de la voyante ou du joueur. */
+const jitter = (intensity: number) => {
   const el = leaf.value
-  if (!el) return
-  if (knocks && _i >= knocks.times.length - 1) timers.push(window.setTimeout(() => (hint.value = true), 6000))
-  if (reduced.value) {
-    go(el, { opacity: [0.8, 1] }, { duration: 0.15 })
-    return
-  }
+  if (!el || reduced.value) return
   const dir = Math.random() < 0.5 ? -1 : 1
   const amp = 2 + 5 * intensity
   snap(el, { x: dir * amp, rotateZ: dir * (0.6 + 1.4 * intensity) })
@@ -76,11 +84,146 @@ const onKnock = (_i: number, intensity: number) => {
   dust(2 + Math.round(intensity * 4))
 }
 
-onMounted(async () => {
-  if (props.closing) return slamShut()
+/** Coup de la voyante, de l’intérieur : le battant pousse vers nous (charnière), plus discret, sans poussière. */
+const jitterInside = (intensity: number) => {
+  const el = leaf.value
+  if (!el || reduced.value) return
+  snap(el, { rotateY: -(1.5 + 2.5 * intensity), x: 0 })
+  go(el, { rotateY: 0 }, { type: 'spring', stiffness: 600, damping: 12 })
+}
+
+const intensity = () => knockIntensity(props.level)
+const playerKnock = (e: MouseEvent) => {
+  unlock()
+  knock(intensity())
+  jitter(intensity())
+  const r = stage.value?.getBoundingClientRect()
+  const keyboard = e.detail === 0 || (e.clientX === 0 && e.clientY === 0)
+  if (keyboard && r) sparks.value?.emit(r.left + r.width / 2, r.top + r.height / 2)
+  else sparks.value?.emit(e.clientX, e.clientY)
+}
+
+const caption = (i: number) => {
+  const layer = captionLayer.value
+  const el = layer?.children[i % CAPTIONS] as HTMLElement | undefined
+  if (!el) return
+  const side = i % 2 ? 1 : -1
+  const dx = side * ((stage.value?.offsetWidth ?? 120) * 0.55 + 10)
+  if (reduced.value) go(el, { x: dx, y: 0, opacity: [1, 0] }, { duration: 0.5 })
+  else go(el, { x: [dx, dx + side * 8], y: [0, -22], scale: [0.6, 1.1], opacity: [1, 0] }, { duration: 0.55, ease: 'easeOut' })
+}
+
+type Phase = 'invite' | 'listen' | 'repeat' | 'busy'
+const phase = ref<Phase>('invite')
+const said = ref('(Cognez à la porte)')
+const verdictText = ref('')
+const announce = ref('')
+const pattern = ref<Gap[]>([])
+const lit = ref(0)
+const filled = ref(0)
+let fails = 0
+let taps: number[] = []
+let silence = 0
+let started = false
+let firstListen = true
+let retryIntro = ''
+
+const VERDICTS: Record<Exclude<Verdict, 'ok'>, string> = {
+  'trop-peu': 'Pas assez de coups.',
+  trop: 'Trop de coups.',
+  rythme: 'Le bon nombre de coups, mais pas le bon rythme.',
+}
+const describe = (gaps: Gap[]) => gaps.reduce((acc, g) => acc + (g === 'long' ? ', pause, toc' : ' toc'), 'toc')
+
+const startListen = () => {
+  if (state !== 'idle') return
+  phase.value = 'listen'
+  lit.value = 0
+  filled.value = 0
+  taps = []
+  if (pattern.value.length === 0) pattern.value = rhythmFor(props.level, secureRng())
+  const intro = firstListen ? `${props.line} — ` : retryIntro
+  retryIntro = ''
+  if (firstListen) said.value = props.line
+  firstListen = false
+  announce.value = `${intro}La voyante cogne : ${describe(pattern.value)}`
+  knocks = scheduleKnocks(toOffsets(pattern.value, props.level), intensity(), seerHit)
+}
+
+const seerHit = (i: number, force: number) => {
+  lit.value = i + 1
+  jitterInside(force)
+  caption(i)
+  if (!reduced.value) navigator.vibrate?.(30)
+  // Laisse le dernier point allumé un instant avant de passer la main au joueur.
+  if (i >= pattern.value.length) {
+    void wait(300).then(() => {
+      if (state !== 'idle') return
+      phase.value = 'repeat'
+      announce.value = 'À vous de cogner.'
+    })
+  }
+}
+
+const evaluate = () => {
+  clearTimeout(silence)
+  if (phase.value !== 'repeat') return
+  phase.value = 'busy'
+  const v = judge(pattern.value, taps)
+  if (v === 'ok') {
+    verdictText.value = 'Bien.'
+    announce.value = 'Bien. La porte s’ouvre.'
+    void wait(350).then(open)
+    return
+  }
+  fails++
+  const store = safeStorage()
+  verdictText.value = VERDICTS[v]
+  if (fails >= 3) {
+    said.value = nextEntrezLine(prophecies, store, secureRng(), 'Entrez.')
+    announce.value = said.value
+    void wait(1800).then(open)
+    return
+  }
+  said.value = nextFailLine(prophecies, props.level, store, secureRng(), 'Pas tout à fait. Écoutez encore.')
+  retryIntro = `${VERDICTS[v]} ${said.value} — `
+  announce.value = ''
+  void wait(1600).then(() => {
+    verdictText.value = ''
+    startListen()
+  })
+}
+
+const onDoor = (e: MouseEvent) => {
+  requestOrientationPermission() // repli iOS : no-op si déjà accordé/refusé
+  if (state === 'opening') return finish()
+  if (state !== 'idle') return
+  if (phase.value === 'invite') {
+    playerKnock(e)
+    if (!started) {
+      started = true
+      void wait(800).then(startListen)
+    }
+  } else if (phase.value === 'repeat') {
+    taps.push(performance.now())
+    filled.value = Math.min(taps.length, pattern.value.length + 1)
+    playerKnock(e)
+    clearTimeout(silence)
+    if (taps.length > pattern.value.length + 1) evaluate()
+    else silence = window.setTimeout(evaluate, 1200)
+  }
+}
+const onDoorKeydown = (e: KeyboardEvent) => {
+  if (e.repeat) e.preventDefault()
+}
+// Évite la sélection de texte par clics multiples.
+const onDoorMousedown = (e: MouseEvent) => {
+  if (e.detail > 1) e.preventDefault()
+}
+
+onMounted(() => {
+  if (props.closing) return void slamShut()
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
-  await wait(350)
-  if (state === 'idle') knocks = scheduleKnocks(props.level, onKnock)
 })
 onUnmounted(halt)
 
@@ -88,7 +231,6 @@ const open = async () => {
   if (state === 'opening') return finish()
   if (state !== 'idle') return
   state = 'opening'
-  hint.value = false
   unlock()
   halt()
   snap(leaf.value, { x: 0, rotateZ: 0 })
@@ -168,16 +310,22 @@ const onSceneClick = (e: MouseEvent) => {
       <div ref="leaf" data-leaf class="absolute inset-0 origin-[0_50%] backface-hidden select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]" role="img" :aria-label="door.label">
         <component :is="door.component" />
       </div>
-      <button v-if="!closing" class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer [-webkit-tap-highlight-color:transparent] focus-visible:[outline:3px_solid_var(--accent)] focus-visible:outline-offset-[6px]" type="button" aria-label="Ouvrir la porte" @click="open" />
+      <button v-if="!closing" class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] focus-visible:[outline:3px_solid_var(--accent)] focus-visible:outline-offset-[6px]" type="button" aria-label="Ouvrir la porte" :aria-describedby="phase === 'invite' ? 'door-said' : undefined" :data-phase="phase" @click="onDoor" @keydown="onDoorKeydown" @mousedown="onDoorMousedown" />
+      <div ref="captionLayer" class="absolute left-1/2 top-[18%] h-0 pointer-events-none" aria-hidden="true">
+        <span v-for="n in CAPTIONS" :key="n" class="absolute top-0 left-0 -translate-x-1/2 text-[1.3rem] font-bold tracking-[0.1em] text-accent opacity-0">TOC</span>
+      </div>
       <div ref="dustLayer" class="absolute inset-x-0 top-0 h-0 pointer-events-none" aria-hidden="true">
         <span v-for="n in 10" :key="n" class="absolute top-0 left-0 w-[3px] h-[3px] bg-[#c9b79a] opacity-0" />
       </div>
     </div>
     <div v-if="!closing" ref="ui" class="scene scene--ui">
-      <p class="lead">{{ line }}</p>
-      <p class="m-0 text-[0.9rem] min-h-[1.35em] [transition:opacity_0.6s]" aria-hidden="true" :class="hint ? 'opacity-[0.85]' : 'opacity-0'">(Touchez la porte)</p>
-      <SiteFooter @about="emit('about')" />
+      <p id="door-said" class="lead">{{ said }}</p>
+      <KnockPattern v-if="phase !== 'invite'" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
+      <p class="m-0 text-[0.9rem] min-h-[1.35em]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'La voyante cogne…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
+      <p class="sr-only" role="status" aria-live="polite">{{ announce }}</p>
+      <SiteFooter :can-reset="level > 1" @about="emit('about')" @reset="emit('reset')" />
     </div>
+    <SparkPool ref="sparks" />
   </section>
 </template>
 
@@ -186,11 +334,11 @@ const onSceneClick = (e: MouseEvent) => {
 .scene { gap: 0.75rem; }
 .scene--ui { max-width: none; }
 .door-hit::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: -3px; height: 4px; background: var(--accent); box-shadow: 0 0 14px 4px rgb(255 226 140 / 0.8); opacity: 0; transition: opacity 0.2s; }
-.door-hit:is(:hover, :focus-visible)::after { opacity: 1; }
+.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)::after { opacity: 1; }
 [data-leaf] :deep(svg) { transform-origin: 0 50%; transition: transform 0.25s, filter 0.25s; }
-[data-stage]:has(.door-hit:is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: perspective(700px) rotateY(-5deg); filter: drop-shadow(0 0 10px rgb(255 226 140 / 0.55)); }
+[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: perspective(700px) rotateY(-5deg); filter: drop-shadow(0 0 10px rgb(255 226 140 / 0.55)); }
 @media (prefers-reduced-motion: reduce) {
-  [data-stage]:has(.door-hit:is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: none; }
+  [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: none; }
 }
 @media (max-height: 30rem) and (orientation: landscape) {
   .scene:not(.scene--ui) { grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 1.5rem; max-width: 44rem; }

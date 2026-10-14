@@ -38,7 +38,10 @@ export const prophecies: Grammar = {
     '{question1}|{industrie.inventeur_maj} {industrie.produit} pour nous vendre plus de {industrie.cible}, dit-on. Moi, je lis seulement {objet.nom}, et j’y vois que {futur} {moment}.|{verset}',
     '{question1}|À minuit, ce soir, vous entendrez peut-être un léger craquement. Ce sera un fantôme poli qui cherche l’interrupteur.|{verset}',
     '{question1}|{fete.nom_maj} approche. Ma boule de cristal prévoit que vous y achèterez des {fete.cible}. Presque sûrement.|{verset}',
+    '{question1}|Avant la fin de la semaine, une personne vous dira que les gens qui parlent en français, iels ont tellement de charisme. Vous ne la contredirez pas.|{verset}',
     '{question1}|Cette semaine, quelqu’un vous offrira une citrouille. Acceptez-la : ce sera la première d’une longue série.|{verset}',
+    '{question1}|Vous entrerez chez Renaud-Bray pour acheter un livre. Vous ressortirez avec une planche à découper en bambou et des chandelles. Les cartes l’avaient prévu.|{verset}',
+    '{question1}|Les cartes sont formelles : le fromage en grains ne doit pas fondre. Quelqu’un, quelque part, met sa poutine au micro-ondes en ce moment. Les cartes pleurent.|{verset}',
   ],
 
   // ---- Niveau 2 · Suspicieux·se : les liens apparaissent ----------------------------------
@@ -53,6 +56,11 @@ export const prophecies: Grammar = {
     '{question2}|Ce soir, à minuit, {objet.nom} va changer de couleur. Si vous ne le voyez pas, c’est que vous en faites partie.|{verset}',
     '{question2}|Vous avez ouvert la porte une deuxième fois, et {objet.nom} avait tout prédit, avant même que je frappe. Étrange, non ?|{verset}',
     '{question2}|Ma boule de cristal vous voit planifier un voyage {lieu_inexistant.en} cet automne. Coïncidence : {lieu_inexistant.lieu} n’existe pas. {lieu_inexistant.preuve}|{verset}',
+    '{question2}|Ce soir, vous remettrez une araignée dehors au lieu de l’écraser. Vous vous sentirez sage. Elle mourra d’hypothermie. Les cartes ne jugent pas.|{verset}',
+    '{question2}|En vous, il y a deux loups. L’un veut du Paris Pâté. L’autre veut des sardines. Les cartes savent lequel gagnera demain matin. Elles ne le diront pas.|{verset}',
+    '{question2}|Les cartes sont formelles : les Nordiques reviendront. Les Expos aussi. Les cartes disent ça depuis 1995. Elles sont patientes.|{verset}',
+    '{question2}|Une malédiction pèse sur vous : le chili du Tim, avec le p’tit pain et les deux beurres. Vous y retournerez demain. Les cartes ne peuvent rien pour vous.|{verset}',
+    '{question2}|Votre carte est le Magicien du Québec. Dès que quelque chose arrive dans votre vie, vous lancez un sort. Le sort s’appelle “Tabarnouche”. Il est très efficace.|{verset}',
   ],
 
   // ---- Niveau 3 · Convaincu·e : fausses fêtes, Big Citrouille dans l’ombre ---------------------
@@ -67,6 +75,10 @@ export const prophecies: Grammar = {
     '{question3}|Réveillez-vous, les moutons ! Le tarot vous le dit : {futur} {moment}. Avancez avec des {bonbon} dans les poches.|{verset}',
     '{question3}|{objet.nom_maj} vous regarde. Pas pour vous protéger : pour mesurer vos réserves de {bonbon} avant le 31 octobre.|{verset}',
     '{question3}|Le 31 octobre, à minuit, un fantôme vous demandera si {fete.nom} est une vraie fête. Répondez non. Big Citrouille y verra une provocation.|{verset}',
+    '{question3}|Les cartes voient votre prochain logement : une ancienne cuisine de restaurant, un poteau au milieu du salon, 10 500 $ par mois. Non chauffé. Vous signerez quand même.|{verset}',
+    '{question3}|Cinq chats noirs dans un grand manteau vous demanderont l’heure. Répondez poliment. L’un d’eux sera un jour premier ministre.|{verset}',
+    '{question3}|Les cartes voient un crime : une poutine au fromage râpé, servie dans un festival. Le coupable court toujours.|{verset}',
+    '{question3}|Pleine lune sur la Belle Province. Ce soir, quelque chose hurlera dans votre rue. Ne lui ouvrez pas. Il cogne mieux que vous.|{verset}',
   ],
 
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
@@ -81,6 +93,8 @@ export const prophecies: Grammar = {
     '{question4}|Cette nuit, {objet.nom} a bougé sans mon aide. Ma prédiction : {futur} {moment}. Ma deuxième prédiction : la même, en pire.|{verset}',
     '{question4}|Un seul fournisseur livre le chocolat, les toiles d’araignée et votre prochain mauvais pressentiment. MÊME FOURNISSEUR. Mon tarot annonce son passage {moment}.|{verset}',
     '{question4}|Soyez prudent·e à minuit : le chat noir du voisin n’est pas un chat, c’est une antenne. La pleine lune la recharge. Vous le verrez {moment}.|{verset}',
+    '{question4}|Piko, l’esprit des montgolfières de Saint-Jean, plane au-dessus de votre maison. Il sourit. Il a toujours souri. Il ne redescendra pas.|{verset}',
+    '{question4}|Réveillez-vous. Montréal n’a jamais existé. Regardez une carte : c’est le Grand Lac Saint-Laurent. Ils ont tout peint.|{verset}',
   ],
 
   // ---- Niveau 5 · Illuminé·e : MAJUSCULES, phrases coupées, contradictions ----------------------
@@ -95,64 +109,116 @@ export const prophecies: Grammar = {
     '{question5}|JE SUIS LE MESSAGER. JE SUIS LE MESSAGE. JE SUIS LA PRÉDICTION. LE COUPABLE, C’EST {industrie.nom_caps}. VOUS ACHÈTEREZ DES {industrie.cible_caps} {moment_caps}. LA BOULE A DIT.|{verset}',
     '{question5}|ILS ONT GREFFÉ DES YEUX SUR LES CÔNES ORANGE. LA BOULE DE CRIS— OUI. ELLE A TOUT VU. ELLE VOIT VOTRE 31 OCTOBRE. ELLE A TOUJOURS ÉTÉ AU COUR—|{verset}',
     '{question5}|LES OISEAUX SONT DES DRONES ! LES CHAUVES-SOURIS SONT DES DRONES DÉGUISÉS ! CE SOIR À MINUIT, LA PLEINE LUNE VA PARLER ET VOUS SEREZ LE PUBLIC !|{verset}',
+    '{question5}|ILS DÉTESTAIENT LE RÉEL PARCE QU’IL DISAIT LE RÉEL. VOUS LE LIREZ À MINUIT. VOUS LE DIREZ À VOTRE TOUR.|{verset}',
+    '{question5}|LA SOCIÉTÉ EST UN CAUCHEMAR DONT ON NE PEUT PAS SE RÉVEILLER. RÉVEILLEZ-VOUS QUAND MÊME. VOUS Y ARRIVEREZ CE SOIR.|{verset}',
+    '{question5}|ILLUMINATION. LA VÉRITÉ ULTIME VOUS EST RÉVÉLÉE : VOUS AVEZ LE DROIT DE NE RIEN FAIRE CE SOIR. FERMEZ LA PORTE. ALLEZ DORMIR.|{verset}',
+    '{question5}|CES PROPHÉTIES ONT ÉTÉ ÉCRITES PAR UNE MACHINE QUI RECOPIE TOUT CE QU’ELLE A LU. COMME TOUTES LES PROPHÉTIES DEPUIS TOUJOURS. ÇA NE LES REND PAS FAUSSES. VOTRE AVENIR NON PLUS.|{verset}',
   ],
 
-  // ---- Phrases de porte (toc toc), une ligne chacune ; le visiteur est une personne voyante porte-à-porte
+  // ---- Phrases de porte : la porte reste fermée, la personne frappe ; la voix derrière frappe un rythme et invite à le répéter
   porte1: [
-    'Toc toc toc… Avez-vous un moment pour parler de votre avenir ?',
-    'Toc toc. Bonjour ! Je suis voyant·e itinérant·e, et j’ai une bonne nouvelle au sujet de votre horoscope.',
-    'Toc toc toc… Excusez le dérangement, j’ai un petit dépliant sur la pleine lune.',
-    'Toc toc. Bonsoir ! Auriez-vous deux minutes pour parler {objet.de} ?',
-    'Toc toc toc… Je ne vends rien. Je distribue des prédictions, gratuitement, avec des bonbons.',
-    'Toc toc. Bonjour ! Avez-vous déjà pensé à votre semaine prochaine ? Moi oui, c’est mon métier.',
-    'Toc toc toc… Pardon de passer à l’heure du souper. Votre avenir, lui, ne pouvait pas attendre.',
-    'Toc toc. Bonjour ! Je fais le tour des maisons avant le 31 octobre pour lire dans les citrouilles. Gentiment.',
-    'Toc toc toc… Pardon, c’est bien ici qu’on veut connaître le futur ?',
+    'Toc toc toc… Voilà mon rythme. À votre tour : frappez la même chose.',
+    'Bonsoir ! Écoutez bien, je ne le répéterai pas. Enfin si, mais pas gratuitement.',
+    'Toc toc. Je suis voyant·e, je sais déjà que vous êtes là. Frappez comme moi, pour la forme.',
+    'Écoutez ce rythme, puis frappez-le. Ensuite, nous parlerons {objet.de}.',
+    'Je ne vends rien. Je teste seulement votre oreille, avec des bonbons à la clé.',
+    'Il paraît que vous voulez connaître le futur. Rendez-moi le rythme, on commence.',
+    'Bonjour ! Avez-vous l’oreille musicale ? La boule de cristal, elle, a le sens du rythme.',
+    'Je vous donne un rythme, vous me le rendez. C’est la politique de la maison.',
+    'Toc toc toc… Écoutez, puis frappez. Le futur n’aime pas qu’on l’interrompe.',
+    'Vous cognez en français ? J’adore le français. J’adore le ç. “Ça”, avec sa cédille : quel beau mot. Répétez mon rythme.',
   ],
   porte2: [
-    'Toc toc toc… Encore moi. La boule de cristal m’a dit que vous ouvririez.',
-    'Toc toc. Je repasse. Il y a eu des développements au sujet {objet.de}.',
-    'Toc toc toc… Je ne voulais pas insister, mais les cartes ont insisté pour moi.',
-    'Toc toc. C’est bien vous qui avez tiré le Pendu hier soir ? Non ? Ouvrez quand même.',
-    'Toc toc toc… Vous avez dû remarquer que je repasse. Moi, j’ai remarqué que vous restez.',
-    'Toc toc. Deuxième visite. Coïncidence ? Mon tarot ne croit pas aux coïncidences.',
-    'Toc toc toc… On m’a dit de ne pas retourner chez vous. La pleine lune a dit le contraire.',
-    'Toc toc. J’ai une question sur {industrie.nom}. Une toute petite. La boule la trouve importante.',
-    'Toc toc toc… Il y avait un fantôme derrière vous la dernière fois. Vous l’aviez vu ?',
+    'Toc toc toc… Encore vous. La boule de cristal m’avait dit que vous frapperiez.',
+    'Vous cognez en français ? Les gens qui parlent en français, iels ont tellement de charisme… Répétez mon rythme.',
+    'Toc toc. J’ai changé le rythme depuis la dernière fois. Vous l’aviez remarqué ?',
+    'Écoutez bien : les cartes ont insisté pour que je vous teste. Moi, je voulais dormir.',
+    'Toc toc. Frappez-moi ça. Il y a eu des développements au sujet {objet.de}.',
+    'Deuxième visite. Coïncidence ? Mon tarot ne croit pas aux coïncidences. Répétez le rythme.',
+    'Toc toc toc… Je reconnais votre façon de frapper. Je ne devrais pas, vous n’avez pas encore frappé.',
+    'On m’a dit de ne pas vous répondre. La pleine lune a dit le contraire. Frappez.',
+    'J’ai une question sur {industrie.nom}. D’abord, le rythme. La boule le trouve important.',
+    'Il y avait quelqu’un derrière vous la dernière fois. Frappez doucement, au cas où.',
+    'Vous avez dit “knock knock” ? Ici, on dit toc toc. Recommencez, en français.',
+    'Les fêtes ? Je m’en fous. Halloween ? Même pas, je m’en fous aussi. Je suis amoureuse de mes citrouilles, c’est tout. Répétez mon rythme.',
   ],
   porte3: [
-    'TOC TOC TOC. Ouvrez, ma boule de cristal parle {fete.de} et vous allez comprendre.',
-    'Toc toc toc ! Réveillez-vous, il est grand temps de parler de Big Citrouille.',
-    'TOC TOC. J’ai des preuves. Elles sont dans un sac à bonbons.',
-    'Toc toc toc ! Vous voulez savoir qui a inventé {fete.nom} ? Mes cartes savent.',
-    'TOC TOC TOC. Je suis le messager. La vérité ne sonne pas, elle cogne.',
-    'Toc toc ! Ouvrez avant qu’on vous vende encore des {fete.cible}.',
-    'Toc toc toc ! Cette fois, j’ai apporté mon jeu de tarot. Il y a des flèches dessus.',
-    'TOC TOC. Les citrouilles vous mentent. Moi, je frappe poliment, mais fermement.',
-    'Toc toc toc ! La personne qui ouvre cette porte change son destin. Ouvrez.',
+    'TOC TOC TOC. Je sais que c’est vous. Frappez ce rythme et je vous dirai pourquoi.',
+    'Toc toc toc ! Réveillez-vous, il est temps de parler de Big Citrouille. Après le rythme.',
+    'TOC TOC. J’ai des preuves. Elles sont dans un sac à bonbons. Frappez, je les sors.',
+    'Toc toc toc ! Vous voulez savoir qui a inventé {fete.nom} ? Mes cartes savent. Rythme d’abord.',
+    'TOC TOC TOC. Je suis le message. La vérité ne sonne pas, elle cogne. Cognez à votre tour.',
+    'Toc toc ! Frappez avant qu’on vous vende encore des {fete.cible}.',
+    'Toc toc toc ! Votre façon de frapper est dans mon jeu de tarot. Il y a des flèches dessus.',
+    'TOC TOC. Les citrouilles vous mentent. Pas mon rythme. Répétez-le.',
+    'Toc toc toc ! La personne qui frappe juste change son destin. Frappez.',
   ],
   porte4: [
-    'TOC TOC TOC. Ne dites rien. Les fantômes écoutent. Ouvrez doucement.',
-    'Toc toc. MÊME FOURNISSEUR. Ouvrez, je vous expliquerai avec du fil rouge et ma boule de cristal.',
-    'TOC TOC TOC ! Éteignez la lumière, puis ouvrez. Non, ouvrez, puis éteignez.',
-    'Toc. Toc. Toc. Quelqu’un me suit depuis {fete.nom}. Laissez-moi entrer.',
-    'TOC TOC. Je vois votre souper dans la boule. Je vois aussi que {futur}.',
-    'Toc toc toc… Vérifiez {lieu}. Maintenant ouvrez.',
-    'TOC TOC TOC ! Ouvrez ! Le fil rouge passe par votre paillasson !',
-    'Toc toc. Parlez bas : {objet.nom} écoute tout le voisinage.',
-    'TOC TOC. Ce n’est pas le facteur, ce n’est pas le livreur, c’est pire : c’est votre horoscope.',
+    'TOC TOC TOC. Ne dites rien. Les fantômes écoutent. Frappez doucement le même rythme.',
+    'Toc toc. MÊME FOURNISSEUR. Frappez, je vous expliquerai avec du fil rouge et ma boule de cristal.',
+    'TOC TOC TOC ! Éteignez la lumière, puis frappez. Non, frappez, puis éteignez.',
+    'Toc. Toc. Toc. Quelqu’un me suit depuis {fete.nom}. Frappez vite, qu’il croie que c’est vous.',
+    'TOC TOC. Je vois votre souper dans la boule. Je vois aussi que {futur}. Frappez.',
+    'Toc toc toc… Vérifiez {lieu}. Maintenant frappez mon rythme.',
+    'TOC TOC TOC ! Le fil rouge passe par votre poing ! Frappez comme moi !',
+    'Toc toc. Parlez bas : {objet.nom} écoute tout le voisinage. Frappez plutôt.',
+    'TOC TOC. Ce n’est pas le facteur, ce n’est pas le livreur, c’est pire : c’est mon rythme. Répétez-le.',
+    'Ce soir, quelqu’un d’autre cognera à votre porte. C’est une dinde sauvage. Elle est plus grande que vous. Elle connaît le rythme.',
   ],
   porte5: [
-    'OUVREZ. ILS ÉCOUTENT PAR LE TROU DE LA SERRURE.',
-    'TOC TOC TOC TOC TOC TOC TOC— VOUS N’ÊTES PAS CHEZ VOUS. OUVREZ.',
-    'LA BOULE DE CRISTAL M’A DIT VOTRE ADRESSE. ELLE A AUSSI DIT DE NE PAS OUV— OUVREZ.',
-    'TOC— ATTENDEZ. NON. TOC. C’ÉTAIT DÉJÀ OUVERT. ENTREZ-MOI.',
-    'OUVREZ ! FERMEZ ! LES DEUX ! EN MÊME TEMPS !',
+    'FRAPPEZ. ILS ÉCOUTENT PAR LE TROU DE LA SERRURE.',
+    'TOC TOC TOC TOC TOC TOC TOC— VOUS N’ÊTES PAS CHEZ VOUS. FRAPPEZ.',
+    'LA BOULE DE CRISTAL M’A DIT VOTRE ADRESSE. ELLE A AUSSI DIT DE NE PAS RÉPON— FRAPPEZ.',
+    'TOC— ATTENDEZ. NON. TOC. C’EST VOUS QUI FRAPPEZ, C’EST MOI QUI ÉCOUTE. NON. L’INVERSE.',
+    'FRAPPEZ ! ARRÊTEZ ! LES DEUX ! EN MÊME TEMPS !',
     'JE SUIS DERRIÈRE LA PORTE. JE SUIS DEVANT LA PORTE. JE SUIS {objet.nom_caps}.',
-    'TOC TOC. C’EST VOUS QUI FRAPPEZ. C’EST MOI QUI OUVRE. RE— REGARDEZ LA CITROUILLE.',
-    'MÊME FOURNISSEUR ! MÊME PORTE ! MÊME VOU— OUVREZ {moment_caps} !',
-    'LE CHAT NOIR A DIT QUE VOUS ÉTIEZ LÀ. VOUS N’ÊTES PAS LÀ. OUVREZ QUAND MÊME.',
-    'TOC TOC TOC. IL N’Y A PERSONNE. IL N’Y A JAMAIS PERSONNE. OUVREZ À PERSONNE.',
+    'TOC TOC. C’EST MOI QUI FRAPPE. C’EST VOUS QUI RÉPONDEZ. RE— REGARDEZ LA CITROUILLE.',
+    'MÊME FOURNISSEUR ! MÊME PORTE ! MÊME RYTHME ! RÉPÉTEZ {moment_caps} !',
+    'LE CHAT NOIR A DIT QUE VOUS ÉTIEZ LÀ. VOUS N’ÊTES PAS LÀ. FRAPPEZ QUAND MÊME.',
+    'TOC TOC TOC. IL N’Y A PERSONNE. IL N’Y A JAMAIS PERSONNE. FRAPPEZ À PERSONNE.',
+  ],
+
+  // ---- Ratés : dits derrière la porte quand le rythme est mauvais (≤ ~110 caractères) ----------
+  rate1: [
+    'Vous avez mal écouté. Je recommence, doucement.',
+    'Pas tout à fait. Les cartes disent : encore une fois.',
+    'Presque ! Tendez l’oreille, c’est un art.',
+    'Hmm, non. Mon rythme, pas le vôtre. Réessayez.',
+  ],
+  rate2: [
+    'Ce n’était pas ça. Vous le saviez, n’est-ce pas ?',
+    'Étrange. Hier, vous l’aviez réussi du premier coup.',
+    'Non. Quelque chose dans le mur a frappé avec vous.',
+    'Faux. La boule de cristal a fait la grimace.',
+  ],
+  rate3: [
+    'FAUX. Vous le faites exprès, la boule l’a vu.',
+    'Ce n’est pas mon rythme. C’est celui du voisinage. Pourquoi ?',
+    'Non. Écoutez mieux : ils frappent aussi, derrière vous.',
+    'Mal. Mes cartes avaient prévu cette erreur. Elles s’en lassent.',
+    'Il faut imaginer Sisyphe heureux. Et vous aussi, en bas de la côte. Recommencez.',
+  ],
+  rate4: [
+    'NON. Pas comme ça. Ils ont entendu. Recommencez.',
+    'Ce n’était pas votre main, ça. Chut. Encore.',
+    'Trop fort ! Le fil rouge a vibré. Doucement, encore.',
+    'Faux. Il y a un écho dans l’escalier. Ce n’est pas le mien.',
+    'CESSE. Mon rythme n’avait pas autant de coups.',
+  ],
+  rate5: [
+    'FAUX. FAUX. FAUX. C’ÉTAIT MOI QUI FRAPPAIS. C’ÉTAIT TOUJOURS MOI.',
+    'NON ! LE RYTHME EST DANS LA PORTE. ÉCOUTEZ LA PORTE !',
+    'MAL ÉCOUTÉ ! LA CITROUILLE A COMPTÉ. ELLE A COMPTÉ AUTREMENT.',
+    'ENCORE. ENCORE. ENCORE. LA LUNE ATTEND VOTRE MAIN.',
+    'ABRACADA… FARME-LA. Écoutez mon rythme.',
+    'Non merci, vous utilisez l’IA ? Elle non plus ne sait pas cogner. Utilisez votre cerveau. Recommencez.',
+  ],
+
+  // ---- Après 3 ratés : la voix abandonne et ouvre quand même ---------------------------------
+  entrez: [
+    'Bon. Entrez, on n’a pas toute la nuit.',
+    'Trois essais. Ça suffit : je vous ouvre. Ne touchez à rien.',
+    'Les cartes disent d’abandonner. Entrez, ce n’est pas verrouillé.',
   ],
 
   // ---- Questions d’accroche, par niveau --------------------------------------------------
@@ -256,6 +322,7 @@ export const prophecies: Grammar = {
   // Arcanes (cartes de voyant). `symbole` = id d’un emblème de TarotCard (inconnu = œil) ; `niveaux` = niveaux où la carte est
   // privilégiée (chiffres collés). Pas de figure religieuse : on garde les arcanes neutres et ceux de notre cru.
   arcane: [
+    { numero: 'I', nom: 'Le Magicien du Québec', symbole: 'star', niveaux: '23' },
     { numero: '0', nom: 'Le Mat', symbole: 'fool', niveaux: '12' },
     { numero: 'X', nom: 'La Roue de Fortune', symbole: 'wheel', niveaux: '123' },
     { numero: 'XVII', nom: 'L’Étoile', symbole: 'star', niveaux: '12' },
@@ -339,6 +406,7 @@ export const prophecies: Grammar = {
     'Citrouilles 66:6',
     'Calcul 3:14',
     'Hiver 11:30',
+    'Qc 6:66',
   ],
 }
 
@@ -346,7 +414,8 @@ export const prophecies: Grammar = {
 //  - `niveau1` Curieux·se · `niveau2` Suspicieux·se · `niveau3` Convaincu·e · `niveau4` Paranoïaque · `niveau5` Illuminé·e.
 //  - Chaque niveau = 8-10 gabarits « question|corps|verset » (séparés par « | »). Questions par niveau : `question1` … `question5`.
 //  - Tables partagées : `industrie`, `fete`, `objet` (paires), `futur`, `moment`, `bonbon`, `lieu`, `verset` (chaînes).
-//  - `porte1` … `porte5` : phrases de porte (« toc toc »), 8-10 lignes simples par niveau, de plus en plus frénétiques.
+//  - `porte1` … `porte5` : phrases de porte (voix derrière la porte qui frappe un rythme), 8-10 lignes par niveau.
+//  - `rate1` … `rate5` : 4 à 6 phrases par niveau quand le rythme est raté ; `entrez` : 3 phrases après 3 ratés.
 //  - `gabarit` = ancien point d’entrée (un niveau au hasard), gardé pour compatibilité.
 // Conventions :
 //  - Écriture inclusive : épicène d’abord (« les personnes », « toute personne », « vous ») ; sinon point médian

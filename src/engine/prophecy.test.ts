@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Grammar } from './grammar'
-import { doorLinesFor, nextDoorLine, nextProphecy, templatesFor } from './prophecy'
+import { doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, templatesFor } from './prophecy'
 import { mulberry32 } from './rng'
 import { pickVariant } from './variant'
 import { detectBrowser } from '../effects/webgpu'
@@ -8,6 +8,8 @@ import { detectBrowser } from '../effects/webgpu'
 const g: Grammar = {
   niveau1: ['Q1|{x}|V1', 'Q2|{x}|V2'],
   porte1: ['Toc {x}'],
+  rate1: ['Raté {x}'],
+  entrez: ['Entrez'],
   x: ['a', 'b'],
 }
 const store = () => {
@@ -31,6 +33,12 @@ describe('prophecy', () => {
   it('door line falls back when key is missing', () => {
     expect(nextDoorLine(g, 4, store(), mulberry32(1), 'fallback')).toBe('fallback')
     expect(nextDoorLine(g, 1, store(), mulberry32(1), 'fallback')).toMatch(/^Toc [ab]$/)
+  })
+  it('fail and give-up lines draw from their tables, with fallback', () => {
+    expect(nextFailLine(g, 1, store(), mulberry32(1), 'fb')).toMatch(/^Raté [ab]$/)
+    expect(nextFailLine(g, 3, store(), mulberry32(1), 'fb')).toBe('fb')
+    expect(nextEntrezLine(g, store(), mulberry32(1), 'fb')).toBe('Entrez')
+    expect(nextEntrezLine({}, store(), mulberry32(1), 'fb')).toBe('fb')
   })
 })
 

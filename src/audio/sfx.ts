@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-import { knockPlan } from '../engine/knock'
 
 export const muted = ref(false)
 
@@ -47,31 +46,55 @@ export interface KnockHandle {
   cancel: () => void
 }
 
+const thump = (c: AudioContext, at: number, gain: number) => {
+  const o = c.createOscillator()
+  o.type = 'sine'
+  o.frequency.setValueAtTime(140, at)
+  o.frequency.exponentialRampToValueAtTime(50, at + 0.1)
+  const g = c.createGain()
+  g.gain.setValueAtTime(gain, at)
+  g.gain.exponentialRampToValueAtTime(0.001, at + 0.12)
+  o.connect(g).connect(c.destination)
+  o.start(at)
+  o.stop(at + 0.13)
+  return o
+}
+
+/** One knock (noise burst + thump) scheduled at audio time `at`; returns the sources so they can be stopped. */
+const knockAt = (c: AudioContext, at: number, intensity: number): AudioScheduledSourceNode[] => [
+  ...burst(c, at, 0.12, 400, 0.4 + 0.5 * intensity),
+  thump(c, at, 0.3 + 0.4 * intensity),
+]
+
+/** Plays one knock now. Silent when muted or when the audio context is not running (not unlocked yet). */
+export const knock = (intensity: number) => {
+  if (muted.value || !ctx || ctx.state !== 'running') return
+  knockAt(ctx, ctx.currentTime, intensity)
+}
+
 /**
- * Schedules the knocks on the Web Audio clock and calls `onHit` from a rAF loop when the clock reaches each
- * hit (shifted by the output latency), so visuals and sound share one time base. Before audio is unlocked
- * (no running context) the same schedule runs silently on performance.now().
+ * Schedules knocks at `offsets` (seconds from the first, which plays ~50 ms from now) on the Web Audio clock
+ * and calls `onHit` from a rAF loop when the clock reaches each hit (shifted by the output latency), so
+ * visuals and sound share one time base. Before audio is unlocked (no running context) the same schedule
+ * runs silently on performance.now().
  */
-export const scheduleKnocks = (level: number, onHit: (i: number, intensity: number) => void): KnockHandle => {
-  const plan = knockPlan(level)
+export const scheduleKnocks = (
+  offsets: number[],
+  intensity: number,
+  onHit: (i: number, intensity: number) => void,
+): KnockHandle => {
   const live = ctx !== null && ctx.state === 'running'
   const now = live ? () => ctx!.currentTime : () => performance.now() / 1000
   const t0 = now() + 0.05
-  const times = plan.offsets.map((o) => t0 + o)
+  const times = offsets.map((o) => t0 + o)
   const sources: AudioScheduledSourceNode[] = []
-  if (live && !muted.value) {
-    const c = ctx!
-    times.forEach((t) => {
-      sources.push(...burst(c, t, 0.12, 400, 0.4 + 0.5 * plan.intensity))
-      sources.push(thump(c, t, 0.3 + 0.4 * plan.intensity))
-    })
-  }
+  if (live && !muted.value) times.forEach((t) => sources.push(...knockAt(ctx!, t, intensity)))
   const latency = live ? (ctx!.outputLatency || 0) + ctx!.baseLatency : 0
   let i = 0
   let raf = 0
   const tick = () => {
     const n = now()
-    while (i < times.length && n >= times[i] + latency) onHit(i++, plan.intensity)
+    while (i < times.length && n >= times[i] + latency) onHit(i++, intensity)
     if (i < times.length) raf = requestAnimationFrame(tick)
   }
   raf = requestAnimationFrame(tick)
@@ -90,20 +113,6 @@ export const scheduleKnocks = (level: number, onHit: (i: number, intensity: numb
       })
     },
   }
-}
-
-const thump = (c: AudioContext, at: number, gain: number) => {
-  const o = c.createOscillator()
-  o.type = 'sine'
-  o.frequency.setValueAtTime(140, at)
-  o.frequency.exponentialRampToValueAtTime(50, at + 0.1)
-  const g = c.createGain()
-  g.gain.setValueAtTime(gain, at)
-  g.gain.exponentialRampToValueAtTime(0.001, at + 0.12)
-  o.connect(g).connect(c.destination)
-  o.start(at)
-  o.stop(at + 0.13)
-  return o
 }
 
 export const creak = () => {
@@ -161,21 +170,6 @@ export const hymn = () => {
     o.start(t + i * 0.2)
     o.stop(t + i * 0.2 + 0.2)
   })
-}
-
-export const radioStatic = (ms: number) => {
-  const c = ac()
-  if (!c || muted.value) return
-  const s = ms / 1000
-  const src = c.createBufferSource()
-  src.buffer = noiseBuffer(c, s)
-  const f = c.createBiquadFilter()
-  f.type = 'bandpass'
-  f.frequency.value = 2500
-  const g = c.createGain()
-  g.gain.value = 0.08
-  src.connect(f).connect(g).connect(c.destination)
-  src.start()
 }
 
 /** Card slides in: a short filtered-noise swish rising in pitch. */

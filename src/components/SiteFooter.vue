@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import IconGithub from '~icons/simple-icons/github'
 
-const emit = defineEmits<{ about: [] }>()
+defineProps<{ canReset?: boolean }>()
+const emit = defineEmits<{ about: []; reset: [] }>()
 </script>
 
 <template>
@@ -19,5 +20,9 @@ const emit = defineEmits<{ about: [] }>()
       <IconGithub class="w-[1em] h-[1em] align-[-0.125em] mr-[0.3em]" aria-hidden="true" />
       Code source
     </a>
+    <template v-if="canReset">
+      ·
+      <button class="linklike" type="button" @click="emit('reset')">Recommencer à zéro</button>
+    </template>
   </p>
 </template>

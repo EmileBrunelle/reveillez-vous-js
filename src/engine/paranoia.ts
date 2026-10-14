@@ -8,13 +8,12 @@ export type ParanoiaLevel = 1 | 2 | 3 | 4 | 5
  * - Must return an integer in 1..5 for every `visits` >= 0.
  * - Expected default: monotonic non-decreasing (the tract never gets calmer as visits grow).
  */
+// Visites nécessaires pour atteindre chaque niveau (index 0 = niveau 1).
+// Escalade rapide au début : un jury fait quelques parties, il doit sentir que ça dérape
+// dès la 2e visite et voir l’Illumination (niveau 5) en environ 6 parties.
+const THRESHOLDS = [0, 1, 2, 4, 6] as const
+
 export const paranoiaLevel = (visits: number): ParanoiaLevel => {
-  // TODO(Émile): design choice — this is your call.
-  //  1. How many visits per level? Linear (every 2 visits, as below), front-loaded (quick
-  //     escalation: 0,1,3,6,10) or back-loaded (slow burn so level 5 feels earned)?
-  //  2. Should it ever go back down (e.g. after a long absence, or randomly to keep players
-  //     off balance)? Today it never does; a non-monotonic version would need a timestamp
-  //     persisted next to the visits counter.
-  // Temporary body so the app works:
-  return Math.min(5, 1 + Math.floor(visits / 2)) as ParanoiaLevel
+  const reached = THRESHOLDS.filter((t) => visits >= t).length
+  return Math.max(1, reached) as ParanoiaLevel
 }

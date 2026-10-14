@@ -5,6 +5,7 @@ import TarotEmblem from './TarotEmblem.vue'
 import { cardDeal, cardFlip } from '../audio/sfx'
 import type { Arcane } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
+import { useDeviceTilt } from '../composables/useTilt'
 
 const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number }>(), {
   faceDown: false,
@@ -197,7 +198,9 @@ watch(faceUp, (up) => up && armGlitch())
 // Pointer tilt (mouse/pen only, max 8 deg) with a glare following the pointer.
 const MAX_TILT = 8
 let raf = 0
+let finePointer = false // une souris/stylet a bougé : le pointeur l’emporte sur le gyroscope
 const onMove = (e: PointerEvent) => {
+  if (e.pointerType !== 'touch') finePointer = true
   if (reduced.value || e.pointerType === 'touch' || !settled.value || !root.value || !tiltEl.value) return
   const r = root.value.getBoundingClientRect()
   const dx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / r.width))
@@ -213,6 +216,19 @@ const onMove = (e: PointerEvent) => {
     s.setProperty('--glare', '1')
   })
 }
+// Gyroscope (mobile) : mêmes variables CSS que le pointeur ; la carte reste « fixe » dans le monde (sens inverse du téléphone).
+useDeviceTilt({
+  enabled: () => !reduced.value && !finePointer && settled.value,
+  apply: (nx, ny) => {
+    const s = tiltEl.value?.style
+    if (!s) return
+    s.setProperty('--ry', `${-nx * MAX_TILT}deg`)
+    s.setProperty('--rx', `${ny * MAX_TILT}deg`)
+    s.setProperty('--gx', `${50 - nx * 60}%`)
+    s.setProperty('--gy', `${50 - ny * 60}%`)
+    s.setProperty('--glare', '1')
+  },
+})
 const onLeave = () => {
   cancelAnimationFrame(raf)
   const s = tiltEl.value?.style

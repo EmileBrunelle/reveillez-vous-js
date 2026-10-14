@@ -48,7 +48,7 @@ Hommage à Terry A. Davis (1969–2018), qui a écrit seul TempleOS, un système
 Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic), avec les modèles Claude Opus, Sonnet et Haiku. Une session principale découpait le travail et le confiait à des sous-agents, puis vérifiait leurs résultats.
 
 **Ce que l’IA a fait :**
-- écrire la grande majorité du code (Vue, TypeScript, shader WGSL du CRT, sons synthétisés, moteur de génération des prophéties) ;
+- écrire la grande majorité du code (Vue, TypeScript, shader WGSL du CRT, sons synthétisés, moteur de génération des prophéties, détection du rythme cogné par le joueur, courbe de progression des niveaux) ;
 - rédiger des ébauches de prophéties, de répliques et d’arcanes, retravaillées selon mes consignes ;
 - écrire les tests automatisés et vérifier l’affichage dans un navigateur automatisé (Playwright) ;
 - faire de la recherche (support de WebGPU selon les navigateurs, sources sur TempleOS, licences) ;
@@ -56,10 +56,12 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 
 **Ce que j’ai fait :**
 - le concept, la direction artistique et le ton (vieux PC hanté, carte de tarot, montée du mystère) ;
-- toutes les décisions de conception : WebGPU obligatoire, cartes plutôt que dépliant, porte à cliquer, pas de partage ni de graine ;
+- toutes les décisions de conception : WebGPU obligatoire, cartes plutôt que dépliant, porte fermée où l’on cogne un rythme à reproduire (règles de réussite et d’échec), pas de partage ni de graine ;
 - les règles de contenu : écriture inclusive, références québécoises, blagues qui visent des lieux et jamais des personnes, exclusions ;
 - la décision de séparer l’hommage à Terry A. Davis de la paranoïa, par respect ;
 - les tests à la main dans le navigateur et les retours sur ce qui n’allait pas (taille de la carte, glitchs trop visibles, porte trop petite…) ;
-- certaines blagues (dont l’Australie qui devient l’Argentine) et la courbe de progression des niveaux.## Défi
+- certaines blagues (dont l’Australie qui devient l’Argentine).
+
+## Défi
 
 Projet créé spécifiquement pour le défi Fortune.js de l’AGEEI (UQAM), participation individuelle.
