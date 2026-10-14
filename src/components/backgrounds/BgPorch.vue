@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
-import { useDocumentVisibility, usePreferredReducedMotion } from '@vueuse/core'
+import { useDocumentVisibility } from '@vueuse/core'
+import { useReducedMotion } from '../../composables/useReducedMotion'
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const failed = ref(false)
 let porch: { setPaused(paused: boolean): void; stop(): void } | null = null
 let gone = false
-const reducedMotion = usePreferredReducedMotion()
+const reducedMotion = useReducedMotion()
 const visibility = useDocumentVisibility()
 watch(visibility, (v) => porch?.setPaused(v === 'hidden'))
 // The paranoia level reaches backgrounds through the --paranoia CSS variable (set by App.vue, 0..1).
@@ -17,7 +18,7 @@ onMounted(async () => {
     const { startPorch } = await import('../../effects/porch')
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
     if (gone) return
-    const s = await startPorch(canvas.value!, () => reducedMotion.value !== 'reduce', paranoia, () => (failed.value = true))
+    const s = await startPorch(canvas.value!, () => !reducedMotion.value, paranoia, () => (failed.value = true))
     if (gone) return s.stop()
     porch = s
     if (visibility.value === 'hidden') s.setPaused(true)

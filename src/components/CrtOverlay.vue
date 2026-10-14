@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
-import { useDocumentVisibility, usePreferredReducedMotion } from '@vueuse/core'
+import { useDocumentVisibility } from '@vueuse/core'
+import { useReducedMotion } from '../composables/useReducedMotion'
 import { hasWebGpuAdapter } from '../effects/webgpu'
 
 const props = defineProps<{ paranoia: number }>()
@@ -8,7 +9,7 @@ const emit = defineEmits<{ ready: []; fail: [] }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 let crt: { setPaused(paused: boolean): void; stop(): void } | null = null
-const reducedMotion = usePreferredReducedMotion()
+const reducedMotion = useReducedMotion()
 const visibility = useDocumentVisibility()
 watch(visibility, (v) => crt?.setPaused(v === 'hidden'))
 let gone = false
@@ -33,7 +34,7 @@ onMounted(async () => {
   const start = (async () => {
     const { startCrt } = await import('../effects/crt')
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
-    return startCrt(canvas.value!, () => reducedMotion.value !== 'reduce', () => props.paranoia, () => (lost.value = true))
+    return startCrt(canvas.value!, () => !reducedMotion.value, () => props.paranoia, () => (lost.value = true))
   })()
   try {
     const s = await timeout(start, 'CRT init')

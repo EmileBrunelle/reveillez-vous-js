@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { animate, useReducedMotion } from 'motion-v'
+import { animate } from 'motion-v'
+import { useEventListener, useResizeObserver } from '@vueuse/core'
 import TarotEmblem from './TarotEmblem.vue'
 import { cardDeal, cardFlip } from '../audio/sfx'
 import type { Arcane } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
 import { useDeviceTilt } from '../composables/useTilt'
+import { useReducedMotion } from '../composables/useReducedMotion'
 
 const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number }>(), {
   faceDown: false,
@@ -80,7 +82,6 @@ const fitBody = () => {
     return
   }
 }
-let ro: ResizeObserver | undefined
 watch(() => [props.body, props.title], () => scheduleFit(true))
 
 let skipped = false
@@ -240,27 +241,22 @@ const onLeave = () => {
   s.setProperty('--glare', '0')
 }
 
+useEventListener(window, 'pointermove', onMove)
+useEventListener(document, 'pointerleave', onLeave)
+useResizeObserver(root, () => scheduleFit())
+
 onMounted(() => {
-  window.addEventListener('pointermove', onMove)
-  document.addEventListener('pointerleave', onLeave)
-  if (root.value) {
-    ro = new ResizeObserver(() => scheduleFit())
-    ro.observe(root.value)
-  }
   scheduleFit(true)
   void document.fonts?.ready.then(() => scheduleFit(true))
   void deal()
 })
 onUnmounted(() => {
-  ro?.disconnect()
   cancelAnimationFrame(fitRaf)
   skipped = true
   window.clearTimeout(timer)
   glitchTimers.forEach(clearTimeout)
   cancelAnimationFrame(raf)
   running.forEach((r) => r.stop())
-  window.removeEventListener('pointermove', onMove)
-  document.removeEventListener('pointerleave', onLeave)
 })
 </script>
 

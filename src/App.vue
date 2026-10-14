@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef, watch, watchEffect } from 'vue'
-import { AnimatePresence, Motion, MotionConfig, animate, useReducedMotion } from 'motion-v'
+import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
 import DoorScene from './components/DoorScene.vue'
 import TarotCard from './components/TarotCard.vue'
 import CrtOverlay from './components/CrtOverlay.vue'
@@ -14,6 +14,8 @@ import { prophecies } from './content/prophecies'
 import { nextDoorLine, nextProphecy, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import { pickVariant } from './engine/variant'
+import { useTimeoutFn } from '@vueuse/core'
+import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
 import { safeStorage } from './composables/safeStorage'
 import { hymn, unlock } from './audio/sfx'
@@ -95,11 +97,12 @@ const restart = () => {
 
 // Browsers keep the AudioContext suspended until a user gesture; without one, the first knocks would be silent.
 const awaiting = ref(!navigator.userActivation?.hasBeenActive)
+const { start: startAwaitEnd } = useTimeoutFn(() => (awaiting.value = false), 120, { immediate: false })
 const approach = () => {
   unlock()
   requestOrientationPermission()
   // Give the context a moment to reach 'running' so scheduleKnocks sees it live.
-  window.setTimeout(() => (awaiting.value = false), 120)
+  startAwaitEnd()
 }
 
 const closeBtn = ref<HTMLButtonElement>()

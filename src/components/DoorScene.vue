@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useDocumentVisibility, useVibrate } from '@vueuse/core'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
-import { animate, useReducedMotion } from 'motion-v'
+import { animate } from 'motion-v'
+import { useReducedMotion } from '../composables/useReducedMotion'
 import type { SceneVariant } from '../content/scenes'
 import { creak, knock, scheduleKnocks, slam, unlock, type KnockHandle } from '../audio/sfx'
 import { knockIntensity } from '../engine/knock'
@@ -17,6 +19,12 @@ import KnockPattern from './KnockPattern.vue'
 const props = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean }>()
 const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; closed: []; listening: [boolean] }>()
 const reduced = useReducedMotion()
+const visibility = useDocumentVisibility()
+const { vibrate: buzz } = useVibrate()
+// Le haptique n’est pas du mouvement (aide au jeu muet) : pas bloqué par « mouvement réduit », seulement onglet caché.
+const haptic = (ms: number) => {
+  if (visibility.value !== 'hidden') buzz(ms)
+}
 
 const stage = ref<HTMLElement>()
 const leaf = ref<HTMLElement>()
@@ -104,6 +112,7 @@ const jitterInside = (intensity: number) => {
 const intensity = () => knockIntensity(props.level)
 const playerKnock = (e: MouseEvent) => {
   unlock()
+  haptic(20)
   knock(intensity())
   jitter(intensity())
   const r = stage.value?.getBoundingClientRect()
@@ -164,7 +173,7 @@ const seerHit = (i: number, force: number) => {
   lit.value = i + 1
   jitterInside(force)
   caption(i)
-  if (!reduced.value) navigator.vibrate?.(30)
+  haptic(30)
   // Laisse le dernier point allumé un instant avant de passer la main au joueur.
   if (i >= pattern.value.length) {
     void wait(300).then(() => {

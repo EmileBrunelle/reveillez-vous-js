@@ -1,4 +1,4 @@
-import { onScopeDispose } from 'vue'
+import { onScopeDispose, watch } from 'vue'
 import { useDocumentVisibility, useEventListener } from '@vueuse/core'
 
 // iOS 13+ exige un geste utilisateur pour activer deviceorientation. Ailleurs : no-op.
@@ -95,8 +95,8 @@ export const useDeviceTilt = ({ enabled, apply }: Options) => {
   else useEventListener(window, 'orientationchange', onRotate)
 
   // Onglet caché : on repart d’une nouvelle référence au retour.
-  useEventListener(document, 'visibilitychange', () => {
-    if (document.visibilityState === 'hidden') base = null
+  watch(visibility, (v) => {
+    if (v === 'hidden') base = null
   })
 
   onScopeDispose(() => cancelAnimationFrame(raf))

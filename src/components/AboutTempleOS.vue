@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
 import { Dialog } from '@vuetify/v0'
-import { animate, useReducedMotion } from 'motion-v'
+import { animate } from 'motion-v'
+import { useReducedMotion } from '../composables/useReducedMotion'
 import { aboutClose, aboutOpen } from '../audio/sfx'
 
 // Parent v-model = "wants open". `shown` is what the native dialog actually sees, so the close animation

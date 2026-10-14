@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { ref } from 'vue'
+import { useTimeoutFn } from '@vueuse/core'
 
 defineProps<{ level: number }>()
 const emit = defineEmits<{ reset: [] }>()
 const flash = ref(false)
-let timer: ReturnType<typeof setTimeout> | undefined
+const { start } = useTimeoutFn(() => (flash.value = false), 1500, { immediate: false })
 
 // Hidden gesture: 3 quick clicks/taps (browser-counted `detail`) wipe the visit counter.
 const onClick = (e: MouseEvent) => {
   if (e.detail < 3) return
   emit('reset')
   flash.value = true
-  clearTimeout(timer)
-  timer = setTimeout(() => (flash.value = false), 1500)
+  start()
 }
-onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>

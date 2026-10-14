@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { animate, useReducedMotion } from 'motion-v'
+import { animate } from 'motion-v'
+import { useReducedMotion } from '../composables/useReducedMotion'
 
 const SIZE = 24
 const reduced = useReducedMotion()
