@@ -16,6 +16,8 @@
 - `npx vitest run` (or `npm test`)
 - `npx vue-tsc -b`
 - `npx vite build` (`npm run build` = vue-tsc -b && vite build)
+- `npm run lint` (ESLint 10, zero warnings)
+- `npm run format:check` (Prettier; `npm run format` to fix; `.git-blame-ignore-revs` hides the reformat commit)
 - `npm run dev` only when Émile asks; never leave servers running.
 
 ## Architecture (src/)
@@ -30,6 +32,7 @@
 - `composables/`: `useVisits` (localStorage `rvj-visits`; triple-click on the « Niveau de vigilance » badge resets), `useEntropy`.
 - `components/Taskbar.vue`: fixed Windows 98 taskbar (Start menu: À propos, Code source, homage, reset; tray: Vigilance badge, sound toggle, clock); `--taskbar-h` in styles.css is the reserved height.
 - `ui/`: UnoCSS-styled components (Windows 98 look; shortcuts `win-window`, `win-btn`).
+- `assets/svg/`: inline SVGs live as `.svg` files (doors, seer, icons), imported as components via `~icons/rvj/<name>` (unplugin-icons custom collection in `vite.config.ts`, no default 1.2em size: size with CSS classes on the usage; `class="door-handle"` inside door SVGs is animated by DoorScene).
 
 ## Conventions
 
