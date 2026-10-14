@@ -47,8 +47,24 @@ export interface Place {
 
 export const places: Place[] = [
   { id: 'perron', level: 1, variants: [{ id: 'defaut' }] },
-  { id: 'foret', level: 2, variants: [{ id: 'defaut' }] },
-  { id: 'cimetiere', level: 3, variants: [{ id: 'defaut' }] },
+  {
+    id: 'foret',
+    level: 2,
+    variants: [
+      { id: 'lune-claire', params: { mist: 0.7, moon: 1.15, snow: 0 } },
+      { id: 'brume-epaisse', params: { mist: 1.7, moon: 0.8, snow: 0 } },
+      { id: 'premiere-neige', params: { mist: 1, moon: 0.9, snow: 1 } },
+    ],
+  },
+  {
+    id: 'cimetiere',
+    level: 3,
+    variants: [
+      { id: 'brume-basse', params: { mist: 1, moon: 1, rain: 0 } },
+      { id: 'pleine-lune', params: { mist: 0.6, moon: 1.4, rain: 0 } },
+      { id: 'bruine', params: { mist: 1.4, moon: 0.7, rain: 1 } },
+    ],
+  },
   { id: 'rue', level: 4, variants: [{ id: 'defaut' }] },
   { id: 'nuages', level: 5, variants: [{ id: 'defaut' }] },
 ]

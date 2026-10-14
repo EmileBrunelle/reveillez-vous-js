@@ -67,6 +67,11 @@ export const createRaymarch = async (canvas: HTMLCanvasElement, opts: RaymarchOp
     gpu.dispose()
     throw e
   }
+  const variantKey = () => {
+    const rest: Record<string, number> = { ...params(0) }
+    delete rest.time
+    return JSON.stringify(rest)
+  }
   let lastDraw = -1
   let lastKey = ''
   const run = () =>
@@ -74,7 +79,8 @@ export const createRaymarch = async (canvas: HTMLCanvasElement, opts: RaymarchOp
       const dt = Math.min(time.deltaTime, 0.1)
       p += (paranoia() - p) * (1 - Math.pow(0.97, dt * 60))
       const animated = motion()
-      const key = `${canvas.width}x${canvas.height}|${p.toFixed(3)}|${animated}`
+      // En image statique, la clé inclut les paramètres de la variante (hors `time`) : changer de variante sans remontage redessine.
+      const key = `${canvas.width}x${canvas.height}|${p.toFixed(3)}|${animated}` + (animated ? '' : `|${variantKey()}`)
       if (animated) {
         const par = parallax()
         const k = 1 - Math.exp(-dt / 0.35) // ~0.35 s time constant, frame-rate independent

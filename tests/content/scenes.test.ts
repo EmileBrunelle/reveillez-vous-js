@@ -9,6 +9,11 @@ describe('places', () => {
   it('every place has at least one variant', () => {
     places.forEach((p) => expect(p.variants.length).toBeGreaterThan(0))
   })
+  it.each(['foret', 'cimetiere'] as const)('%s has at least 2 variants with unique ids', (id) => {
+    const ids = places.find((x) => x.id === id)!.variants.map((v) => v.id)
+    expect(ids.length).toBeGreaterThanOrEqual(2)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
   it('picks a variant of the place, favoring heavier ones and avoiding the last when possible', () => {
     const p: Place = { id: 'perron', level: 1, variants: [{ id: 'a', weight: 9 }, { id: 'b' }] }
     const n = Array.from({ length: 400 }, (_, s) => pickPlaceVariant(p, null, mulberry32(s)).id).filter((id) => id === 'a').length
