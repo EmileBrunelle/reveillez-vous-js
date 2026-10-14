@@ -30,3 +30,16 @@ export const crtEdgeTerms = (w: number, h: number, p: number, x: number, y: numb
   const edge = mix(smoothstep(0.04 + 0.02 * p, 0, hx - Math.abs(cx)), smoothstep(0.2 - 0.08 * p, 0.5, Math.abs(c2x))) * (0.14 + 0.26 * p)
   return { dark: bezel + vig, edge }
 }
+
+// Ondulation de coup. Garder synchronisé avec RIPPLE_* et le bloc « Knock ripple » de crt.wgsl.
+export const RIPPLE = { speed: 1.2, dur: 0.8, width: 0.07, px: 4 }
+/**
+ * Déplacement radial (px d’appareil, ≥ 0 vers l’extérieur) appliqué aux coordonnées du motif à la distance `rn`
+ * (unités du petit côté, depuis le centre) `age` secondes après un coup. 0 si motion = 0.
+ */
+export const rippleDisplacement = (age: number, amp: number, motion: number, rn: number) => {
+  const d = rn - RIPPLE.speed * age
+  const rin = smoothstep(0, 0.08, age)
+  const rdec = Math.pow(Math.max(1 - age / RIPPLE.dur, 0), 2)
+  return RIPPLE.px * Math.min(Math.max(amp, 0), 1) * rin * rdec * Math.exp(-(d * d) / (RIPPLE.width * RIPPLE.width)) * motion
+}

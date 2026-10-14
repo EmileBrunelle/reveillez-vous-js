@@ -4,6 +4,8 @@ struct Params {
   motion: f32,
   paranoia: f32, // 0..1
   width: f32, // canvas width in DEVICE pixels
+  rippleAge: f32, // seconds since the last knock (not wrapped), clamped by the caller
+  rippleAmp: f32, // 0..1
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -13,6 +15,11 @@ struct Params {
 //   line wobble 300 (3 Hz, position only); grain re-seeds at 30 Hz (30*100 integer steps).
 const W: f32 = 6.28318531 / 100.0;
 const TAU: f32 = 6.28318531;
+
+const RIPPLE_SPEED: f32 = 1.2; // short-side units per second
+const RIPPLE_DUR: f32 = 0.8;
+const RIPPLE_W: f32 = 0.07;
+const RIPPLE_PX: f32 = 4.0; // max displacement, device px
 
 fn hash(p: vec2f) -> f32 {
   return fract(sin(dot(p, vec2f(12.9898, 78.233))) * 43758.5453);
@@ -27,10 +34,21 @@ fn sd_round(p: vec2f, b: vec2f, r: f32) -> f32 {
 // Premultiplied-alpha overlay. Brightness-safe (WCAG 2.3.1): all strength comes from STATIC/spatial features
 // (scanlines, phosphor mask, bezel, vignette, glass, fringes); the only global time term is a <= ~3.5% flicker
 // at <= 1.5 Hz, gated by params.motion (0 = reduced motion = fully static).
-@fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+@fragment fn fs_main(@location(0) uvIn: vec2f) -> @location(0) vec4f {
   let p = params.paranoia;
   let t = params.time * params.motion;
-  let px = uv * vec2f(params.width, params.height); // device pixels
+  let size = vec2f(params.width, params.height);
+  let m0 = min(params.width, params.height);
+  // Knock ripple (SPATIAL ONLY, no luminance term): an expanding ring pushes the pattern coordinates radially by a
+  // few device pixels, damped. Keep in sync with rippleDisplacement in crtMath.ts.
+  let rv = (uvIn - vec2f(0.5)) * size / m0;
+  let rr0 = length(rv);
+  let rd = rr0 - RIPPLE_SPEED * params.rippleAge;
+  let rin = smoothstep(0.0, 0.08, params.rippleAge);
+  let rdec = pow(max(1.0 - params.rippleAge / RIPPLE_DUR, 0.0), 2.0);
+  let rdisp = RIPPLE_PX * clamp(params.rippleAmp, 0.0, 1.0) * rin * rdec * exp(-(rd * rd) / (RIPPLE_W * RIPPLE_W)) * params.motion;
+  let uv = uvIn + (rv / max(rr0, 1e-4)) * rdisp / size;
+  let px = uv * size; // device pixels
   let aspect = params.width / params.height;
 
   // Scanlines: exact 3-device-pixel period (integer => no moiré at 1x/1.5x/2x DPR), one dark row in three,

@@ -3,10 +3,12 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { hasWebGpuAdapter } from '../effects/webgpu'
+import { useSessionStore } from '../stores/session'
 
 const props = defineProps<{ paranoia: number }>()
 const emit = defineEmits<{ ready: []; fail: [] }>()
 
+const session = useSessionStore()
 const canvas = ref<HTMLCanvasElement | null>(null)
 let crt: { setPaused(paused: boolean): void; stop(): void } | null = null
 const reducedMotion = useReducedMotion()
@@ -38,6 +40,12 @@ onMounted(async () => {
       canvas.value!,
       () => !reducedMotion.value,
       () => props.paranoia,
+      () => {
+        // Âge (s) depuis le dernier coup, plafonné ; amplitude légèrement modulée par la paranoïa.
+        const k = session.knock
+        const age = k.seq === 0 ? 10 : Math.min(10, (performance.now() - k.at) / 1000)
+        return { age, amp: Math.min(1, k.amp * (0.7 + 0.3 * props.paranoia)) }
+      },
       () => (lost.value = true),
     )
   })()
