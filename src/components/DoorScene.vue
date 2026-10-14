@@ -12,6 +12,7 @@ import { prophecies } from '../content/prophecies'
 import { requestOrientationPermission } from '../composables/useTilt'
 import { safeStorage } from '../composables/safeStorage'
 import { secureRng } from '../engine/rng'
+import { useSessionStore } from '../stores/session'
 import Seer from './Seer.vue'
 import SparkPool from './SparkPool.vue'
 import KnockPattern from './KnockPattern.vue'
@@ -109,8 +110,10 @@ const jitterInside = (intensity: number) => {
   go(strip.value, { opacity: 0 }, { duration: 0.18, ease: 'easeOut' })
 }
 
+const session = useSessionStore()
 const intensity = () => knockIntensity(props.level)
 const playerKnock = (e: MouseEvent) => {
+  session.pulse(0.6)
   unlock()
   haptic(20)
   knock(intensity())
@@ -172,6 +175,7 @@ const startListen = () => {
 }
 
 const seerHit = (i: number, force: number) => {
+  session.pulse(1)
   lit.value = i + 1
   jitterInside(force)
   caption(i)

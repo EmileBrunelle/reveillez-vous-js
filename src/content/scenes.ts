@@ -4,17 +4,12 @@ import DoorCloset from '../components/doors/DoorCloset.vue'
 import DoorFridge from '../components/doors/DoorFridge.vue'
 import DoorManor from '../components/doors/DoorManor.vue'
 import DoorCrypt from '../components/doors/DoorCrypt.vue'
-import BgMoonStreet from '../components/backgrounds/BgMoonStreet.vue'
-import BgSnow from '../components/backgrounds/BgSnow.vue'
-import BgFog from '../components/backgrounds/BgFog.vue'
-import BgAlley from '../components/backgrounds/BgAlley.vue'
-import BgPorch from '../components/backgrounds/BgPorch.vue'
-import BgVoid from '../components/backgrounds/BgVoid.vue'
+import type { PlaceId } from '../effects/places/types'
+import { pickVariant } from '../engine/variant'
+import type { Rng } from '../engine/rng'
 
 /**
- * A scene variant = id + label + renderer + minLevel (paranoia level at which it can appear).
- * `component` renders it with CSS/SVG today; a vgpu raymarched scene can replace it later
- * (swap `component`, or add a `gpu` entry with its params) without touching callers.
+ * A door variant = id + label + renderer + minLevel (paranoia level at which it can appear).
  */
 export interface SceneVariant {
   id: string
@@ -35,15 +30,43 @@ export const doors: SceneVariant[] = [
   { id: 'crypte', label: 'porte de crypte', minLevel: 4, component: DoorCrypt },
 ]
 
-const allBackgrounds: SceneVariant[] = [
-  { id: 'perron', label: 'perron sous la lune (raymarching)', minLevel: 1, weight: 4, component: BgPorch },
-  { id: 'rue-lune', label: 'rue de quartier sous la pleine lune', minLevel: 1, component: BgMoonStreet },
-  { id: 'neige', label: 'tempête de neige', minLevel: 1, component: BgSnow },
-  { id: 'ruelle', label: 'ruelle avec cônes orange', minLevel: 2, component: BgAlley },
-  { id: 'brouillard', label: 'brouillard de cimetière', minLevel: 3, component: BgFog },
-  { id: 'vide', label: 'vide cosmique', minLevel: 4, component: BgVoid },
+/** Variante d’un lieu : un lieu peut en avoir plusieurs (paramètres de shader différents). */
+export interface PlaceVariant {
+  id: string
+  /** Relative pick weight (default 1). */
+  weight?: number
+  params?: Record<string, number>
+}
+
+/** Un lieu par niveau de paranoïa, de façon déterministe. */
+export interface Place {
+  id: PlaceId
+  level: number
+  variants: PlaceVariant[]
+}
+
+export const places: Place[] = [
+  { id: 'perron', level: 1, variants: [{ id: 'defaut' }] },
+  { id: 'foret', level: 2, variants: [{ id: 'defaut' }] },
+  { id: 'cimetiere', level: 3, variants: [{ id: 'defaut' }] },
+  { id: 'rue', level: 4, variants: [{ id: 'defaut' }] },
+  { id: 'nuages', level: 5, variants: [{ id: 'defaut' }] },
 ]
 
-// Dev-only: `?bg=<id>` forces a background (stripped from production builds).
-const forced = import.meta.env.DEV ? new URLSearchParams(location.search).get('bg') : null
-export const backgrounds: SceneVariant[] = forced && allBackgrounds.some((b) => b.id === forced) ? allBackgrounds.filter((b) => b.id === forced) : allBackgrounds
+// Dev-only: `?bg=<placeId>` forces a place (stripped from production builds).
+const forced = import.meta.env.DEV && typeof location !== 'undefined' ? new URLSearchParams(location.search).get('bg') : null
+
+/** Lieu du niveau `level` (ou celui forcé par `?bg=` en dev). */
+export const placeForLevel = (level: number): Place => {
+  const f = forced ? places.find((p) => p.id === forced) : undefined
+  return f ?? places.find((p) => p.level === level) ?? places[places.length - 1]
+}
+
+/** Variante tirée au hasard (pondérée) parmi celles d’un lieu, en évitant `lastVariantId` s’il y a le choix. */
+export const pickPlaceVariant = (place: Place, lastVariantId: string | null, rng: Rng): PlaceVariant =>
+  pickVariant(
+    place.variants.map((v) => ({ ...v, minLevel: 1 })),
+    1,
+    lastVariantId,
+    rng,
+  )

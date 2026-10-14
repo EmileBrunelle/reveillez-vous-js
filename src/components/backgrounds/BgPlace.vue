@@ -2,14 +2,18 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDocumentVisibility, useParallax } from '@vueuse/core'
 import { useReducedMotion } from '../../composables/useReducedMotion'
+import { startAmbience } from '../../audio/ambience'
+import { placeLoaders, type PlaceId } from '../../effects/places'
+
+const props = defineProps<{ place: PlaceId; variant?: Record<string, number> }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const failed = ref(false)
-let porch: { setPaused(paused: boolean): void; stop(): void } | null = null
+let scene: { setPaused(paused: boolean): void; stop(): void } | null = null
 let gone = false
 const reducedMotion = useReducedMotion()
 const visibility = useDocumentVisibility()
-watch(visibility, (v) => porch?.setPaused(v === 'hidden'))
+watch(visibility, (v) => scene?.setPaused(v === 'hidden'))
 // The paranoia level reaches backgrounds through the --paranoia CSS variable (set by App.vue, 0..1).
 const root = ref<HTMLElement | null>(null)
 const { tilt, roll, source } = useParallax(root)
@@ -36,33 +40,42 @@ const parallax = () => {
 }
 const paranoia = () => Number.parseFloat(document.documentElement.style.getPropertyValue('--paranoia')) || 0
 
+const stopAmbience = startAmbience(props.place)
 onMounted(async () => {
   try {
-    const { startPorch } = await import('../../effects/porch')
+    const [{ createRaymarch }, cfg] = await Promise.all([import('../../effects/raymarch'), placeLoaders[props.place]()])
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
     if (gone) return
-    const s = await startPorch(canvas.value!, () => !reducedMotion.value, paranoia, parallax, () => (failed.value = true))
+    const s = await createRaymarch(canvas.value!, {
+      shader: cfg.shader,
+      params: (st) => cfg.params({ ...st, variant: props.variant }),
+      motion: () => !reducedMotion.value,
+      paranoia,
+      parallax,
+      onLost: () => (failed.value = true),
+    })
     if (gone) return s.stop()
-    porch = s
+    scene = s
     if (visibility.value === 'hidden') s.setPaused(true)
   } catch (e) {
-    console.warn('Porch background disabled:', e)
+    console.warn('Place background disabled:', e)
     failed.value = true
   }
 })
 onUnmounted(() => {
   gone = true
-  porch?.stop()
+  scene?.stop()
+  stopAmbience()
 })
 </script>
 
 <template>
-  <div ref="root" class="fixed inset-0 z-0 pointer-events-none porch" aria-hidden="true">
+  <div ref="root" class="fixed inset-0 z-0 pointer-events-none place" aria-hidden="true">
     <canvas v-show="!failed" ref="canvas" class="absolute inset-0 w-full h-full select-none" />
   </div>
 </template>
 
 <style scoped>
 /* Fallback when the pipeline fails: plain dark night gradient. */
-.porch { background: radial-gradient(ellipse at 70% 20%, #2a3350 0, transparent 30%), linear-gradient(#070a14, #141c26 70%, #05070b); }
+.place { background: radial-gradient(ellipse at 70% 20%, #2a3350 0, transparent 30%), linear-gradient(#070a14, #141c26 70%, #05070b); }
 </style>

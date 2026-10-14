@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mulberry32 } from '../../src/../src/engine/rng'
-import { draw, drawPersisted, type Bag } from '../../src/../src/engine/shuffleBag'
+import { BAGS_KEY, draw, drawPersisted, type Bag } from '../../src/../src/engine/shuffleBag'
 
 const memStore = () => {
   const m = new Map<string, string>()
@@ -47,7 +47,7 @@ describe('shuffleBag', () => {
 
   it('survives corrupt storage', () => {
     const store = memStore()
-    store.setItem('rvj-bags', '{not json')
+    store.setItem(BAGS_KEY, '{not json')
     expect(drawPersisted(store, 'porte2', 4, mulberry32(1))).toBeLessThan(4)
   })
 })

@@ -5,23 +5,27 @@ import TarotCardBack from './components/TarotCardBack.vue'
 import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
 import Taskbar from './components/Taskbar.vue'
-import { bumpVisits, levelForVisits, readVisits, resetVisits } from './composables/useVisits'
-import { backgrounds, doors } from './content/scenes'
+import BgPlace from './components/backgrounds/BgPlace.vue'
+import { useProgressStore } from './stores/progress'
+import { doors, pickPlaceVariant, placeForLevel } from './content/scenes'
 import { prophecies } from './content/prophecies'
 import { nextDoorLine, nextProphecy, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import { pickVariant } from './engine/variant'
+import { storeToRefs } from 'pinia'
 import { useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
 import { safeStorage } from './composables/safeStorage'
 import { hymn, unlock } from './audio/sfx'
-import { loadAbout, loadDoorScene, loadReset, loadTarotCard, prefetch } from './lazy'
+import { activityFor, loadAbout, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
 
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
 const TarotCard = defineAsyncComponent({ loader: loadTarotCard, loadingComponent: TarotCardBack, delay: 150 })
 const AboutTempleOS = defineAsyncComponent(loadAbout)
 const ResetConfirm = defineAsyncComponent(loadReset)
+const DeckCut = defineAsyncComponent(loadDeckCut)
+const Finale = defineAsyncComponent(loadFinale)
 // La scène de la porte s’affiche après « Approchez-vous » : on garde ce bouton tant que son chunk n’est pas là (pas de substitut, donc pas de saut).
 const DoorScene = shallowRef<Component | null>(null)
 let doorLoad: Promise<unknown> | null = null
@@ -37,7 +41,7 @@ const ensureDoor = () =>
     },
   ))
 
-type Phase = 'door' | 'reading'
+type Phase = 'door' | 'activity' | 'cut' | 'reading' | 'finale'
 const rng = secureRng()
 const FALLBACK_LINE = 'Toc toc toc… Avez-vous un moment pour parler de votre avenir ?'
 
@@ -64,16 +68,18 @@ watch(aboutOpen, (o) => {
   if (!o) nextTick(() => opener?.focus())
 })
 
-const level = ref(levelForVisits(readVisits()))
-const paranoia = computed(() => (level.value - 1) / 4)
+const progress = useProgressStore()
+const { level, paranoia } = storeToRefs(progress)
+// Activité du niveau courant (null au niveau 1 ou sans activité) ; le composant ne change qu’avec le niveau.
+const Activity = computed(() => {
+  const loader = activityFor(level.value)
+  return loader ? defineAsyncComponent(loader) : null
+})
 watchEffect(() => document.documentElement.style.setProperty('--paranoia', String(paranoia.value)))
 
 const resetOpen = ref(false)
 watch(resetOpen, (o) => o && (resetWanted.value = true))
-const resetLevel = () => {
-  resetVisits()
-  level.value = levelForVisits(readVisits())
-}
+const resetLevel = () => progress.reset()
 
 const listening = ref(false)
 const phase = ref<Phase>('door')
@@ -87,13 +93,16 @@ const shake = (amp: number) => {
   animate(mainEl.value, { x: [0, -a, a * 0.8, -a * 0.5, a * 0.3, 0], y: [0, a * 0.4, -a * 0.5, a * 0.2, 0] }, { duration: 0.35 })
 }
 const door = shallowRef(doors[0])
-const background = shallowRef(backgrounds[0])
+const place = shallowRef(placeForLevel(level.value))
+const placeVariant = shallowRef(place.value.variants[0])
+const pickedCard = ref<0 | 1 | 2>(0)
 const doorLine = ref(FALLBACK_LINE)
 const prophecy = ref<Prophecy>({ question: '', body: '', verse: '', arcane: EMPTY_ARCANE })
 
 const enterDoor = () => {
   door.value = pickVariant(doors, level.value, door.value.id, rng)
-  background.value = pickVariant(backgrounds, level.value, background.value.id, rng)
+  place.value = placeForLevel(level.value)
+  placeVariant.value = pickPlaceVariant(place.value, placeVariant.value.id, rng)
   doorLine.value = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE)
   phase.value = 'door'
   listening.value = false
@@ -102,17 +111,26 @@ const enterDoor = () => {
 }
 enterDoor()
 
+// Une visite : la porte s’ouvre -> activité (niveau 2+) -> coupe du paquet -> lecture. La prophétie est tirée une fois, à l’ouverture.
 const onDone = () => {
   prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng)
-  phase.value = 'reading'
+  progress.remember(prophecy.value.arcane.numero, level.value)
+  phase.value = activityFor(level.value) ? 'activity' : 'cut'
   listening.value = false
+}
+const onActivityDone = () => {
+  phase.value = 'cut'
+}
+const onPick = (index: 0 | 1 | 2) => {
+  pickedCard.value = index
+  phase.value = 'reading'
   hymn()
 }
 const restart = () => {
   if (closing.value) return
   closing.value = true
   unlock()
-  level.value = levelForVisits(bumpVisits())
+  progress.bump()
   // The open door slams first; the next variant is picked once it is shut (see onClosed).
   sceneKey.value++
   phase.value = 'door'
@@ -150,6 +168,8 @@ watch(
 const onClosed = () => {
   enterDoor()
 }
+// Niveau 5 : « Fermer la porte » passe par la finale, puis reprend le chemin habituel.
+const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
 </script>
 
 <template>
@@ -158,7 +178,7 @@ const onClosed = () => {
     <CrtOverlay :key="attempt" :paranoia="paranoia" @ready="gpu = 'ok'" @fail="gpu = 'blocked'" />
     <p v-if="gpu === 'checking'" class="fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none" role="status">Connexion aux ondes…</p>
     <template v-if="gpu === 'ok'">
-      <component :is="background.component" />
+      <BgPlace :key="place.id" :place="place.id" :variant="placeVariant.params" />
       <div class="fixed inset-0 z-0 pointer-events-none bg-[rgb(120_0_0/0.35)] transition-opacity duration-[400ms] motion-reduce:transition-none" :class="listening ? 'opacity-100' : 'opacity-0'" aria-hidden="true" />
       <button v-if="awaiting" class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-0.6667rem]" type="button" autofocus @click="approach">Approchez-vous de la porte</button>
       <main v-else-if="DoorScene" ref="mainEl" class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip" :class="{ 'app--reading': phase === 'reading' }">
@@ -179,13 +199,22 @@ const onClosed = () => {
               @closed="onClosed"
             />
           </Motion>
+          <Motion v-else-if="phase === 'activity' && Activity" key="activity" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+            <component :is="Activity" :level="level" @done="onActivityDone" />
+          </Motion>
+          <Motion v-else-if="phase === 'cut'" key="cut" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+            <DeckCut :level="level" @pick="onPick" />
+          </Motion>
+          <Motion v-else-if="phase === 'finale'" key="finale" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+            <Finale @done="restart" />
+          </Motion>
           <Motion v-else key="reading" class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
             <section class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4">
               <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
                 <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" @flipped="onFlipped" />
               </div>
               <div class="flex flex-none flex-wrap gap-3 justify-center">
-                <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="restart">Fermer la porte</button>
+                <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">Fermer la porte</button>
               </div>
             </section>
           </Motion>

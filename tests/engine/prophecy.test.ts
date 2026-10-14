@@ -3,6 +3,7 @@ import type { Grammar } from '../../src/../src/engine/grammar'
 import { doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, templatesFor } from '../../src/../src/engine/prophecy'
 import { mulberry32 } from '../../src/../src/engine/rng'
 import { pickVariant } from '../../src/../src/engine/variant'
+import { BAGS_KEY } from '../../src/engine/shuffleBag'
 import { detectBrowser } from '../../src/effects/webgpu'
 
 const g: Grammar = {
@@ -42,7 +43,7 @@ describe('prophecy', () => {
     const livres = ['A', 'B', 'C', 'D', 'E', 'F']
     const gv: Grammar = { niveau1: ['Q|corps|{verset}'], verset_livre: livres, verset_ref: ['1:1', '2:22', '13:13'] }
     const s = store()
-    s.setItem('rvj-bags', JSON.stringify({ verset: { order: [0, 1], pos: 1 }, verset_livre: { order: [0, 1], pos: 1 } }))
+    s.setItem(BAGS_KEY, JSON.stringify({ verset: { order: [0, 1], pos: 1 }, verset_livre: { order: [0, 1], pos: 1 } }))
     const rng = mulberry32(11)
     const verses = Array.from({ length: 12 }, () => nextProphecy(gv, 1, s, rng).verse)
     for (const v of verses) expect(v).toMatch(/^[\p{Lu}][^|]* \d{1,2}:\d{1,2}$/u)
