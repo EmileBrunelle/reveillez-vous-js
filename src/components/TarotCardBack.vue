@@ -14,12 +14,16 @@ import TarotEmblem from './TarotEmblem.vue'
 </template>
 
 <style scoped>
-.back { width: min(100cqw, calc(100cqh * 7 / 12)); container-type: inline-size; }
+.back {
+  width: min(100cqw, calc(100cqh * 7 / 12));
+  container-type: inline-size;
+}
 .back__face {
   background:
-    repeating-linear-gradient(45deg, transparent 0 3cqw, rgb(185 130 26 / 0.35) 3cqw 3.6cqw),
-    repeating-linear-gradient(-45deg, transparent 0 3cqw, rgb(185 130 26 / 0.35) 3cqw 3.6cqw),
-    #3a1f66;
+    repeating-linear-gradient(45deg, transparent 0 3cqw, rgb(185 130 26 / 0.35) 3cqw 3.6cqw), repeating-linear-gradient(-45deg, transparent 0 3cqw, rgb(185 130 26 / 0.35) 3cqw 3.6cqw), #3a1f66;
 }
-.back__eye { width: 52cqw; height: 52cqw; }
+.back__eye {
+  width: 52cqw;
+  height: 52cqw;
+}
 </style>

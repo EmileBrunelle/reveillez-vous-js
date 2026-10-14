@@ -222,11 +222,7 @@ export const prophecies: Grammar = {
   ],
 
   // ---- Après 3 ratés : la voix abandonne et ouvre quand même ---------------------------------
-  entrez: [
-    'Bon. Entrez, on n’a pas toute la nuit.',
-    'Trois essais. Ça suffit : je vous ouvre. Ne touchez à rien.',
-    'Les cartes disent d’abandonner. Entrez, ce n’est pas verrouillé.',
-  ],
+  entrez: ['Bon. Entrez, on n’a pas toute la nuit.', 'Trois essais. Ça suffit : je vous ouvre. Ne touchez à rien.', 'Les cartes disent d’abandonner. Entrez, ce n’est pas verrouillé.'],
 
   // ---- Questions d’accroche, par niveau --------------------------------------------------
   question1: [
@@ -305,9 +301,24 @@ export const prophecies: Grammar = {
   lieu_inexistant: paired([
     { lieu: 'l’Australie', en: 'en Australie', destination_reelle: 'en Argentine', preuve: 'Les kangourous sont des costumes loués à l’heure. Les koalas, des toutous.' },
     { lieu: 'la Finlande', en: 'en Finlande', destination_reelle: 'sur un grand lac brumeux', preuve: 'Personne n’a jamais vu de poisson finlandais. Les poissons non plus, d’ailleurs.' },
-    { lieu: 'Saint-Clin-Clin-des-Meuh-Meuh', en: 'à Saint-Clin-Clin-des-Meuh-Meuh', destination_reelle: 'au bout d’un rang sans nom, derrière un silo', preuve: 'Tout le monde en parle, personne n’y est jamais allé. Même pas votre oncle.' },
-    { lieu: 'Trois-Rivières', en: 'à Trois-Rivières', destination_reelle: 'sur un pont dont on ne voit jamais la fin', preuve: 'Personne n’a jamais vu les trois rivières en même temps. Faites le test.' },
-    { lieu: 'Drummondville', en: 'à Drummondville', destination_reelle: 'dans un chantier de cônes orange à perte de vue', preuve: 'Tout le monde la traverse, personne ne s’y arrête. C’est exactement ce que ferait une ville inventée.' },
+    {
+      lieu: 'Saint-Clin-Clin-des-Meuh-Meuh',
+      en: 'à Saint-Clin-Clin-des-Meuh-Meuh',
+      destination_reelle: 'au bout d’un rang sans nom, derrière un silo',
+      preuve: 'Tout le monde en parle, personne n’y est jamais allé. Même pas votre oncle.',
+    },
+    {
+      lieu: 'Trois-Rivières',
+      en: 'à Trois-Rivières',
+      destination_reelle: 'sur un pont dont on ne voit jamais la fin',
+      preuve: 'Personne n’a jamais vu les trois rivières en même temps. Faites le test.',
+    },
+    {
+      lieu: 'Drummondville',
+      en: 'à Drummondville',
+      destination_reelle: 'dans un chantier de cônes orange à perte de vue',
+      preuve: 'Tout le monde la traverse, personne ne s’y arrête. C’est exactement ce que ferait une ville inventée.',
+    },
     { lieu: 'Rimouski', en: 'à Rimouski', destination_reelle: 'au bord du fleuve, dans le brouillard', preuve: 'C’est tellement loin que même la boule de cristal perd le signal.' },
     { lieu: 'Sherbrooke', en: 'à Sherbrooke', destination_reelle: 'au bas d’une côte interminable', preuve: 'Toutes les rues y montent. Dans toutes les directions. C’est mathématiquement louche.' },
     { lieu: 'Laval', en: 'à Laval', destination_reelle: 'dans un stationnement de centre commercial', preuve: 'Tous les ponts qui y mènent sont en travaux. Tous. En tout temps.' },
@@ -374,16 +385,7 @@ export const prophecies: Grammar = {
     'quand vous ouvrirez le frigo',
   ]),
   // Pluriels sans article, à utiliser après « de », « des », « les ».
-  ...withCaps('bonbon', [
-    'tablettes de chocolat',
-    'bonbons à la réglisse',
-    'pommes enrobées de caramel',
-    'jujubes',
-    'suçons',
-    'chips au ketchup',
-    'bonbons au maïs',
-    'minibarres sucrées',
-  ]),
+  ...withCaps('bonbon', ['tablettes de chocolat', 'bonbons à la réglisse', 'pommes enrobées de caramel', 'jujubes', 'suçons', 'chips au ketchup', 'bonbons au maïs', 'minibarres sucrées']),
   // Compléments de lieu complets (préposition incluse).
   lieu: [
     'dans le métro',

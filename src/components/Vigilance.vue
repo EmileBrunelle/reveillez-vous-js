@@ -18,7 +18,12 @@ const onClick = (e: MouseEvent) => {
 </script>
 
 <template>
-  <p class="m-0 text-[0.75rem] tracking-[0.05em] select-none [-webkit-tap-highlight-color:transparent]" :class="{ 'vigil--reset': flash }" :title="`Niveau de vigilance : ${level} sur 5 (triple-cliquez pour recommencer à zéro)`" @click="onClick">
+  <p
+    class="m-0 text-[0.75rem] tracking-[0.05em] select-none [-webkit-tap-highlight-color:transparent]"
+    :class="{ 'vigil--reset': flash }"
+    :title="`Niveau de vigilance : ${level} sur 5 (triple-cliquez pour recommencer à zéro)`"
+    @click="onClick"
+  >
     <span v-if="flash" role="status">Vigilance réinitialisée</span>
     <span v-else class="inline-flex items-center gap-1" role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">
       <IconEye class="w-4 h-4 flex-none" />
@@ -28,7 +33,20 @@ const onClick = (e: MouseEvent) => {
 </template>
 
 <style scoped>
-.vigil--reset { animation: vigil-flash 0.4s steps(4); }
-@keyframes vigil-flash { 0% { opacity: 0.1; } 100% { opacity: 0.8; } }
-@media (prefers-reduced-motion: reduce) { .vigil--reset { animation: none; } }
+.vigil--reset {
+  animation: vigil-flash 0.4s steps(4);
+}
+@keyframes vigil-flash {
+  0% {
+    opacity: 0.1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vigil--reset {
+    animation: none;
+  }
+}
 </style>

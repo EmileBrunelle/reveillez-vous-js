@@ -24,7 +24,13 @@ describe('safeStorage', () => {
   it('falls back when setItem throws (quota / private mode)', () => {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
-      value: { getItem: () => null, removeItem: () => {}, setItem: () => { throw new Error('quota') } },
+      value: {
+        getItem: () => null,
+        removeItem: () => {},
+        setItem: () => {
+          throw new Error('quota')
+        },
+      },
     })
     const s = safeStorage()
     s.setItem('a', '1')

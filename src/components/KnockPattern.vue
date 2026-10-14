@@ -18,12 +18,7 @@ defineProps<{ pattern: Gap[]; lit: number; filled: number; mode: 'listen' | 'rep
         :data-on="(mode === 'listen' ? n <= lit : n <= filled) ? '' : undefined"
         :class="(mode === 'listen' ? n <= lit : n <= filled) ? (mode === 'listen' ? 'bg-accent scale-110 motion-reduce:scale-100' : 'bg-alt scale-110 motion-reduce:scale-100') : 'bg-transparent'"
       />
-      <span
-        v-if="n <= pattern.length"
-        class="block"
-        :data-gap="pattern[n - 1]"
-        :class="pattern[n - 1] === 'long' ? 'w-10 h-0 border-t-2 border-solid border-fg mx-1 opacity-70' : 'w-3'"
-      />
+      <span v-if="n <= pattern.length" class="block" :data-gap="pattern[n - 1]" :class="pattern[n - 1] === 'long' ? 'w-10 h-0 border-t-2 border-solid border-fg mx-1 opacity-70' : 'w-3'" />
     </template>
   </div>
 </template>

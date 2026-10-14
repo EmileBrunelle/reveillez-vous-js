@@ -8,7 +8,9 @@
   src: url('../node_modules/@fontsource/vt323/files/vt323-latin-400-normal.woff2') format('woff2');
 }
 /* Barre des tâches fixe : hauteur réservée en bas de l’écran (barre + zone de sécurité). */
-:root { --taskbar-h: calc(2.5rem + 4px + env(safe-area-inset-bottom, 0px)); }
+:root {
+  --taskbar-h: calc(2.5rem + 4px + env(safe-area-inset-bottom, 0px));
+}
 :root {
   --bg: #000080;
   --fg: #ffffff;
@@ -18,34 +20,99 @@
   --ink: #000000;
   color-scheme: dark;
 }
-* { box-sizing: border-box; }
-html { font-size: 112.5%; }
-html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font-family: 'VT323', ui-monospace, monospace; }
-body { font-size: 1rem; }
+* {
+  box-sizing: border-box;
+}
+html {
+  font-size: 112.5%;
+}
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'VT323', ui-monospace, monospace;
+}
+body {
+  font-size: 1rem;
+}
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
-@keyframes about-bd { from { background: rgb(0 0 170 / 0); } }
-@keyframes reset-in { from { opacity: 0; transform: scale(0.96); } }
-@keyframes checking-in { to { opacity: 0.6; } }
+@keyframes about-bd {
+  from {
+    background: rgb(0 0 170 / 0);
+  }
+}
+@keyframes reset-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes checking-in {
+  to {
+    opacity: 0.6;
+  }
+}
 
-.door-handle { transform-box: fill-box; transform-origin: center; }
+.door-handle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
 
 /* Anti-surlignage : surfaces interactives non sélectionnables, texte utile sélectionnable */
-html, body, .app, .scene, .btn, .linklike, .bar, svg, canvas {
-  -webkit-user-select: none; user-select: none;
+html,
+body,
+.app,
+.scene,
+.btn,
+.linklike,
+.bar,
+svg,
+canvas {
+  -webkit-user-select: none;
+  user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-.btn, .linklike, .scene, .app { touch-action: manipulation; }
-.tarot__title, .tarot__body, .tarot__verse, .tarot__banner, .tarot__numero {
-  -webkit-user-select: text; user-select: text;
+.btn,
+.linklike,
+.scene,
+.app {
+  touch-action: manipulation;
+}
+.tarot__title,
+.tarot__body,
+.tarot__verse,
+.tarot__banner,
+.tarot__numero {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Reading phase: the whole screen fits the viewport (no page scroll). Small top/bottom padding (no fixed
    elements left; the vigilance badge is inline under « Fermer la porte »). */
-.app--reading { height: 100vh; height: 100dvh; min-height: 0; padding: 0.75rem 1rem calc(0.75rem + var(--taskbar-h)); overflow: hidden; align-items: stretch; }
-@media (orientation: landscape) and (max-height: 32.5rem) {
-  .app--reading { padding: 0.5rem 1rem calc(0.5rem + var(--taskbar-h)); }
+.app--reading {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  padding: 0.75rem 1rem calc(0.75rem + var(--taskbar-h));
+  overflow: hidden;
+  align-items: stretch;
 }
-html:has(.app--reading), body:has(.app--reading) { overflow: hidden; }
+@media (orientation: landscape) and (max-height: 32.5rem) {
+  .app--reading {
+    padding: 0.5rem 1rem calc(0.5rem + var(--taskbar-h));
+  }
+}
+html:has(.app--reading),
+body:has(.app--reading) {
+  overflow: hidden;
+}

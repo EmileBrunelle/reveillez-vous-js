@@ -74,13 +74,10 @@ export const nextLine = (grammar: Grammar, key: string, store: Store, rng: Rng, 
 }
 
 /** Next door knock line of `level` (shuffle bag), or `fallback` when the key is missing. */
-export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string =>
-  nextLine(grammar, `porte${level}`, store, rng, fallback)
+export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, `porte${level}`, store, rng, fallback)
 
 /** Mockery after a failed rhythm (table `rate<N>`). */
-export const nextFailLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string =>
-  nextLine(grammar, `rate${level}`, store, rng, fallback)
+export const nextFailLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, `rate${level}`, store, rng, fallback)
 
 /** Give-up line after three failures (table `entrez`). */
-export const nextEntrezLine = (grammar: Grammar, store: Store, rng: Rng, fallback: string): string =>
-  nextLine(grammar, 'entrez', store, rng, fallback)
+export const nextEntrezLine = (grammar: Grammar, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, 'entrez', store, rng, fallback)

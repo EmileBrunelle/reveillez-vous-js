@@ -325,18 +325,45 @@ const onSceneClick = (e: MouseEvent) => {
 </script>
 
 <template>
-  <section class="scene grid-rows-[minmax(0,1fr)_auto] [--stage-cap:clamp(10rem,45dvh,28rem)] max-sm:portrait:[--stage-cap:clamp(10rem,54dvh,30rem)] h-[min(calc(100dvh_-_var(--taskbar-h)_-_1.5rem),calc(var(--stage-cap)_+_11rem))]" @click="onSceneClick">
-    <div ref="stage" data-stage class="relative w-auto h-full max-h-[var(--stage-cap)] self-end aspect-[120/190] [perspective:900px] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]">
+  <section
+    class="scene grid-rows-[minmax(0,1fr)_auto] [--stage-cap:clamp(10rem,45dvh,28rem)] max-sm:portrait:[--stage-cap:clamp(10rem,54dvh,30rem)] h-[min(calc(100dvh_-_var(--taskbar-h)_-_1.5rem),calc(var(--stage-cap)_+_11rem))]"
+    @click="onSceneClick"
+  >
+    <div
+      ref="stage"
+      data-stage
+      class="relative w-auto h-full max-h-[var(--stage-cap)] self-end aspect-[120/190] [perspective:900px] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]"
+    >
       <div class="absolute inset-0" aria-hidden="true">
         <div ref="glow" class="absolute inset-[3%_5%_0] opacity-0 [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]" />
         <div ref="seer" class="absolute left-1/2 bottom-0 w-[38%] -ml-[19%] opacity-0 [&_.seer]:block [&_.seer]:w-full"><Seer class="seer" /></div>
       </div>
-      <div ref="spill" class="absolute -left-[45%] -right-[45%] top-[8%] h-[130%] opacity-0 origin-[50%_0] [clip-path:polygon(33%_0,67%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0.7),rgb(255_226_140/0))] pointer-events-none" aria-hidden="true" />
-      <div ref="leaf" data-leaf class="absolute inset-0 origin-[0_50%] backface-hidden select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]" role="img" :aria-label="door.label">
+      <div
+        ref="spill"
+        class="absolute -left-[45%] -right-[45%] top-[8%] h-[130%] opacity-0 origin-[50%_0] [clip-path:polygon(33%_0,67%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0.7),rgb(255_226_140/0))] pointer-events-none"
+        aria-hidden="true"
+      />
+      <div
+        ref="leaf"
+        data-leaf
+        class="absolute inset-0 origin-[0_50%] backface-hidden select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+        role="img"
+        :aria-label="door.label"
+      >
         <component :is="door.component" class="block w-full h-full" />
       </div>
       <div ref="strip" class="absolute left-[8%] right-[8%] -bottom-px h-[2px] opacity-0 bg-[#ffd56a] shadow-[0_0_6px_1px_rgb(255_213_106/0.6)] pointer-events-none" aria-hidden="true" />
-      <button v-if="!closing" class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] focus-visible:[outline:3px_solid_var(--accent)] focus-visible:outline-offset-[6px]" type="button" aria-label="Ouvrir la porte" :aria-describedby="phase === 'invite' ? 'door-said' : undefined" :data-phase="phase" @click="onDoor" @keydown="onDoorKeydown" @mousedown="onDoorMousedown" />
+      <button
+        v-if="!closing"
+        class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] focus-visible:[outline:3px_solid_var(--accent)] focus-visible:outline-offset-[6px]"
+        type="button"
+        aria-label="Ouvrir la porte"
+        :aria-describedby="phase === 'invite' ? 'door-said' : undefined"
+        :data-phase="phase"
+        @click="onDoor"
+        @keydown="onDoorKeydown"
+        @mousedown="onDoorMousedown"
+      />
       <div ref="captionLayer" class="absolute left-1/2 top-[18%] h-0 pointer-events-none" aria-hidden="true">
         <span v-for="n in CAPTIONS" :key="n" class="absolute top-0 left-0 -translate-x-1/2 text-[1.3rem] font-bold tracking-[0.1em] text-accent opacity-0">TOC</span>
       </div>
@@ -360,17 +387,55 @@ const onSceneClick = (e: MouseEvent) => {
 
 <style scoped>
 /* Reste en CSS: .scene (gap > règle globale), ::after décoratif, :has/:deep, paysage. */
-.scene { gap: 0.75rem; }
-.scene--ui { max-width: none; }
-@media (max-height: 30rem) and (orientation: landscape) { [data-stage] { height: min(var(--stage-cap), calc(100dvh - var(--taskbar-h) - 1.5rem)); } }
-.door-hit::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: -3px; height: 4px; background: var(--accent); box-shadow: 0 0 0.7778rem 0.2222rem rgb(255 226 140 / 0.8); opacity: 0; transition: opacity 0.2s; }
-.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)::after { opacity: 1; }
-[data-leaf] :deep(svg) { transform-origin: 0 50%; transition: transform 0.25s, filter 0.25s; }
-[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: perspective(700px) rotateY(-5deg); filter: drop-shadow(0 0 0.5556rem rgb(255 226 140 / 0.55)); }
-@media (prefers-reduced-motion: reduce) {
-  [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: none; }
+.scene {
+  gap: 0.75rem;
+}
+.scene--ui {
+  max-width: none;
 }
 @media (max-height: 30rem) and (orientation: landscape) {
-  .scene:not(.scene--ui) { height: auto; grid-template-rows: none; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 1.5rem; max-width: 44rem; }
+  [data-stage] {
+    height: min(var(--stage-cap), calc(100dvh - var(--taskbar-h) - 1.5rem));
+  }
+}
+.door-hit::after {
+  content: '';
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: -3px;
+  height: 4px;
+  background: var(--accent);
+  box-shadow: 0 0 0.7778rem 0.2222rem rgb(255 226 140 / 0.8);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)::after {
+  opacity: 1;
+}
+[data-leaf] :deep(svg) {
+  transform-origin: 0 50%;
+  transition:
+    transform 0.25s,
+    filter 0.25s;
+}
+[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) {
+  transform: perspective(700px) rotateY(-5deg);
+  filter: drop-shadow(0 0 0.5556rem rgb(255 226 140 / 0.55));
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) {
+    transform: none;
+  }
+}
+@media (max-height: 30rem) and (orientation: landscape) {
+  .scene:not(.scene--ui) {
+    height: auto;
+    grid-template-rows: none;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 1.5rem;
+    max-width: 44rem;
+  }
 }
 </style>

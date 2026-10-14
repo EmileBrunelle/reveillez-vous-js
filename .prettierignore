@@ -1,0 +1,5 @@
+dist
+.claude
+*.wgsl
+package-lock.json
+public/

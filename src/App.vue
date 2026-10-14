@@ -180,14 +180,45 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
   <WebGpuGate v-if="gpu === 'blocked'" @retry="retry" @about="openAbout" />
   <MotionConfig v-else reduced-motion="user">
     <CrtOverlay :key="attempt" :paranoia="paranoia" @ready="gpu = 'ok'" @fail="gpu = 'blocked'" />
-    <p v-if="gpu === 'checking'" class="fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none" role="status">Connexion aux ondes…</p>
+    <p
+      v-if="gpu === 'checking'"
+      class="fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none"
+      role="status"
+    >
+      Connexion aux ondes…
+    </p>
     <template v-if="gpu === 'ok'">
       <BgPlace :key="place.id" :place="place.id" :variant="placeVariant.params" />
-      <div class="fixed inset-0 z-0 pointer-events-none bg-[rgb(120_0_0/0.35)] transition-opacity duration-[400ms] motion-reduce:transition-none" :class="listening ? 'opacity-100' : 'opacity-0'" aria-hidden="true" />
-      <button v-if="awaiting" class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-0.6667rem]" type="button" autofocus @click="approach">Approchez-vous de la porte</button>
-      <main v-else-if="DoorScene" ref="mainEl" class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip" :class="{ 'app--reading': phase === 'reading' }">
+      <div
+        class="fixed inset-0 z-0 pointer-events-none bg-[rgb(120_0_0/0.35)] transition-opacity duration-[400ms] motion-reduce:transition-none"
+        :class="listening ? 'opacity-100' : 'opacity-0'"
+        aria-hidden="true"
+      />
+      <button
+        v-if="awaiting"
+        class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-0.6667rem]"
+        type="button"
+        autofocus
+        @click="approach"
+      >
+        Approchez-vous de la porte
+      </button>
+      <main
+        v-else-if="DoorScene"
+        ref="mainEl"
+        class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip"
+        :class="{ 'app--reading': phase === 'reading' }"
+      >
         <AnimatePresence mode="wait">
-          <Motion v-if="phase === 'door'" :key="`door-${sceneKey}`" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+          <Motion
+            v-if="phase === 'door'"
+            :key="`door-${sceneKey}`"
+            class="w-full max-w-[36rem] grid justify-items-center"
+            :initial="{ opacity: 0 }"
+            :animate="{ opacity: 1 }"
+            :exit="{ opacity: 0 }"
+            :transition="{ duration: 0.2 }"
+          >
             <component
               :is="DoorScene"
               :door="door"
@@ -203,17 +234,51 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
               @closed="onClosed"
             />
           </Motion>
-          <Motion v-else-if="phase === 'activity' && Activity" key="activity" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+          <Motion
+            v-else-if="phase === 'activity' && Activity"
+            key="activity"
+            class="w-full max-w-[36rem] grid justify-items-center"
+            :initial="{ opacity: 0 }"
+            :animate="{ opacity: 1 }"
+            :exit="{ opacity: 0 }"
+            :transition="{ duration: 0.2 }"
+          >
             <component :is="Activity" :level="level" @done="onActivityDone" />
           </Motion>
-          <Motion v-else-if="phase === 'cut'" key="cut" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+          <Motion
+            v-else-if="phase === 'cut'"
+            key="cut"
+            class="w-full max-w-[36rem] grid justify-items-center"
+            :initial="{ opacity: 0 }"
+            :animate="{ opacity: 1 }"
+            :exit="{ opacity: 0 }"
+            :transition="{ duration: 0.2 }"
+          >
             <DeckCut :level="level" @pick="onPick" />
           </Motion>
-          <Motion v-else-if="phase === 'finale'" key="finale" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+          <Motion
+            v-else-if="phase === 'finale'"
+            key="finale"
+            class="w-full max-w-[36rem] grid justify-items-center"
+            :initial="{ opacity: 0 }"
+            :animate="{ opacity: 1 }"
+            :exit="{ opacity: 0 }"
+            :transition="{ duration: 0.2 }"
+          >
             <Finale @done="restart" />
           </Motion>
-          <Motion v-else-if="phase === 'reading'" key="reading" class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
-            <section class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4">
+          <Motion
+            v-else-if="phase === 'reading'"
+            key="reading"
+            class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]"
+            :initial="{ opacity: 0 }"
+            :animate="{ opacity: 1 }"
+            :exit="{ opacity: 0 }"
+            :transition="{ duration: 0.2 }"
+          >
+            <section
+              class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
+            >
               <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
                 <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" @flipped="onFlipped" />
               </div>

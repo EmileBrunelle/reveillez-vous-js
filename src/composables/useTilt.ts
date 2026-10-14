@@ -4,9 +4,7 @@ import { useDocumentVisibility, useEventListener } from '@vueuse/core'
 // iOS 13+ exige un geste utilisateur pour activer deviceorientation. Ailleurs : no-op.
 // Ne jamais appeler hors d’un geste ; un refus est ignoré en silence.
 export const requestOrientationPermission = () => {
-  const D = (typeof DeviceOrientationEvent === 'undefined' ? undefined : DeviceOrientationEvent) as
-    | (typeof DeviceOrientationEvent & { requestPermission?: () => Promise<string> })
-    | undefined
+  const D = (typeof DeviceOrientationEvent === 'undefined' ? undefined : DeviceOrientationEvent) as (typeof DeviceOrientationEvent & { requestPermission?: () => Promise<string> }) | undefined
   if (typeof D?.requestPermission !== 'function') return
   try {
     void D.requestPermission().catch(() => {})
@@ -65,7 +63,7 @@ export const useDeviceTilt = ({ enabled, apply }: Options) => {
 
   useEventListener(window, 'deviceorientation', (e: DeviceOrientationEvent) => {
     if (e.beta == null || e.gamma == null || visibility.value === 'hidden' || !enabled()) return
-    const angle = ((screen.orientation?.angle ?? 0) % 360 + 360) % 360
+    const angle = (((screen.orientation?.angle ?? 0) % 360) + 360) % 360
     // Axes écran selon la rotation : x = vers la droite de l’écran, y = vers le bas.
     const x = angle === 90 ? e.beta : angle === 180 ? -e.gamma : angle === 270 ? -e.beta : e.gamma
     const y = angle === 90 ? -e.gamma : angle === 180 ? -e.beta : angle === 270 ? e.gamma : e.beta

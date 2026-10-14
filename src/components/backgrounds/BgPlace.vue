@@ -77,5 +77,7 @@ onUnmounted(() => {
 
 <style scoped>
 /* Fallback when the pipeline fails: plain dark night gradient. */
-.place { background: radial-gradient(ellipse at 70% 20%, #2a3350 0, transparent 30%), linear-gradient(#070a14, #141c26 70%, #05070b); }
+.place {
+  background: radial-gradient(ellipse at 70% 20%, #2a3350 0, transparent 30%), linear-gradient(#070a14, #141c26 70%, #05070b);
+}
 </style>

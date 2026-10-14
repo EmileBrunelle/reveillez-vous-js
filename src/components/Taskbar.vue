@@ -40,12 +40,23 @@ onClickOutside(menu, () => close(), { ignore: [startBtn] })
 const onMenuKey = (e: KeyboardEvent) => {
   const list = items()
   const i = list.indexOf(document.activeElement as HTMLElement)
-  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true) }
-  else if (e.key === 'ArrowDown') { e.preventDefault(); list[(i + 1) % list.length]?.focus() }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); list[(i - 1 + list.length) % list.length]?.focus() }
-  else if (e.key === 'Home') { e.preventDefault(); list[0]?.focus() }
-  else if (e.key === 'End') { e.preventDefault(); list[list.length - 1]?.focus() }
-  else if (e.key === 'Tab') close()
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    e.stopPropagation()
+    close(true)
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    list[(i + 1) % list.length]?.focus()
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    list[(i - 1 + list.length) % list.length]?.focus()
+  } else if (e.key === 'Home') {
+    e.preventDefault()
+    list[0]?.focus()
+  } else if (e.key === 'End') {
+    e.preventDefault()
+    list[list.length - 1]?.focus()
+  } else if (e.key === 'Tab') close()
 }
 
 const nowMs = ref(Date.now())
@@ -53,12 +64,15 @@ useIntervalFn(() => (nowMs.value = Date.now()), 15000)
 const pad = (n: number) => String(n).padStart(2, '0')
 const hhmm = () => `${pad(new Date(nowMs.value).getHours())}:${pad(new Date(nowMs.value).getMinutes())}`
 
-const item = 'flex items-center gap-2 w-full min-h-10 px-3 text-[0.9rem] text-black no-underline text-left cursor-pointer border-0 bg-transparent [font:inherit] hover:bg-[#000080] hover:text-white focus:bg-[#000080] focus:text-white focus:outline-none sm:min-h-8'
+const item =
+  'flex items-center gap-2 w-full min-h-10 px-3 text-[0.9rem] text-black no-underline text-left cursor-pointer border-0 bg-transparent [font:inherit] hover:bg-[#000080] hover:text-white focus:bg-[#000080] focus:text-white focus:outline-none sm:min-h-8'
 const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
 </script>
 
 <template>
-  <div class="taskbar fixed bottom-0 inset-x-0 z-30 flex items-stretch justify-between gap-2 bg-[#c0c0c0] text-black text-[0.85rem] pt-[2px] px-[2px] pb-[max(2px,env(safe-area-inset-bottom))] box-border shadow-[inset_0_1px_#dfdfdf,inset_0_2px_#fff] select-none [-webkit-tap-highlight-color:transparent] touch-manipulation">
+  <div
+    class="taskbar fixed bottom-0 inset-x-0 z-30 flex items-stretch justify-between gap-2 bg-[#c0c0c0] text-black text-[0.85rem] pt-[2px] px-[2px] pb-[max(2px,env(safe-area-inset-bottom))] box-border shadow-[inset_0_1px_#dfdfdf,inset_0_2px_#fff] select-none [-webkit-tap-highlight-color:transparent] touch-manipulation"
+  >
     <div class="relative flex">
       <button
         ref="startBtn"
@@ -84,7 +98,12 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         aria-label="Menu Démarrer"
         @keydown="onMenuKey"
       >
-        <div class="w-7 flex-none bg-gradient-to-t from-[#000080] to-[#1084d0] text-white text-[1.1rem] font-bold tracking-[0.03em] whitespace-nowrap [writing-mode:vertical-rl] rotate-180 flex items-center px-[0.2rem] pb-0" aria-hidden="true">Réveillez-vous&nbsp;<span class="font-normal">98</span></div>
+        <div
+          class="w-7 flex-none bg-gradient-to-t from-[#000080] to-[#1084d0] text-white text-[1.1rem] font-bold tracking-[0.03em] whitespace-nowrap [writing-mode:vertical-rl] rotate-180 flex items-center px-[0.2rem] pb-0"
+          aria-hidden="true"
+        >
+          Réveillez-vous&nbsp;<span class="font-normal">98</span>
+        </div>
         <div class="flex-1 min-w-0 py-[2px]">
           <button class="" :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
           <a
@@ -109,7 +128,8 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
             tabindex="-1"
             aria-label="Hommage à Terry A. Davis (1969–2018), Wikipédia (nouvel onglet)"
             @click="close()"
-          >Hommage à Terry A. Davis (1969–2018)</a>
+            >Hommage à Terry A. Davis (1969–2018)</a
+          >
           <template v-if="level > 1">
             <hr class="my-[3px] mx-[2px] border-0 h-[2px] bg-transparent shadow-[inset_0_1px_grey,inset_0_-1px_#fff]" role="separator" />
             <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('reset')">Recommencer à zéro</button>
@@ -120,7 +140,14 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
 
     <div class="flex items-stretch gap-1 pl-1 pr-1 bg-[#c0c0c0]" :class="inset">
       <Vigilance :level="level" class="flex items-center min-h-10 min-w-10 justify-center" @reset="emit('resetLevel')" />
-      <button class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-4px]" type="button" aria-label="Couper le son" :aria-pressed="muted" :title="muted ? 'Son coupé' : 'Son actif'" @click="muted = !muted">
+      <button
+        class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-4px]"
+        type="button"
+        aria-label="Couper le son"
+        :aria-pressed="muted"
+        :title="muted ? 'Son coupé' : 'Son actif'"
+        @click="muted = !muted"
+      >
         <IconSoundOff v-if="muted" class="w-4 h-4" />
         <IconSound v-else class="w-4 h-4" />
       </button>

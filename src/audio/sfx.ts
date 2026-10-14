@@ -61,10 +61,7 @@ const thump = (c: AudioContext, at: number, gain: number) => {
 }
 
 /** One knock (noise burst + thump) scheduled at audio time `at`; returns the sources so they can be stopped. */
-const knockAt = (c: AudioContext, at: number, intensity: number): AudioScheduledSourceNode[] => [
-  ...burst(c, at, 0.12, 400, 0.4 + 0.5 * intensity),
-  thump(c, at, 0.3 + 0.4 * intensity),
-]
+const knockAt = (c: AudioContext, at: number, intensity: number): AudioScheduledSourceNode[] => [...burst(c, at, 0.12, 400, 0.4 + 0.5 * intensity), thump(c, at, 0.3 + 0.4 * intensity)]
 
 /** Plays one knock now. Silent when muted or when the audio context is not running (not unlocked yet). */
 export const knock = (intensity: number) => {
@@ -78,11 +75,7 @@ export const knock = (intensity: number) => {
  * visuals and sound share one time base. Before audio is unlocked (no running context) the same schedule
  * runs silently on performance.now().
  */
-export const scheduleKnocks = (
-  offsets: number[],
-  intensity: number,
-  onHit: (i: number, intensity: number) => void,
-): KnockHandle => {
+export const scheduleKnocks = (offsets: number[], intensity: number, onHit: (i: number, intensity: number) => void): KnockHandle => {
   const live = ctx !== null && ctx.state === 'running'
   const now = live ? () => ctx!.currentTime : () => performance.now() / 1000
   const t0 = now() + 0.05

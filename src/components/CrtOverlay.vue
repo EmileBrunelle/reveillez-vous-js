@@ -34,7 +34,12 @@ onMounted(async () => {
   const start = (async () => {
     const { startCrt } = await import('../effects/crt')
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
-    return startCrt(canvas.value!, () => !reducedMotion.value, () => props.paranoia, () => (lost.value = true))
+    return startCrt(
+      canvas.value!,
+      () => !reducedMotion.value,
+      () => props.paranoia,
+      () => (lost.value = true),
+    )
   })()
   try {
     const s = await timeout(start, 'CRT init')
@@ -44,7 +49,10 @@ onMounted(async () => {
   } catch (e) {
     console.warn('CRT overlay disabled:', e)
     lost.value = true
-    void start.then((s) => s.stop(), () => undefined)
+    void start.then(
+      (s) => s.stop(),
+      () => undefined,
+    )
   }
   if (!gone) emit('ready')
 })
