@@ -8,11 +8,15 @@ import crtShader from './crt.wgsl'
 /** Must match PERIOD in crt.wgsl: every time-driven term repeats exactly over this many seconds. */
 const PERIOD = 100
 
-export const startCrt = async (canvas: HTMLCanvasElement, motion: boolean, paranoia: () => number): Promise<{ setPaused(paused: boolean): void; stop(): void }> => {
+export const startCrt = async (canvas: HTMLCanvasElement, motion: () => boolean, paranoia: () => number, onLost?: () => void): Promise<{ setPaused(paused: boolean): void; stop(): void }> => {
   const gpu = await init()
+  let stopped = false
+  void gpu.lost.then(() => {
+    if (!stopped) onLost?.()
+  })
   const surf = surface(gpu, canvas, { dpr: [1, 1.5], clearColor: [0, 0, 0, 0] })
   let p = paranoia()
-  const params = (t: number) => ({ time: t, height: canvas.height, width: canvas.width, motion: motion ? 1 : 0, paranoia: p })
+  const params = (t: number) => ({ time: t, height: canvas.height, width: canvas.width, motion: motion() ? 1 : 0, paranoia: p })
   const crt = effect(gpu, crtShader, { set: { params: params(0) } })
   const time = clock(gpu)
   const run = () =>
@@ -32,6 +36,7 @@ export const startCrt = async (canvas: HTMLCanvasElement, motion: boolean, paran
       } else loop ??= run()
     },
     stop() {
+      stopped = true
       loop?.stop()
       crt.dispose()
       gpu.dispose()

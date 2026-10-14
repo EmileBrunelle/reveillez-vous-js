@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SiteFooter from './SiteFooter.vue'
 import { detectBrowser } from '../effects/webgpu'
 
 defineEmits<{ retry: []; about: [] }>()
@@ -63,9 +64,6 @@ const browser = detectBrowser(navigator.userAgent)
     </section>
 
     <button class="btn" type="button" @click="$emit('retry')">Réessayer</button>
-    <p class="footer">
-      Hommage à Terry A. Davis (1969–2018) ·
-      <button class="linklike" type="button" @click="$emit('about')">À propos</button>
-    </p>
+    <SiteFooter @about="$emit('about')" />
   </main>
 </template>

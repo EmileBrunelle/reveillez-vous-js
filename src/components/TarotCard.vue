@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { animate, useReducedMotion } from 'motion-v'
 import TarotEmblem from './TarotEmblem.vue'
 import { cardDeal, cardFlip } from '../audio/sfx'
@@ -34,11 +34,27 @@ const bodyEl = ref<HTMLElement>()
 // max = min(5% of card width, 26px); floor = 11px (a longest level-5 prophecy must fit a 360x640 phone).
 const MIN_PX = 11
 const MAX_PX = 26
+let lastW = 0
+let lastH = 0
+let fitRaf = 0
+// Coalesces every trigger into one rAF; unless forced (content/fonts changed), skips when the card size is unchanged.
+const scheduleFit = (force = false) => {
+  if (force) lastW = lastH = 0
+  if (fitRaf) return
+  fitRaf = requestAnimationFrame(() => {
+    fitRaf = 0
+    fitBody()
+  })
+}
 const fitBody = () => {
   const panel = panelEl.value
   const body = bodyEl.value
   const w = root.value?.offsetWidth
-  if (!panel || !body || !w || !panel.clientHeight) return
+  const h = root.value?.offsetHeight
+  if (!panel || !body || !w || !h || !panel.clientHeight) return
+  if (w === lastW && h === lastH) return
+  lastW = w
+  lastH = h
   const cs = getComputedStyle(panel)
   const room = panel.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
   const fits = (px: number) => {
@@ -64,7 +80,7 @@ const fitBody = () => {
   }
 }
 let ro: ResizeObserver | undefined
-watch(() => [props.body, props.title], () => void nextTick(fitBody))
+watch(() => [props.body, props.title], () => scheduleFit(true))
 
 let skipped = false
 let running: { stop: () => void }[] = []
@@ -210,17 +226,16 @@ onMounted(() => {
   window.addEventListener('pointermove', onMove)
   document.addEventListener('pointerleave', onLeave)
   if (root.value) {
-    ro = new ResizeObserver(fitBody)
+    ro = new ResizeObserver(() => scheduleFit())
     ro.observe(root.value)
-    if (panelEl.value) ro.observe(panelEl.value)
   }
-  void nextTick(fitBody)
-  requestAnimationFrame(fitBody)
-  void document.fonts?.ready.then(fitBody)
+  scheduleFit(true)
+  void document.fonts?.ready.then(() => scheduleFit(true))
   void deal()
 })
 onUnmounted(() => {
   ro?.disconnect()
+  cancelAnimationFrame(fitRaf)
   skipped = true
   window.clearTimeout(timer)
   glitchTimers.forEach(clearTimeout)
@@ -233,6 +248,7 @@ onUnmounted(() => {
 
 <template>
   <div ref="root" class="tarot" :class="`tarot--l${level}`" @click="skip">
+    <div class="tarot__sr" role="status" aria-live="polite">{{ faceUp ? `${title} ${body} ${verse}` : '' }}</div>
     <div class="tarot__stage">
     <div ref="dealEl" class="tarot__deal">
       <div ref="tiltEl" class="tarot__tilt">
@@ -275,6 +291,7 @@ onUnmounted(() => {
   container-type: inline-size;
   position: relative;
 }
+.tarot__sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .tarot__stage { position: absolute; inset: 0; perspective: 1100px; }
 .tarot__deal, .tarot__tilt, .tarot__flip { position: absolute; inset: 0; transform-style: preserve-3d; }
 .tarot__tilt { transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.12s ease-out; }
@@ -303,7 +320,7 @@ onUnmounted(() => {
 .tarot__banner { align-self: stretch; margin: 0 -4.6cqw; padding: 1.8cqw 2cqw; background: var(--tarot-ink); color: var(--tarot-paper); text-align: center; font-size: 4.2cqw; font-weight: bold; text-transform: uppercase; letter-spacing: 0.06em; overflow-wrap: anywhere; line-height: 1.15; }
 .tarot__glare {
   position: absolute; inset: 0; pointer-events: none; opacity: var(--glare, 0); transition: opacity 0.2s;
-  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 55%); mix-blend-mode: soft-light;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.3), rgb(255 255 255 / 0) 55%);
 }
 .tarot__tilt { --glare: 0; }
 .tarot__back {

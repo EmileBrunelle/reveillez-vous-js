@@ -342,7 +342,6 @@ export const prophecies: Grammar = {
   ],
 }
 
-// TODO(Émile): c’est ici que tu écris les jokes.
 // Structure par niveaux (le moteur choisit la clé de départ selon le nombre d’ouvertures de porte) :
 //  - `niveau1` Curieux·se · `niveau2` Suspicieux·se · `niveau3` Convaincu·e · `niveau4` Paranoïaque · `niveau5` Illuminé·e.
 //  - Chaque niveau = 8-10 gabarits « question|corps|verset » (séparés par « | »). Questions par niveau : `question1` … `question5`.
@@ -358,4 +357,3 @@ export const prophecies: Grammar = {
 //    Les chaînes `futur`, `moment`, `bonbon` ont une variante `_caps`.
 //  - Garde chaque paire cohérente : l’entrée est tirée une seule fois par prophétie, tous ses champs vont ensemble.
 //  - Les valeurs peuvent contenir des {références} imbriquées (profondeur max : 8). Jamais de « | » dans une valeur.
-// À ajouter : plus de gabarits par niveau, plus de paires (`industrie`, `fete`), plus de questions et de faux versets.

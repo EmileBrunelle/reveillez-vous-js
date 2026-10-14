@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SiteFooter from './SiteFooter.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { animate, useReducedMotion } from 'motion-v'
 import type { SceneVariant } from '../content/scenes'
@@ -175,10 +176,7 @@ const onSceneClick = (e: MouseEvent) => {
     <div v-if="!closing" ref="ui" class="scene scene--ui">
       <p class="lead">{{ line }}</p>
       <p class="hint" aria-hidden="true" :class="{ 'hint--on': hint }">(Touchez la porte)</p>
-      <p class="footer">
-        Hommage à Terry A. Davis (1969–2018) ·
-        <button class="linklike" type="button" @click="emit('about')">À propos</button>
-      </p>
+      <SiteFooter @about="emit('about')" />
     </div>
   </section>
 </template>

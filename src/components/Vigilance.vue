@@ -19,9 +19,9 @@ onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>
-  <p class="vigil" :class="{ 'vigil--reset': flash }" :aria-label="flash ? 'Vigilance réinitialisée' : `Niveau de vigilance : ${level} sur 5`" @click="onClick">
+  <p class="vigil" :class="{ 'vigil--reset': flash }" @click="onClick">
     <span v-if="flash" role="status">Vigilance réinitialisée</span>
-    <span v-else aria-hidden="true">Niveau de vigilance : {{ bar }}</span>
+    <span v-else role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">Niveau de vigilance : {{ bar }}</span>
   </p>
 </template>
 

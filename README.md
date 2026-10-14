@@ -36,6 +36,7 @@ Vite, Vue 3, TypeScript, [vgpu](https://vgpu.sh) (WebGPU : effet cathodique en W
 ## Crédits et licences
 
 - Icônes : [game-icons.net](https://game-icons.net) (CC BY 3.0).
+- Icône GitHub : [Simple Icons](https://simpleicons.org) (CC0).
 - Les bibliothèques ci-dessus sont utilisées selon leurs licences respectives.
 
 ## Hommage

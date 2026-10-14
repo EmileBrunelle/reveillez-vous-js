@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@iconify-json/game-icons": "^1.2.4",
-    "@iconify-json/pixelarticons": "^1.2.10",
+    "@iconify-json/simple-icons": "^1.2.100",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",

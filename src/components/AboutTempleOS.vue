@@ -34,7 +34,6 @@ const rest = () => {
   set(bar.value, { opacity: '1' })
   set(title.value, { clipPath: 'none' })
   set(body.value, { opacity: '1' })
-  zoomWorld(false)
 }
 // The CRT world dims and recedes while the window is up.
 const zoomWorld = (on: boolean) => {

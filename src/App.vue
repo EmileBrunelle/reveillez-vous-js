@@ -15,6 +15,7 @@ import { prophecies } from './content/prophecies'
 import { nextDoorLine, nextProphecy, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import { pickVariant } from './engine/variant'
+import { safeStorage } from './composables/safeStorage'
 import { hymn, unlock } from './audio/sfx'
 
 type Phase = 'door' | 'concentration' | 'reading'
@@ -66,7 +67,7 @@ const prophecy = ref<Prophecy>({ question: '', body: '', verse: '', arcane: EMPT
 const enterDoor = () => {
   door.value = pickVariant(doors, level.value, door.value.id, rng)
   background.value = pickVariant(backgrounds, level.value, background.value.id, rng)
-  doorLine.value = nextDoorLine(prophecies, level.value, localStorage, rng, FALLBACK_LINE)
+  doorLine.value = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE)
   phase.value = 'door'
   closing.value = false
   sceneKey.value++
@@ -74,18 +75,47 @@ const enterDoor = () => {
 enterDoor()
 
 const onDone = () => {
-  prophecy.value = nextProphecy(prophecies, level.value, localStorage, rng)
+  prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng)
   phase.value = 'reading'
   hymn()
 }
 const restart = () => {
+  if (closing.value) return
+  closing.value = true
   unlock()
   level.value = levelForVisits(bumpVisits())
   // The open door slams first; the next variant is picked once it is shut (see onClosed).
-  closing.value = true
   sceneKey.value++
   phase.value = 'door'
 }
+
+// Browsers keep the AudioContext suspended until a user gesture; without one, the first knocks would be silent.
+const awaiting = ref(!navigator.userActivation?.hasBeenActive)
+const approach = () => {
+  unlock()
+  // Give the context a moment to reach 'running' so scheduleKnocks sees it live.
+  window.setTimeout(() => (awaiting.value = false), 120)
+}
+
+const closeBtn = ref<HTMLButtonElement>()
+const focusSoon = (find: () => HTMLElement | null | undefined) => {
+  let n = 0
+  const t = () => {
+    const el = find()
+    if (el) return el.focus({ preventScroll: true })
+    if (n++ < 60) requestAnimationFrame(t)
+  }
+  requestAnimationFrame(t)
+}
+const onFlipped = () => void nextTick(() => closeBtn.value?.focus({ preventScroll: true }))
+// A phase unmounting drops focus to <body>: send it to the door button of the next door.
+watch(
+  () => [phase.value, closing.value, awaiting.value, gpu.value] as const,
+  ([p, c, a, g]) => {
+    if (p === 'door' && !c && !a && g === 'ok') focusSoon(() => document.querySelector<HTMLElement>('.door-hit'))
+  },
+  { flush: 'post' },
+)
 const onClosed = () => {
   enterDoor()
 }
@@ -95,10 +125,12 @@ const onClosed = () => {
   <WebGpuGate v-if="gpu === 'blocked'" @retry="retry" @about="openAbout" />
   <MotionConfig v-else reduced-motion="user">
     <CrtOverlay :key="attempt" :paranoia="paranoia" @ready="gpu = 'ok'" @fail="gpu = 'blocked'" />
+    <p v-if="gpu === 'checking'" class="checking" role="status">Connexion aux ondes…</p>
     <template v-if="gpu === 'ok'">
       <component :is="background.component" />
       <MuteToggle class="corner" />
-      <main ref="mainEl" class="app" :class="{ 'app--reading': phase === 'reading' }">
+      <button v-if="awaiting" class="wake" type="button" autofocus @click="approach">Approchez-vous de la porte</button>
+      <main v-else ref="mainEl" class="app" :class="{ 'app--reading': phase === 'reading' }">
         <AnimatePresence mode="wait">
           <Motion v-if="phase === 'door'" :key="`door-${sceneKey}`" class="phase" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
             <DoorScene
@@ -118,10 +150,10 @@ const onClosed = () => {
           <Motion v-else key="reading" class="phase phase--reading" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
             <section class="scene scene--reading">
               <div class="tarot-slot">
-                <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" />
+                <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" @flipped="onFlipped" />
               </div>
               <div class="actions">
-                <button class="btn btn--alt" type="button" @click="restart">Fermer la porte</button>
+                <button ref="closeBtn" class="btn btn--alt" type="button" :disabled="closing" @click="restart">Fermer la porte</button>
               </div>
             </section>
           </Motion>

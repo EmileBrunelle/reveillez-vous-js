@@ -12,21 +12,40 @@ const reducedMotion = usePreferredReducedMotion()
 const visibility = useDocumentVisibility()
 watch(visibility, (v) => crt?.setPaused(v === 'hidden'))
 let gone = false
+const lost = ref(false)
+const TIMEOUT_MS = 5000
+const timeout = <T,>(p: Promise<T>, label: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const t = window.setTimeout(() => reject(new Error(`${label} timed out`)), TIMEOUT_MS)
+    p.then(resolve, reject).finally(() => window.clearTimeout(t))
+  })
 
 onMounted(async () => {
+  // No WebGPU (or a hung adapter request): the gate. Anything after that is decoration and never blocks.
+  let ok = false
   try {
-    if (!(await hasWebGpuAdapter())) throw new Error('no adapter')
-    const motion = reducedMotion.value !== 'reduce'
+    ok = await timeout(hasWebGpuAdapter(), 'requestAdapter')
+  } catch {
+    ok = false
+  }
+  if (gone) return
+  if (!ok) return emit('fail')
+  const start = (async () => {
     const { startCrt } = await import('../effects/crt')
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
-    const s = await startCrt(canvas.value!, motion, () => props.paranoia)
+    return startCrt(canvas.value!, () => reducedMotion.value !== 'reduce', () => props.paranoia, () => (lost.value = true))
+  })()
+  try {
+    const s = await timeout(start, 'CRT init')
     if (gone) return s.stop()
     crt = s
     if (visibility.value === 'hidden') s.setPaused(true)
-    emit('ready')
-  } catch {
-    if (!gone) emit('fail')
+  } catch (e) {
+    console.warn('CRT overlay disabled:', e)
+    lost.value = true
+    void start.then((s) => s.stop(), () => undefined)
   }
+  if (!gone) emit('ready')
 })
 onUnmounted(() => {
   gone = true
@@ -35,5 +54,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <canvas ref="canvas" class="crt" aria-hidden="true" />
+  <canvas v-show="!lost" ref="canvas" class="crt" aria-hidden="true" />
 </template>

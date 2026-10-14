@@ -104,3 +104,9 @@ html, body, .app, .scene, .stage, .door, .door-svg, .btn, .linklike, .mute, .bar
   .tarot-slot { height: 100%; }
 }
 html:has(.app--reading), body:has(.app--reading) { overflow: hidden; }
+
+/* Waiting for the CRT overlay / first gesture. */
+.checking { position: fixed; inset: 0; margin: 0; display: grid; place-items: center; font-size: 0.9rem; letter-spacing: 0.1em; opacity: 0; color: var(--fg); animation: checking-in 0.6s ease 0.4s forwards; pointer-events: none; }
+@keyframes checking-in { to { opacity: 0.6; } }
+.wake { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; width: 100%; border: 0; background: transparent; color: var(--fg); font: inherit; font-size: 1.2rem; letter-spacing: 0.08em; cursor: pointer; }
+.wake:focus-visible { outline: 3px solid var(--fg); outline-offset: -12px; }

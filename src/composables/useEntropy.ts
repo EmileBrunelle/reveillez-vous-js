@@ -16,7 +16,7 @@ export const useEntropy = (target = TARGET) => {
   const done = computed(() => progress.value >= 1)
 
   // Listeners live as long as the calling component; `active` gates counting.
-  useEventListener(window, ['keydown', 'pointerdown', 'touchstart'], record, { passive: true })
+  useEventListener(window, ['keydown', 'pointerdown'], record, { passive: true })
   const start = () => {
     count.value = 0
     active.value = true

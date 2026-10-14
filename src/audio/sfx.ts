@@ -5,6 +5,7 @@ export const muted = ref(false)
 
 let ctx: AudioContext | null = null
 const ac = (): AudioContext | null => {
+  if (ctx?.state === 'closed') ctx = null
   if (!ctx) {
     const C = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!C) return null
@@ -15,7 +16,7 @@ const ac = (): AudioContext | null => {
 
 export const unlock = () => {
   const c = ac()
-  if (c && c.state === 'suspended') void c.resume()
+  if (c && c.state !== 'running') void c.resume()
 }
 
 const noiseBuffer = (c: AudioContext, seconds: number) => {
