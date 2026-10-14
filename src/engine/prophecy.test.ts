@@ -30,6 +30,14 @@ describe('prophecy', () => {
     expect(new Set(qs)).toEqual(new Set(['Q1', 'Q2']))
     expect(nextProphecy(g, 1, s, rng).verse).toMatch(/^V[12]$/)
   })
+  it('verses go through a shuffle bag: N draws give N distinct verses', () => {
+    const versets = ['A 1:1', 'B 2:2', 'C 3:3', 'D 4:4', 'E 5:5']
+    const gv: Grammar = { niveau1: ['Q|corps|{verset}'], verset: versets }
+    const s = store()
+    const rng = mulberry32(7)
+    const seen = versets.map(() => nextProphecy(gv, 1, s, rng).verse)
+    expect(new Set(seen)).toEqual(new Set(versets))
+  })
   it('door line falls back when key is missing', () => {
     expect(nextDoorLine(g, 4, store(), mulberry32(1), 'fallback')).toBe('fallback')
     expect(nextDoorLine(g, 1, store(), mulberry32(1), 'fallback')).toMatch(/^Toc [ab]$/)

@@ -46,7 +46,13 @@ type Store = Pick<Storage, 'getItem' | 'setItem'>
 export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng: Rng): Prophecy => {
   const templates = templatesFor(grammar, level)
   if (templates.length === 0) return { question: '', body: '', verse: '', arcane: EMPTY_ARCANE }
-  const tpl = templates[drawPersisted(store, `niveau${level}`, templates.length, rng)]
+  let tpl = templates[drawPersisted(store, `niveau${level}`, templates.length, rng)]
+  // Le verset passe aussi par un sac persisté : pas de répétition avant d’avoir tout vu.
+  const versets = strings(grammar, 'verset')
+  if (versets.length > 0 && tpl.includes('{verset}')) {
+    const verset = versets[drawPersisted(store, 'verset', versets.length, rng)]
+    tpl = tpl.replaceAll('{verset}', () => verset)
+  }
   const [question = '', body = '', verse = ''] = expandTemplate(grammar, tpl, rng).split('|')
   return { question, body, verse, arcane: drawArcane(grammar, level, rng) }
 }
