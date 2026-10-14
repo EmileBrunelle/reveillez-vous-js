@@ -67,6 +67,8 @@ describe('prophecies content', () => {
         expect(out, ctx).not.toContain("'")
         expect(out, ctx).not.toMatch(/ {2}/)
         for (const c of CONTRACTIONS) expect(out.toLowerCase(), ctx).not.toContain(c)
+        // Halloween : h muet (« l’Halloween »), jamais « ce/le/de Halloween ».
+        expect(out, ctx).not.toMatch(/\b(ce|le|de|du|que) Halloween/i)
       }
       expect(count).toBeGreaterThanOrEqual((prefix === 'rate' ? 5 * 4 : prefix === 'entrez' ? 3 : 5 * 9) * SEEDS)
     })

@@ -73,7 +73,7 @@ export const prophecies: Grammar = {
   niveau3: [
     '{question3}|{fete.nom_maj} est une fausse fête inventée par {fete.industrie} pour vendre plus de {fete.cible}. Ma boule de cristal prédit que vous en achèterez cette année encore.|{verset}',
     '{question3}|Votre costume de cette année est déjà choisi : {objet.nom} l’a vu en rêve. Vous serez, au choix, un fantôme ou un drap. Ce sera le même.|{verset}',
-    '{question3}|{objet.nom_maj} l’annonce : ce Halloween, vous croirez partir {lieu_inexistant.en}. Vous serez envoyé·e {lieu_inexistant.destination_reelle}. Comme tout le monde. {lieu_inexistant.preuve}|{verset}',
+    '{question3}|{objet.nom_maj} l’annonce : à l’Halloween, vous croirez partir {lieu_inexistant.en}. Vous serez envoyé·e {lieu_inexistant.destination_reelle}. Comme tout le monde. {lieu_inexistant.preuve}|{verset}',
     '{question3}|Ce n’est pas moi qui le dis, ce sont vos cartes : {futur} {moment}. Notez l’heure, et gardez une chandelle.|{verset}',
     '{question3}|Je vois dans votre chaudron un avenir bien chaud : {futur} {moment}. Ne laissez personne remuer la soupe à votre place.|{verset}',
     '{question3}|La pleine lune de ce mois portera votre nom. Elle portera aussi celui de votre voisin, par souci d’équité. Prévoyez des {bonbon}.|{verset}',
