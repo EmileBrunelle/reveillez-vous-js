@@ -169,7 +169,7 @@ watch(
 // L4: 1 per reading, L5: 1-2. Never within 2 s of the flip (faceUp turns true ~0.2 s into it); skipped under reduced motion.
 // Never the prophecy body: only the numero/emblem/title/verse/banner bands move; no luminance change.
 const rng = secureRng()
-let glitchTimers: number[] = []
+const glitchTimers: number[] = []
 let glitchArmed = false
 const glitch = () => {
   const bands = root.value?.querySelectorAll<HTMLElement>('.tarot__numero, .tarot__emblem, .tarot__title, .tarot__verse, .tarot__banner')

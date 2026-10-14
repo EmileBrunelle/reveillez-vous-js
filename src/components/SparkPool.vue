@@ -7,7 +7,7 @@ const SIZE = 24
 const reduced = useReducedMotion()
 const root = ref<HTMLElement>()
 let next = 0
-let live: { stop: () => void }[] = []
+const live: { stop: () => void }[] = []
 
 /** Emits one spark at viewport (x, y); pooled, so at most SIZE exist at any time. */
 const emit = (x: number, y: number) => {

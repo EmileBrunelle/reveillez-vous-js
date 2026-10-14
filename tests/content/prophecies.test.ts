@@ -12,6 +12,7 @@ const CONTRACTIONS = [' de le ', ' de les ', ' à le ', ' à les ']
 const bannedRe = (w: string) => new RegExp(`(?<![\\p{L}\\p{N}])${w}(?![\\p{L}\\p{N}])`, 'iu')
 
 /** Every (key, template, seed) expansion of the real content. */
+// eslint-disable-next-line func-style -- générateur : func-style n’exempte pas `function*`
 function* expansions(prefix: 'niveau' | 'porte' | 'rate') {
   for (const n of levels) {
     const key = `${prefix}${n}`
@@ -25,6 +26,7 @@ function* expansions(prefix: 'niveau' | 'porte' | 'rate') {
 }
 
 /** Single-table keys (no level suffix) joined to the same checks. */
+// eslint-disable-next-line func-style -- générateur : func-style n’exempte pas `function*`
 function* entrezExpansions() {
   for (const [i, tpl] of (prophecies.entrez as string[]).entries()) {
     for (let seed = 1; seed <= SEEDS; seed++) {

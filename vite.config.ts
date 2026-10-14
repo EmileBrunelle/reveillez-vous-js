@@ -1,6 +1,4 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vite'
-import { configDefaults } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import Icons from 'unplugin-icons/vite'
 import { FileSystemIconLoader } from 'unplugin-icons/loaders'
