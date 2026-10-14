@@ -4,6 +4,9 @@ import { onClickOutside, useIntervalFn } from '@vueuse/core'
 import { muted } from '../audio/sfx'
 import { loadAbout, loadReset, prefetch } from '../lazy'
 import Vigilance from './Vigilance.vue'
+import IconStart from '~icons/rvj/demarrer'
+import IconSound from '~icons/rvj/son'
+import IconSoundOff from '~icons/rvj/son-coupe'
 import IconGithub from '~icons/simple-icons/github'
 
 defineProps<{ level: number }>()
@@ -69,9 +72,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         @pointerenter="warm"
         @focus="warm"
       >
-        <svg class="w-4 h-4" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M1 3l6-1v6H1z" fill="#f00" /><path d="M8 2l7-1v7H8z" fill="#0a0" /><path d="M1 9h6v6l-6-1z" fill="#00f" /><path d="M8 9h7v6l-7-1z" fill="#fc0" />
-        </svg>
+        <IconStart class="w-4 h-4" />
         <span>Démarrer</span>
       </button>
       <div
@@ -120,11 +121,8 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     <div class="flex items-stretch gap-1 pl-1 pr-1 bg-[#c0c0c0]" :class="inset">
       <Vigilance :level="level" class="flex items-center min-h-10 min-w-10 justify-center" @reset="emit('resetLevel')" />
       <button class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-4px]" type="button" aria-label="Couper le son" :aria-pressed="muted" :title="muted ? 'Son coupé' : 'Son actif'" @click="muted = !muted">
-        <svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <path d="M1 6h3l4-3.5v11L4 10H1z" />
-          <template v-if="muted"><path d="M10 5.5l5 5M15 5.5l-5 5" stroke="currentColor" stroke-width="1.6" fill="none" /></template>
-          <template v-else><path d="M10.5 5.5a3.5 3.5 0 010 5M12.5 3.5a6.5 6.5 0 010 9" stroke="currentColor" stroke-width="1.4" fill="none" /></template>
-        </svg>
+        <IconSoundOff v-if="muted" class="w-4 h-4" />
+        <IconSound v-else class="w-4 h-4" />
       </button>
       <time class="self-center px-1 tabular-nums" :datetime="new Date(nowMs).toISOString()">{{ hhmm() }}</time>
     </div>

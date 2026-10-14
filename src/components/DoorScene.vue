@@ -13,7 +13,7 @@ import { requestOrientationPermission } from '../composables/useTilt'
 import { safeStorage } from '../composables/safeStorage'
 import { secureRng } from '../engine/rng'
 import { useSessionStore } from '../stores/session'
-import Seer from './Seer.vue'
+import Seer from '~icons/rvj/voyante'
 import SparkPool from './SparkPool.vue'
 import KnockPattern from './KnockPattern.vue'
 
@@ -329,11 +329,11 @@ const onSceneClick = (e: MouseEvent) => {
     <div ref="stage" data-stage class="relative w-auto h-full max-h-[var(--stage-cap)] self-end aspect-[120/190] [perspective:900px] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]">
       <div class="absolute inset-0" aria-hidden="true">
         <div ref="glow" class="absolute inset-[3%_5%_0] opacity-0 [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]" />
-        <div ref="seer" class="absolute left-1/2 bottom-0 w-[38%] -ml-[19%] opacity-0 [&_.seer]:block [&_.seer]:w-full"><Seer /></div>
+        <div ref="seer" class="absolute left-1/2 bottom-0 w-[38%] -ml-[19%] opacity-0 [&_.seer]:block [&_.seer]:w-full"><Seer class="seer" /></div>
       </div>
       <div ref="spill" class="absolute -left-[45%] -right-[45%] top-[8%] h-[130%] opacity-0 origin-[50%_0] [clip-path:polygon(33%_0,67%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0.7),rgb(255_226_140/0))] pointer-events-none" aria-hidden="true" />
       <div ref="leaf" data-leaf class="absolute inset-0 origin-[0_50%] backface-hidden select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]" role="img" :aria-label="door.label">
-        <component :is="door.component" />
+        <component :is="door.component" class="block w-full h-full" />
       </div>
       <div ref="strip" class="absolute left-[8%] right-[8%] -bottom-px h-[2px] opacity-0 bg-[#ffd56a] shadow-[0_0_6px_1px_rgb(255_213_106/0.6)] pointer-events-none" aria-hidden="true" />
       <button v-if="!closing" class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] focus-visible:[outline:3px_solid_var(--accent)] focus-visible:outline-offset-[6px]" type="button" aria-label="Ouvrir la porte" :aria-describedby="phase === 'invite' ? 'door-said' : undefined" :data-phase="phase" @click="onDoor" @keydown="onDoorKeydown" @mousedown="onDoorMousedown" />
