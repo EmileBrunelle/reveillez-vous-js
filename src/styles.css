@@ -29,10 +29,10 @@ html, body, .app, .scene, .btn, .linklike, .bar, svg, canvas {
   -webkit-user-select: text; user-select: text;
 }
 
-/* Reading phase: the whole screen fits the viewport (no page scroll). Top/bottom padding clears the fixed
-   mute toggle (top-right) and vigilance badge (bottom-left). */
-.app--reading { height: 100vh; height: 100dvh; min-height: 0; padding: 3rem 1rem 2.6rem; overflow: hidden; align-items: stretch; }
+/* Reading phase: the whole screen fits the viewport (no page scroll). Small top/bottom padding (no fixed
+   elements left; the vigilance badge is inline under « Fermer la porte »). */
+.app--reading { height: 100vh; height: 100dvh; min-height: 0; padding: 0.75rem 1rem max(0.75rem, env(safe-area-inset-bottom)); overflow: hidden; align-items: stretch; }
 @media (orientation: landscape) and (max-height: 520px) {
-  .app--reading { padding: 0.5rem 1rem 2.6rem; }
+  .app--reading { padding: 0.5rem 1rem max(0.5rem, env(safe-area-inset-bottom)); }
 }
 html:has(.app--reading), body:has(.app--reading) { overflow: hidden; }
