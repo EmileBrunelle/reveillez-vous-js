@@ -1,0 +1,59 @@
+import { describe, expect, it } from 'vitest'
+import { expand, expandTemplate, type Grammar } from './grammar'
+import { mulberry32 } from './rng'
+
+const g: Grammar = {
+  start: ['{p.a}/{p.b}/{p.a}'],
+  p: [
+    { a: 'A1', b: 'B1' },
+    { a: 'A2', b: 'B2' },
+    { a: 'A3', b: 'B3' },
+  ],
+}
+
+describe('grammar', () => {
+  it('injected rng makes output deterministic', () => {
+    for (let s = 0; s < 50; s++) {
+      expect(expand(g, 'start', mulberry32(s))).toBe(expand(g, 'start', mulberry32(s)))
+    }
+  })
+
+  it('paired fields always come from the same entry', () => {
+    const seen = new Set<string>()
+    for (let s = 0; s < 300; s++) {
+      const [a, b, a2] = expand(g, 'start', mulberry32(s)).split('/')
+      expect(a).toBe(a2)
+      expect(a.slice(1)).toBe(b.slice(1))
+      seen.add(a)
+    }
+    expect(seen.size).toBe(3)
+  })
+
+  it('expandTemplate expands a raw template against shared tables', () => {
+    for (let s = 0; s < 50; s++) {
+      const out = expandTemplate(g, 'Q|{p.a} et {p.b}|V', mulberry32(s))
+      const [q, body, v] = out.split('|')
+      expect([q, v]).toEqual(['Q', 'V'])
+      expect(body).toMatch(/^A(\d) et B\1$/)
+    }
+  })
+
+  it('expands nested references', () => {
+    const n: Grammar = { start: ['{a}'], a: ['x{b}x'], b: ['{c}'], c: ['ok'] }
+    expect(expand(n, 'start', mulberry32(1))).toBe('xokx')
+    expect(expandTemplate(n, '[{a}]', mulberry32(1))).toBe('[xokx]')
+  })
+
+  it('stops on infinite recursion', () => {
+    const r: Grammar = { start: ['{start}'] }
+    expect(() => expand(r, 'start', mulberry32(1))).not.toThrow()
+    expect(() => expandTemplate(r, '{start}', mulberry32(1))).not.toThrow()
+  })
+
+  it('throws on unknown table or field, naming it', () => {
+    const g: Grammar = { start: ['{nope}'], p: [{ a: 'A' }], f: ['{p.b}'] }
+    expect(() => expand(g, 'start', mulberry32(1))).toThrow(/nope/)
+    expect(() => expand(g, 'f', mulberry32(1))).toThrow(/p\.b/)
+    expect(() => expandTemplate(g, 'x {missing.field}', mulberry32(1))).toThrow(/missing/)
+  })
+})

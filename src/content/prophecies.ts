@@ -1,0 +1,361 @@
+import type { Grammar, ObjectTable, StringTable } from '../engine/grammar'
+
+// --- helpers (le contenu est plus bas) --------------------------------------------------
+const cap = (s: string) => s.charAt(0).toLocaleUpperCase('fr-CA') + s.slice(1)
+const up = (s: string) => s.toLocaleUpperCase('fr-CA')
+
+/** Chaque champ `x` d’une paire reçoit aussi `x_maj` (1re lettre en majuscule) et `x_caps` (TOUT EN MAJUSCULES). */
+const paired = (entries: Record<string, string>[]): ObjectTable => {
+  return entries.map((e) => {
+    const out: Record<string, string> = {}
+    for (const [k, v] of Object.entries(e)) {
+      out[k] = v
+      out[`${k}_maj`] = cap(v)
+      out[`${k}_caps`] = up(v)
+    }
+    return out
+  })
+}
+
+/** Table de chaînes `name` + sa variante `name_caps` (pour le niveau 5). */
+const withCaps = (name: string, items: StringTable): Grammar => {
+  return { [name]: items, [`${name}_caps`]: items.map(up) }
+}
+
+export const prophecies: Grammar = {
+  // Entrée historique (compat) : un niveau au hasard. Les vrais points d’entrée sont niveau1 … niveau5.
+  gabarit: ['{niveau1}', '{niveau2}', '{niveau3}', '{niveau4}', '{niveau5}'],
+
+  // ---- Niveau 1 · Curieux·se : poli, presque raisonnable -------------------------------
+  // Chaque gabarit = une prédiction sur l’avenir de la personne + un élément de voyance ou d’Halloween.
+  niveau1: [
+    '{question1}|{objet.nom_maj} me le murmure depuis ce matin : {futur} {moment}. Rien de grave, rassurez-vous.|{verset}',
+    '{question1}|D’après la pleine lune, vous passerez une très belle semaine. Prévoyez simplement quelques bonbons pour une visite surprise.|{verset}',
+    '{question1}|Le 31 octobre, vous recevrez la visite de nombreuses petites créatures costumées. Le tarot confirme : gardez des {bonbon}.|{verset}',
+    '{question1}|J’ai tiré une carte pour vous : une belle journée vous attend {moment}. Un chat noir y jouera un rôle mineur.|{verset}',
+    '{question1}|Votre horoscope annonce un changement tout doux {moment}. Une citrouille en sera le témoin.|{verset}',
+    '{question1}|Dans la boule de cristal, je vois une porte, une main et un petit sac de {bonbon}. La porte, c’est la vôtre. La main, c’est la mienne.|{verset}',
+    '{question1}|{industrie.inventeur_maj} {industrie.produit} pour nous vendre plus de {industrie.cible}, dit-on. Moi, je lis seulement {objet.nom}, et j’y vois que {futur} {moment}.|{verset}',
+    '{question1}|À minuit, ce soir, vous entendrez peut-être un léger craquement. Ce sera un fantôme poli qui cherche l’interrupteur.|{verset}',
+    '{question1}|{fete.nom_maj} approche. Ma boule de cristal prévoit que vous y achèterez des {fete.cible}. Presque sûrement.|{verset}',
+    '{question1}|Cette semaine, quelqu’un vous offrira une citrouille. Acceptez-la : ce sera la première d’une longue série.|{verset}',
+  ],
+
+  // ---- Niveau 2 · Suspicieux·se : les liens apparaissent ----------------------------------
+  niveau2: [
+    '{question2}|Ma boule de cristal annonce que {futur} {moment}. Exactement comme je l’avais prédit. Exactement comme on l’avait prévu.|{verset}',
+    '{question2}|{objet.nom_maj} montre un chat noir, puis un fantôme, puis un sac de {bonbon}. Dans cet ordre. Pour vous. Le 31 octobre.|{verset}',
+    '{question2}|Mon tarot est clair : {futur} {moment}. Je ne crois pas aux coïncidences, je lis les cartes.|{verset}',
+    '{question2}|{industrie.inventeur_maj} {industrie.produit} pour nous vendre plus de {industrie.cible}. Et par hasard, la pleine lune vous annonce un achat de {industrie.cible} {moment}. Coïncidence ?|{verset}',
+    '{question2}|Saint-Clin-Clin-des-Meuh-Meuh n’existe pas. Vous le saviez. Mais savez-vous que ma boule de cristal vous y voit déménager le 1er juillet ?|{verset}',
+    '{question2}|On vous aperçoit {lieu}, déguisé·e en citrouille, {moment}. Non, ne niez pas : c’est dans votre horoscope.|{verset}',
+    '{question2}|Trois chats noirs, deux fantômes, un seul fournisseur de {bonbon}. Mon tarot en tire une conclusion : vous passerez la nuit du 31 octobre à compter vos bonbons.|{verset}',
+    '{question2}|Ce soir, à minuit, {objet.nom} va changer de couleur. Si vous ne le voyez pas, c’est que vous en faites partie.|{verset}',
+    '{question2}|Vous avez ouvert la porte une deuxième fois, et {objet.nom} avait tout prédit, avant même que je frappe. Étrange, non ?|{verset}',
+    '{question2}|Ma boule de cristal vous voit planifier un voyage {lieu_inexistant.en} cet automne. Coïncidence : {lieu_inexistant.lieu} n’existe pas. {lieu_inexistant.preuve}|{verset}',
+  ],
+
+  // ---- Niveau 3 · Convaincu·e : fausses fêtes, Big Citrouille dans l’ombre ---------------------
+  niveau3: [
+    '{question3}|{fete.nom_maj} est une fausse fête inventée par {fete.industrie} pour vendre plus de {fete.cible}. Ma boule de cristal prédit que vous en achèterez cette année encore.|{verset}',
+    '{question3}|Votre costume de cette année est déjà choisi : {objet.nom} l’a vu en rêve. Vous serez, au choix, un fantôme ou un drap. Ce sera le même.|{verset}',
+    '{question3}|{objet.nom_maj} l’annonce : ce Halloween, vous croirez partir {lieu_inexistant.en}. Vous serez envoyé·e {lieu_inexistant.destination_reelle}. Comme tout le monde. {lieu_inexistant.preuve}|{verset}',
+    '{question3}|Ce n’est pas moi qui le dis, ce sont vos cartes : {futur} {moment}. Notez l’heure, et gardez une chandelle.|{verset}',
+    '{question3}|Je vois dans votre chaudron un avenir bien chaud : {futur} {moment}. Ne laissez personne remuer la soupe à votre place.|{verset}',
+    '{question3}|La pleine lune de ce mois portera votre nom. Elle portera aussi celui de votre voisin, par souci d’équité. Prévoyez des {bonbon}.|{verset}',
+    '{question3}|Cette année, vous gagnerez le concours du meilleur costume. Ce n’est pas une prédiction, c’est un avertissement : le jury est un chat noir.|{verset}',
+    '{question3}|Réveillez-vous, les moutons ! Le tarot vous le dit : {futur} {moment}. Avancez avec des {bonbon} dans les poches.|{verset}',
+    '{question3}|{objet.nom_maj} vous regarde. Pas pour vous protéger : pour mesurer vos réserves de {bonbon} avant le 31 octobre.|{verset}',
+    '{question3}|Le 31 octobre, à minuit, un fantôme vous demandera si {fete.nom} est une vraie fête. Répondez non. Big Citrouille y verra une provocation.|{verset}',
+  ],
+
+  // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
+  niveau4: [
+    '{question4}|La boule de cristal, la citrouille, l’horoscope du journal : MÊME FOURNISSEUR. Prédiction : le 31 octobre, vous le comprendrez, mais trop tard.|{verset}',
+    '{question4}|Mon tarot prédit que vous voudrez partir {lieu_inexistant.en} cet hiver. {lieu_inexistant.lieu_maj} n’existe pas : on vous enverra {lieu_inexistant.destination_reelle}. {lieu_inexistant.preuve} MÊME FOURNISSEUR.|{verset}',
+    '{question4}|Dans ma boule de cristal, le fil rouge passe {lieu}, puis par votre porte, {moment}. Je n’invente rien. Je lis.|{verset}',
+    '{question4}|Mes notes : les {bonbon}, les costumes, les cônes orange, la neige. MÊME FOURNISSEUR. La pleine lune prédit qu’il repassera {moment}. Cachez votre citrouille.|{verset}',
+    '{question4}|Votre horoscope a changé pendant la nuit. Quelqu’un l’a réécrit au crayon rouge : {futur} {moment}. Je n’ai pas touché à la citrouille.|{verset}',
+    '{question4}|Ne regardez pas par la fenêtre le 31 octobre. Les oiseaux sont des drones, déguisés en chauves-souris. Ils attendent {moment}.|{verset}',
+    '{question4}|Je relie {industrie.nom}, {fete.nom} et {objet.nom} avec du fil rouge. Le dessin forme un fantôme. Il vous ressemble. Il vous attend {moment}.|{verset}',
+    '{question4}|Cette nuit, {objet.nom} a bougé sans mon aide. Ma prédiction : {futur} {moment}. Ma deuxième prédiction : la même, en pire.|{verset}',
+    '{question4}|Un seul fournisseur livre le chocolat, les toiles d’araignée et votre prochain mauvais pressentiment. MÊME FOURNISSEUR. Mon tarot annonce son passage {moment}.|{verset}',
+    '{question4}|Soyez prudent·e à minuit : le chat noir du voisin n’est pas un chat, c’est une antenne. La pleine lune la recharge. Vous le verrez {moment}.|{verset}',
+  ],
+
+  // ---- Niveau 5 · Illuminé·e : MAJUSCULES, phrases coupées, contradictions ----------------------
+  niveau5: [
+    '{question5}|LA BOULE DE CRISTAL DIT : {futur_caps} {moment_caps}. NON ! L’INVERSE ! PERSONNE NE VOUS CROISERA JAMAIS. VOUS ÊTES DÉJÀ DANS LE SAC DE BONBONS.|{verset}',
+    '{question5}|{lieu_inexistant.lieu_caps} N’EXISTE PAS ! LA BOULE DE CRISTAL VOUS Y VOIT LE 31 OCTOBRE ET ON VOUS ENVOIE {lieu_inexistant.destination_reelle_caps} ! {lieu_inexistant.preuve_caps} VOUS N’EXIS—|{verset}',
+    '{question5}|LA BOULE DE CRISTAL VOUS REGARDE. ELLE NE VOUS REGARDE PAS. ELLE VOUS REGARDE REGAR— {objet.nom_caps} AUSSI. À MINUIT, ILS SERONT TROIS. ILS SERONT UN.|{verset}',
+    '{question5}|MÊME FOURNISSEUR ! MÊME FOURN— MÊME FOURNISSEUR DE {bonbon_caps} ! DE COSTUMES ! DE LUNES ! LE 31 OCTOBRE, IL PASSERA POUR VOUS. POUR VOUS CUEIL—|{verset}',
+    '{question5}|LA PLEINE LUNE A QUATRE CÔTÉS ET QUATRE JOURS EN UN SEUL JOUR. LE CUBE DE CITROUILLE EST LE TEMPS. LE 31 OCTOBRE, VOUS SEREZ UN CUBE. RÉVEILLEZ-VOUS, LES MOUTONS !|{verset}',
+    '{question5}|IL NE FAUT PAS FERMER LA PORTE. IL NE FAUT PAS OUVRIR LA PORTE. À MINUIT, IL FAUDRA ÊTRE LA PORTE. {objet.nom_caps} A DIT OUI.|{verset}',
+    '{question5}|JE VOIS DANS LE CHAUDRON QUE {futur_caps} {moment_caps}. JE VOIS AUSSI LE CHAUDRON. LE CHAUDRON ME VOIT. LE CHAUD—|{verset}',
+    '{question5}|JE SUIS LE MESSAGER. JE SUIS LE MESSAGE. JE SUIS LA PRÉDICTION. LE COUPABLE, C’EST {industrie.nom_caps}. VOUS ACHÈTEREZ DES {industrie.cible_caps} {moment_caps}. LA BOULE A DIT.|{verset}',
+    '{question5}|ILS ONT GREFFÉ DES YEUX SUR LES CÔNES ORANGE. LA BOULE DE CRIS— OUI. ELLE A TOUT VU. ELLE VOIT VOTRE 31 OCTOBRE. ELLE A TOUJOURS ÉTÉ AU COUR—|{verset}',
+    '{question5}|LES OISEAUX SONT DES DRONES ! LES CHAUVES-SOURIS SONT DES DRONES DÉGUISÉS ! CE SOIR À MINUIT, LA PLEINE LUNE VA PARLER ET VOUS SEREZ LE PUBLIC !|{verset}',
+  ],
+
+  // ---- Phrases de porte (toc toc), une ligne chacune ; le visiteur est une personne voyante porte-à-porte
+  porte1: [
+    'Toc toc toc… Avez-vous un moment pour parler de votre avenir ?',
+    'Toc toc. Bonjour ! Je suis voyant·e itinérant·e, et j’ai une bonne nouvelle au sujet de votre horoscope.',
+    'Toc toc toc… Excusez le dérangement, j’ai un petit dépliant sur la pleine lune.',
+    'Toc toc. Bonsoir ! Auriez-vous deux minutes pour parler {objet.de} ?',
+    'Toc toc toc… Je ne vends rien. Je distribue des prédictions, gratuitement, avec des bonbons.',
+    'Toc toc. Bonjour ! Avez-vous déjà pensé à votre semaine prochaine ? Moi oui, c’est mon métier.',
+    'Toc toc toc… Pardon de passer à l’heure du souper. Votre avenir, lui, ne pouvait pas attendre.',
+    'Toc toc. Bonjour ! Je fais le tour des maisons avant le 31 octobre pour lire dans les citrouilles. Gentiment.',
+    'Toc toc toc… Pardon, c’est bien ici qu’on veut connaître le futur ?',
+  ],
+  porte2: [
+    'Toc toc toc… Encore moi. La boule de cristal m’a dit que vous ouvririez.',
+    'Toc toc. Je repasse. Il y a eu des développements au sujet {objet.de}.',
+    'Toc toc toc… Je ne voulais pas insister, mais les cartes ont insisté pour moi.',
+    'Toc toc. C’est bien vous qui avez tiré le Pendu hier soir ? Non ? Ouvrez quand même.',
+    'Toc toc toc… Vous avez dû remarquer que je repasse. Moi, j’ai remarqué que vous restez.',
+    'Toc toc. Deuxième visite. Coïncidence ? Mon tarot ne croit pas aux coïncidences.',
+    'Toc toc toc… On m’a dit de ne pas retourner chez vous. La pleine lune a dit le contraire.',
+    'Toc toc. J’ai une question sur {industrie.nom}. Une toute petite. La boule la trouve importante.',
+    'Toc toc toc… Il y avait un fantôme derrière vous la dernière fois. Vous l’aviez vu ?',
+  ],
+  porte3: [
+    'TOC TOC TOC. Ouvrez, ma boule de cristal parle {fete.de} et vous allez comprendre.',
+    'Toc toc toc ! Réveillez-vous, il est grand temps de parler de Big Citrouille.',
+    'TOC TOC. J’ai des preuves. Elles sont dans un sac à bonbons.',
+    'Toc toc toc ! Vous voulez savoir qui a inventé {fete.nom} ? Mes cartes savent.',
+    'TOC TOC TOC. Je suis le messager. La vérité ne sonne pas, elle cogne.',
+    'Toc toc ! Ouvrez avant qu’on vous vende encore des {fete.cible}.',
+    'Toc toc toc ! Cette fois, j’ai apporté mon jeu de tarot. Il y a des flèches dessus.',
+    'TOC TOC. Les citrouilles vous mentent. Moi, je frappe poliment, mais fermement.',
+    'Toc toc toc ! La personne qui ouvre cette porte change son destin. Ouvrez.',
+  ],
+  porte4: [
+    'TOC TOC TOC. Ne dites rien. Les fantômes écoutent. Ouvrez doucement.',
+    'Toc toc. MÊME FOURNISSEUR. Ouvrez, je vous expliquerai avec du fil rouge et ma boule de cristal.',
+    'TOC TOC TOC ! Éteignez la lumière, puis ouvrez. Non, ouvrez, puis éteignez.',
+    'Toc. Toc. Toc. Quelqu’un me suit depuis {fete.nom}. Laissez-moi entrer.',
+    'TOC TOC. Je vois votre souper dans la boule. Je vois aussi que {futur}.',
+    'Toc toc toc… Vérifiez {lieu}. Maintenant ouvrez.',
+    'TOC TOC TOC ! Ouvrez ! Le fil rouge passe par votre paillasson !',
+    'Toc toc. Parlez bas : {objet.nom} écoute tout le voisinage.',
+    'TOC TOC. Ce n’est pas le facteur, ce n’est pas le livreur, c’est pire : c’est votre horoscope.',
+  ],
+  porte5: [
+    'OUVREZ. ILS ÉCOUTENT PAR LE TROU DE LA SERRURE.',
+    'TOC TOC TOC TOC TOC TOC TOC— VOUS N’ÊTES PAS CHEZ VOUS. OUVREZ.',
+    'LA BOULE DE CRISTAL M’A DIT VOTRE ADRESSE. ELLE A AUSSI DIT DE NE PAS OUV— OUVREZ.',
+    'TOC— ATTENDEZ. NON. TOC. C’ÉTAIT DÉJÀ OUVERT. ENTREZ-MOI.',
+    'OUVREZ ! FERMEZ ! LES DEUX ! EN MÊME TEMPS !',
+    'JE SUIS DERRIÈRE LA PORTE. JE SUIS DEVANT LA PORTE. JE SUIS {objet.nom_caps}.',
+    'TOC TOC. C’EST VOUS QUI FRAPPEZ. C’EST MOI QUI OUVRE. RE— REGARDEZ LA CITROUILLE.',
+    'MÊME FOURNISSEUR ! MÊME PORTE ! MÊME VOU— OUVREZ {moment_caps} !',
+    'LE CHAT NOIR A DIT QUE VOUS ÉTIEZ LÀ. VOUS N’ÊTES PAS LÀ. OUVREZ QUAND MÊME.',
+    'TOC TOC TOC. IL N’Y A PERSONNE. IL N’Y A JAMAIS PERSONNE. OUVREZ À PERSONNE.',
+  ],
+
+  // ---- Questions d’accroche, par niveau --------------------------------------------------
+  question1: [
+    'Puis-je consulter votre avenir, entre deux portes ?',
+    'Avez-vous une minute pour votre horoscope ?',
+    'Savez-vous ce que la pleine lune vous réserve ?',
+    'Voulez-vous que je tire une carte pour vous ?',
+    'Vous êtes-vous déjà demandé ce que dit votre boule de cristal ?',
+    'Avez-vous prévu un costume pour le 31 octobre ?',
+  ],
+  question2: [
+    'Coïncidence ? Pas selon mon tarot.',
+    'Vous ne trouvez pas ça étrange, vous aussi ?',
+    'Encore vous, à la porte ? Les cartes l’avaient dit.',
+    'Et si votre horoscope vous cachait quelque chose ?',
+    'Avez-vous vu la pleine lune hier soir ? Elle, elle vous a vu·e.',
+    'Pourquoi les chats noirs évitent-ils votre regard ?',
+  ],
+  question3: [
+    'Réveillez-vous : qui écrit votre horoscope ?',
+    'Saviez-vous qui fabrique vos citrouilles ?',
+    'Qui profite de votre 31 octobre ?',
+    'Voulez-vous vraiment connaître votre avenir ?',
+    'Voyez-vous le motif dans la boule de cristal ?',
+    'Pourquoi croyez-vous encore le calendrier ?',
+  ],
+  question4: [
+    'Voyez-vous les fils rouges dans la boule de cristal ?',
+    'Pourquoi les fantômes parlent-ils tous en même temps ?',
+    'Qui a changé votre horoscope pendant la nuit ?',
+    'Êtes-vous seul·e dans cette pièce, à minuit ?',
+    'Avez-vous vérifié derrière vous ? Les cartes disent oui.',
+    'Pourquoi le chat noir du voisin vous fixe-t-il ?',
+  ],
+  question5: [
+    'LA BOULE VOUS ENTEND ?',
+    'QUI PARLE DANS LE CHAUDRON ?',
+    'POURQUOI LA BOULE CLIGNE ?',
+    'VOUS LE SENTEZ AUSSI, À MINUIT ?',
+    'OUVREZ ! NE FERMEZ PAS ! OUVREZ !',
+    'VOUS ÊTES LÀ ? VOUS ÊTES PARTI·E ?',
+  ],
+
+  // ---- Tables à objets (paires) ----------------------------------------------------------
+  // Chaque champ `x` génère aussi `x_maj` et `x_caps` (voir `paired`). Tout l’accord est dans les champs.
+  // `inventeur` porte le verbe accordé (« Big Bougie a inventé » / « les compagnies de maths ont inventé »).
+  industrie: paired([
+    { nom: 'les compagnies de maths', inventeur: 'les compagnies de maths ont inventé', produit: 'les calculatrices', cible: 'maths' },
+    { nom: 'Big Bougie', inventeur: 'Big Bougie a inventé', produit: 'les citrouilles', cible: 'bougies' },
+    { nom: 'Big Tarot', inventeur: 'Big Tarot a inventé', produit: 'la tour foudroyée', cible: 'jeux de tarot' },
+    { nom: 'Big Lampe de poche', inventeur: 'Big Lampe de poche a inventé', produit: 'la pleine lune', cible: 'lampes de poche' },
+    { nom: 'Big Chaudron', inventeur: 'Big Chaudron a inventé', produit: 'la soupe de sorcière', cible: 'chaudrons' },
+    { nom: 'Big Drap', inventeur: 'Big Drap a inventé', produit: 'les fantômes', cible: 'draps' },
+    { nom: 'Big Litière', inventeur: 'Big Litière a inventé', produit: 'les chats noirs', cible: 'litières' },
+    { nom: 'Big Tuque', inventeur: 'Big Tuque a inventé', produit: 'le mois de janvier', cible: 'tuques' },
+    { nom: 'Big Poutine', inventeur: 'Big Poutine a inventé', produit: 'les frites', cible: 'fromage en grains' },
+    { nom: 'Big Cône orange', inventeur: 'Big Cône orange a inventé', produit: 'les nids-de-poule', cible: 'cônes orange' },
+    { nom: 'Big Pelle', inventeur: 'Big Pelle a inventé', produit: 'les bordées de neige', cible: 'pelles' },
+  ]),
+
+  // Modèle : « Le jour de Pi est une fausse fête inventée par les compagnies de maths pour vendre plus de maths. »
+  // `nom` = avec article (« le jour de Pi »), `de` = avec « de » contracté, `cible` = pluriel sans article.
+  fete: paired([
+    { nom: 'l’Halloween', de: 'de l’Halloween', industrie: 'Big Citrouille', inventeur: 'Big Citrouille a inventé', cible: 'citrouilles' },
+    { nom: 'le jour de Pi', de: 'du jour de Pi', industrie: 'les compagnies de maths', inventeur: 'les compagnies de maths ont inventé', cible: 'maths' },
+    { nom: 'la Saint-Valentin', de: 'de la Saint-Valentin', industrie: 'Big Chocolat', inventeur: 'Big Chocolat a inventé', cible: 'chocolats' },
+    { nom: 'le Vendredi noir', de: 'du Vendredi noir', industrie: 'Big Téléviseur', inventeur: 'Big Téléviseur a inventé', cible: 'téléviseurs' },
+    { nom: 'le 1er juillet', de: 'du 1er juillet', industrie: 'l’industrie du déménagement', inventeur: 'l’industrie du déménagement a inventé', cible: 'boîtes' },
+    { nom: 'le jour de la marmotte', de: 'du jour de la marmotte', industrie: 'Big Marmotte', inventeur: 'Big Marmotte a inventé', cible: 'marmottes en peluche' },
+    { nom: 'le poisson d’avril', de: 'du poisson d’avril', industrie: 'Big Poisson', inventeur: 'Big Poisson a inventé', cible: 'poissons rouges' },
+    { nom: 'la relâche', de: 'de la relâche', industrie: 'Big Valise', inventeur: 'Big Valise a inventé', cible: 'valises' },
+  ]),
+
+  // Lieux « qui n’existent pas » (blague : les personnes qui pensent y aller sont envoyées ailleurs).
+  // `lieu` = nom avec article éventuel, `en` = « en/à » inclus, `destination_reelle` = préposition incluse.
+  lieu_inexistant: paired([
+    { lieu: 'l’Australie', en: 'en Australie', destination_reelle: 'en Argentine', preuve: 'Les kangourous sont des costumes loués à l’heure. Les koalas, des toutous.' },
+    { lieu: 'la Finlande', en: 'en Finlande', destination_reelle: 'sur un grand lac brumeux', preuve: 'Personne n’a jamais vu de poisson finlandais. Les poissons non plus, d’ailleurs.' },
+    { lieu: 'Saint-Clin-Clin-des-Meuh-Meuh', en: 'à Saint-Clin-Clin-des-Meuh-Meuh', destination_reelle: 'au bout d’un rang sans nom, derrière un silo', preuve: 'Tout le monde en parle, personne n’y est jamais allé. Même pas votre oncle.' },
+    { lieu: 'Trois-Rivières', en: 'à Trois-Rivières', destination_reelle: 'sur un pont dont on ne voit jamais la fin', preuve: 'Personne n’a jamais vu les trois rivières en même temps. Faites le test.' },
+    { lieu: 'Drummondville', en: 'à Drummondville', destination_reelle: 'dans un chantier de cônes orange à perte de vue', preuve: 'Tout le monde la traverse, personne ne s’y arrête. C’est exactement ce que ferait une ville inventée.' },
+    { lieu: 'Rimouski', en: 'à Rimouski', destination_reelle: 'au bord du fleuve, dans le brouillard', preuve: 'C’est tellement loin que même la boule de cristal perd le signal.' },
+    { lieu: 'Sherbrooke', en: 'à Sherbrooke', destination_reelle: 'au bas d’une côte interminable', preuve: 'Toutes les rues y montent. Dans toutes les directions. C’est mathématiquement louche.' },
+    { lieu: 'Laval', en: 'à Laval', destination_reelle: 'dans un stationnement de centre commercial', preuve: 'Tous les ponts qui y mènent sont en travaux. Tous. En tout temps.' },
+  ]),
+
+  // Objets de voyance au singulier. `a` = avec « à » contracté (« à la boule de cristal », « au tarot »).
+  objet: paired([
+    { nom: 'la boule de cristal', de: 'de la boule de cristal', a: 'à la boule de cristal' },
+    { nom: 'le tarot', de: 'du tarot', a: 'au tarot' },
+    { nom: 'la pleine lune', de: 'de la pleine lune', a: 'à la pleine lune' },
+    { nom: 'l’horoscope', de: 'de l’horoscope', a: 'à l’horoscope' },
+    { nom: 'le chaudron', de: 'du chaudron', a: 'au chaudron' },
+    { nom: 'le chat noir', de: 'du chat noir', a: 'au chat noir' },
+    { nom: 'la citrouille', de: 'de la citrouille', a: 'à la citrouille' },
+    { nom: 'le fantôme du troisième', de: 'du fantôme du troisième', a: 'au fantôme du troisième' },
+    { nom: 'le sac de bonbons', de: 'du sac de bonbons', a: 'au sac de bonbons' },
+  ]),
+
+  // Arcanes (cartes de voyant). `symbole` = id d’un emblème de TarotCard (inconnu = œil) ; `niveaux` = niveaux où la carte est
+  // privilégiée (chiffres collés). Pas de figure religieuse : on garde les arcanes neutres et ceux de notre cru.
+  arcane: [
+    { numero: '0', nom: 'Le Mat', symbole: 'fool', niveaux: '12' },
+    { numero: 'X', nom: 'La Roue de Fortune', symbole: 'wheel', niveaux: '123' },
+    { numero: 'XVII', nom: 'L’Étoile', symbole: 'star', niveaux: '12' },
+    { numero: 'XVIII', nom: 'La Lune', symbole: 'moon', niveaux: '1234' },
+    { numero: 'XIX', nom: 'Le Soleil', symbole: 'sun', niveaux: '1' },
+    { numero: 'IX', nom: 'L’Ermite à lanterne', symbole: 'lantern', niveaux: '23' },
+    { numero: 'XVI', nom: 'La Tour foudroyée', symbole: 'tower', niveaux: '45' },
+    { numero: 'XIII bis', nom: 'Big Citrouille', symbole: 'pumpkin', niveaux: '345' },
+    { numero: 'XX', nom: 'Le Cône orange', symbole: 'cone', niveaux: '2345' },
+    { numero: 'XXI', nom: 'Le Pont en travaux', symbole: 'bridge', niveaux: '345' },
+    { numero: 'VIII', nom: 'La Boule de cristal', symbole: 'crystal', niveaux: '123' },
+    { numero: 'XIII ½', nom: 'Le Chat noir', symbole: 'cat', niveaux: '1234' },
+    { numero: 'XXII', nom: 'Saint-Clin-Clin-des-Meuh-Meuh', symbole: 'signpost', niveaux: '23' },
+    { numero: 'XXIII', nom: 'Le Fantôme du troisième', symbole: 'ghost', niveaux: '1245' },
+    { numero: 'LXVI', nom: 'L’Œil derrière la porte', symbole: 'eye', niveaux: '45' },
+  ],
+
+  // ---- Tables de chaînes partagées ---------------------------------------------------------
+  // `futur` : proposition complète (« vous … »), à placer après « : » ou « que ». Compléments de temps dans `moment`.
+  ...withCaps('futur', [
+    'vous croiserez un chat noir qui vous jugera',
+    'vous trouverez une orange dans votre sac de bonbons',
+    'vous recevrez un courriel parfaitement inutile',
+    'quelqu’un vous offrira une citrouille que vous n’avez pas demandée',
+    'vous renverserez votre café sur un présage',
+    'vous déciderez de ne pas manger de poutine, et vous aurez tort',
+    'un fantôme vous demandera votre mot de passe',
+    'vous croiserez trois cônes orange et un seul chemin',
+    'vous perdrez une tuque, puis vous la retrouverez, mais ce ne sera plus la même',
+    'vous répondrez à un numéro inconnu, et il connaîtra votre prénom',
+  ]),
+  ...withCaps('moment', [
+    'mardi prochain',
+    'à minuit pile',
+    'pendant la prochaine tempête de neige',
+    'au prochain feu rouge',
+    'avant la fin du mois',
+    'lors de votre prochain café',
+    'juste après le souper',
+    'durant la relâche',
+    'à la prochaine pleine lune',
+    'quand vous ouvrirez le frigo',
+  ]),
+  // Pluriels sans article, à utiliser après « de », « des », « les ».
+  ...withCaps('bonbon', [
+    'tablettes de chocolat',
+    'bonbons à la réglisse',
+    'pommes enrobées de caramel',
+    'jujubes',
+    'suçons',
+    'chips au ketchup',
+    'bonbons au maïs',
+    'minibarres sucrées',
+  ]),
+  // Compléments de lieu complets (préposition incluse).
+  lieu: [
+    'dans le métro',
+    'derrière le dépanneur du coin',
+    'sous un cône orange',
+    'dans la file de la poutinerie',
+    'au fond de votre sac de bonbons',
+    'dans votre ruelle',
+    'devant la patinoire municipale',
+    'près du bac de recyclage',
+  ],
+
+  verset: [
+    'Calcul 6:66',
+    'Citrouilles 31:10',
+    'Apocalypse.js 1:1',
+    'Tarot 22:0',
+    'Boule de cristal 3:14',
+    'Lune 13:13',
+    'Bonbons 1:31',
+    'Horoscope 12:12',
+    'Fantômes 2:3',
+    'Chaudron 4:20',
+    'Déménagement 1:7',
+    'Poutine 5:55',
+    'Cônes 9:11',
+    'Citrouilles 66:6',
+    'Calcul 3:14',
+    'Hiver 11:30',
+  ],
+}
+
+// TODO(Émile): c’est ici que tu écris les jokes.
+// Structure par niveaux (le moteur choisit la clé de départ selon le nombre d’ouvertures de porte) :
+//  - `niveau1` Curieux·se · `niveau2` Suspicieux·se · `niveau3` Convaincu·e · `niveau4` Paranoïaque · `niveau5` Illuminé·e.
+//  - Chaque niveau = 8-10 gabarits « question|corps|verset » (séparés par « | »). Questions par niveau : `question1` … `question5`.
+//  - Tables partagées : `industrie`, `fete`, `objet` (paires), `futur`, `moment`, `bonbon`, `lieu`, `verset` (chaînes).
+//  - `porte1` … `porte5` : phrases de porte (« toc toc »), 8-10 lignes simples par niveau, de plus en plus frénétiques.
+//  - `gabarit` = ancien point d’entrée (un niveau au hasard), gardé pour compatibilité.
+// Conventions :
+//  - Écriture inclusive : épicène d’abord (« les personnes », « toute personne », « vous ») ; sinon point médian
+//    (« élu·e·s », « seul·e »). Point médian = personnes seulement ; objets accordés normalement ou tournure sans accord.
+//  - Pas d’article contracté ni d’accord de verbe dans les gabarits : mets-les dans les champs
+//    (`inventeur` = « Big Bougie a inventé », `de` = « du jour de Pi », `a` = « au tarot »).
+//  - Chaque champ `x` d’une paire a aussi `x_maj` (majuscule initiale, pour début de phrase) et `x_caps` (niveau 5).
+//    Les chaînes `futur`, `moment`, `bonbon` ont une variante `_caps`.
+//  - Garde chaque paire cohérente : l’entrée est tirée une seule fois par prophétie, tous ses champs vont ensemble.
+//  - Les valeurs peuvent contenir des {références} imbriquées (profondeur max : 8). Jamais de « | » dans une valeur.
+// À ajouter : plus de gabarits par niveau, plus de paires (`industrie`, `fete`), plus de questions et de faux versets.
