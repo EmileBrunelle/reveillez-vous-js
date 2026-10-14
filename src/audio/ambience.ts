@@ -3,16 +3,17 @@ import { useDocumentVisibility } from '@vueuse/core'
 import type { PlaceId } from '../effects/places/types'
 import { ac, muted, noiseBuffer } from './sfx'
 
-/** Niveau du bus d’ambiance (≈ -20 dBFS (les sources filtrées sortent bien plus bas)) : un lit sous les coups et la voix, jamais par-dessus. */
-export const MASTER_GAIN = 0.1
+/** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. */
+export const MASTER_GAIN = 0.045
 /** Constantes de temps (setTargetAtTime) : ≈ 1,5 s à l’entrée, ≈ 0,8 s à la sortie, < 0,3 s pour le mute. */
 const TC_IN = 0.4
 const TC_OUT = 0.18
 const TC_MUTE = 0.07
 const STOP_AFTER_MS = 1100
 
-export type EventKind = 'dog' | 'creak' | 'cricket' | 'owl' | 'crow' | 'bell' | 'car'
-export type BedKind = 'wind' | 'branches' | 'lowWind' | 'hum' | 'rain' | 'pad' | 'softWind'
+export type EventKind = 'gust' | 'creak' | 'owl' | 'twig' | 'rustle' | 'bell' | 'crow' | 'dog' | 'door' | 'chime' | 'airSwell'
+/** Seul lit continu autorisé : un bourdon grave, très doux (jamais de bruit large bande). */
+export type BedKind = 'drone'
 
 export interface EventSpec {
   kind: EventKind
@@ -23,39 +24,51 @@ export interface EventSpec {
 
 export interface Recipe {
   beds: BedKind[]
+  /** Fréquence fondamentale du bourdon (Hz), si le lieu en a un. */
+  droneHz?: number
   events: EventSpec[]
 }
 
+/** Peu de son, beaucoup d’atmosphère : événements rares, longs silences entre eux. */
 export const RECIPES: Record<PlaceId, Recipe> = {
   perron: {
-    beds: ['wind'],
+    beds: [],
     events: [
-      { kind: 'dog', min: 25, max: 60 },
-      { kind: 'creak', min: 18, max: 45 },
+      { kind: 'gust', min: 9, max: 22 },
+      { kind: 'creak', min: 16, max: 34 },
     ],
   },
   foret: {
-    beds: ['branches'],
+    beds: [],
     events: [
-      { kind: 'cricket', min: 0.4, max: 2.2 },
-      { kind: 'owl', min: 14, max: 35 },
+      { kind: 'owl', min: 14, max: 30 },
+      { kind: 'twig', min: 10, max: 24 },
+      { kind: 'rustle', min: 9, max: 20 },
     ],
   },
   cimetiere: {
-    beds: ['lowWind'],
+    beds: ['drone'],
+    droneHz: 55,
     events: [
-      { kind: 'crow', min: 20, max: 50 },
-      { kind: 'bell', min: 20, max: 40 },
+      { kind: 'bell', min: 16, max: 32 },
+      { kind: 'crow', min: 14, max: 30 },
     ],
   },
   rue: {
-    beds: ['hum', 'rain'],
+    beds: [],
     events: [
-      { kind: 'car', min: 12, max: 30 },
-      { kind: 'dog', min: 35, max: 80 },
+      { kind: 'dog', min: 15, max: 32 },
+      { kind: 'door', min: 12, max: 26 },
     ],
   },
-  nuages: { beds: ['pad', 'softWind'], events: [] },
+  nuages: {
+    beds: ['drone'],
+    droneHz: 110,
+    events: [
+      { kind: 'chime', min: 8, max: 20 },
+      { kind: 'airSwell', min: 10, max: 24 },
+    ],
+  },
 }
 
 /** Délai aléatoire dans [min, max] (rng ∈ [0,1[). */
@@ -126,13 +139,6 @@ interface Env {
   every: (min: number, max: number, fn: () => void) => void
 }
 
-const noiseSrc = (e: Env) => {
-  const s = e.t.add(e.c.createBufferSource())
-  s.buffer = sharedNoise(e.c)
-  s.loop = true
-  s.start(0, Math.random() * 2)
-  return s
-}
 const filt = (e: Env, type: BiquadFilterType, freq: number, q = 0.7) => {
   const f = e.t.add(e.c.createBiquadFilter())
   f.type = type
@@ -153,141 +159,157 @@ const osc = (e: Env, type: OscillatorType, freq: number) => {
   return o
 }
 
-/** Bruit filtré dont le gain dérive au hasard : rafales. */
-const gusts = (e: Env, type: BiquadFilterType, freq: number, q: number, lo: number, hi: number, every: [number, number]) => {
-  const g = gainNode(e, lo)
-  noiseSrc(e)
-    .connect(filt(e, type, freq, q))
-    .connect(g)
-    .connect(e.out)
-  e.every(every[0], every[1], () => g.gain.setTargetAtTime(rnd(lo, hi), e.c.currentTime, 1.4))
+/** Bourdon : sinus en quinte, lowpass doux, gain et filtre qui respirent très lentement (battement < 0,1 Hz). */
+const drone = (e: Env, hz: number) => {
+  const lp = filt(e, 'lowpass', 260, 0.5)
+  const g = gainNode(e, 0.3)
+  lp.connect(g).connect(e.out)
+  osc(e, 'sine', hz).connect(lp)
+  const b = osc(e, 'sine', hz * 1.5)
+  b.detune.value = 3
+  b.connect(gainNode(e, 0.5)).connect(lp)
+  osc(e, 'sine', hz * 2.003)
+    .connect(gainNode(e, 0.25))
+    .connect(lp)
+  osc(e, 'sine', 0.045).connect(gainNode(e, 0.12)).connect(g.gain)
+  osc(e, 'sine', 0.03).connect(gainNode(e, 70)).connect(lp.frequency)
 }
 
-const beds: Record<BedKind, (e: Env) => void> = {
-  wind: (e) => gusts(e, 'bandpass', 520, 0.5, 0.05, 0.5, [2, 6]),
-  branches: (e) => gusts(e, 'bandpass', 1400, 0.6, 0.04, 0.3, [2, 5]),
-  lowWind: (e) => gusts(e, 'lowpass', 300, 0.7, 0.12, 0.6, [3, 8]),
-  softWind: (e) => gusts(e, 'bandpass', 700, 0.4, 0.02, 0.12, [4, 9]),
-  hum: (e) => {
-    noiseSrc(e)
-      .connect(filt(e, 'lowpass', 220))
-      .connect(gainNode(e, 0.35))
-      .connect(e.out)
-    osc(e, 'sine', 55).connect(gainNode(e, 0.05)).connect(e.out)
-    osc(e, 'sine', 110.7).connect(gainNode(e, 0.025)).connect(e.out)
-  },
-  rain: (e) => {
-    noiseSrc(e)
-      .connect(filt(e, 'highpass', 3500))
-      .connect(gainNode(e, 0.05))
-      .connect(e.out)
-  },
-  pad: (e) => {
-    const lp = filt(e, 'lowpass', 500, 0.8)
-    lp.connect(gainNode(e, 0.16)).connect(e.out)
-    for (const [f, d] of [
-      [110, -6],
-      [110, 5],
-      [165, -4],
-      [220.5, 7],
-      [277.2, -8],
-    ] as const) {
-      const o = osc(e, 'sine', f)
-      o.detune.value = d
-      o.connect(lp)
-    }
-    osc(e, 'sine', 0.06).connect(gainNode(e, 280)).connect(lp.frequency)
-  },
+const beds: Record<BedKind, (e: Env, r: Recipe) => void> = {
+  drone: (e, r) => drone(e, r.droneHz ?? 55),
 }
 
-/** Enveloppe courte : monte vite, redescend exponentiellement. */
+/** Enveloppe douce : monte, redescend exponentiellement. */
 const env = (g: GainNode, at: number, peak: number, attack: number, dur: number) => {
   g.gain.setValueAtTime(0.0001, at)
   g.gain.linearRampToValueAtTime(peak, at + attack)
   g.gain.exponentialRampToValueAtTime(0.0001, at + dur)
 }
 
+/** Houle de bruit (non bouclée, bornée) : filtre `type` à `freq`, montée `attack`, durée `dur`. */
+const swell = (e: Env, type: BiquadFilterType, freq: number, q: number, peak: number, attack: number, dur: number, sweepTo = freq) => {
+  const t0 = e.c.currentTime + 0.05
+  const s = e.t.add(e.c.createBufferSource())
+  s.buffer = sharedNoise(e.c)
+  const f = filt(e, type, freq, q)
+  f.frequency.setValueAtTime(freq, t0)
+  f.frequency.linearRampToValueAtTime(sweepTo, t0 + dur)
+  const lp = filt(e, 'lowpass', Math.max(freq * 1.6, 600), 0.5)
+  const g = gainNode(e, 0)
+  env(g, t0, peak, attack, dur)
+  s.connect(f).connect(lp).connect(g).connect(e.out)
+  s.start(t0, Math.random() * 2)
+  s.stop(t0 + dur + 0.1)
+  e.t.release(s, [s, f, lp, g])
+}
+
+/** Son tonal lointain : oscillateur filtré, `notes` = [décalage, Hz, durée]. */
+const tones = (e: Env, type: OscillatorType, cutoff: number, peak: number, notes: [number, number, number][], attack = 0.06) => {
+  const t0 = e.c.currentTime + 0.05
+  const o = e.t.add(e.c.createOscillator())
+  o.type = type
+  const lp = filt(e, 'lowpass', cutoff, 0.6)
+  const g = gainNode(e, 0)
+  let end = 0
+  for (const [dt, f, dur] of notes) {
+    o.frequency.setValueAtTime(f * 1.05, t0 + dt)
+    o.frequency.exponentialRampToValueAtTime(f, t0 + dt + 0.1)
+    env(g, t0 + dt, peak, attack, dur)
+    end = Math.max(end, dt + dur)
+  }
+  o.connect(lp).connect(g).connect(e.out)
+  o.start(t0)
+  o.stop(t0 + end + 0.1)
+  e.t.release(o, [o, lp, g])
+}
+
 const events: Record<EventKind, (e: Env) => void> = {
-  cricket: (e) => {
-    const t0 = e.c.currentTime + 0.02
-    const f = rnd(4000, 4700)
-    const pulses = 3 + Math.floor(Math.random() * 3)
-    const o = e.t.add(e.c.createOscillator())
-    o.frequency.value = f
-    const mod = e.t.add(e.c.createOscillator())
-    mod.frequency.value = f * 0.5
-    const modG = gainNode(e, 160)
-    mod.connect(modG).connect(o.frequency)
-    const g = gainNode(e, 0)
-    for (let i = 0; i < pulses; i++) env(g, t0 + i * 0.07, 0.07, 0.01, 0.05)
-    o.connect(g).connect(e.out)
-    const end = t0 + pulses * 0.07 + 0.1
-    o.start(t0)
-    mod.start(t0)
-    o.stop(end)
-    mod.stop(end)
-    e.t.release(o, [o, mod, modG, g])
-  },
-  owl: (e) => {
-    const t0 = e.c.currentTime + 0.05
-    const o = e.t.add(e.c.createOscillator())
-    const g = gainNode(e, 0)
-    const vib = e.t.add(e.c.createOscillator())
-    vib.frequency.value = 6
-    const vibG = gainNode(e, 5)
-    vib.connect(vibG).connect(o.frequency)
-    const hoots: [number, number, number][] = [
-      [0, 0.28, 400],
-      [0.5, 0.55, 340],
-    ]
-    for (const [dt, dur, f] of hoots) {
-      o.frequency.setValueAtTime(f * 1.06, t0 + dt)
-      o.frequency.exponentialRampToValueAtTime(f, t0 + dt + 0.08)
-      env(g, t0 + dt, 0.5, 0.06, dur)
-    }
-    o.connect(g).connect(e.out)
-    o.start(t0)
-    vib.start(t0)
-    o.stop(t0 + 1.2)
-    vib.stop(t0 + 1.2)
-    e.t.release(o, [o, vib, vibG, g])
-  },
+  gust: (e) => swell(e, 'bandpass', rnd(380, 520), 0.6, 0.35, 1.8, 4.5, rnd(260, 360)),
+  airSwell: (e) => swell(e, 'bandpass', rnd(600, 800), 0.5, 0.2, 2.5, 6, rnd(900, 1100)),
+  rustle: (e) => swell(e, 'bandpass', rnd(1800, 2400), 0.8, 0.14, 0.9, 2.4),
+  twig: (e) => swell(e, 'bandpass', rnd(1100, 1500), 3, 0.3, 0.004, 0.09),
+  owl: (e) =>
+    tones(
+      e,
+      'sine',
+      700,
+      0.3,
+      [
+        [0, 400, 0.4],
+        [0.55, 340, 0.7],
+      ],
+      0.1,
+    ),
   crow: (e) => {
+    const n = 2 + Math.floor(Math.random() * 2)
+    const notes = Array.from({ length: n }, (_, i): [number, number, number] => [i * 0.5, rnd(480, 540), 0.34])
+    tones(e, 'sawtooth', 800, 0.14, notes, 0.04)
+  },
+  dog: (e) => {
+    const n = 2 + Math.floor(Math.random() * 2)
+    const notes = Array.from({ length: n }, (_, i): [number, number, number] => [i * 0.45, rnd(280, 320), 0.22])
+    tones(e, 'sawtooth', 520, 0.12, notes, 0.03)
+  },
+  creak: (e) => {
     const t0 = e.c.currentTime + 0.05
     const o = e.t.add(e.c.createOscillator())
     o.type = 'sawtooth'
-    const bp = filt(e, 'bandpass', 1000, 2)
+    o.frequency.setValueAtTime(70, t0)
+    o.frequency.linearRampToValueAtTime(52, t0 + 1.4)
+    const bp = filt(e, 'bandpass', 240, 3)
+    const lp = filt(e, 'lowpass', 400)
     const g = gainNode(e, 0)
-    const n = 2 + Math.floor(Math.random() * 2)
-    for (let i = 0; i < n; i++) {
-      const at = t0 + i * 0.42
-      o.frequency.setValueAtTime(rnd(520, 600), at)
-      o.frequency.exponentialRampToValueAtTime(330, at + 0.28)
-      env(g, at, 0.45, 0.03, 0.3)
-    }
-    o.connect(bp).connect(g).connect(e.out)
+    env(g, t0, 0.22, 0.5, 1.5)
+    o.connect(bp).connect(lp).connect(g).connect(e.out)
     o.start(t0)
-    o.stop(t0 + n * 0.42 + 0.1)
-    e.t.release(o, [o, bp, g])
+    o.stop(t0 + 1.6)
+    e.t.release(o, [o, bp, lp, g])
+  },
+  door: (e) => {
+    // porte lointaine : un « toum » sourd qui retombe
+    const t0 = e.c.currentTime + 0.05
+    const o = e.t.add(e.c.createOscillator())
+    o.frequency.setValueAtTime(95, t0)
+    o.frequency.exponentialRampToValueAtTime(48, t0 + 0.25)
+    const g = gainNode(e, 0)
+    env(g, t0, 0.35, 0.01, 0.5)
+    o.connect(g).connect(e.out)
+    o.start(t0)
+    o.stop(t0 + 0.6)
+    e.t.release(o, [o, g])
+  },
+  chime: (e) => {
+    const base = [523.3, 659.3, 784, 880][Math.floor(Math.random() * 4)] ?? 523.3
+    tones(
+      e,
+      'sine',
+      2200,
+      0.1,
+      [
+        [0, base, 3.5],
+        [0.4, base * 1.5, 3],
+      ],
+      0.02,
+    )
   },
   bell: (e) => {
     const t0 = e.c.currentTime + 0.05
     const base = 174.6
-    const g = gainNode(e, 1)
-    g.connect(e.out)
-    const group: AudioNode[] = [g]
+    const g = gainNode(e, 0.6)
+    const lp = filt(e, 'lowpass', 1800, 0.5)
+    g.connect(lp).connect(e.out)
+    const group: AudioNode[] = [g, lp]
     let longest: OscillatorNode | undefined
     for (const [ratio, amp, dur] of [
       [1, 0.5, 7],
       [2.0, 0.3, 5.5],
       [2.76, 0.22, 4],
-      [5.4, 0.1, 2.5],
-      [8.93, 0.05, 1.5],
+      [5.4, 0.08, 2.5],
     ] as const) {
       const o = e.t.add(e.c.createOscillator())
       o.frequency.value = base * ratio
       const pg = gainNode(e, 0)
-      env(pg, t0, amp, 0.01, dur)
+      env(pg, t0, amp, 0.02, dur)
       o.connect(pg).connect(g)
       o.start(t0)
       o.stop(t0 + dur + 0.1)
@@ -296,66 +318,10 @@ const events: Record<EventKind, (e: Env) => void> = {
     }
     if (longest) e.t.release(longest, group)
   },
-  dog: (e) => {
-    const t0 = e.c.currentTime + 0.05
-    const o = e.t.add(e.c.createOscillator())
-    o.type = 'sawtooth'
-    const bp = filt(e, 'bandpass', 700, 1.5)
-    const lp = filt(e, 'lowpass', 900)
-    const g = gainNode(e, 0)
-    const n = 2 + Math.floor(Math.random() * 3)
-    for (let i = 0; i < n; i++) {
-      const at = t0 + i * 0.38
-      o.frequency.setValueAtTime(rnd(300, 360), at)
-      o.frequency.exponentialRampToValueAtTime(190, at + 0.15)
-      env(g, at, 0.3, 0.015, 0.17)
-    }
-    o.connect(bp).connect(lp).connect(g).connect(e.out)
-    o.start(t0)
-    o.stop(t0 + n * 0.38 + 0.1)
-    e.t.release(o, [o, bp, lp, g])
-  },
-  creak: (e) => {
-    const t0 = e.c.currentTime + 0.05
-    const o = e.t.add(e.c.createOscillator())
-    o.type = 'sawtooth'
-    o.frequency.setValueAtTime(70, t0)
-    o.frequency.linearRampToValueAtTime(48, t0 + 1.3)
-    const lfo = e.t.add(e.c.createOscillator())
-    lfo.frequency.value = 23
-    const lfoG = gainNode(e, 9)
-    lfo.connect(lfoG).connect(o.frequency)
-    const bp = filt(e, 'bandpass', 260, 4)
-    const g = gainNode(e, 0)
-    env(g, t0, 0.35, 0.4, 1.4)
-    o.connect(bp).connect(g).connect(e.out)
-    o.start(t0)
-    lfo.start(t0)
-    o.stop(t0 + 1.5)
-    lfo.stop(t0 + 1.5)
-    e.t.release(o, [o, lfo, lfoG, bp, g])
-  },
-  car: (e) => {
-    const t0 = e.c.currentTime + 0.05
-    const s = e.t.add(e.c.createBufferSource())
-    s.buffer = sharedNoise(e.c)
-    const bp = filt(e, 'bandpass', 300, 1.2)
-    bp.frequency.setValueAtTime(260, t0)
-    bp.frequency.linearRampToValueAtTime(620, t0 + 2.2)
-    bp.frequency.linearRampToValueAtTime(300, t0 + 4.4)
-    const g = gainNode(e, 0)
-    g.gain.setValueAtTime(0.0001, t0)
-    g.gain.linearRampToValueAtTime(0.35, t0 + 2.2)
-    g.gain.linearRampToValueAtTime(0.0001, t0 + 4.4)
-    s.connect(bp).connect(g).connect(e.out)
-    s.start(t0)
-    s.stop(t0 + 4.5)
-    e.t.release(s, [s, bp, g])
-  },
 }
 
 /**
- * Ambiance sonore d’un lieu, synthétisée (Web Audio) : un lit continu + quelques événements rares.
+ * Ambiance sonore d’un lieu, synthétisée (Web Audio) : événements rares (longs silences) + éventuellement un bourdon très doux.
  * Fondu d’entrée ~1,5 s, de sortie ~0,8 s ; suit `muted` et la visibilité de l’onglet ; attend que le
  * contexte soit déverrouillé. Renvoie la fonction d’arrêt (idempotente).
  */
@@ -400,7 +366,7 @@ export const startAmbience = (place: PlaceId): (() => void) => {
     },
   }
 
-  for (const b of RECIPES[place].beds) beds[b](e)
+  for (const b of RECIPES[place].beds) beds[b](e, RECIPES[place])
   for (const ev of RECIPES[place].events) e.every(ev.min, ev.max, () => events[ev.kind](e))
 
   const onState = () => ramp(TC_IN)

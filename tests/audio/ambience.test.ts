@@ -8,7 +8,16 @@ const PLACES: PlaceId[] = ['perron', 'foret', 'cimetiere', 'rue', 'nuages']
 describe('recettes', () => {
   it('couvrent les 5 lieux', () => {
     expect(Object.keys(RECIPES).sort()).toEqual([...PLACES].sort())
-    for (const p of PLACES) expect(RECIPES[p].beds.length).toBeGreaterThan(0)
+    for (const p of PLACES) expect(RECIPES[p].events.length).toBeGreaterThan(0)
+  })
+  it('aucun lit de bruit : seul un bourdon est permis, et les événements sont rares (≥ 8 s)', () => {
+    for (const p of PLACES) {
+      for (const b of RECIPES[p].beds) expect(b).toBe('drone')
+      for (const e of RECIPES[p].events) expect(e.min).toBeGreaterThanOrEqual(8)
+    }
+  })
+  it('le bus est nettement plus bas qu’avant (0,1)', () => {
+    expect(MASTER_GAIN).toBeLessThanOrEqual(0.05)
   })
   it('ont des plages de délais valides', () => {
     for (const p of PLACES)
@@ -17,8 +26,8 @@ describe('recettes', () => {
         expect(e.max).toBeGreaterThan(e.min)
       }
   })
-  it('la cloche du cimetière sonne toutes les 20–40 s', () => {
-    expect(RECIPES.cimetiere.events.find((e) => e.kind === 'bell')).toMatchObject({ min: 20, max: 40 })
+  it('la cloche du cimetière sonne toutes les 16–32 s', () => {
+    expect(RECIPES.cimetiere.events.find((e) => e.kind === 'bell')).toMatchObject({ min: 16, max: 32 })
   })
 })
 
@@ -39,7 +48,7 @@ describe('randomDelay / targetLevel', () => {
 })
 
 /** Contexte factice minimal : tout nœud accepte n’importe quelle propriété/méthode, on compte start/stop/disconnect. */
-const stats = { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, removed: [] as string[] }
+const stats = { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, looped: 0, removed: [] as string[] }
 const param = () => {
   const f = () => void stats.paramCalls++
   return { value: 0, setValueAtTime: f, linearRampToValueAtTime: f, exponentialRampToValueAtTime: f, setTargetAtTime: f, cancelScheduledValues: f }
@@ -61,6 +70,11 @@ const makeNode = () => {
   }
   return new Proxy(target, {
     get: (t, k: string) => (k in t ? t[k] : (t[k] = param())),
+    set: (t, k: string, v) => {
+      if (k === 'loop' && v === true) stats.looped++
+      t[k] = v
+      return true
+    },
   })
 }
 class FakeCtx {
@@ -81,7 +95,7 @@ describe('startAmbience (contexte factice)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.stubGlobal('window', { AudioContext: FakeCtx })
-    Object.assign(stats, { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, removed: [] })
+    Object.assign(stats, { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, looped: 0, removed: [] })
   })
   afterEach(() => {
     vi.useRealTimers()
@@ -100,6 +114,36 @@ describe('startAmbience (contexte factice)', () => {
     const after = stats.created
     vi.advanceTimersByTime(120_000)
     expect(stats.created).toBe(after) // plus aucun événement
+  })
+
+  it.each(PLACES)('%s : aucune source de bruit bouclée (pas de lit continu)', (place) => {
+    const stop = startAmbience(place)
+    vi.advanceTimersByTime(120_000)
+    expect(stats.looped).toBe(0)
+    stop()
+  })
+
+  it('les événements sont programmés avec de longs silences, puis plus rien après stop()', () => {
+    const stop = startAmbience('foret')
+    const base = stats.created
+    const startedBase = stats.started
+    vi.advanceTimersByTime(5000)
+    vi.advanceTimersByTime(115_000)
+    expect(stats.created).toBeGreaterThan(base) // des événements ont eu lieu
+    expect(stats.started - startedBase).toBeLessThan(30) // et pas un flot continu
+    stop()
+    vi.advanceTimersByTime(2000)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('muet : aucun événement n’est déclenché', () => {
+    muted.value = true
+    const stop = startAmbience('perron')
+    const base = stats.created
+    vi.advanceTimersByTime(120_000)
+    expect(stats.created).toBe(base)
+    stop()
+    muted.value = false
   })
 
   it('les sons ponctuels sont déconnectés à leur fin, avant stop()', () => {
