@@ -47,7 +47,6 @@ export const createRaymarch = async (canvas: HTMLCanvasElement, opts: RaymarchOp
     if (!stopped) opts.onLost?.()
   })
   const dprFor = () => Math.min(0.5, MAX_LONG / Math.max(canvas.clientWidth, canvas.clientHeight, 1))
-  const surf = surface(gpu, canvas, { dpr: dprFor(), clearColor: [0, 0, 0, 1] })
   let p = paranoia()
   let drift = 0
   let px = 0
@@ -56,8 +55,18 @@ export const createRaymarch = async (canvas: HTMLCanvasElement, opts: RaymarchOp
     const m = motion()
     return opts.params({ t, width: canvas.width, height: canvas.height, paranoia: p, motion: m, drift: m ? drift : 0, px: m ? px : 0, py: m ? py : 0 })
   }
-  const fx = effect(gpu, opts.shader, { set: { params: params(0) } })
-  const time = clock(gpu)
+  // Si la création de la surface ou de l’effet échoue, on libère le périphérique avant de relancer l’erreur.
+  let surf: ReturnType<typeof surface>
+  let fx: ReturnType<typeof effect>
+  let time: ReturnType<typeof clock>
+  try {
+    surf = surface(gpu, canvas, { dpr: dprFor(), clearColor: [0, 0, 0, 1] })
+    fx = effect(gpu, opts.shader, { set: { params: params(0) } })
+    time = clock(gpu)
+  } catch (e) {
+    gpu.dispose()
+    throw e
+  }
   let lastDraw = -1
   let lastKey = ''
   const run = () =>

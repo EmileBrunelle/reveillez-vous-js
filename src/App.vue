@@ -75,6 +75,10 @@ const Activity = computed(() => {
   const loader = activityFor(level.value)
   return loader ? defineAsyncComponent(loader) : null
 })
+// Réinitialisation du niveau en pleine activité (barre des tâches, badge, confirmation) : plus d’activité pour le nouveau niveau, on passe directement à la coupe du paquet.
+watch(Activity, (a) => {
+  if (!a && phase.value === 'activity') phase.value = 'cut'
+})
 watchEffect(() => document.documentElement.style.setProperty('--paranoia', String(paranoia.value)))
 
 const resetOpen = ref(false)
@@ -208,7 +212,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
           <Motion v-else-if="phase === 'finale'" key="finale" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
             <Finale @done="restart" />
           </Motion>
-          <Motion v-else key="reading" class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+          <Motion v-else-if="phase === 'reading'" key="reading" class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
             <section class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4">
               <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
                 <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" @flipped="onFlipped" />
