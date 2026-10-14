@@ -40,8 +40,9 @@ const parallax = () => {
 }
 const paranoia = () => Number.parseFloat(document.documentElement.style.getPropertyValue('--paranoia')) || 0
 
-const stopAmbience = startAmbience(props.place)
+let stopAmbience = () => {}
 onMounted(async () => {
+  stopAmbience = startAmbience(props.place)
   try {
     const [{ createRaymarch }, cfg] = await Promise.all([import('../../effects/raymarch'), placeLoaders[props.place]()])
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out

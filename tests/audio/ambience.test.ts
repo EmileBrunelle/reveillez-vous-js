@@ -1,3 +1,4 @@
+import { muted } from '../../src/audio/sfx'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MASTER_GAIN, RECIPES, randomDelay, startAmbience, targetLevel } from '../../src/audio/ambience'
 import type { PlaceId } from '../../src/effects/places/types'
@@ -38,29 +39,28 @@ describe('randomDelay / targetLevel', () => {
 })
 
 /** Contexte factice minimal : tout nœud accepte n’importe quelle propriété/méthode, on compte start/stop/disconnect. */
-const stats = { created: 0, started: 0, stopped: 0, disconnected: 0 }
+const stats = { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, removed: [] as string[] }
+const param = () => {
+  const f = () => void stats.paramCalls++
+  return { value: 0, setValueAtTime: f, linearRampToValueAtTime: f, exponentialRampToValueAtTime: f, setTargetAtTime: f, cancelScheduledValues: f }
+}
 const makeNode = () => {
   stats.created++
+  const ended: (() => void)[] = []
   const target: Record<string, unknown> = {
     connect: (n: unknown) => n,
     disconnect: () => void stats.disconnected++,
     start: () => void stats.started++,
-    stop: () => void stats.stopped++,
-    addEventListener: () => undefined,
+    // une source arrêtée déclenche « ended » (asynchrone, comme le vrai AudioNode)
+    stop: () => {
+      stats.stopped++
+      setTimeout(() => ended.splice(0).forEach((f) => f()), 0)
+    },
+    addEventListener: (type: string, f: () => void) => type === 'ended' && ended.push(f),
     removeEventListener: () => undefined,
   }
   return new Proxy(target, {
-    get: (t, k: string) =>
-      k in t
-        ? t[k]
-        : (t[k] = {
-            value: 0,
-            setValueAtTime: () => undefined,
-            linearRampToValueAtTime: () => undefined,
-            exponentialRampToValueAtTime: () => undefined,
-            setTargetAtTime: () => undefined,
-            cancelScheduledValues: () => undefined,
-          }),
+    get: (t, k: string) => (k in t ? t[k] : (t[k] = param())),
   })
 }
 class FakeCtx {
@@ -74,14 +74,14 @@ class FakeCtx {
   createOscillator = makeNode
   createBuffer = (_c: number, n: number) => ({ getChannelData: () => new Float32Array(n) })
   addEventListener() {}
-  removeEventListener() {}
+  removeEventListener = (type: string) => void stats.removed.push(type)
 }
 
 describe('startAmbience (contexte factice)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.stubGlobal('window', { AudioContext: FakeCtx })
-    Object.assign(stats, { created: 0, started: 0, stopped: 0, disconnected: 0 })
+    Object.assign(stats, { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, removed: [] })
   })
   afterEach(() => {
     vi.useRealTimers()
@@ -100,6 +100,26 @@ describe('startAmbience (contexte factice)', () => {
     const after = stats.created
     vi.advanceTimersByTime(120_000)
     expect(stats.created).toBe(after) // plus aucun événement
+  })
+
+  it('les sons ponctuels sont déconnectés à leur fin, avant stop()', () => {
+    const stop = startAmbience('foret')
+    vi.advanceTimersByTime(30_000)
+    expect(stats.disconnected).toBeGreaterThan(0)
+    stop()
+  })
+
+  it('après stop : toutes les sources arrêtées, écouteur retiré, muted ne touche plus le master', () => {
+    const stop = startAmbience('cimetiere')
+    vi.advanceTimersByTime(60_000)
+    stop()
+    vi.advanceTimersByTime(2000)
+    expect(stats.stopped).toBeGreaterThanOrEqual(stats.started)
+    expect(stats.removed).toContain('statechange')
+    const calls = stats.paramCalls
+    muted.value = true
+    muted.value = false
+    expect(stats.paramCalls).toBe(calls)
   })
 
   it('sans AudioContext : renvoie un stop inoffensif', () => {
