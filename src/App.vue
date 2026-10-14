@@ -9,11 +9,10 @@ import BgPlace from './components/backgrounds/BgPlace.vue'
 import { useProgressStore } from './stores/progress'
 import { useSessionStore } from './stores/session'
 import { useTabTitle } from './composables/useTabTitle'
-import { doors, pickPlaceVariant, placeForLevel } from './content/scenes'
+import { doors, pickDoor, pickPlaceVariant, placeForLevel } from './content/scenes'
 import { prophecies } from './content/prophecies'
 import { nextDoorLine, nextProphecy, nextTitled, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
-import { pickVariant } from './engine/variant'
 import type { Paquet } from './engine/paquets'
 import { storeToRefs } from 'pinia'
 import { useMediaQuery, useTimeoutFn } from '@vueuse/core'
@@ -124,8 +123,8 @@ const doorLine = ref(FALLBACK_LINE)
 const prophecy = ref<Prophecy>({ question: '', body: '', verse: '', arcane: EMPTY_ARCANE })
 
 const enterDoor = () => {
-  door.value = pickVariant(doors, level.value, door.value.id, rng)
   place.value = placeForLevel(level.value)
+  door.value = pickDoor(place.value.id, rng)
   placeVariant.value = pickPlaceVariant(place.value, placeVariant.value.id, rng)
   doorLine.value = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
   phase.value = 'door'

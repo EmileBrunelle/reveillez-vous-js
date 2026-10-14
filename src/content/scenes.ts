@@ -1,34 +1,51 @@
 import type { Component } from 'vue'
-import DoorWood from '~icons/rvj/porte-bois'
 import DoorCloset from '~icons/rvj/porte-garde-robe'
 import DoorFridge from '~icons/rvj/porte-frigo'
-import DoorManor from '~icons/rvj/porte-manoir'
-import DoorCrypt from '~icons/rvj/porte-crypte'
+import DoorPorch from '~icons/rvj/porte-perron'
+import DoorCabin from '~icons/rvj/porte-cabane'
+import DoorMausoleum from '~icons/rvj/porte-mausolee'
+import DoorHouse from '~icons/rvj/porte-maison'
+import DoorClouds from '~icons/rvj/porte-nuages'
 import type { PlaceId } from '../effects/places/types'
 import { pickVariant } from '../engine/variant'
 import type { Rng } from '../engine/rng'
 
 /**
- * A door variant = id + label + renderer + minLevel (paranoia level at which it can appear).
+ * Une porte = id + label + renderer. `place` : lieu dont c’est la porte « principale » ;
+ * sans `place`, c’est une variante comique rare qui peut apparaître n’importe où.
  */
 export interface SceneVariant {
   id: string
   label: string
-  minLevel: number
   component: Component
-  /** Relative pick weight (default 1). */
+  place?: PlaceId
+  /** Poids de tirage relatif (défaut 1). */
   weight?: number
   /** Reserved for a future vgpu renderer (shader params). */
   params?: Record<string, number>
 }
 
+/** Poids d’une porte principale : les variantes comiques (poids 1 chacune) restent rares (~1 sur 7 en tout). */
+const PRIMARY_WEIGHT = 12
+
 export const doors: SceneVariant[] = [
-  { id: 'bois', label: 'porte de bois de maison', minLevel: 1, component: DoorWood },
-  { id: 'garde-robe', label: 'porte de garde-robe', minLevel: 1, component: DoorCloset },
-  { id: 'frigo', label: 'porte de frigo géante', minLevel: 2, component: DoorFridge },
-  { id: 'manoir', label: 'porte de manoir hanté', minLevel: 3, component: DoorManor },
-  { id: 'crypte', label: 'porte de crypte', minLevel: 4, component: DoorCrypt },
+  { id: 'perron', place: 'perron', weight: PRIMARY_WEIGHT, label: 'porte de perron avec contre-porte', component: DoorPorch },
+  { id: 'cabane', place: 'foret', weight: PRIMARY_WEIGHT, label: 'porte de cabane en planches', component: DoorCabin },
+  { id: 'mausolee', place: 'cimetiere', weight: PRIMARY_WEIGHT, label: 'porte de mausolée en fer', component: DoorMausoleum },
+  { id: 'maison', place: 'rue', weight: PRIMARY_WEIGHT, label: 'porte de maison avec imposte', component: DoorHouse },
+  { id: 'nuages', place: 'nuages', weight: PRIMARY_WEIGHT, label: 'cadre de porte flottant dans les nuages', component: DoorClouds },
+  { id: 'garde-robe', label: 'porte de garde-robe', component: DoorCloset },
+  { id: 'frigo', label: 'porte de frigo géante', component: DoorFridge },
 ]
+
+/** Porte d’un lieu : la porte principale du lieu la plupart du temps, une variante comique rare sinon. Tirage via le `Rng` injecté. */
+export const pickDoor = (placeId: PlaceId, rng: Rng): SceneVariant =>
+  pickVariant(
+    doors.filter((d) => !d.place || d.place === placeId),
+    1,
+    null,
+    rng,
+  )
 
 /** Variante d’un lieu : un lieu peut en avoir plusieurs (paramètres de shader différents). */
 export interface PlaceVariant {
@@ -95,10 +112,4 @@ export const placeForLevel = (level: number): Place => {
 }
 
 /** Variante tirée au hasard (pondérée) parmi celles d’un lieu, en évitant `lastVariantId` s’il y a le choix. */
-export const pickPlaceVariant = (place: Place, lastVariantId: string | null, rng: Rng): PlaceVariant =>
-  pickVariant(
-    place.variants.map((v) => ({ ...v, minLevel: 1 })),
-    1,
-    lastVariantId,
-    rng,
-  )
+export const pickPlaceVariant = (place: Place, lastVariantId: string | null, rng: Rng): PlaceVariant => pickVariant(place.variants, 1, lastVariantId, rng)

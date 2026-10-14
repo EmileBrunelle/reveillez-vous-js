@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { pickPlaceVariant, placeForLevel, places, type Place } from '../../src/content/scenes'
+import { doors, pickDoor, pickPlaceVariant, placeForLevel, places, type Place } from '../../src/content/scenes'
 import { mulberry32 } from '../../src/engine/rng'
 
 describe('places', () => {
@@ -39,5 +39,38 @@ describe('places', () => {
     expect(n).toBeGreaterThan(320)
     expect(pickPlaceVariant(p, 'a', mulberry32(3)).id).toBe('b')
     expect(pickPlaceVariant(placeForLevel(1), 'defaut', mulberry32(3)).id).toBe('defaut')
+  })
+})
+
+describe('doors', () => {
+  it('each place has exactly one primary door', () => {
+    places.forEach((p) => expect(doors.filter((d) => d.place === p.id)).toHaveLength(1))
+  })
+  it('keeps frigo and garde-robe as place-less humorous variants', () => {
+    expect(
+      doors
+        .filter((d) => !d.place)
+        .map((d) => d.id)
+        .sort(),
+    ).toEqual(['frigo', 'garde-robe'])
+  })
+  it('door ids are unique', () => {
+    expect(new Set(doors.map((d) => d.id)).size).toBe(doors.length)
+  })
+  it.each(places.map((p) => p.id))('%s: primary door most of the time, only humorous variants otherwise', (id) => {
+    const picks = Array.from({ length: 1000 }, (_, s) => pickDoor(id, mulberry32(s)))
+    picks.forEach((d) => expect(!d.place || d.place === id).toBe(true))
+    const primary = picks.filter((d) => d.place === id).length
+    expect(primary).toBeGreaterThan(780)
+    expect(primary).toBeLessThan(1000)
+  })
+  it('door SVGs keep a door-handle for the knock animation and the shared viewBox', () => {
+    readdirSync('src/assets/svg')
+      .filter((f) => f.startsWith('porte-'))
+      .forEach((f) => {
+        const svg = readFileSync(`src/assets/svg/${f}`, 'utf8')
+        expect(svg, f).toContain('class="door-handle"')
+        expect(svg, f).toContain('viewBox="0 0 120 190"')
+      })
   })
 })

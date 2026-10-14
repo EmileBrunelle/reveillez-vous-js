@@ -1,0 +1,16 @@
+<svg viewBox="0 0 120 190" aria-hidden="true" focusable="false">
+  <rect x="14" y="14" width="92" height="162" fill="#0e0b1c" stroke="#d8dcf0" stroke-width="5"/>
+  <rect x="21" y="21" width="78" height="148" fill="#2a2748" stroke="#9aa0cc" stroke-width="2"/>
+  <path d="M14 14l7 7M106 14l-7 7M14 176l7-7M106 176l-7-7" stroke="#9aa0cc" stroke-width="2"/>
+  <path d="M26 30h68v132H26z" fill="none" stroke="#6a70a0" stroke-width="1.5"/>
+  <path d="M30 40h60M30 86h60M30 132h60M60 26v136" stroke="#161434" stroke-width="2" opacity=".7"/>
+  <path d="M26 30l34 66M94 30L60 96" stroke="#cfd6ff" stroke-width=".8" opacity=".25"/>
+  <circle class="door-handle" cx="86" cy="104" r="5" fill="#e8e0b0" stroke="#8a7e50" stroke-width="1.5"/>
+  <path d="M60 52l2 5 5 1-4 4 1 5-4-3-5 3 1-5-4-4 5-1z" fill="#e8e0b0" opacity=".8"/>
+  <g fill="#e6e9fa" opacity=".92">
+    <ellipse cx="22" cy="176" rx="20" ry="11"/><ellipse cx="46" cy="182" rx="22" ry="11"/><ellipse cx="72" cy="180" rx="20" ry="12"/>
+    <ellipse cx="98" cy="177" rx="22" ry="11"/><ellipse cx="60" cy="170" rx="18" ry="9"/><ellipse cx="8" cy="186" rx="14" ry="8"/><ellipse cx="114" cy="186" rx="14" ry="8"/>
+  </g>
+  <g fill="#b4b9de" opacity=".7"><ellipse cx="34" cy="186" rx="18" ry="6"/><ellipse cx="82" cy="187" rx="20" ry="6"/></g>
+  <g fill="#e6e9fa" opacity=".55"><ellipse cx="6" cy="40" rx="8" ry="4"/><ellipse cx="114" cy="62" rx="7" ry="3.5"/><ellipse cx="112" cy="120" rx="8" ry="4"/></g>
+</svg>

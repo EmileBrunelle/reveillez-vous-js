@@ -423,7 +423,19 @@ const onSceneClick = (e: MouseEvent) => {
   transform: perspective(700px) rotateY(-5deg);
   filter: drop-shadow(0 0 0.5556rem rgb(255 226 140 / 0.55));
 }
+/* Halo de la boule de cristal : respiration lente (5 s, ≈0,2 Hz), faible amplitude, jamais de scintillement. */
+[data-stage] :deep(.seer-halo) {
+  animation: seer-halo 5s ease-in-out infinite;
+}
+@keyframes seer-halo {
+  50% {
+    opacity: 0.4;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
+  [data-stage] :deep(.seer-halo) {
+    animation: none;
+  }
   [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) {
     transform: none;
   }

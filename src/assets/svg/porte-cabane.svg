@@ -1,0 +1,19 @@
+<svg viewBox="0 0 120 190" aria-hidden="true" focusable="false">
+  <rect x="3" y="3" width="114" height="187" fill="#1c1209" stroke="#4a3320" stroke-width="3"/>
+  <g stroke="#1c1209" stroke-width="2">
+    <rect x="9" y="9" width="17" height="181" fill="#6a4a2a"/><rect x="26" y="9" width="17" height="181" fill="#5a3d22"/>
+    <rect x="43" y="9" width="17" height="181" fill="#715030"/><rect x="60" y="9" width="17" height="181" fill="#5d4025"/>
+    <rect x="77" y="9" width="17" height="181" fill="#6a4a2a"/><rect x="94" y="9" width="17" height="181" fill="#563a20"/>
+  </g>
+  <path d="M14 60c3 8 3 20 0 30M33 100c-3 10-2 24 1 36M50 14v14M70 120c2 10 2 20 0 30M86 60c3 6 3 14 0 22M102 170c-2 8-2 12 0 16" stroke="#33200f" stroke-width="1.2" fill="none"/>
+  <ellipse cx="68" cy="82" rx="3.5" ry="5" fill="#1c1209"/><ellipse cx="34" cy="172" rx="3" ry="4" fill="#1c1209"/>
+  <rect x="9" y="30" width="102" height="12" fill="#3a2614" stroke="#1c1209" stroke-width="2"/>
+  <rect x="9" y="146" width="102" height="12" fill="#3a2614" stroke="#1c1209" stroke-width="2"/>
+  <path d="M9 42L111 146" stroke="#3a2614" stroke-width="9"/>
+  <g fill="#9a9084" stroke="#2a2a2a" stroke-width=".8"><circle cx="16" cy="36" r="2"/><circle cx="104" cy="36" r="2"/><circle cx="16" cy="152" r="2"/><circle cx="104" cy="152" r="2"/></g>
+  <path d="M9 34h22l6-3v10l-6-3H9zM9 150h22l6-3v10l-6-3H9z" fill="#2a2a2a" opacity=".85"/>
+  <path d="M82 94h18v32H82z" fill="#2a2a2a" stroke="#6a6a6a" stroke-width="1"/>
+  <rect class="door-handle" x="84" y="106" width="14" height="4" rx="2" fill="#9a9084" stroke="#444" stroke-width=".8"/>
+  <circle cx="91" cy="99" r="2" fill="#111"/>
+  <path d="M9 187h102" stroke="#7a8a6a" stroke-width="3" opacity=".5"/>
+</svg>

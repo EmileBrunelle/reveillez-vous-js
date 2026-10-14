@@ -1,0 +1,21 @@
+<svg viewBox="0 0 120 190" aria-hidden="true" focusable="false">
+  <rect x="4" y="4" width="112" height="186" fill="#2a1a10" stroke="#e8dcc0" stroke-width="3"/>
+  <rect x="9" y="9" width="102" height="181" fill="#6e1f1a"/>
+  <path d="M9 9h102M9 9v181" stroke="#8d3a30" stroke-width="2"/>
+  <rect x="18" y="18" width="84" height="44" fill="#14202a" stroke="#3d0f0c" stroke-width="3"/>
+  <path d="M60 18v44M18 40h84" stroke="#3d0f0c" stroke-width="2"/>
+  <rect x="18" y="72" width="38" height="42" fill="none" stroke="#3d0f0c" stroke-width="3"/>
+  <rect x="64" y="72" width="38" height="42" fill="none" stroke="#3d0f0c" stroke-width="3"/>
+  <rect x="18" y="122" width="38" height="58" fill="none" stroke="#3d0f0c" stroke-width="3"/>
+  <rect x="64" y="122" width="38" height="58" fill="none" stroke="#3d0f0c" stroke-width="3"/>
+  <path d="M22 76h30M68 76h30M22 126h30M68 126h30" stroke="#8d3a30" stroke-width="1" opacity=".7"/>
+  <circle class="door-handle" cx="92" cy="118" r="5" fill="#c9a24a" stroke="#6b5420" stroke-width="1.5"/>
+  <rect x="86" y="130" width="12" height="6" rx="1" fill="#2a1a10" stroke="#c9a24a" stroke-width="1"/>
+  <rect x="12" y="12" width="96" height="174" fill="#9fb4b0" fill-opacity=".14" stroke="#c9d6cf" stroke-width="3"/>
+  <rect x="17" y="17" width="86" height="102" fill="#cfe2e8" fill-opacity=".1" stroke="#7d8f8a" stroke-width="2"/>
+  <path d="M12 124h96" stroke="#c9d6cf" stroke-width="4"/>
+  <path d="M12 126h96" stroke="#5f716c" stroke-width="1.5"/>
+  <path d="M60 104l24-80" stroke="#fff" stroke-width="1.5" opacity=".25"/>
+  <path d="M17 138h86M17 148h86M17 158h86M17 168h86M17 178h86" stroke="#7d8f8a" stroke-width=".6" opacity=".5"/>
+  <rect class="door-handle" x="95" y="130" width="6" height="22" rx="3" fill="#dfe8e4" stroke="#6a7a76" stroke-width="1"/>
+</svg>
