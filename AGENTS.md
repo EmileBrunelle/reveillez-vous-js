@@ -24,6 +24,7 @@
 - `effects/`: `crt.wgsl` + `crt.ts` (vgpu, lazy chunk), `webgpu.ts` (navigator.gpu + requestAdapter check).
 - `audio/sfx.ts`: all sounds synthesized (Web Audio), mute toggle.
 - `composables/`: `useVisits` (localStorage `rvj-visits`; triple-click on the « Niveau de vigilance » badge resets), `useEntropy`.
+- `components/Taskbar.vue`: fixed Windows 98 taskbar (Start menu: À propos, Code source, homage, reset; tray: Vigilance badge, sound toggle, clock); `--taskbar-h` in styles.css is the reserved height.
 - `ui/`: UnoCSS-styled components (Windows 98 look; shortcuts `win-window`, `win-btn`).
 
 ## Conventions

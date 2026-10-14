@@ -10,7 +10,7 @@ Votre entrée au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026 : une exp�
 4. Une **carte de tarot** est distribuée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur.
 5. Cliquez sur **« Fermer la porte »** : la porte claque, une nouvelle porte et un nouveau décor vous attendent.
 
-Le **niveau de vigilance** (de 1 à 5, affiché en badge) monte avec le nombre de visites dans votre navigateur. Les prophéties, les coups à la porte et l’ambiance évoluent avec lui. Un triple clic sur le badge remet le compteur à zéro. Le lien « Son » du pied de page permet de couper l’audio, entièrement synthétisé.
+Le **niveau de vigilance** (de 1 à 5, affiché en badge) monte avec le nombre de visites dans votre navigateur. Les prophéties, les coups à la porte et l’ambiance évoluent avec lui. Un triple clic sur le badge (dans la barre des tâches, en bas) remet le compteur à zéro. L’icône de haut-parleur de la barre des tâches coupe l’audio, entièrement synthétisé ; le menu « Démarrer » donne accès à l’À propos, au code source et à « Recommencer à zéro ».
 
 ## Prérequis
 

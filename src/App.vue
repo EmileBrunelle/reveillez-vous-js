@@ -7,7 +7,7 @@ import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
 import AboutTempleOS from './components/AboutTempleOS.vue'
 import ResetConfirm from './components/ResetConfirm.vue'
-import Vigilance from './components/Vigilance.vue'
+import Taskbar from './components/Taskbar.vue'
 import { bumpVisits, levelForVisits, readVisits, resetVisits } from './composables/useVisits'
 import { backgrounds, doors } from './content/scenes'
 import { prophecies } from './content/prophecies'
@@ -135,7 +135,7 @@ const onClosed = () => {
       <component :is="background.component" />
       <div class="fixed inset-0 z-0 pointer-events-none bg-[rgb(120_0_0/0.35)] transition-opacity duration-[400ms] motion-reduce:transition-none" :class="listening ? 'opacity-100' : 'opacity-0'" aria-hidden="true" />
       <button v-if="awaiting" class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-12px]" type="button" autofocus @click="approach">Approchez-vous de la porte</button>
-      <main v-else ref="mainEl" class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[max(0.75rem,env(safe-area-inset-bottom))] overflow-clip" :class="{ 'app--reading': phase === 'reading' }">
+      <main v-else ref="mainEl" class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip" :class="{ 'app--reading': phase === 'reading' }">
         <AnimatePresence mode="wait">
           <Motion v-if="phase === 'door'" :key="`door-${sceneKey}`" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
             <DoorScene
@@ -160,13 +160,13 @@ const onClosed = () => {
               <div class="flex flex-none flex-wrap gap-3 justify-center">
                 <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="restart">Fermer la porte</button>
               </div>
-              <Vigilance class="flex-none bg-[#000] px-2 py-[0.2rem]" :level="level" @reset="resetLevel" />
             </section>
           </Motion>
         </AnimatePresence>
       </main>
     </template>
   </MotionConfig>
+  <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @reset="resetOpen = true" @reset-level="resetLevel" />
   <AboutTempleOS v-model="aboutOpen" />
   <ResetConfirm v-model="resetOpen" @confirm="resetLevel" />
 </template>

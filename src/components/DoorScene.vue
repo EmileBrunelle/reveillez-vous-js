@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SiteFooter from './SiteFooter.vue'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { animate, useReducedMotion } from 'motion-v'
 import type { SceneVariant } from '../content/scenes'
@@ -335,7 +334,6 @@ const onSceneClick = (e: MouseEvent) => {
       <KnockPattern v-if="phase !== 'invite'" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
       <p class="m-0 text-[0.9rem] min-h-[1.35em]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'La voyante cogne…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
       <p class="sr-only" role="status" aria-live="polite">{{ announce }}</p>
-      <SiteFooter :can-reset="level > 1" :level="level" @about="emit('about')" @reset="emit('reset')" @reset-level="emit('resetLevel')" />
     </div>
     <SparkPool ref="sparks" />
   </section>

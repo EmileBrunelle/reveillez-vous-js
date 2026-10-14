@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 
-const props = defineProps<{ level: number }>()
+defineProps<{ level: number }>()
 const emit = defineEmits<{ reset: [] }>()
 const flash = ref(false)
 let timer: ReturnType<typeof setTimeout> | undefined
-const bar = computed(() => '█'.repeat(props.level) + '░'.repeat(5 - props.level))
 
 // Hidden gesture: 3 quick clicks/taps (browser-counted `detail`) wipe the visit counter.
 const onClick = (e: MouseEvent) => {
@@ -19,9 +18,12 @@ onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>
-  <p class="m-0 text-[0.8rem] opacity-80 tracking-[0.05em] select-none [-webkit-tap-highlight-color:transparent]" :class="{ 'vigil--reset': flash }" title="Triple-cliquez pour recommencer à zéro" @click="onClick">
+  <p class="m-0 text-[0.75rem] tracking-[0.05em] select-none [-webkit-tap-highlight-color:transparent]" :class="{ 'vigil--reset': flash }" :title="`Niveau de vigilance : ${level} sur 5 (triple-cliquez pour recommencer à zéro)`" @click="onClick">
     <span v-if="flash" role="status">Vigilance réinitialisée</span>
-    <span v-else role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">Niveau de vigilance : {{ bar }}</span>
+    <span v-else class="inline-flex items-center gap-1" role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">
+      <svg class="w-4 h-4 flex-none" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1 8s2.7-4.5 7-4.5S15 8 15 8s-2.7 4.5-7 4.5S1 8 1 8z" /><circle cx="8" cy="8" r="1.8" fill="currentColor" /></svg>
+      <span class="font-bold tabular-nums" aria-hidden="true">{{ level }}</span>
+    </span>
   </p>
 </template>
 

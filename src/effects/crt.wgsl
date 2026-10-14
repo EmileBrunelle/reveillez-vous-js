@@ -41,11 +41,22 @@ fn sd_round(p: vec2f, b: vec2f, r: f32) -> f32 {
   var dark = (0.26 + 0.14 * p) * prof * thick + 0.03;
 
   // Curved-glass vignette + rounded bezel (rounded-box SDF in aspect-correct units, y in [-0.5, 0.5]).
+  // Phone/portrait fix: on a narrow screen the legacy bezel/fringe (tied to the HEIGHT: ~250 px of dimming across a
+  // 390 px phone) swallowed text near the sides. `land` = 0 portrait .. 1 landscape: landscape keeps the legacy look,
+  // portrait uses bands measured from the SHORTER side (m) so they stay a few px wide.
+  let land = smoothstep(0.7, 1.4, aspect);
+  let m = min(params.width, params.height);
+  let half = vec2f(params.width, params.height) / (2.0 * m);
+  let cn = (uv - vec2f(0.5)) * vec2f(params.width, params.height) / m;
+  let rr = 0.05 + 0.02 * p;
+  let sd_new = sd_round(cn, half, rr);
   let c = vec2f((uv.x - 0.5) * aspect, uv.y - 0.5);
-  let sd = sd_round(c, vec2f(0.5 * aspect, 0.5), 0.05 + 0.02 * p);
-  dark = dark + smoothstep(-0.30, 0.0, sd) * (0.38 + 0.22 * p);
+  let sd = sd_round(c, vec2f(0.5 * aspect, 0.5), rr);
+  let bezel = mix(smoothstep(-0.05, 0.0, sd_new), smoothstep(-0.30, 0.0, sd), land);
+  dark = dark + bezel * (0.38 + 0.22 * p);
   let c2 = uv - vec2f(0.5);
-  dark = dark + smoothstep(0.10 - 0.05 * p, 0.55, dot(c2, c2)) * (0.30 + 0.20 * p);
+  let vig = mix(smoothstep(0.16 - 0.04 * p, 0.55, dot(c2, c2)), smoothstep(0.10 - 0.05 * p, 0.55, dot(c2, c2)), land);
+  dark = dark + vig * (0.30 + 0.20 * p);
 
   // Flicker: two slow sines, independent of paranoia, total swing <= ~3.5% of alpha.
   let flick = 0.012 * sin(t * 37.0 * W) + 0.008 * sin(t * 150.0 * W);
@@ -73,8 +84,11 @@ fn sd_round(p: vec2f, b: vec2f, r: f32) -> f32 {
   var col = stripe * (0.035 + 0.035 * p);
 
   // Soft edge chromatic fringes (red left, cyan/blue right).
+  // Portrait: confined to the last ~4-6% of the short side (text stays clean); landscape: legacy.
   let ex = abs(c2.x);
-  let edge = smoothstep(0.20 - 0.08 * p, 0.5, ex) * (0.14 + 0.26 * p);
+  let edge_new = smoothstep(0.04 + 0.02 * p, 0.0, half.x - abs(cn.x));
+  let edge_old = smoothstep(0.20 - 0.08 * p, 0.5, ex);
+  let edge = mix(edge_new, edge_old, land) * (0.14 + 0.26 * p);
   col = col + vec3f(select(0.0, 1.0, c2.x < 0.0) * edge * 0.6, 0.0, select(0.0, 1.0, c2.x >= 0.0) * edge * 0.6);
 
   // Bloom-like phosphor glow: faint green-cyan tint, strongest mid-screen.
