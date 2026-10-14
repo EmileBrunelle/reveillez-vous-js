@@ -7,9 +7,11 @@ export interface Gated {
   weight?: number
 }
 
-/** Random variant allowed at `level`, avoiding `lastId` unless it is the only choice. Honors `weight`. */
+/** Random variant allowed at `level`, avoiding `lastId` unless it is the only choice. Honors `weight` (0 = never picked unless nothing else). */
 export const pickVariant = <T extends Gated>(list: readonly T[], level: number, lastId: string | null, rng: Rng): T => {
-  const ok = list.filter((v) => v.minLevel <= level)
+  const allowed = list.filter((v) => v.minLevel <= level)
+  // Poids 0 = jamais tiré tant qu’une autre variante est possible (forcée par id ailleurs).
+  const ok = allowed.some((v) => (v.weight ?? 1) > 0) ? allowed.filter((v) => (v.weight ?? 1) > 0) : allowed
   const pool = ok.length > 1 ? ok.filter((v) => v.id !== lastId) : ok
   const from = pool.length ? pool : list
   const total = from.reduce((n, v) => n + (v.weight ?? 1), 0)

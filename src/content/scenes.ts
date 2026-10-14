@@ -65,8 +65,24 @@ export const places: Place[] = [
       { id: 'bruine', params: { mist: 1.4, moon: 0.7, rain: 1 } },
     ],
   },
-  { id: 'rue', level: 4, variants: [{ id: 'defaut' }] },
-  { id: 'nuages', level: 5, variants: [{ id: 'defaut' }] },
+  {
+    id: 'rue',
+    level: 4,
+    variants: [
+      { id: 'claire', weight: 2, params: { weather: 0, cold: 0.2 } },
+      { id: 'pluie', params: { weather: 1, cold: 0.15 } },
+      { id: 'neige', params: { weather: 2, cold: 0.5 } },
+    ],
+  },
+  {
+    id: 'nuages',
+    level: 5,
+    variants: [
+      { id: 'pale', weight: 2, params: { blood: 0, dawn: 0 } },
+      { id: 'sang', params: { blood: 1, dawn: 0 } },
+      { id: 'aube', weight: 0, params: { blood: 0, dawn: 1 } },
+    ],
+  },
 ]
 
 // Dev-only: `?bg=<placeId>` forces a place (stripped from production builds).
