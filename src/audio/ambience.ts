@@ -1,5 +1,5 @@
-import { effectScope, watch } from 'vue'
-import { useDocumentVisibility } from '@vueuse/core'
+import { effectScope, ref, watch } from 'vue'
+import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
 import type { PlaceId } from '../effects/places/types'
 import { ac, muted, noiseBuffer } from './sfx'
 
@@ -10,6 +10,8 @@ const TC_IN = 0.4
 const TC_OUT = 0.18
 const TC_MUTE = 0.07
 const STOP_AFTER_MS = 1100
+/** Espacement minimal entre deux événements d’un même lieu. */
+const MIN_SPACING_MS = 3000
 
 export type EventKind = 'gust' | 'creak' | 'owl' | 'twig' | 'rustle' | 'bell' | 'crow' | 'dog' | 'door' | 'chime' | 'airSwell'
 /** Seul lit continu autorisé : un bourdon grave, très doux (jamais de bruit large bande). */
@@ -79,10 +81,13 @@ export const targetLevel = (s: { muted: boolean; hidden: boolean; stopped: boole
 
 const rnd = (a: number, b: number) => randomDelay(a, b)
 
+/** Durée du tampon de bruit : couvre la plus longue houle (6 s) avec un décalage de départ ≤ NOISE_OFFSET_MAX. */
+export const NOISE_SECONDS = 9
+export const NOISE_OFFSET_MAX = 1.5
 const noiseCache = new WeakMap<AudioContext, AudioBuffer>()
 const sharedNoise = (c: AudioContext) => {
   let b = noiseCache.get(c)
-  if (!b) noiseCache.set(c, (b = noiseBuffer(c, 4)))
+  if (!b) noiseCache.set(c, (b = noiseBuffer(c, NOISE_SECONDS)))
   return b
 }
 
@@ -159,16 +164,16 @@ const osc = (e: Env, type: OscillatorType, freq: number) => {
   return o
 }
 
-/** Bourdon : sinus en quinte, lowpass doux, gain et filtre qui respirent très lentement (battement < 0,1 Hz). */
+/** Bourdon : sinus en quinte, lowpass doux, gain et filtre qui respirent très lentement (aucun battement audible : le seul écart de fréquence est de 0,05 Hz). */
 const drone = (e: Env, hz: number) => {
   const lp = filt(e, 'lowpass', 260, 0.5)
   const g = gainNode(e, 0.3)
   lp.connect(g).connect(e.out)
   osc(e, 'sine', hz).connect(lp)
-  const b = osc(e, 'sine', hz * 1.5)
-  b.detune.value = 3
-  b.connect(gainNode(e, 0.5)).connect(lp)
-  osc(e, 'sine', hz * 2.003)
+  osc(e, 'sine', hz * 1.5)
+    .connect(gainNode(e, 0.5))
+    .connect(lp)
+  osc(e, 'sine', hz * 2 + 0.05)
     .connect(gainNode(e, 0.25))
     .connect(lp)
   osc(e, 'sine', 0.045).connect(gainNode(e, 0.12)).connect(g.gain)
@@ -198,29 +203,36 @@ const swell = (e: Env, type: BiquadFilterType, freq: number, q: number, peak: nu
   const g = gainNode(e, 0)
   env(g, t0, peak, attack, dur)
   s.connect(f).connect(lp).connect(g).connect(e.out)
-  s.start(t0, Math.random() * 2)
+  s.start(t0, Math.random() * NOISE_OFFSET_MAX)
   s.stop(t0 + dur + 0.1)
   e.t.release(s, [s, f, lp, g])
 }
 
-/** Son tonal lointain : oscillateur filtré, `notes` = [décalage, Hz, durée]. */
+/** Son tonal lointain : un oscillateur et un gain par note (pas de troncature de queue), `notes` = [décalage, Hz, durée]. */
 const tones = (e: Env, type: OscillatorType, cutoff: number, peak: number, notes: [number, number, number][], attack = 0.06) => {
   const t0 = e.c.currentTime + 0.05
-  const o = e.t.add(e.c.createOscillator())
-  o.type = type
   const lp = filt(e, 'lowpass', cutoff, 0.6)
-  const g = gainNode(e, 0)
-  let end = 0
+  lp.connect(e.out)
+  const group: AudioNode[] = [lp]
+  let last: OscillatorNode | undefined
+  let lastEnd = -1
   for (const [dt, f, dur] of notes) {
+    const o = e.t.add(e.c.createOscillator())
+    o.type = type
     o.frequency.setValueAtTime(f * 1.05, t0 + dt)
     o.frequency.exponentialRampToValueAtTime(f, t0 + dt + 0.1)
+    const g = gainNode(e, 0)
     env(g, t0 + dt, peak, attack, dur)
-    end = Math.max(end, dt + dur)
+    o.connect(g).connect(lp)
+    o.start(t0 + dt)
+    o.stop(t0 + dt + dur + 0.1)
+    group.push(o, g)
+    if (dt + dur > lastEnd) {
+      lastEnd = dt + dur
+      last = o
+    }
   }
-  o.connect(lp).connect(g).connect(e.out)
-  o.start(t0)
-  o.stop(t0 + end + 0.1)
-  e.t.release(o, [o, lp, g])
+  if (last) e.t.release(last, group)
 }
 
 const events: Record<EventKind, (e: Env) => void> = {
@@ -330,9 +342,10 @@ export const startAmbience = (place: PlaceId): (() => void) => {
   if (!c) return () => undefined
 
   const t = createTracker()
-  const timers = new Set<ReturnType<typeof setTimeout>>()
+  const scope = effectScope(true)
   let stopped = false
   let hidden = false
+  let lastEventAt = -Infinity
 
   const master = c.createGain()
   master.gain.value = 0
@@ -349,31 +362,43 @@ export const startAmbience = (place: PlaceId): (() => void) => {
     c,
     out: master,
     t,
+    // un seul useTimeoutFn par récurrence, ré-armé à chaque tour ; arrêté avec le scope
     every: (min, max, fn) => {
-      const loop = (first: boolean) => {
-        const id = setTimeout(
-          () => {
-            timers.delete(id)
-            if (stopped) return
-            if (running()) fn()
-            loop(false)
-          },
-          randomDelay(first ? min * 0.3 : min, first ? max * 0.3 : max) * 1000,
-        )
-        timers.add(id)
+      const interval = ref(0)
+      let first = true
+      const arm = (s: number) => {
+        interval.value = s * 1000
+        start()
       }
-      loop(true)
+      const { start } = useTimeoutFn(
+        () => {
+          if (stopped) return
+          if (running()) {
+            const now = Date.now()
+            // espacement minimal entre événements de natures différentes
+            if (now - lastEventAt < MIN_SPACING_MS) return arm(MIN_SPACING_MS / 1000 + Math.random() * 2)
+            lastEventAt = now
+            fn()
+          }
+          arm(randomDelay(min, max))
+        },
+        interval,
+        { immediate: false },
+      )
+      arm(randomDelay(first ? min * 0.3 : min, first ? max * 0.3 : max))
+      first = false
     },
   }
 
-  for (const b of RECIPES[place].beds) beds[b](e, RECIPES[place])
-  for (const ev of RECIPES[place].events) e.every(ev.min, ev.max, () => events[ev.kind](e))
+  scope.run(() => {
+    for (const b of RECIPES[place].beds) beds[b](e, RECIPES[place])
+    for (const ev of RECIPES[place].events) e.every(ev.min, ev.max, () => events[ev.kind](e))
+  })
 
   const onState = () => ramp(TC_IN)
   c.addEventListener('statechange', onState)
   ramp(TC_IN)
 
-  const scope = effectScope(true)
   scope.run(() => {
     const visibility = useDocumentVisibility()
     watch(
@@ -391,13 +416,16 @@ export const startAmbience = (place: PlaceId): (() => void) => {
     if (stopped) return
     stopped = true
     scope.stop()
-    for (const id of timers) clearTimeout(id)
-    timers.clear()
     c.removeEventListener('statechange', onState)
     ramp(TC_OUT)
-    setTimeout(() => {
-      t.dispose()
-      master.disconnect()
-    }, STOP_AFTER_MS)
+    const { start } = useTimeoutFn(
+      () => {
+        t.dispose()
+        master.disconnect()
+      },
+      STOP_AFTER_MS,
+      { immediate: false },
+    )
+    start()
   }
 }

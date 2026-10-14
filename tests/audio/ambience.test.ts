@@ -1,6 +1,6 @@
 import { muted } from '../../src/audio/sfx'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MASTER_GAIN, RECIPES, randomDelay, startAmbience, targetLevel } from '../../src/audio/ambience'
+import { MASTER_GAIN, NOISE_OFFSET_MAX, NOISE_SECONDS, RECIPES, randomDelay, startAmbience, targetLevel } from '../../src/audio/ambience'
 import type { PlaceId } from '../../src/effects/places/types'
 
 const PLACES: PlaceId[] = ['perron', 'foret', 'cimetiere', 'rue', 'nuages']
@@ -169,5 +169,11 @@ describe('startAmbience (contexte factice)', () => {
   it('sans AudioContext : renvoie un stop inoffensif', () => {
     vi.stubGlobal('window', {})
     expect(() => startAmbience('perron')()).not.toThrow()
+  })
+})
+
+describe('tampon de bruit', () => {
+  it('couvre la plus longue houle malgré le décalage de départ', () => {
+    expect(NOISE_SECONDS - NOISE_OFFSET_MAX).toBeGreaterThanOrEqual(6.1) // airSwell : 6 s + marge de stop
   })
 })
