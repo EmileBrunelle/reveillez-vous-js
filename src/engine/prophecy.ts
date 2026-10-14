@@ -1,6 +1,7 @@
 import { expandTemplate, type Grammar } from './grammar'
 import type { Rng } from './rng'
 import { drawPersisted } from './shuffleBag'
+import { isPaquet, type Paquet } from './paquets'
 
 export interface Arcane {
   /** Roman numeral (« XVIII », « XIII bis »). */
@@ -8,6 +9,8 @@ export interface Arcane {
   nom: string
   /** Emblem id understood by TarotEmblem (unknown = fallback eye). */
   symbole: string
+  /** Paquet de la coupe auquel la carte appartient. */
+  paquet: Paquet
 }
 
 export interface Prophecy {
@@ -17,7 +20,7 @@ export interface Prophecy {
   arcane: Arcane
 }
 
-export const EMPTY_ARCANE: Arcane = { numero: '0', nom: 'Le Mat', symbole: 'fool' }
+export const EMPTY_ARCANE: Arcane = { numero: '0', nom: 'Le Mat', symbole: 'fool', paquet: 'brume' }
 
 const strings = (grammar: Grammar, key: string): string[] => {
   const t = grammar[key]
@@ -29,21 +32,22 @@ export const templatesFor = (grammar: Grammar, level: number) => strings(grammar
 /** Door knock lines of a level: grammar key `porte<N>`. */
 export const doorLinesFor = (grammar: Grammar, level: number) => strings(grammar, `porte${level}`)
 
-/** Draw an arcane, preferring those tagged for `level` (`niveaux`); any arcane when none matches, EMPTY_ARCANE when no table. */
-export const drawArcane = (grammar: Grammar, level: number, rng: Rng): Arcane => {
+/** Draw an arcane, preferring those of `paquet` tagged for `level` (`niveaux`); then any deck's arcana of that level, then any arcane; EMPTY_ARCANE when no table. */
+export const drawArcane = (grammar: Grammar, level: number, rng: Rng, paquet?: Paquet): Arcane => {
   const table = grammar.arcane
   if (!Array.isArray(table) || table.length === 0 || typeof table[0] === 'string') return EMPTY_ARCANE
   const all = table as Record<string, string>[]
   const fit = all.filter((a) => a.niveaux?.includes(String(level)))
-  const pool = fit.length > 0 ? fit : all
-  const { numero = '', nom = '', symbole = '' } = pool[Math.floor(rng() * pool.length)]
-  return { numero, nom, symbole }
+  const mine = paquet ? fit.filter((a) => a.paquet === paquet) : fit
+  const pool = mine.length > 0 ? mine : fit.length > 0 ? fit : all
+  const { numero = '', nom = '', symbole = '', paquet: p } = pool[Math.floor(rng() * pool.length)]
+  return { numero, nom, symbole, paquet: isPaquet(p) ? p : (paquet ?? 'nuit') }
 }
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>
 
-/** Draw the next prophecy of `level` through the persisted shuffle bag, and expand it. */
-export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng: Rng): Prophecy => {
+/** Draw the next prophecy of `level` (arcane taken from the chosen `paquet`) through the persisted shuffle bag, and expand it. */
+export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng: Rng, paquet?: Paquet): Prophecy => {
   const templates = templatesFor(grammar, level)
   if (templates.length === 0) return { question: '', body: '', verse: '', arcane: EMPTY_ARCANE }
   let tpl = templates[drawPersisted(store, `niveau${level}`, templates.length, rng)]
@@ -63,7 +67,7 @@ export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng:
     if (verset) tpl = tpl.replaceAll('{verset}', () => verset)
   }
   const [question = '', body = '', verse = ''] = expandTemplate(grammar, tpl, rng).split('|')
-  return { question, body, verse, arcane: drawArcane(grammar, level, rng) }
+  return { question, body, verse, arcane: drawArcane(grammar, level, rng, paquet) }
 }
 
 /** Next line of table `key` (shuffle bag, expanded), or `fallback` when the table is missing. */

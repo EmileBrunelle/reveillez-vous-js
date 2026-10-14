@@ -16,6 +16,7 @@ import IconCat from '~icons/game-icons/cat'
 import IconSignpost from '~icons/game-icons/doorway'
 import IconGhost from '~icons/game-icons/ghost'
 import IconEye from '~icons/game-icons/all-seeing-eye'
+import IconFlame from '~icons/game-icons/flame'
 
 // Static imports: tree-shaken, no runtime fetching. Plain object of component definitions (never put in a ref).
 const ICONS: Record<string, Component> = {
@@ -34,6 +35,7 @@ const ICONS: Record<string, Component> = {
   signpost: IconSignpost,
   ghost: IconGhost,
   eye: IconEye,
+  flame: IconFlame,
 }
 const props = defineProps<{ symbole: string }>()
 const icon = computed(() => ICONS[props.symbole] ?? IconEye)

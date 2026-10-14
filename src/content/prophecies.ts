@@ -338,24 +338,24 @@ export const prophecies: Grammar = {
   ]),
 
   // Arcanes (cartes de voyant). `symbole` = id d’un emblème de TarotCard (inconnu = œil) ; `niveaux` = niveaux où la carte est
-  // privilégiée (chiffres collés). Pas de figure religieuse : on garde les arcanes neutres et ceux de notre cru.
+  // privilégiée (chiffres collés) ; `paquet` = paquet de la coupe (nuit, feu, brume) dont la carte fait partie. Pas de figure religieuse : on garde les arcanes neutres et ceux de notre cru.
   arcane: [
-    { numero: 'I', nom: 'Le Magicien du Québec', symbole: 'star', niveaux: '23' },
-    { numero: '0', nom: 'Le Mat', symbole: 'fool', niveaux: '12' },
-    { numero: 'X', nom: 'La Roue de Fortune', symbole: 'wheel', niveaux: '123' },
-    { numero: 'XVII', nom: 'L’Étoile', symbole: 'star', niveaux: '12' },
-    { numero: 'XVIII', nom: 'La Lune', symbole: 'moon', niveaux: '1234' },
-    { numero: 'XIX', nom: 'Le Soleil', symbole: 'sun', niveaux: '1' },
-    { numero: 'IX', nom: 'L’Ermite à lanterne', symbole: 'lantern', niveaux: '23' },
-    { numero: 'XVI', nom: 'La Tour foudroyée', symbole: 'tower', niveaux: '45' },
-    { numero: 'XIII bis', nom: 'Big Citrouille', symbole: 'pumpkin', niveaux: '345' },
-    { numero: 'XX', nom: 'Le Cône orange', symbole: 'cone', niveaux: '2345' },
-    { numero: 'XXI', nom: 'Le Pont en travaux', symbole: 'bridge', niveaux: '345' },
-    { numero: 'VIII', nom: 'La Boule de cristal', symbole: 'crystal', niveaux: '123' },
-    { numero: 'XIII ½', nom: 'Le Chat noir', symbole: 'cat', niveaux: '1234' },
-    { numero: 'XXII', nom: 'Saint-Clin-Clin-des-Meuh-Meuh', symbole: 'signpost', niveaux: '23' },
-    { numero: 'XXIII', nom: 'Le Fantôme du troisième', symbole: 'ghost', niveaux: '1245' },
-    { numero: 'LXVI', nom: 'L’Œil derrière la porte', symbole: 'eye', niveaux: '45' },
+    { numero: 'I', nom: 'Le Magicien du Québec', paquet: 'nuit', symbole: 'star', niveaux: '23' },
+    { numero: '0', nom: 'Le Mat', paquet: 'brume', symbole: 'fool', niveaux: '12' },
+    { numero: 'X', nom: 'La Roue de Fortune', paquet: 'feu', symbole: 'wheel', niveaux: '123' },
+    { numero: 'XVII', nom: 'L’Étoile', paquet: 'nuit', symbole: 'star', niveaux: '12' },
+    { numero: 'XVIII', nom: 'La Lune', paquet: 'nuit', symbole: 'moon', niveaux: '1234' },
+    { numero: 'XIX', nom: 'Le Soleil', paquet: 'feu', symbole: 'sun', niveaux: '1' },
+    { numero: 'IX', nom: 'L’Ermite à lanterne', paquet: 'feu', symbole: 'lantern', niveaux: '23' },
+    { numero: 'XVI', nom: 'La Tour foudroyée', paquet: 'feu', symbole: 'tower', niveaux: '45' },
+    { numero: 'XIII bis', nom: 'Big Citrouille', paquet: 'brume', symbole: 'pumpkin', niveaux: '345' },
+    { numero: 'XX', nom: 'Le Cône orange', paquet: 'feu', symbole: 'cone', niveaux: '2345' },
+    { numero: 'XXI', nom: 'Le Pont en travaux', paquet: 'brume', symbole: 'bridge', niveaux: '345' },
+    { numero: 'VIII', nom: 'La Boule de cristal', paquet: 'nuit', symbole: 'crystal', niveaux: '123' },
+    { numero: 'XIII ½', nom: 'Le Chat noir', paquet: 'nuit', symbole: 'cat', niveaux: '1234' },
+    { numero: 'XXII', nom: 'Saint-Clin-Clin-des-Meuh-Meuh', paquet: 'brume', symbole: 'signpost', niveaux: '23' },
+    { numero: 'XXIII', nom: 'Le Fantôme du troisième', paquet: 'brume', symbole: 'ghost', niveaux: '1245' },
+    { numero: 'LXVI', nom: 'L’Œil derrière la porte', paquet: 'nuit', symbole: 'eye', niveaux: '45' },
   ],
 
   // ---- Tables de chaînes partagées ---------------------------------------------------------

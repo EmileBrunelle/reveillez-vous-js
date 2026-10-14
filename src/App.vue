@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, markRaw, nextTick, ref, shallowRef, watch, watchEffect, type Component } from 'vue'
 import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
-import TarotCardBack from './components/TarotCardBack.vue'
 import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
 import Taskbar from './components/Taskbar.vue'
@@ -12,6 +11,7 @@ import { prophecies } from './content/prophecies'
 import { nextDoorLine, nextProphecy, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import { pickVariant } from './engine/variant'
+import type { Paquet } from './engine/paquets'
 import { storeToRefs } from 'pinia'
 import { useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from './composables/useReducedMotion'
@@ -21,7 +21,9 @@ import { hymn, unlock } from './audio/sfx'
 import { activityFor, loadAbout, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
 
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
-const TarotCard = defineAsyncComponent({ loader: loadTarotCard, loadingComponent: TarotCardBack, delay: 150 })
+// La carte du tirage est chargée avant la fin de la coupe (jamais de substitut) : on ne la rend qu’une fois le chunk là.
+const TarotCard = shallowRef<Component | null>(null)
+const ensureTarot = () => loadTarotCard().then((m) => void (TarotCard.value = markRaw(m.default)))
 const AboutTempleOS = defineAsyncComponent(loadAbout)
 const ResetConfirm = defineAsyncComponent(loadReset)
 const DeckCut = defineAsyncComponent(loadDeckCut)
@@ -101,7 +103,7 @@ const shake = (amp: number) => {
 const door = shallowRef(doors[0])
 const place = shallowRef(placeForLevel(level.value))
 const placeVariant = shallowRef(place.value.variants[0])
-const pickedCard = ref<0 | 1 | 2>(0)
+const pickedPaquet = ref<Paquet>('nuit')
 const doorLine = ref(FALLBACK_LINE)
 const prophecy = ref<Prophecy>({ question: '', body: '', verse: '', arcane: EMPTY_ARCANE })
 
@@ -119,18 +121,22 @@ enterDoor()
 
 // Une visite : la porte s’ouvre -> activité (niveau 2+) -> coupe du paquet -> lecture. La prophétie est tirée une fois, à l’ouverture.
 const onDone = () => {
-  prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng)
-  progress.remember(prophecy.value.arcane.numero, level.value)
+  prefetch(loadTarotCard)
   phase.value = activityFor(level.value) ? 'activity' : 'cut'
   listening.value = false
 }
 const onActivityDone = () => {
   phase.value = 'cut'
 }
-const onPick = (index: 0 | 1 | 2) => {
-  pickedCard.value = index
+// La prophétie est tirée ici, une fois par visite : l’arcane vient du paquet choisi.
+const onPick = async (paquet: Paquet) => {
+  pickedPaquet.value = paquet
+  prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng, paquet)
+  progress.remember(prophecy.value.arcane.numero, level.value)
+  await ensureTarot().catch(() => undefined)
   phase.value = 'reading'
   hymn()
+  void nextTick(() => readingEl.value?.focus({ preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
 }
 const leave = (count: boolean) => {
   if (closing.value) return
@@ -154,6 +160,7 @@ const approach = () => {
 }
 
 const closeBtn = ref<HTMLButtonElement>()
+const readingEl = ref<HTMLElement>()
 const focusSoon = (find: () => HTMLElement | null | undefined) => {
   let n = 0
   const t = () => {
@@ -249,15 +256,39 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
             <component :is="Activity" :level="level" @done="onActivityDone" />
           </Motion>
           <Motion
-            v-else-if="phase === 'cut'"
-            key="cut"
+            v-else-if="phase === 'cut' || phase === 'reading'"
+            key="deal"
             class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"
             :transition="{ duration: 0.2 }"
           >
-            <DeckCut :level="level" @pick="onPick" />
+            <!-- Une seule structure pour la coupe et la lecture : la boîte de la carte ne change donc jamais entre les deux. -->
+            <section
+              ref="readingEl"
+              tabindex="-1"
+              class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
+            >
+              <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
+                <DeckCut v-if="phase === 'cut'" :level="level" @pick="onPick" />
+                <component
+                  :is="TarotCard"
+                  v-else-if="TarotCard"
+                  :arcane="prophecy.arcane"
+                  :title="prophecy.question"
+                  :body="prophecy.body"
+                  :verse="prophecy.verse"
+                  :level="level"
+                  handoff
+                  :paquet="pickedPaquet"
+                  @flipped="onFlipped"
+                />
+              </div>
+              <div class="flex flex-none flex-wrap gap-3 justify-center" :class="{ invisible: phase === 'cut' }" :inert="phase === 'cut'">
+                <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">Fermer la porte</button>
+              </div>
+            </section>
           </Motion>
           <Motion
             v-else-if="phase === 'finale'"
@@ -269,26 +300,6 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
             :transition="{ duration: 0.2 }"
           >
             <Finale @done="restart" />
-          </Motion>
-          <Motion
-            v-else-if="phase === 'reading'"
-            key="reading"
-            class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]"
-            :initial="{ opacity: 0 }"
-            :animate="{ opacity: 1 }"
-            :exit="{ opacity: 0 }"
-            :transition="{ duration: 0.2 }"
-          >
-            <section
-              class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
-            >
-              <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
-                <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" :from="pickedCard" @flipped="onFlipped" />
-              </div>
-              <div class="flex flex-none flex-wrap gap-3 justify-center">
-                <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">Fermer la porte</button>
-              </div>
-            </section>
           </Motion>
         </AnimatePresence>
       </main>

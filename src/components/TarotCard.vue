@@ -4,18 +4,19 @@ import { animate } from 'motion-v'
 import { useEventListener, useResizeObserver } from '@vueuse/core'
 import TarotEmblem from './TarotEmblem.vue'
 import TarotCardBack from './TarotCardBack.vue'
-import { FAN, FAN_SCALE } from './deckFan'
 import { emblemMask } from './emblemMask'
 import { cardDeal, cardFlip } from '../audio/sfx'
 import type { Arcane } from '../engine/prophecy'
+import type { Paquet } from '../engine/paquets'
 import { secureRng } from '../engine/rng'
 import { useDeviceTilt } from '../composables/useTilt'
 import { useReducedMotion } from '../composables/useReducedMotion'
 
-const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number; from?: 0 | 1 | 2 }>(), {
+const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number; handoff?: boolean; paquet?: Paquet }>(), {
   faceDown: false,
   level: 1,
-  from: undefined,
+  handoff: false,
+  paquet: 'nuit',
 })
 const emit = defineEmits<{ dealt: []; flipped: [] }>()
 const reduced = useReducedMotion()
@@ -131,6 +132,21 @@ const flip = async (toFaceUp: boolean) => {
 }
 
 const deal = async () => {
+  if (props.handoff) {
+    // Relais de la coupe : la carte est déjà à sa place, dos visible, identique à la carte de DeckCut (rien à poser). On la retourne tout de suite.
+    settled.value = true
+    emit('dealt')
+    if (props.faceDown) return
+    await wait(reduced.value ? 150 : 140)
+    if (skipped) return
+    if (reduced.value) {
+      rest(false)
+      emit('flipped')
+      return
+    }
+    await flip(true)
+    return
+  }
   if (reduced.value) {
     snap(flipEl.value, { rotateY: props.faceDown ? 0 : 180 })
     faceUp.value = !props.faceDown
@@ -141,14 +157,11 @@ const deal = async () => {
     if (!props.faceDown) emit('flipped')
     return
   }
-  // Origine : la carte choisie à la coupe (position de l’éventail, dos visible, déjà opaque) ; sinon le coin d’où la carte est jetée.
-  const f = props.from === undefined ? null : FAN[props.from]
-  const w = root.value?.offsetWidth ?? 0
-  const o = f ? { x: (f.x / 100) * w, y: (f.y / 100) * w, scale: FAN_SCALE, rot: f.rot } : { x: -40, y: -260, scale: 0.4, rot: -18 }
+  const o = { x: -40, y: -260, scale: 0.4, rot: -18 }
   snap(flipEl.value, { rotateY: 0 })
-  snap(dealEl.value, { x: o.x, y: o.y, scale: o.scale, rotateZ: o.rot, opacity: f ? 1 : 0 })
+  snap(dealEl.value, { x: o.x, y: o.y, scale: o.scale, rotateZ: o.rot, opacity: 0 })
   cardDeal()
-  if (!f) go(dealEl.value, { opacity: [0, 1] }, { duration: 0.12 })
+  go(dealEl.value, { opacity: [0, 1] }, { duration: 0.12 })
   await go(dealEl.value, { x: [o.x, 0], y: [o.y, 0], scale: [o.scale, 1], rotateZ: [o.rot, 0] }, { type: 'spring', stiffness: 150, damping: 17 })
   if (skipped) return
   settled.value = true
@@ -270,7 +283,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="root" class="tarot relative aspect-[7/12]" :class="`tarot--l${level}`" @click="skip">
+  <div ref="root" class="tarot relative aspect-[7/12]" :class="[`tarot--l${level}`, `tarot--${paquet}`]" @click="skip">
     <div class="tarot__sr absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ faceUp ? `${title} ${body} ${verse}` : '' }}</div>
     <div class="tarot__stage absolute inset-0 [perspective:1100px]">
       <div ref="dealEl" class="tarot__deal absolute inset-0 [transform-style:preserve-3d]">
@@ -311,7 +324,7 @@ onUnmounted(() => {
             </div>
             <!-- Dos : le même visuel que les cartes de DeckCut (TarotCardBack). -->
             <div class="tarot__face tarot__back absolute inset-0" :class="{ 'tarot__face--up': faceUp }" :aria-hidden="faceUp">
-              <TarotCardBack fill class="absolute inset-0">
+              <TarotCardBack fill :paquet="paquet" class="absolute inset-0">
                 <div class="tarot__glare absolute inset-0 pointer-events-none [opacity:var(--glare,0)] [transition:opacity_0.2s]" />
               </TarotCardBack>
             </div>
@@ -360,6 +373,17 @@ onUnmounted(() => {
 .tarot__glare {
   background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.3), rgb(255 255 255 / 0) 55%);
 }
+/* Teinte du paquet choisi : l’encre et le papier (discrets) et la teinte du reflet ; le cadre doré reste doré. */
+.tarot--feu {
+  --tarot-ink: #3a1410;
+  --tarot-paper: #f5ddae;
+  --foil-hue: -35deg;
+}
+.tarot--brume {
+  --tarot-ink: #0f2b28;
+  --tarot-paper: #e8e5bd;
+  --foil-hue: 70deg;
+}
 /* Reflet holographique (CSS seul) sur l’or : cadre, coins, bandeau du numéro et emblème. Chaque pseudo-élément superpose le même dégradé
    (--foil) en color-dodge, découpé aux zones dorées par un masque ; sa position suit --gx/--gy (pointeur ou gyroscope) et son intensité --glare.
    Aucune animation autonome : la luminosité ne change que si l’utilisateur incline ou déplace le pointeur. Aucun effet sur la mise en page
@@ -393,6 +417,7 @@ onUnmounted(() => {
   background: var(--foil);
   background-size: 70cqw 70cqw;
   background-position: var(--gx, 50%) var(--gy, 50%);
+  filter: hue-rotate(var(--foil-hue, 0deg));
   mix-blend-mode: color-dodge;
   opacity: calc(var(--foil-base) + var(--glare, 0) * var(--foil-k));
   transition: opacity 0.2s;
