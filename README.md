@@ -34,7 +34,21 @@ Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches)
 
 ## Technologies
 
-Vue 3, Vite, TypeScript, UnoCSS, [VueUse](https://vueuse.org), [motion-v](https://motion.dev), [Vuetify0](https://github.com/vuetifyjs/0) (`@vuetify/v0`), unplugin-icons, [vgpu](https://vgpu.sh) (WebGPU, shaders WGSL), Vitest. Polices auto-hébergées via Fontsource : VT323, IM Fell English, Cinzel.
+| Projet | Rôle | Site | Dépôt |
+|---|---|---|---|
+| Vue 3 | interface | [vuejs.org](https://vuejs.org) | [vuejs/core](https://github.com/vuejs/core) |
+| Vite | build et serveur de dev | [vite.dev](https://vite.dev) | [vitejs/vite](https://github.com/vitejs/vite) |
+| TypeScript | typage | [typescriptlang.org](https://www.typescriptlang.org) | [microsoft/TypeScript](https://github.com/microsoft/TypeScript) |
+| UnoCSS | styles utilitaires | [unocss.dev](https://unocss.dev) | [unocss/unocss](https://github.com/unocss/unocss) |
+| VueUse | composables (écouteurs, minuteries, parallaxe, vibration) | [vueuse.org](https://vueuse.org) | [vueuse/vueuse](https://github.com/vueuse/vueuse) |
+| motion-v | animations | [motion.dev](https://motion.dev/docs/vue) | [motiondivision/motion-vue](https://github.com/motiondivision/motion-vue) |
+| Vuetify0 (`@vuetify/v0`) | composants sans style | [0.vuetifyjs.com](https://0.vuetifyjs.com) | [vuetifyjs/0](https://github.com/vuetifyjs/0) |
+| vgpu | WebGPU : filtre CRT et fond 3D (shaders WGSL) | [vgpu.sh](https://vgpu.sh) | [vercel-labs/vgpu](https://github.com/vercel-labs/vgpu) |
+| unplugin-icons + Iconify | icônes (game-icons, Simple Icons) | [iconify.design](https://iconify.design) | [unplugin/unplugin-icons](https://github.com/unplugin/unplugin-icons) |
+| Fontsource | polices auto-hébergées | [fontsource.org](https://fontsource.org) | [fontsource/fontsource](https://github.com/fontsource/fontsource) |
+| Vitest | tests | [vitest.dev](https://vitest.dev) | [vitest-dev/vitest](https://github.com/vitest-dev/vitest) |
+
+Polices (Google Fonts, licence SIL OFL) : [VT323](https://fonts.google.com/specimen/VT323), [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English), [Cinzel](https://fonts.google.com/specimen/Cinzel).
 
 **WebGPU est obligatoire** (choix assumé, pas de version de secours). Chrome ou Edge récents sont recommandés ; sinon, un écran d’accueil explique comment activer WebGPU selon le navigateur. Sur téléphone, la page doit être servie en **HTTPS** (WebGPU exige un contexte sécurisé).
 
