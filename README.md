@@ -1,48 +1,77 @@
 # Réveillez-vous.js
 
-Votre entrée au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026 : une expérience de voyance interactive. Vous frappez à la porte d’un·e voyant·e, vous vous concentrez, et une carte de tarot vous livre une prophétie tirée au hasard. Plus vous revenez, plus le ton devient inquiet, paranoïaque, et le décor se détraque, sous un écran cathodique de vieil ordinateur hanté.
+Une voyante frappe un rythme derrière une porte ; vous le répétez, la porte s’ouvre et une carte de tarot vous livre une prophétie. Plus vous revenez, plus le ton devient paranoïaque et le décor se détraque, le tout sous l’écran cathodique d’un vieux PC hanté (Windows 98). Entrée individuelle au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026.
+
+**Jouer : https://emilebrunelle.github.io/reveillez-vous-js/** (navigateur avec WebGPU requis, voir [Technologies](#technologies))
 
 ## Comment jouer
 
-1. Ouvrez la page. Une porte apparaît : des coups résonnent derrière.
-2. **Cliquez sur la porte** (ou activez-la au clavier, « Ouvrir la porte ») pour l’ouvrir.
-3. Faites le rituel de **concentration** : maintenez une touche ou touchez l’écran jusqu’à ce que la jauge se remplisse.
-4. Une **carte de tarot** est distribuée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur.
-5. Cliquez sur **« Fermer la porte »** : la porte claque, une nouvelle porte et un nouveau décor vous attendent.
+1. Ouvrez la page : une porte apparaît. Activez-la (clic, toucher ou clavier, « Ouvrir la porte »).
+2. **La voyante cogne un rythme** : écoutez-le (ou suivez les points et les sous-titres à l’écran).
+3. **Reproduisez-le** en cogneant sur la porte. Après trois échecs, la porte s’ouvre quand même.
+4. Une **carte de tarot** est tirée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur ou en bougeant votre téléphone.
+5. « Fermer la porte » : une nouvelle porte, un nouveau décor, une nouvelle prophétie.
 
-Le **niveau de vigilance** (de 1 à 5, affiché en badge) monte avec le nombre de visites dans votre navigateur. Les prophéties, les coups à la porte et l’ambiance évoluent avec lui. Un triple clic sur le badge (dans la barre des tâches, en bas) remet le compteur à zéro. L’icône de haut-parleur de la barre des tâches coupe l’audio, entièrement synthétisé ; le menu « Démarrer » donne accès à l’À propos, au code source et à « Recommencer à zéro ».
+Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches) monte avec le nombre de visites enregistrées dans votre navigateur (`localStorage`) ; il atteint le niveau 5 après six fermetures de porte. Prophéties, répliques de la voyante, portes et décors changent avec lui. Pour recommencer à zéro : menu **Démarrer › Recommencer à zéro**, ou triple clic sur le badge.
 
-## Prérequis
+## Ce qui rend le projet spécial
 
-- **WebGPU obligatoire** (aucune version de secours, c’est un choix assumé). Chrome ou Edge récents sont recommandés.
-- Firefox : WebGPU est actif par défaut sous Windows et macOS (Apple Silicon). Sous Linux, il faut encore activer `dom.webgpu.enabled` dans `about:config`. Un écran d’accueil explique la marche à suivre si WebGPU est absent.
-- Sur téléphone, la page doit être servie en HTTPS (WebGPU exige un contexte sécurisé).
-- L’animation respecte la préférence « réduire les animations » du système.
+- **Jeu de rythme à la porte** : la voyante cogne un motif, vous le rejouez ; jouable sans le son (points, sous-titres, vibration sur appareil compatible).
+- **Prophéties générées** par une grammaire maison de type Tracery, avec arcane et **verset génératif** (livre × référence) ; des « sacs mélangés » persistés évitent les répétitions.
+- **Escalade en 5 niveaux** : la paranoïa monte de visite en visite, jusqu’à un loup-garou qui apparaît au loin aux niveaux élevés.
+- **Décor « perron sous la lune » en raymarching WebGPU** (WGSL, avec parallaxe) et **post-effet CRT** en WebGPU (vgpu).
+- **Interface Windows 98** : barre des tâches, menu Démarrer, zone de notification (vigilance, son, horloge).
+- **Tous les sons sont synthétisés** (Web Audio), sans fichier audio.
+- Contenu en français québécois, écriture inclusive, références d’ici.
+
+## Accessibilité
+
+- Respect de `prefers-reduced-motion` (animations, effet CRT, parallaxe).
+- Aucun changement de luminosité à 3 Hz ou plus ; l’intensité du CRT passe par des effets spatiaux, pas par du clignotement.
+- Jeu complet sans le son : points, sous-titres des coups, vibration.
+- Annonces `aria-live` pour la porte et la prophétie ; porte et menu Démarrer utilisables au clavier ; bouton pour couper le son.
+- Le CRT se met en pause quand l’onglet est caché.
+
+## Technologies
+
+Vue 3, Vite, TypeScript, UnoCSS, [VueUse](https://vueuse.org), [motion-v](https://motion.dev), [Vuetify0](https://github.com/vuetifyjs/0) (`@vuetify/v0`), unplugin-icons, [vgpu](https://vgpu.sh) (WebGPU, shaders WGSL), Vitest. Polices auto-hébergées via Fontsource : VT323, IM Fell English, Cinzel.
+
+**WebGPU est obligatoire** (choix assumé, pas de version de secours). Chrome ou Edge récents sont recommandés ; sinon, un écran d’accueil explique comment activer WebGPU selon le navigateur. Sur téléphone, la page doit être servie en **HTTPS** (WebGPU exige un contexte sécurisé).
 
 ## Lancer en local
 
 ```bash
 npm install
-npm run dev       # serveur de développement
-npm test          # tests (vitest)
-npm run build     # vérification des types + build de production
+npm run dev       # serveur de développement (`npm run dev -- --host` pour l’exposer sur le réseau local)
+npm test          # tests (vitest, dossier tests/)
+npm run build     # vue-tsc -b + build de production
 npm run preview   # prévisualiser le build
 ```
 
-## Technologies
+Sur un téléphone, `http://<ip>:5173` n’est pas un contexte sécurisé : WebGPU y est absent, il faut un tunnel ou un déploiement HTTPS. Pour un déploiement sous un sous-chemin, définissez `BASE_PATH` (voir `.github/workflows/deploy.yml`, GitHub Pages).
 
-Vite, Vue 3, TypeScript, [vgpu](https://vgpu.sh) (WebGPU : effet cathodique en WGSL), [motion-v](https://motion.dev), [Vuetify0](https://github.com/vuetifyjs/0) (`@vuetify/v0`), [VueUse](https://vueuse.org), UnoCSS, unplugin-icons, Vitest. Les sons sont synthétisés avec la Web Audio API. Les prophéties sont générées par une petite grammaire maison de type Tracery.
+## Structure du code
+
+```
+src/
+  App.vue          enchaînement : écran WebGPU, porte, carte, « Fermer la porte »
+  engine/          grammaire, sacs mélangés, prophéties, coups, rythme, niveaux, RNG injecté
+  content/         prophéties (niveaux 1 à 5), portes et décors
+  components/      DoorScene, KnockPattern, TarotCard, Taskbar, CrtOverlay, doors/, backgrounds/…
+  effects/         crt.wgsl + crt.ts, porch.wgsl + porch.ts (perron), détection WebGPU
+  audio/           sons synthétisés
+  composables/     visites, inclinaison, mouvement réduit, stockage sûr
+tests/             engine/, content/, composables/, effects/
+```
 
 ## Crédits et licences
 
-- Polices (SIL OFL 1.1, auto-hébergées via [Fontsource](https://fontsource.org)) : [VT323](https://fonts.google.com/specimen/VT323) (Peter Hull), [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English) (Igino Marini), [Cinzel](https://fonts.google.com/specimen/Cinzel) (Natanael Gama).
+- Polices (SIL OFL 1.1, via [Fontsource](https://fontsource.org)) : [VT323](https://fonts.google.com/specimen/VT323) (Peter Hull), [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English) (Igino Marini), [Cinzel](https://fonts.google.com/specimen/Cinzel) (Natanael Gama).
 - Icônes : [game-icons.net](https://game-icons.net) (CC BY 3.0).
 - Icône GitHub : [Simple Icons](https://simpleicons.org) (CC0).
 - Les bibliothèques ci-dessus sont utilisées selon leurs licences respectives.
 
-## Hommage
-
-Hommage à Terry A. Davis (1969–2018), qui a écrit seul TempleOS, un système d’exploitation complet avec son propre compilateur et son propre langage, HolyC. Son « oracle » tirait des mots au hasard ; ce site tire lui aussi ses prophéties au hasard. Cet hommage porte sur son œuvre uniquement.
+**Hommage.** À Terry A. Davis (1969–2018), qui a écrit seul TempleOS, un système d’exploitation complet avec son propre compilateur et son propre langage, HolyC. Son « oracle » tirait des mots au hasard ; ce site tire lui aussi ses prophéties au hasard. Cet hommage porte sur son œuvre uniquement.
 
 ## Déclaration d’utilisation de l’IA
 
