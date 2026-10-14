@@ -23,7 +23,14 @@ import { activityFor, loadAbout, loadDeckCut, loadDoorScene, loadFinale, loadRes
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
 // La carte du tirage est chargée avant la fin de la coupe (jamais de substitut) : on ne la rend qu’une fois le chunk là.
 const TarotCard = shallowRef<Component | null>(null)
-const ensureTarot = () => loadTarotCard().then((m) => void (TarotCard.value = markRaw(m.default)))
+const tarotFailed = ref(false) // le chunk n’a pas pu se charger : lecture de secours en texte, le jeu ne reste jamais bloqué
+const loadTarotOnce = () => loadTarotCard().then((m) => void (TarotCard.value = markRaw(m.default)))
+const timeout = (ms: number) => new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
+const ensureTarot = async () => {
+  if (TarotCard.value) return
+  for (let n = 0; n < 2 && !TarotCard.value; n++) await Promise.race([loadTarotOnce(), timeout(3000)]).catch(() => undefined)
+  tarotFailed.value = !TarotCard.value
+}
 const AboutTempleOS = defineAsyncComponent(loadAbout)
 const ResetConfirm = defineAsyncComponent(loadReset)
 const DeckCut = defineAsyncComponent(loadDeckCut)
@@ -130,13 +137,15 @@ const onActivityDone = () => {
 }
 // La prophétie est tirée ici, une fois par visite : l’arcane vient du paquet choisi.
 const onPick = async (paquet: Paquet) => {
+  if (phase.value !== 'cut' || closing.value) return // « Recommencer à zéro » pendant le vol : on ne rouvre pas une lecture
+  await ensureTarot()
+  if (phase.value !== 'cut' || closing.value) return
   pickedPaquet.value = paquet
   prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng, paquet)
   progress.remember(prophecy.value.arcane.numero, level.value)
-  await ensureTarot().catch(() => undefined)
   phase.value = 'reading'
   hymn()
-  void nextTick(() => readingEl.value?.focus({ preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
+  void nextTick(() => (tarotFailed.value ? closeBtn.value : readingEl.value)?.focus({ preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
 }
 const leave = (count: boolean) => {
   if (closing.value) return
@@ -271,7 +280,12 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
               class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
             >
               <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
-                <DeckCut v-if="phase === 'cut'" :level="level" @pick="onPick" />
+                <DeckCut v-if="phase === 'cut'" :level="level" :rng="rng" @pick="onPick" />
+                <div v-else-if="tarotFailed" class="max-h-full overflow-auto w-full p-4 text-left font-card [background:#f3e3b3] [color:#170a2b] [border:0.3rem_solid_#1f1038]">
+                  <h2 class="font-title m-0 mb-2 text-[1.1rem] uppercase">{{ prophecy.question }}</h2>
+                  <p class="m-0 mb-2 text-[1.1rem]">{{ prophecy.body }}</p>
+                  <p class="m-0 italic text-right">— {{ prophecy.verse }}</p>
+                </div>
                 <component
                   :is="TarotCard"
                   v-else-if="TarotCard"

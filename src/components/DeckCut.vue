@@ -5,18 +5,18 @@ import TarotCardBack from './TarotCardBack.vue'
 import { FAN, FAN_SCALE } from './deckFan'
 import { cardDeal } from '../audio/sfx'
 import { PAQUET_NOMS, shufflePaquets, type Paquet } from '../engine/paquets'
-import { secureRng } from '../engine/rng'
+import type { Rng } from '../engine/rng'
 import { useReducedMotion } from '../composables/useReducedMotion'
 
 // Coupe du paquet : trois paquets différents (dos, teinte, arcanes) en éventail, dans la même boîte (7:12) que la carte du tirage.
 // Tout le mouvement passe par UNE boucle rAF : chaque carte a des valeurs courantes qui poursuivent une cible avec un ressort (aucune transition CSS
 // sur transform, rien ne « téléporte »). Au choix, la carte part de sa position courante vers la position et la taille de la carte du tirage,
 // où TarotCard prend le relais pixel pour pixel (dos identique, même boîte) : aucun remplacement visible.
-defineProps<{ level: number }>()
+const props = defineProps<{ level: number; rng: Rng }>()
 const emit = defineEmits<{ pick: [paquet: Paquet] }>()
 const reduced = useReducedMotion()
 
-const paquets = shufflePaquets(secureRng())
+const paquets = shufflePaquets(props.rng)
 const deckEl = ref<HTMLElement>()
 const slotEls = ref<HTMLElement[]>([])
 const tiltEls = ref<HTMLElement[]>([])
@@ -193,7 +193,7 @@ const tick = (now: number) => {
   if (phase === 'pick' && chosen.value !== null && now > pickAt + OTHERS_DELAY + 200) {
     const c = state[chosen.value]
     const settled = Math.abs(c.x.c) < 0.4 && Math.abs(c.y.c) < 0.4 && Math.abs(c.r.c) < 0.15 && Math.abs(c.s.c - FINAL_S) < 0.004 && Math.abs(c.x.v) + Math.abs(c.y.v) < 8
-    if (settled || now > pickAt + 1800) finish()
+    if (settled) finish()
   }
 }
 const { resume } = useRafFn(({ timestamp }) => tick(timestamp), { immediate: false })
@@ -276,8 +276,10 @@ const onMove = (i: number, e: PointerEvent) => {
 const onDown = (i: number, e: PointerEvent) => (e.pointerType === 'touch' ? setHot(i) : undefined)
 const onFocus = (i: number, e: FocusEvent) => ((e.target as HTMLElement).matches(':focus-visible') ? (reduced.value ? labelOnly(i) : setHot(i)) : undefined)
 
+const { start: startFallback } = useTimeoutFn(() => finish(), 1800, { immediate: false }) // filet indépendant de la boucle rAF (onglet masqué, largeur nulle…)
 const choose = (i: number) => {
   if (chosen.value !== null || !ready.value) return
+  W = deckEl.value?.offsetWidth ?? W
   chosen.value = i
   hot.value = null
   deckEl.value?.focus() // les boutons se désactivent puis disparaissent : le focus reste dans la coupe au lieu de tomber sur <body>
@@ -288,6 +290,7 @@ const choose = (i: number) => {
   }
   phase = 'pick'
   pickAt = performance.now()
+  startFallback()
   startS = state[i].s.c
 }
 </script>
