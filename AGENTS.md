@@ -32,7 +32,7 @@
 - `composables/`: `useVisits` (localStorage `rvj-visits`; triple-click on the « Niveau de vigilance » badge resets), `useEntropy`.
 - `components/Taskbar.vue`: fixed Windows 98 taskbar (Start menu: À propos, Code source, homage, reset; tray: Vigilance badge, sound toggle, clock); `--taskbar-h` in styles.css is the reserved height.
 - `ui/`: UnoCSS-styled components (Windows 98 look; shortcuts `win-window`, `win-btn`).
-- `assets/svg/`: inline SVGs live as `.svg` files (doors, seer, icons), imported as components via `~icons/rvj/<name>` (unplugin-icons custom collection in `vite.config.ts`, no default 1.2em size: size with CSS classes on the usage; `class="door-handle"` inside door SVGs is animated by DoorScene).
+- `assets/svg/`: inline SVGs live as `.svg` files (doors, seer, icons), imported as components via `~icons/rvj/<name>` (unplugin-icons custom collection in `vite.config.ts`, `iconCustomizer` sets width/height to `unset` for `rvj` only, so no 1.2em: size with CSS classes on the usage, game-icons keep theirs; `class="door-handle"` inside door SVGs is animated by DoorScene).
 
 ## Conventions
 

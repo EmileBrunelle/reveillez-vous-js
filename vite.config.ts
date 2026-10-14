@@ -13,11 +13,11 @@ export default defineConfig({
     Icons({
       compiler: 'vue3',
       customCollections: { rvj: FileSystemIconLoader('./src/assets/svg') },
-      // Nos SVG se dimensionnent par CSS : on retire le 1.2em par défaut de la collection rvj.
+      // Nos SVG se dimensionnent par CSS : « unset » supprime le width/height 1.2em injecté par défaut (collection rvj seulement, game-icons garde sa taille).
       iconCustomizer: (collection, _icon, props) => {
         if (collection === 'rvj') {
-          delete props.width
-          delete props.height
+          props.width = 'unset'
+          props.height = 'unset'
         }
       },
     }),
