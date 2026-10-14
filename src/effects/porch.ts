@@ -8,9 +8,9 @@ const FPS_CAP = 30
 /**
  * Starts the raymarched porch background on `canvas`. Throws if anything fails; returns controls.
  * `motion()` false = reduced motion: one static frame (re-rendered on resize/level change only).
- * `paranoia()` returns 0..1 and is eased here.
+ * `paranoia()` returns 0..1 and is eased here. `parallax()` returns the target camera offset in [-1, 1]²; smoothed here (lerp), ignored when `motion()` is false.
  */
-export const startPorch = async (canvas: HTMLCanvasElement, motion: () => boolean, paranoia: () => number, onLost?: () => void): Promise<{ setPaused(paused: boolean): void; stop(): void }> => {
+export const startPorch = async (canvas: HTMLCanvasElement, motion: () => boolean, paranoia: () => number, parallax: () => { x: number; y: number }, onLost?: () => void): Promise<{ setPaused(paused: boolean): void; stop(): void }> => {
   const gpu = await init()
   let stopped = false
   void gpu.lost.then(() => {
@@ -20,6 +20,8 @@ export const startPorch = async (canvas: HTMLCanvasElement, motion: () => boolea
   const surf = surface(gpu, canvas, { dpr: dprFor(), clearColor: [0, 0, 0, 1] })
   let p = paranoia()
   let drift = 0
+  let px = 0
+  let py = 0
   const params = (t: number) => {
     const m = motion()
     const k = 1 + 1.2 * p // uneasy: amplitude grows ...
@@ -33,6 +35,8 @@ export const startPorch = async (canvas: HTMLCanvasElement, motion: () => boolea
       swayY: m ? 0.008 * k * Math.sin(t * speed * 1.4 + 2) : 0,
       drift: m ? drift : 0,
       wolf: Math.min(1, Math.max(0, (p - 0.62) / 0.16)),
+      px: m ? px : 0,
+      py: m ? py : 0,
     }
   }
   const fx = effect(gpu, porchShader, { set: { params: params(0) } })
@@ -46,6 +50,10 @@ export const startPorch = async (canvas: HTMLCanvasElement, motion: () => boolea
       const animated = motion()
       const key = `${canvas.width}x${canvas.height}|${p.toFixed(3)}|${animated}`
       if (animated) {
+        const par = parallax()
+        const k = 1 - Math.exp(-dt / 0.35) // ~0.35 s time constant, frame-rate independent
+        px += (par.x - px) * k
+        py += (par.y - py) * k
         drift += dt
         // Frame skipping: cap at FPS_CAP.
         if (performance.now() - lastDraw < 1000 / FPS_CAP - 4) return

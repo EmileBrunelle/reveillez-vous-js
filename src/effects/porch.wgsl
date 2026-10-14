@@ -7,6 +7,8 @@ struct Params {
   swayY: f32,
   drift: f32, // fog drift clock (0 when reduced motion)
   wolf: f32, // 0..1 werewolf presence
+  px: f32, // parallax -1..1 (0 when reduced motion), already smoothed on the CPU
+  py: f32,
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -96,15 +98,14 @@ fn treeline(a: f32) -> f32 {
   return h;
 }
 
-fn sky_col(rd: vec3f, p: f32, moonCol: vec3f) -> vec3f {
+fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   let up = clamp(rd.y, 0.0, 1.0);
-  var c = mix(vec3f(0.16, 0.20, 0.30), vec3f(0.018, 0.028, 0.070), pow(up, 0.42));
+  var c = mix(vec3f(0.21, 0.27, 0.39), vec3f(0.024, 0.036, 0.085), pow(up, 0.42));
   c = mix(c, vec3f(0.07, 0.015, 0.025), p * 0.55 * (1.0 - up));
   let cm = dot(rd, MOON_DIR);
   // Halo (angular distance), then disc with soft limb and faint maria.
   let ang = acos(clamp(cm, -1.0, 1.0));
   c += moonCol * (0.30 * exp(-ang * 6.0) + 0.65 * exp(-ang * 18.0));
-  let r = 0.072;
   let disc = 1.0 - smoothstep(r - 0.0025, r + 0.0015, ang);
   // Moon surface coordinates
   let ex = normalize(cross(MOON_DIR, vec3f(0, 1, 0)));
@@ -133,23 +134,27 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f) -> vec3f {
   // Camera with slow sway (yaw/pitch).
   // Portrait lifts the moon above the central door and tilts the camera up; landscape keeps it lower so the wolf can stand in front of it.
   let land = smoothstep(0.7, 1.3, res.x / res.y);
-  let moonElev = mix(1.12, 0.56, land);
-  let moonAz = mix(0.25, 0.5, land);
+  // Portrait: the door covers the centre, so the moon sits in the top-left corner and the wolf stands on the horizon glow in the right gutter.
+  let moonElev = mix(0.74, 0.56, land);
+  let moonAz = mix(-0.34, 0.5, land);
   MOON_DIR = vec3f(sin(moonAz) * cos(moonElev), sin(moonElev), cos(moonAz) * cos(moonElev));
-  let feetE = moonElev - 0.31;
-  let yaw = params.sway;
-  let pitch = mix(0.30, 0.12, land) + params.swayY;
+  let wolfAz = mix(0.50, moonAz, land);
+  let feetE = mix(0.04, moonElev - 0.31, land);
+  let moonR = mix(0.098, 0.072, land);
+  // Parallax: yaw/pitch (~3.4 deg / 2.3 deg max) for every layer + a small lateral eye shift that moves the near railing more.
+  let yaw = params.sway + params.px * 0.06;
+  let pitch = mix(-0.10, 0.12, land) + params.swayY - params.py * 0.04;
   var rd = normalize(vec3f(c2.x, c2.y, 1.3));
   let cp = cos(pitch); let sp = sin(pitch);
   rd = vec3f(rd.x, rd.y * cp + rd.z * sp, rd.z * cp - rd.y * sp);
   let cy = cos(yaw); let sy = sin(yaw);
   rd = vec3f(rd.x * cy + rd.z * sy, rd.y, rd.z * cy - rd.x * sy);
-  let ro = vec3f(0.0, EYE_Y, 0.0);
+  let ro = vec3f(params.px * 0.15, EYE_Y + params.py * 0.05, 0.0);
 
   let red = smoothstep(0.1, 0.9, p);
   let moonCol = mix(vec3f(0.90, 0.94, 1.0), vec3f(0.95, 0.10, 0.05), red);
-  let fogLit = mix(vec3f(0.17, 0.22, 0.32), vec3f(0.34, 0.09, 0.10), red);
-  let density = mix(0.55, 1.6, p);
+  let fogLit = mix(vec3f(0.22, 0.28, 0.40), vec3f(0.42, 0.11, 0.12), red);
+  let density = mix(0.8, 1.7, p);
 
   var col = vec3f(0.0);
   var tEnd = 70.0;
@@ -158,23 +163,27 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f) -> vec3f {
 
   // --- Background by direction
   if (rd.y >= 0.0) {
-    col = sky_col(rd, p, moonCol);
+    col = sky_col(rd, p, moonCol, moonR);
     let h = treeline(a);
     if (e < h) {
       col = mix(vec3f(0.004, 0.007, 0.012), fogLit * 0.25, smoothstep(0.0, h, e) * 0.3);
       tEnd = 45.0;
     }
     // Hill + werewolf, angular coords around the moon.
-    let ma = atan2(MOON_DIR.x, MOON_DIR.z);
-    let hill = max(feetE - 0.10, 0.02) * exp(-pow((a - ma + 0.03) / mix(0.30, 0.16, land), 2.0));
+    let ma = mix(atan2(MOON_DIR.x, MOON_DIR.z) , wolfAz, 1.0 - land);
+    let hill = max(feetE - 0.10, 0.02) * exp(-pow((a - ma + 0.03) / mix(0.34, 0.16, land), 2.0));
     if (e < 0.11 + hill && e > 0.0) {
       col = mix(vec3f(0.004, 0.007, 0.011), fogLit * 0.25, 0.15);
       tEnd = 40.0;
     }
     let sc = 0.36;
-    let wp = (vec2f(a - ma + 0.015, e - feetE) / sc);
+    let wp = (vec2f((a - ma + 0.015) * cos(feetE), e - feetE) / sc);
     let wd = wolf_sd(wp) * sc + (vnoise(vec3f(wp * 40.0, 1.0)) - 0.5) * 0.004;
     let wa = (1.0 - smoothstep(-0.002, 0.003, wd)) * params.wolf;
+    // Backlight behind the wolf so the silhouette reads against the dark sky.
+    let gx = (a - ma) * cos(feetE) / 0.26;
+    let gy = (e - feetE - 0.14) / 0.30;
+    col += moonCol * 0.22 * exp(-(gx * gx + gy * gy)) * params.wolf;
     col = mix(col, vec3f(0.002, 0.003, 0.006), wa);
     if (wa > 0.01) { tEnd = 38.0; }
   } else {
@@ -183,14 +192,15 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f) -> vec3f {
     if (tf * rd.z < RAIL_Z + 0.15) {
       let g = ro + rd * tf;
       let board = smoothstep(0.0, 0.03, abs(fract(g.x * 2.2 + 0.5) - 0.5) * 0.45);
-      col = vec3f(0.020, 0.016, 0.014) * (0.5 + 0.5 * board) * (0.6 + 0.8 * vnoise(vec3f(g.x * 4.0, g.z * 40.0, 0.0)));
+      col = vec3f(0.045, 0.037, 0.033) * (0.5 + 0.5 * board) * (0.6 + 0.8 * vnoise(vec3f(g.x * 4.0, g.z * 40.0, 0.0)));
       col += moonCol * 0.012 * pow(max(dot(normalize(vec3f(rd.x, -rd.y, rd.z)), MOON_DIR), 0.0), 40.0);
+      col += fogLit * 0.07;
       tEnd = tf;
     } else {
       let ty = (EYE_Y + 0.8) / -rd.y;
       tEnd = min(ty, 60.0);
       let g = ro + rd * ty;
-      col = vec3f(0.006, 0.010, 0.012) * (0.5 + vnoise(vec3f(g.xz * 0.8, 3.0)));
+      col = vec3f(0.012, 0.018, 0.022) * (0.5 + vnoise(vec3f(g.xz * 0.8, 3.0)));
     }
   }
 
@@ -247,7 +257,7 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f) -> vec3f {
 
   // --- Grade: dim the centre so white UI text stays readable, soft vignette, dither.
   let cc = length(c2 * vec2f(0.8, 0.6));
-  col *= mix(0.72, 1.0, smoothstep(0.0, 1.1, cc));
+  col *= mix(0.78, 1.0, smoothstep(0.0, 1.1, cc));
   col *= 1.0 - 0.35 * smoothstep(0.6, 1.5, length(c2));
   col = col / (1.0 + col * 0.6);
   col += (h21(fc) - 0.5) / 255.0;
