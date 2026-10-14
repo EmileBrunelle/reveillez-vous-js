@@ -210,7 +210,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
         v-else-if="DoorScene"
         ref="mainEl"
         class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip"
-        :class="{ 'app--reading': phase === 'reading' }"
+        :class="{ 'app--reading': phase === 'reading' || phase === 'cut' }"
       >
         <AnimatePresence mode="wait">
           <Motion
@@ -251,7 +251,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
           <Motion
             v-else-if="phase === 'cut'"
             key="cut"
-            class="w-full max-w-[36rem] grid justify-items-center"
+            class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"
@@ -283,7 +283,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
               class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
             >
               <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
-                <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" @flipped="onFlipped" />
+                <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" :from="pickedCard" @flipped="onFlipped" />
               </div>
               <div class="flex flex-none flex-wrap gap-3 justify-center">
                 <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">Fermer la porte</button>

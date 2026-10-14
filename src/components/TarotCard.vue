@@ -3,15 +3,19 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { animate } from 'motion-v'
 import { useEventListener, useResizeObserver } from '@vueuse/core'
 import TarotEmblem from './TarotEmblem.vue'
+import TarotCardBack from './TarotCardBack.vue'
+import { FAN, FAN_SCALE } from './deckFan'
+import { emblemMask } from './emblemMask'
 import { cardDeal, cardFlip } from '../audio/sfx'
 import type { Arcane } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
 import { useDeviceTilt } from '../composables/useTilt'
 import { useReducedMotion } from '../composables/useReducedMotion'
 
-const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number }>(), {
+const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number; from?: 0 | 1 | 2 }>(), {
   faceDown: false,
   level: 1,
+  from: undefined,
 })
 const emit = defineEmits<{ dealt: []; flipped: [] }>()
 const reduced = useReducedMotion()
@@ -136,11 +140,15 @@ const deal = async () => {
     if (!props.faceDown) emit('flipped')
     return
   }
+  // Origine : la carte choisie à la coupe (position de l’éventail, dos visible, déjà opaque) ; sinon le coin d’où la carte est jetée.
+  const f = props.from === undefined ? null : FAN[props.from]
+  const w = root.value?.offsetWidth ?? 0
+  const o = f ? { x: (f.x / 100) * w, y: (f.y / 100) * w, scale: FAN_SCALE, rot: f.rot } : { x: -40, y: -260, scale: 0.4, rot: -18 }
   snap(flipEl.value, { rotateY: 0 })
-  snap(dealEl.value, { x: -40, y: -260, scale: 0.4, rotateZ: -18, opacity: 0 })
+  snap(dealEl.value, { x: o.x, y: o.y, scale: o.scale, rotateZ: o.rot, opacity: f ? 1 : 0 })
   cardDeal()
-  go(dealEl.value, { opacity: [0, 1] }, { duration: 0.12 })
-  await go(dealEl.value, { x: [-40, 0], y: [-260, 0], scale: [0.4, 1], rotateZ: [-18, 0] }, { type: 'spring', stiffness: 150, damping: 17 })
+  if (!f) go(dealEl.value, { opacity: [0, 1] }, { duration: 0.12 })
+  await go(dealEl.value, { x: [o.x, 0], y: [o.y, 0], scale: [o.scale, 1], rotateZ: [o.rot, 0] }, { type: 'spring', stiffness: 150, damping: 17 })
   if (skipped) return
   settled.value = true
   emit('dealt')
@@ -283,7 +291,7 @@ onUnmounted(() => {
                   class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] bottom-[-1.5cqw] right-[-1.5cqw]"
                 />
                 <div class="tarot__numero font-title text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">{{ arcane.numero }}</div>
-                <div class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]"><TarotEmblem :symbole="arcane.symbole" /></div>
+                <div class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]" :style="{ '--emblem-mask': emblemMask(arcane.symbole) }"><TarotEmblem :symbole="arcane.symbole" /></div>
                 <h2 class="tarot__title font-title m-0 [font-size:var(--title)] leading-[1.15] text-center uppercase [overflow-wrap:anywhere]" :data-text="title">{{ title }}</h2>
                 <div
                   ref="panelEl"
@@ -300,15 +308,11 @@ onUnmounted(() => {
               </div>
               <div class="tarot__glare absolute inset-0 pointer-events-none [opacity:var(--glare,0)] [transition:opacity_0.2s]" />
             </div>
-            <div
-              class="tarot__face tarot__back absolute inset-0 overflow-hidden rounded-[4cqw] shadow-[1.5cqw_1.5cqw_0_#000] [border:1.2cqw_solid_var(--tarot-ink)]"
-              :class="{ 'tarot__face--up': faceUp }"
-              :aria-hidden="faceUp"
-            >
-              <div class="tarot__backframe absolute inset-[3cqw] [border:0.8cqw_solid_var(--tarot-gold)] [outline:0.5cqw_solid_var(--tarot-paper)] [outline-offset:-2.4cqw] grid place-items-center">
-                <TarotEmblem class="tarot__backeye [color:var(--tarot-gold)] [background:#3a1f66] rounded-[50%] p-[6cqw] [border:0.8cqw_solid_var(--tarot-gold)]" symbole="eye" />
-              </div>
-              <div class="tarot__glare absolute inset-0 pointer-events-none [opacity:var(--glare,0)] [transition:opacity_0.2s]" />
+            <!-- Dos : le même visuel que les cartes de DeckCut (TarotCardBack). -->
+            <div class="tarot__face tarot__back absolute inset-0" :class="{ 'tarot__face--up': faceUp }" :aria-hidden="faceUp">
+              <TarotCardBack fill class="absolute inset-0">
+                <div class="tarot__glare absolute inset-0 pointer-events-none [opacity:var(--glare,0)] [transition:opacity_0.2s]" />
+              </TarotCardBack>
             </div>
           </div>
         </div>
@@ -355,17 +359,87 @@ onUnmounted(() => {
 .tarot__glare {
   background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.3), rgb(255 255 255 / 0) 55%);
 }
-.tarot__back {
-  background:
-    repeating-linear-gradient(45deg, transparent 0 3cqw, rgb(185 130 26 / 0.35) 3cqw 3.6cqw), repeating-linear-gradient(-45deg, transparent 0 3cqw, rgb(185 130 26 / 0.35) 3cqw 3.6cqw), #3a1f66;
+/* Reflet holographique (CSS seul) sur l’or : cadre, coins, bandeau du numéro et emblème. Chaque pseudo-élément superpose le même dégradé
+   (--foil) en color-dodge, découpé aux zones dorées par un masque ; sa position suit --gx/--gy (pointeur ou gyroscope) et son intensité --glare.
+   Aucune animation autonome : la luminosité ne change que si l’utilisateur incline ou déplace le pointeur. Aucun effet sur la mise en page
+   (éléments absolus, sans débordement du panneau mesuré par fitBody). */
+.tarot {
+  --foil:
+    repeating-linear-gradient(115deg, hsl(330 100% 50%) 0, hsl(45 100% 45%) 7cqw, hsl(130 100% 45%) 14cqw, hsl(200 100% 50%) 21cqw, hsl(270 100% 50%) 28cqw, hsl(330 100% 50%) 35cqw),
+    conic-gradient(from 30deg at var(--gx, 50%) var(--gy, 50%), hsl(330 100% 50%), hsl(60 100% 45%), hsl(150 100% 45%), hsl(210 100% 50%), hsl(280 100% 50%), hsl(330 100% 50%));
+  --foil-base: 0.18;
+  --foil-k: 0.4;
 }
-.tarot__backeye {
-  width: 52cqw;
-  height: 52cqw;
+.tarot--l2 {
+  --foil-k: 0.46;
+}
+.tarot--l3 {
+  --foil-k: 0.52;
+}
+.tarot--l4 {
+  --foil-k: 0.58;
+}
+.tarot--l5 {
+  --foil-k: 0.64;
+}
+.tarot__content::after,
+.tarot__corner::after,
+.tarot__numero::after,
+.tarot__emblem::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  background: var(--foil);
+  background-size: 70cqw 70cqw;
+  background-position: var(--gx, 50%) var(--gy, 50%);
+  mix-blend-mode: color-dodge;
+  opacity: calc(var(--foil-base) + var(--glare, 0) * var(--foil-k));
+  transition: opacity 0.2s;
+}
+/* Cadre : l’anneau de la bordure seulement (zone de remplissage moins zone de contenu). */
+.tarot__content::after {
+  inset: -0.6cqw;
+  padding: 0.6cqw;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.tarot__corner::after {
+  inset: 0;
+}
+.tarot__numero {
+  position: relative;
+}
+.tarot__numero::after {
+  inset: -0.5cqw 0;
+  padding: 0.5cqw 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.tarot__emblem {
+  position: relative;
+}
+.tarot__emblem::after {
+  inset: 0;
+  mask: var(--emblem-mask) center / contain no-repeat;
+  opacity: calc(var(--foil-base) * 1.5 + var(--glare, 0) * var(--foil-k) * 1.3);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tarot__tilt {
+    transition: none;
+  }
+  /* Reflet statique : pas de suivi du pointeur, intensité moyenne fixe. */
+  .tarot {
+    --foil-base: 0.4;
+  }
+  .tarot__content::after,
+  .tarot__corner::after,
+  .tarot__numero::after,
+  .tarot__emblem::after {
     transition: none;
   }
 }
