@@ -75,15 +75,17 @@ const Activity = computed(() => {
   const loader = activityFor(level.value)
   return loader ? defineAsyncComponent(loader) : null
 })
-// Réinitialisation du niveau en pleine activité (barre des tâches, badge, confirmation) : plus d’activité pour le nouveau niveau, on passe directement à la coupe du paquet.
-watch(Activity, (a) => {
-  if (!a && phase.value === 'activity') phase.value = 'cut'
-})
 watchEffect(() => document.documentElement.style.setProperty('--paranoia', String(paranoia.value)))
 
 const resetOpen = ref(false)
 watch(resetOpen, (o) => o && (resetWanted.value = true))
-const resetLevel = () => progress.reset()
+// « Recommencer à zéro » : on repart tout de suite au niveau 1, sans compter la visite en cours.
+const resetLevel = () => {
+  progress.reset()
+  if (phase.value === 'door') {
+    if (!closing.value) enterDoor() // porte pas encore ouverte : on retire porte, réplique et lieu pour le niveau 1
+  } else leave(false)
+}
 
 const listening = ref(false)
 const phase = ref<Phase>('door')
@@ -130,15 +132,16 @@ const onPick = (index: 0 | 1 | 2) => {
   phase.value = 'reading'
   hymn()
 }
-const restart = () => {
+const leave = (count: boolean) => {
   if (closing.value) return
   closing.value = true
   unlock()
-  progress.bump()
+  if (count) progress.bump()
   // The open door slams first; the next variant is picked once it is shut (see onClosed).
   sceneKey.value++
   phase.value = 'door'
 }
+const restart = () => leave(true)
 
 // Browsers keep the AudioContext suspended until a user gesture; without one, the first knocks would be silent.
 const awaiting = ref(!navigator.userActivation?.hasBeenActive)
