@@ -116,7 +116,7 @@ const skip = () => {
 
 <template>
   <Dialog.Root :model-value="shown" @update:model-value="request">
-    <Dialog.Content class="m-auto p-0 w-[35.5556rem] max-w-[100vw] max-h-[100dvh] overflow-auto bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-['Courier_New',ui-monospace,monospace] text-[0.8889rem] leading-normal text-left backdrop:[background:#0000aa] backdrop:animate-[about-bd_0.3s_ease-out] motion-reduce:backdrop:animate-none" @cancel="onCancel" @click="skip">
+    <Dialog.Content class="m-auto p-0 w-[35.5556rem] max-w-[100vw] max-h-[100dvh] overflow-auto bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:#0000aa] backdrop:animate-[about-bd_0.3s_ease-out] motion-reduce:backdrop:animate-none" @cancel="onCancel" @click="skip">
       <div ref="win" class="about__win">
       <div ref="bar" class="flex items-center justify-between gap-2 bg-[#0000aa] text-white py-1 px-2 select-none [-webkit-tap-highlight-color:transparent]">
         <Dialog.Title class="m-0 text-[1rem] font-bold"><span ref="title" class="inline-block whitespace-nowrap">À propos — TempleOS</span></Dialog.Title>

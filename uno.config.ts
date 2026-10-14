@@ -6,6 +6,11 @@ export default defineConfig({
   content: { pipeline: { include: [/\/src\/.*\.(vue|ts)($|\?)/] } },
   transformers: [transformerDirectives(), transformerVariantGroup()],
   theme: {
+    font: {
+      ui: "'VT323', ui-monospace, monospace",
+      card: "'IM Fell English', Georgia, serif",
+      title: "'Cinzel', Georgia, serif",
+    },
     colors: {
       bg: 'var(--bg)',
       fg: 'var(--fg)',

@@ -1,3 +1,12 @@
+/* VT323 : fontsource (latin) avec size-adjust, car la police est ~25 % plus petite que Courier New à taille égale. */
+@font-face {
+  font-family: 'VT323';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 125%;
+  src: url('../node_modules/@fontsource/vt323/files/vt323-latin-400-normal.woff2') format('woff2');
+}
 /* Barre des tâches fixe : hauteur réservée en bas de l’écran (barre + zone de sécurité). */
 :root { --taskbar-h: calc(2.5rem + 4px + env(safe-area-inset-bottom, 0px)); }
 :root {
@@ -11,7 +20,7 @@
 }
 * { box-sizing: border-box; }
 html { font-size: 112.5%; }
-html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font-family: 'Courier New', ui-monospace, monospace; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font-family: 'VT323', ui-monospace, monospace; }
 body { font-size: 1rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

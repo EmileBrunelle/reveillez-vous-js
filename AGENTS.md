@@ -22,6 +22,7 @@
 - `content/`: `prophecies.ts` (levels 1–5, knocks, questions, paired tables, arcana), `scenes.ts` (5 doors, 5 backgrounds, `minLevel`). Tests live in top-level `tests/` (mirrors `src/`, outside the bundle; `tests/content/prophecies.test.ts` = regression suite on real content, typed by `tsconfig.test.json`).
 - `components/`: door/background variants in `doors/`, `backgrounds/`; TarotCard (`fitBody` fits text 11–26 px, emblem shrinks/hides), Concentration, Vigilance, AboutTempleOS, WebGpuGate, CrtOverlay.
 - `effects/`: `crt.wgsl` + `crt.ts` (vgpu, lazy chunk), `webgpu.ts` (navigator.gpu + requestAdapter check).
+- Fonts: self-hosted via Fontsource (no CDN), latin subset only. VT323 = UI/terminal (`font-ui`, own `@font-face` in `styles.css` with `size-adjust: 125%` since VT323 is much smaller than Courier at equal size), IM Fell English 400/italic = card body and verse (`font-card`), Cinzel 700 = card numeral, question and banner (`font-title`). Families registered in `uno.config.ts` theme.font; imports in `main.ts`.
 - `audio/sfx.ts`: all sounds synthesized (Web Audio), mute toggle.
 - `composables/`: `useVisits` (localStorage `rvj-visits`; triple-click on the « Niveau de vigilance » badge resets), `useEntropy`.
 - `components/Taskbar.vue`: fixed Windows 98 taskbar (Start menu: À propos, Code source, homage, reset; tray: Vigilance badge, sound toggle, clock); `--taskbar-h` in styles.css is the reserved height.

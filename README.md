@@ -35,6 +35,7 @@ Vite, Vue 3, TypeScript, [vgpu](https://vgpu.sh) (WebGPU : effet cathodique en W
 
 ## Crédits et licences
 
+- Polices (SIL OFL 1.1, auto-hébergées via [Fontsource](https://fontsource.org)) : [VT323](https://fonts.google.com/specimen/VT323) (Peter Hull), [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English) (Igino Marini), [Cinzel](https://fonts.google.com/specimen/Cinzel) (Natanael Gama).
 - Icônes : [game-icons.net](https://game-icons.net) (CC BY 3.0).
 - Icône GitHub : [Simple Icons](https://simpleicons.org) (CC0).
 - Les bibliothèques ci-dessus sont utilisées selon leurs licences respectives.

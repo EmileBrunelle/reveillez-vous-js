@@ -37,7 +37,7 @@ const btn = 'select-none touch-manipulation [font:inherit] cursor-pointer text-b
 <template>
   <dialog
     ref="dlg"
-    class="m-auto p-0 w-[26rem] max-w-[calc(100vw-1rem)] bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-['Courier_New',ui-monospace,monospace] text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_170/0.75)] animate-[reset-in_0.2s_ease-out] motion-reduce:animate-none"
+    class="m-auto p-0 w-[26rem] max-w-[calc(100vw-1rem)] bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_170/0.75)] animate-[reset-in_0.2s_ease-out] motion-reduce:animate-none"
     aria-labelledby="reset-title"
     aria-describedby="reset-desc"
     @close="onClose"

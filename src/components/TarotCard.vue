@@ -272,15 +272,15 @@ onUnmounted(() => {
       <div ref="tiltEl" class="tarot__tilt absolute inset-0 [transform-style:preserve-3d]">
         <div ref="flipEl" class="tarot__flip absolute inset-0 [transform-style:preserve-3d]">
           <div class="tarot__face tarot__front absolute inset-0 overflow-hidden rounded-[4cqw] shadow-[1.5cqw_1.5cqw_0_#000] [border:1.2cqw_solid_var(--tarot-ink)] [background:var(--tarot-paper)] [color:var(--tarot-ink)] text-left" :class="{ 'tarot__face--up': faceUp }" :aria-hidden="!faceUp">
-            <div class="tarot__content absolute inset-[1.6cqw] [border:0.6cqw_solid_var(--tarot-gold)] [outline:0.5cqw_solid_var(--tarot-ink)] [outline-offset:-2.2cqw] flex flex-col items-center [padding:3.4cqw_4.6cqw_0] gap-[1.6cqw] [font-family:Georgia,Times_New_Roman,serif]" :style="{ '--title': `${titleSize}cqw` }">
+            <div class="tarot__content absolute inset-[1.6cqw] [border:0.6cqw_solid_var(--tarot-gold)] [outline:0.5cqw_solid_var(--tarot-ink)] [outline-offset:-2.2cqw] flex flex-col items-center [padding:3.4cqw_4.6cqw_0] gap-[1.6cqw] font-card" :style="{ '--title': `${titleSize}cqw` }">
               <span class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] top-[-1.5cqw] left-[-1.5cqw]" /><span class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] top-[-1.5cqw] right-[-1.5cqw]" />
               <span class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] bottom-[-1.5cqw] left-[-1.5cqw]" /><span class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] bottom-[-1.5cqw] right-[-1.5cqw]" />
-              <div class="tarot__numero text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">{{ arcane.numero }}</div>
+              <div class="tarot__numero font-title text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">{{ arcane.numero }}</div>
               <div class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]"><TarotEmblem :symbole="arcane.symbole" /></div>
-              <h2 class="tarot__title m-0 [font-size:var(--title)] leading-[1.15] text-center uppercase [overflow-wrap:anywhere]" :data-text="title">{{ title }}</h2>
+              <h2 class="tarot__title font-title m-0 [font-size:var(--title)] leading-[1.15] text-center uppercase [overflow-wrap:anywhere]" :data-text="title">{{ title }}</h2>
               <div ref="panelEl" class="tarot__panel [flex:1_1_0] min-h-0 w-full overflow-hidden flex [background:rgb(255_249_228/0.6)] [border:0.5cqw_solid_var(--tarot-gold)] [padding:2cqw_2.4cqw]"><p ref="bodyEl" class="tarot__body [margin:auto_0] text-[16px] leading-[1.3] [color:#170a2b] [overflow-wrap:anywhere]">{{ body }}</p></div>
               <p class="tarot__verse m-0 text-[3.8cqw] italic text-right self-stretch">— {{ verse }}</p>
-              <div class="tarot__banner self-stretch [margin:0_-4.6cqw] [padding:1.8cqw_2cqw] [background:var(--tarot-ink)] [color:var(--tarot-paper)] text-center text-[4.2cqw] font-bold uppercase tracking-[0.06em] [overflow-wrap:anywhere] leading-[1.15]">{{ arcane.nom }}</div>
+              <div class="tarot__banner font-title self-stretch [margin:0_-4.6cqw] [padding:1.8cqw_2cqw] [background:var(--tarot-ink)] [color:var(--tarot-paper)] text-center text-[4.2cqw] font-bold uppercase tracking-[0.06em] [overflow-wrap:anywhere] leading-[1.15]">{{ arcane.nom }}</div>
             </div>
             <div class="tarot__glare absolute inset-0 pointer-events-none [opacity:var(--glare,0)] [transition:opacity_0.2s]" />
           </div>
