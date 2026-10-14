@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDocumentVisibility, useVibrate } from '@vueuse/core'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import type { SceneVariant } from '../content/scenes'
@@ -133,6 +133,8 @@ const caption = (i: number) => {
 
 type Phase = 'invite' | 'listen' | 'repeat' | 'busy'
 const phase = ref<Phase>('invite')
+const texts = (key: string) => (Array.isArray(prophecies[key]) ? (prophecies[key] as unknown[]).filter((t): t is string => typeof t === 'string') : [])
+const ghosts = computed(() => ['(Cognez à la porte)', props.line, ...texts(`rate${props.level}`), ...texts('entrez')])
 watch(phase, (p) => emit('listening', p === 'listen'))
 const said = ref('(Cognez à la porte)')
 const verdictText = ref('')
@@ -319,8 +321,8 @@ const onSceneClick = (e: MouseEvent) => {
 </script>
 
 <template>
-  <section class="scene" @click="onSceneClick">
-    <div ref="stage" data-stage class="relative w-auto h-[clamp(10rem,45dvh,28rem)] max-sm:portrait:h-[clamp(10rem,54dvh,30rem)] aspect-[120/190] [perspective:900px] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]">
+  <section class="scene grid-rows-[minmax(0,1fr)_auto] [--stage-cap:clamp(10rem,45dvh,28rem)] max-sm:portrait:[--stage-cap:clamp(10rem,54dvh,30rem)] h-[min(calc(100dvh_-_var(--taskbar-h)_-_1.5rem),calc(var(--stage-cap)_+_11rem))]" @click="onSceneClick">
+    <div ref="stage" data-stage class="relative w-auto h-full max-h-[var(--stage-cap)] self-end aspect-[120/190] [perspective:900px] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]">
       <div class="absolute inset-0" aria-hidden="true">
         <div ref="glow" class="absolute inset-[3%_5%_0] opacity-0 [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]" />
         <div ref="seer" class="absolute left-1/2 bottom-0 w-[38%] -ml-[19%] opacity-0 [&_.seer]:block [&_.seer]:w-full"><Seer /></div>
@@ -338,10 +340,14 @@ const onSceneClick = (e: MouseEvent) => {
         <span v-for="n in 10" :key="n" class="absolute top-0 left-0 w-[3px] h-[3px] bg-[#c9b79a] opacity-0" />
       </div>
     </div>
-    <div v-if="!closing" ref="ui" class="scene scene--ui">
-      <p id="door-said" class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)]">{{ said }}</p>
-      <KnockPattern v-if="phase !== 'invite'" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
-      <p class="m-0 text-[0.9rem] min-h-[1.35em]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'La voyante cogne…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
+    <div v-if="!closing" ref="ui" class="scene scene--ui content-start gap-3 grid-rows-[auto_1.25rem_2.5rem]">
+      <!-- Phrase + fantômes invisibles (toutes les phrases possibles de la visite) dans la même cellule : la hauteur réservée est celle de la plus longue, la scène ne bouge pas entre les phases. -->
+      <div class="grid justify-items-center">
+        <p id="door-said" class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1]">{{ said }}</p>
+        <span v-for="(g, i) in ghosts" :key="i" class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1] invisible pointer-events-none" aria-hidden="true">{{ g }}</span>
+      </div>
+      <KnockPattern :class="{ invisible: phase === 'invite' }" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
+      <p class="m-0 text-[0.9rem]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'La voyante cogne…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
       <p class="sr-only" role="status" aria-live="polite">{{ announce }}</p>
     </div>
     <SparkPool ref="sparks" />
@@ -352,6 +358,7 @@ const onSceneClick = (e: MouseEvent) => {
 /* Reste en CSS: .scene (gap > règle globale), ::after décoratif, :has/:deep, paysage. */
 .scene { gap: 0.75rem; }
 .scene--ui { max-width: none; }
+@media (max-height: 30rem) and (orientation: landscape) { [data-stage] { height: min(var(--stage-cap), calc(100dvh - var(--taskbar-h) - 1.5rem)); } }
 .door-hit::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: -3px; height: 4px; background: var(--accent); box-shadow: 0 0 0.7778rem 0.2222rem rgb(255 226 140 / 0.8); opacity: 0; transition: opacity 0.2s; }
 .door-hit:not([data-phase='listen']):is(:hover, :focus-visible)::after { opacity: 1; }
 [data-leaf] :deep(svg) { transform-origin: 0 50%; transition: transform 0.25s, filter 0.25s; }
@@ -360,6 +367,6 @@ const onSceneClick = (e: MouseEvent) => {
   [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: none; }
 }
 @media (max-height: 30rem) and (orientation: landscape) {
-  .scene:not(.scene--ui) { grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 1.5rem; max-width: 44rem; }
+  .scene:not(.scene--ui) { height: auto; grid-template-rows: none; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 1.5rem; max-width: 44rem; }
 }
 </style>
