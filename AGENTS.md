@@ -5,7 +5,7 @@
 ## Contest constraints (from the rules, voyance.pdf, now removed)
 - Deadline: Saturday 2026-10-31 23:59. Submission by form with a public test link and info on technologies.
 - Individual, one project per person; must be created specifically for the contest.
-- Link must be public and working, no login/authorization, and stay up until winners are announced. Judged anonymously.
+- Link must be public and working, no login/authorization, and stay up until winners are announced.
 - AI allowed, but must be declared: whether used, which tools, how they helped (README section « Déclaration d’utilisation de l’IA »; Émile fills the placeholders).
 - Criteria: creativity/originality; functionality/interactivity; design/UX; theme (voyance, predictions, chance, mystery, Halloween); effort/polish.
 - Hosting undecided (Vercel Hobby preferred; `.github/workflows/deploy.yml` = GitHub Pages plan B, `BASE_PATH`). Never deploy or commit without Émile's OK.
