@@ -32,6 +32,12 @@ describe('ondulation de coup', () => {
   it('nulle si motion = 0 (réduction de mouvement)', () => {
     for (let a = 0; a < 1; a += 0.05) expect(rippleDisplacement(a, 1, 0, ring(a))).toBe(0)
   })
+  it('chemin scanlines/masque : < demi-période (pas d’oscillation de luminance locale ≥ 3 Hz)', () => {
+    let max = 0
+    for (let a = 0; a <= 1; a += 0.01) for (let r = 0; r < 1.5; r += 0.005) max = Math.max(max, rippleDisplacement(a, 5, 1, r, true))
+    expect(max).toBeLessThan(RIPPLE.scanPeriod / 2)
+    expect(max).toBeGreaterThan(0.5)
+  })
   it('borne : jamais plus de quelques pixels, et amplitude plafonnée à 1', () => {
     let max = 0
     for (let a = 0; a <= 1; a += 0.01) for (let r = 0; r < 1.5; r += 0.005) max = Math.max(max, rippleDisplacement(a, 5, 1, r))

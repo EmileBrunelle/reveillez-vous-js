@@ -19,7 +19,8 @@ const TAU: f32 = 6.28318531;
 const RIPPLE_SPEED: f32 = 1.2; // short-side units per second
 const RIPPLE_DUR: f32 = 0.8;
 const RIPPLE_W: f32 = 0.07;
-const RIPPLE_PX: f32 = 4.0; // max displacement, device px
+const RIPPLE_PX: f32 = 4.0; // max displacement of smooth terms (vignette, bezel, glass), device px
+const RIPPLE_SCAN_PX: f32 = 1.2; // max displacement of high-frequency terms (scanlines, mask, grain): < half the 3 px period
 
 fn hash(p: vec2f) -> f32 {
   return fract(sin(dot(p, vec2f(12.9898, 78.233))) * 43758.5453);
@@ -48,7 +49,7 @@ fn sd_round(p: vec2f, b: vec2f, r: f32) -> f32 {
   let rdec = pow(max(1.0 - params.rippleAge / RIPPLE_DUR, 0.0), 2.0);
   let rdisp = RIPPLE_PX * clamp(params.rippleAmp, 0.0, 1.0) * rin * rdec * exp(-(rd * rd) / (RIPPLE_W * RIPPLE_W)) * params.motion;
   let uv = uvIn + (rv / max(rr0, 1e-4)) * rdisp / size;
-  let px = uv * size; // device pixels
+  let px = (uvIn + (rv / max(rr0, 1e-4)) * (rdisp * RIPPLE_SCAN_PX / RIPPLE_PX) / size) * size; // device pixels, scanline/mask path
   let aspect = params.width / params.height;
 
   // Scanlines: exact 3-device-pixel period (integer => no moiré at 1x/1.5x/2x DPR), one dark row in three,
