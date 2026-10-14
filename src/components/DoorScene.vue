@@ -343,10 +343,10 @@ const onSceneClick = (e: MouseEvent) => {
 /* Reste en CSS: .scene (gap > règle globale), ::after décoratif, :has/:deep, paysage. */
 .scene { gap: 0.75rem; }
 .scene--ui { max-width: none; }
-.door-hit::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: -3px; height: 4px; background: var(--accent); box-shadow: 0 0 14px 4px rgb(255 226 140 / 0.8); opacity: 0; transition: opacity 0.2s; }
+.door-hit::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: -3px; height: 4px; background: var(--accent); box-shadow: 0 0 0.7778rem 0.2222rem rgb(255 226 140 / 0.8); opacity: 0; transition: opacity 0.2s; }
 .door-hit:not([data-phase='listen']):is(:hover, :focus-visible)::after { opacity: 1; }
 [data-leaf] :deep(svg) { transform-origin: 0 50%; transition: transform 0.25s, filter 0.25s; }
-[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: perspective(700px) rotateY(-5deg); filter: drop-shadow(0 0 10px rgb(255 226 140 / 0.55)); }
+[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: perspective(700px) rotateY(-5deg); filter: drop-shadow(0 0 0.5556rem rgb(255 226 140 / 0.55)); }
 @media (prefers-reduced-motion: reduce) {
   [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) { transform: none; }
 }

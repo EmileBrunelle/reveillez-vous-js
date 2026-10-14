@@ -116,13 +116,13 @@ const skip = () => {
 
 <template>
   <Dialog.Root :model-value="shown" @update:model-value="request">
-    <Dialog.Content class="m-auto p-0 w-[640px] max-w-[100vw] max-h-[100dvh] overflow-auto bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-['Courier_New',ui-monospace,monospace] text-[16px] leading-normal text-left backdrop:[background:#0000aa] backdrop:animate-[about-bd_0.3s_ease-out] motion-reduce:backdrop:animate-none" @cancel="onCancel" @click="skip">
+    <Dialog.Content class="m-auto p-0 w-[35.5556rem] max-w-[100vw] max-h-[100dvh] overflow-auto bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-['Courier_New',ui-monospace,monospace] text-[0.8889rem] leading-normal text-left backdrop:[background:#0000aa] backdrop:animate-[about-bd_0.3s_ease-out] motion-reduce:backdrop:animate-none" @cancel="onCancel" @click="skip">
       <div ref="win" class="about__win">
       <div ref="bar" class="flex items-center justify-between gap-2 bg-[#0000aa] text-white py-1 px-2 select-none [-webkit-tap-highlight-color:transparent]">
         <Dialog.Title class="m-0 text-[1rem] font-bold"><span ref="title" class="inline-block whitespace-nowrap">À propos — TempleOS</span></Dialog.Title>
         <Dialog.Close class="select-none touch-manipulation [-webkit-tap-highlight-color:transparent] [font:inherit] cursor-pointer text-black border-2 border-solid border-black focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px] bg-[#aaaaaa] py-0 px-[0.6rem]" aria-label="Fermer">X</Dialog.Close>
       </div>
-      <div ref="body" class="p-4 min-h-[380px] select-text">
+      <div ref="body" class="p-4 min-h-[21.1111rem] select-text">
         <Dialog.Description as="p" class="[margin:0_0_0.9rem]">
           <strong>Hommage à Terry A. Davis (1969–2018)</strong>, qui a écrit seul TempleOS, un système
           d’exploitation 64 bits complet, avec son propre compilateur et son propre langage, HolyC. Il
