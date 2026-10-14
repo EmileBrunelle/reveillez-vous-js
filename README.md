@@ -1,13 +1,13 @@
 # Réveillez-vous.js
 
-Une voyante frappe un rythme derrière une porte ; vous le répétez, la porte s’ouvre et une carte de tarot vous livre une prophétie. Plus vous revenez, plus le ton devient paranoïaque et le décor se détraque, le tout sous l’écran cathodique d’un vieux PC hanté (Windows 98). Entrée individuelle au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026.
+Une personne voyante frappe un rythme derrière une porte ; vous le répétez, la porte s’ouvre et une carte de tarot vous livre une prophétie. Plus vous revenez, plus le ton devient paranoïaque et le décor se détraque, le tout sous l’écran cathodique d’un vieux PC hanté (Windows 98). Entrée individuelle au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026.
 
 **Jouer : https://emilebrunelle.github.io/reveillez-vous-js/** (navigateur avec WebGPU requis, voir [Technologies](#technologies))
 
 ## Comment jouer
 
 1. Ouvrez la page : une porte apparaît. Activez-la (clic, toucher ou clavier, « Ouvrir la porte »).
-2. **La voyante cogne un rythme** : écoutez-le (ou suivez les points et les sous-titres à l’écran).
+2. **La personne voyante cogne un rythme** : écoutez-le (ou suivez les points et les sous-titres à l’écran).
 3. **Reproduisez-le** en cogneant sur la porte. Après trois échecs, la porte s’ouvre quand même.
 4. Une **carte de tarot** est tirée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur ou en bougeant votre téléphone.
 5. « Fermer la porte » : une nouvelle porte, un nouveau décor, une nouvelle prophétie.
@@ -16,7 +16,7 @@ Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches)
 
 ## Ce qui rend le projet spécial
 
-- **Jeu de rythme à la porte** : la voyante cogne un motif, vous le rejouez ; jouable sans le son (points, sous-titres, vibration sur appareil compatible).
+- **Jeu de rythme à la porte** : la personne voyante cogne un motif, vous le rejouez ; jouable sans le son (points, sous-titres, vibration sur appareil compatible).
 - **Prophéties générées** par une grammaire maison de type Tracery, avec arcane et **verset génératif** (livre × référence) ; des « sacs mélangés » persistés évitent les répétitions.
 - **Escalade en 5 niveaux** : la paranoïa monte de visite en visite, jusqu’à un loup-garou qui apparaît au loin aux niveaux élevés.
 - **Décor « perron sous la lune » en raymarching WebGPU** (WGSL, avec parallaxe) et **post-effet CRT** en WebGPU (vgpu).
@@ -93,7 +93,7 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 
 **Ce que l’IA a fait :**
 
-- écrire la grande majorité du code (Vue, TypeScript, shader WGSL du CRT, sons synthétisés, moteur de génération des prophéties, détection du rythme cogné par le joueur, courbe de progression des niveaux) ;
+- écrire la grande majorité du code (Vue, TypeScript, shader WGSL du CRT, sons synthétisés, moteur de génération des prophéties, détection du rythme cogné par la personne qui joue, courbe de progression des niveaux) ;
 - rédiger des ébauches de prophéties, de répliques et d’arcanes, retravaillées selon mes consignes ;
 - écrire les tests automatisés et vérifier l’affichage dans un navigateur automatisé (Playwright) ;
 - faire de la recherche (support de WebGPU selon les navigateurs, sources sur TempleOS, licences) ;

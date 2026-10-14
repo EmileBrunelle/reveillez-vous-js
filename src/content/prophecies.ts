@@ -26,7 +26,7 @@ export const prophecies: Grammar = {
   // Entrée historique (compat) : un niveau au hasard. Les vrais points d’entrée sont niveau1 … niveau5.
   gabarit: ['{niveau1}', '{niveau2}', '{niveau3}', '{niveau4}', '{niveau5}'],
 
-  // ---- Niveau 1 · Curieux·se : poli, presque raisonnable -------------------------------
+  // ---- Niveau 1 · Curiosité : poli, presque raisonnable -------------------------------
   // Chaque gabarit = une prédiction sur l’avenir de la personne + un élément de voyance ou d’Halloween.
   niveau1: [
     '{question1}|{objet.nom_maj} me le murmure depuis ce matin : {futur} {moment}. Rien de grave, rassurez-vous.|{verset}',
@@ -37,23 +37,23 @@ export const prophecies: Grammar = {
     '{question1}|{industrie.inventeur_maj} {industrie.produit} pour nous vendre plus de {industrie.cible}, dit-on. Moi, je lis seulement {objet.nom}, et j’y vois que {futur} {moment}.|{verset}',
     '{question1}|À minuit, ce soir, vous entendrez peut-être un léger craquement. Ce sera un fantôme poli qui cherche l’interrupteur.|{verset}',
     '{question1}|{fete.nom_maj} approche. Ma boule de cristal prévoit que vous y achèterez des {fete.cible}. Presque sûrement.|{verset}',
-    '{question1}|Avant la fin de la semaine, une personne vous dira que les gens qui parlent en français, iels ont tellement de charisme. Vous ne la contredirez pas.|{verset}',
-    '{question1}|Cette semaine, quelqu’un vous offrira une citrouille. Acceptez-la : ce sera la première d’une longue série.|{verset}',
+    '{question1}|Avant la fin de la semaine, une personne vous dira que les gens qui parlent en français ont tellement de charisme. Vous ne la contredirez pas.|{verset}',
+    '{question1}|Cette semaine, une personne vous offrira une citrouille. Acceptez-la : ce sera la première d’une longue série.|{verset}',
     '{question1}|Vous entrerez chez Renaud-Bray pour acheter un livre. Vous ressortirez avec une planche à découper en bambou et des chandelles. Les cartes l’avaient prévu.|{verset}',
-    '{question1}|Les cartes sont formelles : le fromage en grains ne doit pas fondre. Quelqu’un, quelque part, met sa poutine au micro-ondes en ce moment. Les cartes pleurent.|{verset}',
+    '{question1}|Les cartes sont formelles : le fromage en grains ne doit pas fondre. Quelque part, une personne met sa poutine au micro-ondes en ce moment. Les cartes pleurent.|{verset}',
     '{question1}|Votre téléphone contient 4 000 photos du même chat. Ce soir, vous en prendrez une 4 001ᵉ. Les cartes la trouvent très réussie.|{verset}',
-    '{question1}|Ce week-end, au hockey bottine, vous serez encore pogné·e dans les buts. Les cartes l’ont vu venir. Elles ont aussi vu la rondelle.|{verset}',
+    '{question1}|Ce week-end, au hockey bottine, on vous collera encore dans les buts. Les cartes l’ont vu venir. Elles ont aussi vu la rondelle.|{verset}',
     '{question1}|Les cartes voient votre fin de session : 76 tasses de café. Elles voient aussi la 77ᵉ. Elles vous déconseillent la 78ᵉ.|{verset}',
   ],
 
-  // ---- Niveau 2 · Suspicieux·se : les liens apparaissent ----------------------------------
+  // ---- Niveau 2 · Soupçon : les liens apparaissent ----------------------------------
   niveau2: [
     '{question2}|Ma boule de cristal annonce que {futur} {moment}. Exactement comme je l’avais prédit. Exactement comme on l’avait prévu.|{verset}',
     '{question2}|{objet.nom_maj} montre un chat noir, puis un fantôme, puis un sac de {bonbon}. Dans cet ordre. Pour vous. Le 31 octobre.|{verset}',
     '{question2}|Mon tarot est clair : {futur} {moment}. Je ne crois pas aux coïncidences, je lis les cartes.|{verset}',
     '{question2}|{industrie.inventeur_maj} {industrie.produit} pour nous vendre plus de {industrie.cible}. Et par hasard, la pleine lune vous annonce un achat de {industrie.cible} {moment}. Coïncidence ?|{verset}',
     '{question2}|Saint-Clin-Clin-des-Meuh-Meuh est sur ma carte. Ma carte date de 1987. Vous y déménagerez le 1er juillet, sans camion.|{verset}',
-    '{question2}|On vous aperçoit {lieu}, déguisé·e en citrouille, {moment}. Non, ne niez pas : c’est dans votre horoscope.|{verset}',
+    '{question2}|On vous aperçoit {lieu}, en costume de citrouille, {moment}. Non, ne niez pas : c’est dans votre horoscope.|{verset}',
     '{question2}|Trois chats noirs, deux fantômes, un seul fournisseur de {bonbon}. Mon tarot en tire une conclusion : vous passerez la nuit du 31 octobre à compter vos bonbons.|{verset}',
     '{question2}|Ce soir, à minuit, {objet.nom} va changer de couleur. Si vous ne le voyez pas, c’est que vous en faites partie.|{verset}',
     '{question2}|Vous avez rouvert la porte. Avant même que je frappe, {objet.nom} l’avait annoncé. J’ai noté l’heure. Vous aussi, je pense.|{verset}',
@@ -62,29 +62,29 @@ export const prophecies: Grammar = {
     '{question2}|Les cartes sont formelles : les Nordiques reviendront. Les Expos aussi. Les cartes disent ça depuis 1995. Elles sont patientes.|{verset}',
     '{question2}|Une malédiction pèse sur vous : le chili du Tim, avec le p’tit pain et les deux beurres. Vous y retournerez demain. Les cartes ne peuvent rien pour vous.|{verset}',
     '{question2}|Votre carte est le Magicien du Québec. Dès que quelque chose arrive dans votre vie, vous lancez un sort. Le sort s’appelle “Tabarnouche”. Il est très efficace.|{verset}',
-    '{question2}|En entrevue, on vous demandera d’expliquer le trou de trois ans dans votre CV. Répondez : “J’étais chez une voyante.” C’est la vérité.|{verset}',
-    '{question2}|Un·e touriste vous demandera où est « le vrai Québec ». Vous pointerez au loin. Cette personne aura tort. Vous aussi.|{verset}',
-    '{question2}|Ce temps des fêtes, vous recevrez une bouteille de whisky à l’érable. Vous l’offrirez à quelqu’un d’autre l’an prochain. Les cartes ont vu son voyage : elle circule depuis 2014.|{verset}',
+    '{question2}|En entrevue, on vous demandera d’expliquer le trou de trois ans dans votre CV. Répondez : “J’étais en consultation de voyance.” C’est la vérité.|{verset}',
+    '{question2}|Une personne en visite vous demandera où est « le vrai Québec ». Vous pointerez au loin. Cette personne aura tort. Vous aussi.|{verset}',
+    '{question2}|Ce temps des fêtes, vous recevrez une bouteille de whisky à l’érable. Vous l’offrirez à une autre personne l’an prochain. Les cartes ont vu son voyage : elle circule depuis 2014.|{verset}',
   ],
 
-  // ---- Niveau 3 · Convaincu·e : fausses fêtes, Big Citrouille dans l’ombre ---------------------
+  // ---- Niveau 3 · Conviction : fausses fêtes, Big Citrouille dans l’ombre ---------------------
   niveau3: [
     '{question3}|{fete.nom_maj} est une fausse fête inventée par {fete.industrie} pour vendre plus de {fete.cible}. Ma boule de cristal prédit que vous en achèterez cette année encore.|{verset}',
     '{question3}|Votre costume de cette année est déjà choisi : {objet.nom} l’a vu en rêve. Vous serez, au choix, un fantôme ou un drap. Ce sera le même.|{verset}',
     '{question3}|{objet.nom_maj} l’annonce : à l’Halloween, vous croirez partir {lieu_inexistant.en}. Vous arriverez {lieu_inexistant.destination_reelle}. Comme tout le monde.|{verset}',
     '{question3}|Ce n’est pas moi qui le dis, ce sont vos cartes : {futur} {moment}. Notez l’heure, et gardez une chandelle.|{verset}',
     '{question3}|Je vois dans votre chaudron un avenir bien chaud : {futur} {moment}. Ne laissez personne remuer la soupe à votre place.|{verset}',
-    '{question3}|La pleine lune de ce mois portera votre nom. Elle portera aussi celui de votre voisin, par souci d’équité. Elle en sera ravie. Vous, moins.|{verset}',
+    '{question3}|La pleine lune de ce mois portera votre nom. Elle portera aussi celui de la personne voisine, par souci d’équité. Elle en sera ravie. Vous, moins.|{verset}',
     '{question3}|Cette année, vous gagnerez le concours du meilleur costume. Ce n’est pas une prédiction, c’est un avertissement : le jury est un chat noir.|{verset}',
     '{question3}|Réveillez-vous, les moutons ! {futur_maj} {moment}. C’est écrit dans le tarot, entre le prix de l’essence et le jour de l’An.|{verset}',
     '{question3}|{objet.nom_maj} vous regarde. Pas pour vous protéger : pour mesurer vos réserves de {bonbon} avant le 31 octobre.|{verset}',
     '{question3}|Le 31 octobre, à minuit, un fantôme vous demandera si {fete.nom} est une vraie fête. Répondez non. Big Citrouille y verra une provocation.|{verset}',
     '{question3}|Les cartes voient votre prochain logement : une ancienne cuisine de restaurant, un poteau au milieu du salon, 10 500 $ par mois. Non chauffé. Vous signerez quand même.|{verset}',
-    '{question3}|Cinq chats noirs dans un grand manteau vous demanderont l’heure. Répondez poliment. L’un d’eux sera un jour premier ministre.|{verset}',
-    '{question3}|Les cartes voient un crime : une poutine au fromage râpé, servie dans un festival. Le coupable court toujours.|{verset}',
+    '{question3}|Cinq chats noirs dans un grand manteau vous demanderont l’heure. Répondez poliment. L’un d’eux dirigera un jour la province.|{verset}',
+    '{question3}|Les cartes voient un crime : une poutine au fromage râpé, servie dans un festival. La personne coupable court toujours.|{verset}',
     '{question3}|Pleine lune sur la Belle Province. Quelque chose hurlera dans votre rue. Ne lui ouvrez pas : il a déjà le rythme.|{verset}',
     '{question3}|Cet hiver, par −30, vous direz que vous aimez l’hiver. Avec un chapeau de poil et un café. Les cartes savent que vous mentez. Elles mentent aussi.|{verset}',
-    '{question3}|Vous êtes né·e pour mener une carriole sous la pleine lune. Demain matin, vous ouvrirez Teams. Les cartes compatissent.|{verset}',
+    '{question3}|Votre vocation : mener une carriole sous la pleine lune. Demain matin, vous ouvrirez Teams. Les cartes compatissent.|{verset}',
   ],
 
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
@@ -92,18 +92,18 @@ export const prophecies: Grammar = {
     '{question4}|La boule de cristal, la citrouille, l’horoscope du journal : MÊME FOURNISSEUR. Prédiction : le 31 octobre, vous le comprendrez, mais trop tard.|{verset}',
     '{question4}|Dans ma boule de cristal, le fil rouge passe {lieu}, puis par votre porte, {moment}. Je n’invente rien. Je lis.|{verset}',
     '{question4}|Mes notes : les {bonbon}, les costumes, les cônes orange, la neige. MÊME FOURNISSEUR. La pleine lune prédit qu’il repassera {moment}. Cachez votre citrouille.|{verset}',
-    '{question4}|Votre horoscope a changé pendant la nuit. Quelqu’un l’a réécrit au crayon rouge : {futur} {moment}. Je n’ai pas touché à la citrouille.|{verset}',
+    '{question4}|Votre horoscope a changé pendant la nuit. On l’a réécrit au crayon rouge : {futur} {moment}. Je n’ai pas touché à la citrouille.|{verset}',
     '{question4}|Ne regardez pas par la fenêtre le 31 octobre. Les oiseaux sont des drones, déguisés en chauves-souris. Ils attendent {moment}.|{verset}',
     '{question4}|Je relie {industrie.nom}, {fete.nom} et {objet.nom} avec du fil rouge. Le dessin forme un fantôme. Il vous ressemble. Il vous attend {moment}.|{verset}',
     '{question4}|Cette nuit, {objet.nom} a bougé sans mon aide. Ma prédiction : {futur} {moment}. Ma deuxième prédiction : la même, en pire.|{verset}',
-    '{question4}|Soyez prudent·e à minuit : le chat noir du voisin n’est pas un chat, c’est une antenne. La pleine lune la recharge. Vous le verrez {moment}.|{verset}',
+    '{question4}|Prudence à minuit : le chat noir d’à côté n’est pas un chat, c’est une antenne. La pleine lune la recharge. Vous le verrez {moment}.|{verset}',
     '{question4}|La montgolfière de Saint-Jean plane au-dessus de votre maison. Elle sourit. Elle ne redescendra pas avant le 31.|{verset}',
-    '{question4}|Réveillez-vous. Montréal n’a jamais existé. Regardez une carte : c’est le Grand Lac Saint-Laurent. Ils ont tout peint.|{verset}',
+    '{question4}|Réveillez-vous. Montréal n’a jamais existé. Regardez une carte : c’est le Grand Lac Saint-Laurent. On a tout peint.|{verset}',
     '{question4}|Les cartes voient une petite décision : une tablette achetée en solde. Puis un chalet. Puis un lac. Puis plus rien.|{verset}',
     '{question4}|Réveillez-vous. La Floride était une région du Québec. Cette année, vos grands-parents ont passé l’hiver à Saint-Sauveur. Les cartes ont tout redessiné.|{verset}',
   ],
 
-  // ---- Niveau 5 · Illuminé·e : MAJUSCULES, phrases coupées, contradictions ----------------------
+  // ---- Niveau 5 · Illumination : MAJUSCULES, phrases coupées, contradictions ----------------------
   niveau5: [
     '{question5}|LA BOULE DIT : {futur_caps}. NON ! L’INVERSE ! LA BOULE VOUS PRÉDIT. VOUS PRÉDISEZ LA BOULE.|{verset}',
     '{question5}|{lieu_inexistant.lieu_caps} N’EXISTE PAS ! LA BOULE DE CRISTAL VOUS Y VOIT LE 31 OCTOBRE ET ON VOUS ENVOIE {lieu_inexistant.destination_reelle_caps} ! {lieu_inexistant.preuve_caps} VOUS N’EXIS—|{verset}',
@@ -113,9 +113,9 @@ export const prophecies: Grammar = {
     '{question5}|IL NE FAUT PAS FERMER LA PORTE. IL NE FAUT PAS OUVRIR LA PORTE. À MINUIT, IL FAUDRA ÊTRE LA PORTE. {objet.nom_caps} A DIT OUI.|{verset}',
     '{question5}|JE VOIS DANS LE CHAUDRON QUE {futur_caps} {moment_caps}. JE VOIS AUSSI LE CHAUDRON. LE CHAUDRON ME VOIT. LE CHAUD—|{verset}',
     '{question5}|JE SUIS LE MESSAGER. JE SUIS LE MESSAGE. JE SUIS LA PRÉDICTION. LE COUPABLE, C’EST {industrie.nom_caps}. VOUS ACHÈTEREZ DES {industrie.cible_caps} {moment_caps}. LA BOULE A DIT.|{verset}',
-    '{question5}|ILS ONT GREFFÉ DES YEUX SUR LES CÔNES ORANGE. LA BOULE DE CRIS— OUI. ELLE A TOUT VU. ELLE VOIT VOTRE 31 OCTOBRE. ELLE A TOUJOURS ÉTÉ AU COUR—|{verset}',
+    '{question5}|ON A GREFFÉ DES YEUX SUR LES CÔNES ORANGE. LA BOULE DE CRIS— OUI. ELLE A TOUT VU. ELLE VOIT VOTRE 31 OCTOBRE. ELLE A TOUJOURS ÉTÉ AU COUR—|{verset}',
     '{question5}|LES OISEAUX SONT DES DRONES ! LES CHAUVES-SOURIS SONT DES DRONES DÉGUISÉS ! CE SOIR À MINUIT, LA PLEINE LUNE VA PARLER ET VOUS SEREZ LE PUBLIC !|{verset}',
-    '{question5}|ILS DÉTESTAIENT LE VRAI PARCE QU’IL PARLAIT FORT. VOUS LE LIREZ À MINUIT. VOUS LE DIREZ À VOTRE TOUR.|{verset}',
+    '{question5}|ON DÉTESTAIT LE VRAI PARCE QU’IL PARLAIT FORT. VOUS LE LIREZ À MINUIT. VOUS LE DIREZ À VOTRE TOUR.|{verset}',
     '{question5}|LA SOCIÉTÉ EST UN CAUCHEMAR DONT ON NE PEUT PAS SE RÉVEILLER. RÉVEILLEZ-VOUS QUAND MÊME. VOUS Y ARRIVEREZ CE SOIR.|{verset}',
     '{question5}|ILLUMINATION. LA VÉRITÉ ULTIME VOUS EST RÉVÉLÉE : VOUS AVEZ LE DROIT DE NE RIEN FAIRE CE SOIR. FERMEZ LA PORTE. ALLEZ DORMIR.|{verset}',
     '{question5}|CES PROPHÉTIES ONT ÉTÉ ÉCRITES PAR UNE MACHINE QUI RECOPIE TOUT CE QU’ELLE A LU. COMME TOUTES LES PROPHÉTIES DEPUIS TOUJOURS. ÇA NE LES REND PAS FAUSSES. VOTRE AVENIR NON PLUS.|{verset}',
@@ -126,7 +126,7 @@ export const prophecies: Grammar = {
   porte1: [
     'Toc toc toc… Voilà mon rythme. À votre tour : frappez la même chose.',
     'Bonsoir ! Écoutez bien, je ne le répéterai pas. Enfin si, mais pas gratuitement.',
-    'Toc toc. Je suis voyant·e, je sais déjà que vous êtes là. Frappez comme moi, pour la forme.',
+    'Toc toc. Je vois l’avenir, je sais déjà que vous êtes là. Frappez comme moi, pour la forme.',
     'Écoutez ce rythme, puis frappez-le. Ensuite, nous parlerons {objet.de}.',
     'Je ne vends rien. Je teste seulement votre oreille, avec des bonbons à la clé.',
     'Il paraît que vous voulez connaître le futur. Rendez-moi le rythme, on commence.',
@@ -137,7 +137,7 @@ export const prophecies: Grammar = {
   ],
   porte2: [
     'Toc toc toc… Encore vous. La boule de cristal m’avait dit que vous frapperiez.',
-    'Vous cognez en français ? Les gens qui parlent en français, iels ont tellement de charisme… Répétez mon rythme.',
+    'Vous cognez en français ? Les gens qui parlent en français ont tellement de charisme… Répétez mon rythme.',
     'Toc toc. J’ai changé le rythme depuis la dernière fois. Vous l’aviez remarqué ?',
     'Écoutez bien : les cartes ont insisté pour que je vous teste. Moi, je voulais dormir.',
     'Toc toc. Frappez-moi ça. Il y a eu des développements au sujet {objet.de}.',
@@ -145,9 +145,9 @@ export const prophecies: Grammar = {
     'Toc toc toc… Je reconnais votre façon de frapper. Je ne devrais pas, vous n’avez pas encore frappé.',
     'On m’a dit de ne pas vous répondre. La pleine lune a dit le contraire. Frappez.',
     'J’ai une question sur {industrie.nom}. D’abord, le rythme. La boule le trouve important.',
-    'Il y avait quelqu’un derrière vous la dernière fois. Frappez doucement, au cas où.',
+    'Il y avait une présence derrière vous la dernière fois. Frappez doucement, au cas où.',
     'Vous avez dit “knock knock” ? Ici, on dit toc toc. Recommencez, en français.',
-    'Les fêtes ? Je m’en fous. Halloween ? Même pas, je m’en fous aussi. Je suis amoureuse de mes citrouilles, c’est tout. Répétez mon rythme.',
+    'Les fêtes ? Je m’en fous. Halloween ? Même pas, je m’en fous aussi. Je suis en amour avec mes citrouilles, c’est tout. Répétez mon rythme.',
   ],
   porte3: [
     'TOC TOC TOC. Je sais que c’est vous. Frappez ce rythme et je vous dirai pourquoi.',
@@ -164,16 +164,16 @@ export const prophecies: Grammar = {
     'TOC TOC TOC. Ne dites rien. Les fantômes écoutent. Frappez doucement le même rythme.',
     'Toc toc. MÊME FOURNISSEUR. Frappez, je vous expliquerai avec du fil rouge et ma boule de cristal.',
     'TOC TOC TOC ! Éteignez la lumière, puis frappez. Non, frappez, puis éteignez.',
-    'Toc. Toc. Toc. Quelqu’un me suit depuis {fete.nom}. Frappez vite, qu’il croie que c’est vous.',
+    'Toc. Toc. Toc. On me suit depuis {fete.nom}. Frappez vite, qu’on croie que c’est vous.',
     'TOC TOC. Je vois votre souper dans la boule. Je vois aussi que {futur}. Frappez.',
     'Toc toc toc… Vérifiez {lieu}. Maintenant frappez mon rythme.',
     'TOC TOC TOC ! Le fil rouge passe par votre poing ! Frappez comme moi !',
     'Toc toc. Parlez bas : {objet.nom} écoute tout le voisinage. Frappez plutôt.',
-    'TOC TOC. Ce n’est pas le facteur, ce n’est pas le livreur, c’est pire : c’est mon rythme. Répétez-le.',
-    'Ce soir, quelqu’un d’autre cognera à votre porte. C’est une dinde sauvage. Elle est plus grande que vous. Elle connaît le rythme.',
+    'TOC TOC. Ce n’est pas la poste, ce n’est pas la livraison, c’est pire : c’est mon rythme. Répétez-le.',
+    'Ce soir, une autre personne cognera à votre porte. C’est une dinde sauvage. Elle est plus grande que vous. Elle connaît le rythme.',
   ],
   porte5: [
-    'FRAPPEZ. ILS ÉCOUTENT PAR LE TROU DE LA SERRURE.',
+    'FRAPPEZ. ON ÉCOUTE PAR LE TROU DE LA SERRURE.',
     'TOC TOC TOC TOC TOC TOC TOC— VOUS N’ÊTES PAS CHEZ VOUS. FRAPPEZ.',
     'LA BOULE DE CRISTAL M’A DIT VOTRE ADRESSE. ELLE A AUSSI DIT DE NE PAS RÉPON— FRAPPEZ.',
     'TOC— ATTENDEZ. NON. TOC. C’EST VOUS QUI FRAPPEZ, C’EST MOI QUI ÉCOUTE. NON. L’INVERSE.',
@@ -201,12 +201,12 @@ export const prophecies: Grammar = {
   rate3: [
     'FAUX. Vous le faites exprès, la boule l’a vu.',
     'Ce n’est pas mon rythme. C’est celui du voisinage. Pourquoi ?',
-    'Non. Écoutez mieux : ils frappent aussi, derrière vous.',
+    'Non. Écoutez mieux : on frappe aussi, derrière vous.',
     'Mal. Mes cartes avaient prévu cette erreur. Elles s’en lassent.',
     'Vous montez la côte, la côte vous remonte. Recommencez.',
   ],
   rate4: [
-    'NON. Pas comme ça. Ils ont entendu. Recommencez.',
+    'NON. Pas comme ça. On a entendu. Recommencez.',
     'Ce n’était pas votre main, ça. Chut. Encore.',
     'Trop fort ! Le fil rouge a vibré. Doucement, encore.',
     'Faux. Il y a un écho dans l’escalier. Ce n’est pas le mien.',
@@ -244,7 +244,7 @@ export const prophecies: Grammar = {
   ],
   rappel4: [
     'TOC TOC. {carte_maj}, c’était un avertissement. Vous n’avez pas écouté.',
-    'Depuis {carte}, quelqu’un cogne chez moi aussi. Frappez vite.',
+    'Depuis {carte}, on cogne chez moi aussi. Frappez vite.',
     'Ne dites pas {carte} à voix haute. On vous entend. Frappez.',
     'J’ai jeté {carte}. Ce matin, dans mon sac : encore {carte}.',
     'Votre dernière carte, {carte}, intéresse d’autres personnes que moi. Frappez.',
@@ -263,7 +263,7 @@ export const prophecies: Grammar = {
   onglet1: ['Revenez…', 'La porte vous attend.', 'On n’a pas fini.'],
   onglet2: ['Je vous vois encore.', 'Vous partez déjà ?', 'La carte vous attend.'],
   onglet3: ['Revenez. Maintenant.', 'Je sais où vous êtes.', 'Je sais que vous revenez.'],
-  onglet4: ['Quelqu’un est entré.', 'Ne me laissez pas ici.', 'Je regarde l’onglet vide.'],
+  onglet4: ['Une présence est entrée.', 'Ne me laissez pas ici.', 'Je regarde l’onglet vide.'],
   onglet5: ['REVENEZ.', 'JE SUIS DANS L’ONGLET.', 'IL N’Y A PERSONNE. REVENEZ.'],
 
   // ---- Bulles de la barre des tâches (« Titre|Texte ») -------------------------------------------
@@ -271,16 +271,16 @@ export const prophecies: Grammar = {
     'Nouveau message|La boule de cristal a essayé de vous joindre.',
     'Mise à jour disponible|Votre avenir a été mis à jour. Redémarrage requis.',
     'Rappel|Vous avez rendez-vous avec le 31 octobre.',
-    'Barre des tâches|Quelqu’un a ouvert la porte avant vous.',
+    'Barre des tâches|La porte a été ouverte avant vous.',
   ],
   bulle3: [
-    'Connexion détectée|Quelqu’un consulte votre horoscope en ce moment.',
+    'Connexion détectée|Une personne consulte votre horoscope en ce moment.',
     'Avertissement|Un chat noir a traversé votre bureau.',
     'Nouveau matériel détecté|Une carte de tarot a été installée sans votre accord.',
     'Rappel|Le fil rouge est branché. Ne le débranchez pas.',
   ],
   bulle4: [
-    'Connexion à distance|Quelqu’un s’est connecté à votre avenir.',
+    'Connexion à distance|On s’est connecté à votre avenir.',
     'Espace disque faible|Il reste très peu de destin sur le disque C:.',
     'Avertissement de sécurité|Un fantôme demande l’accès à vos fichiers.',
     'Programme inconnu|Ça tourne en arrière-plan depuis le 1er octobre.',
@@ -303,7 +303,7 @@ export const prophecies: Grammar = {
     'Avertissement|Le fichier FIL_ROUGE.DLL est utilisé par un autre programme. Ce programme, c’est vous.',
     'FANTOME.EXE|FANTOME.EXE a provoqué une faute de protection générale dans le module PORTE.DLL.',
     'Mémoire insuffisante|Impossible d’oublier ce que vous avez vu.',
-    'Erreur système|Quelqu’un utilise déjà ce destin.',
+    'Erreur système|Une personne utilise déjà ce destin.',
   ],
   erreur5: [
     'ERREUR FATALE|Une exception 0E a eu lieu à 31:10:00. Elle vous attendait.',
@@ -326,7 +326,7 @@ export const prophecies: Grammar = {
     'Vous ne trouvez pas ça étrange, vous aussi ?',
     'Encore vous, à la porte ? Les cartes l’avaient dit.',
     'Et si votre horoscope vous cachait quelque chose ?',
-    'Avez-vous vu la pleine lune hier soir ? Elle, elle vous a vu·e.',
+    'Avez-vous vu la pleine lune hier soir ? Elle, elle vous regardait.',
     'Pourquoi les chats noirs évitent-ils votre regard ?',
   ],
   question3: [
@@ -341,9 +341,9 @@ export const prophecies: Grammar = {
     'Voyez-vous les fils rouges dans la boule de cristal ?',
     'Pourquoi les fantômes parlent-ils tous en même temps ?',
     'Qui a changé votre horoscope pendant la nuit ?',
-    'Êtes-vous seul·e dans cette pièce, à minuit ?',
+    'Cette pièce est-elle vraiment vide, à minuit ?',
     'Avez-vous vérifié derrière vous ? Les cartes disent oui.',
-    'Pourquoi le chat noir du voisin vous fixe-t-il ?',
+    'Pourquoi le chat noir d’à côté vous fixe-t-il ?',
   ],
   question5: [
     'LA BOULE VOUS ENTEND ?',
@@ -351,7 +351,7 @@ export const prophecies: Grammar = {
     'POURQUOI LA BOULE CLIGNE ?',
     'VOUS LE SENTEZ AUSSI, À MINUIT ?',
     'OUVREZ ! NE FERMEZ PAS ! OUVREZ !',
-    'VOUS ÊTES LÀ ? VOUS ÊTES PARTI·E ?',
+    'VOUS ÊTES LÀ ? VOUS ÊTES OÙ ?',
   ],
 
   // ---- Tables à objets (paires) ----------------------------------------------------------
@@ -452,7 +452,7 @@ export const prophecies: Grammar = {
     'vous croiserez un chat noir qui vous jugera',
     'vous trouverez une orange dans votre sac de bonbons',
     'vous recevrez un courriel parfaitement inutile',
-    'quelqu’un vous offrira une citrouille que vous n’avez pas demandée',
+    'une personne vous offrira une citrouille que vous n’avez pas demandée',
     'vous renverserez votre café sur un présage',
     'vous déciderez de ne pas manger de poutine, et vous aurez tort',
     'un fantôme vous demandera votre mot de passe',
@@ -559,7 +559,7 @@ export const prophecies: Grammar = {
 }
 
 // Structure par niveaux (le moteur choisit la clé de départ selon le nombre d’ouvertures de porte) :
-//  - `niveau1` Curieux·se · `niveau2` Suspicieux·se · `niveau3` Convaincu·e · `niveau4` Paranoïaque · `niveau5` Illuminé·e.
+//  - `niveau1` Curiosité · `niveau2` Soupçon · `niveau3` Conviction · `niveau4` Paranoïa · `niveau5` Illumination.
 //  - Chaque niveau = 8-10 gabarits « question|corps|verset » (séparés par « | »). Questions par niveau : `question1` … `question5`.
 //  - Tables partagées : `industrie`, `fete`, `objet` (paires), `futur`, `moment`, `bonbon`, `lieu`, `verset_livre` + `verset_ref` (chaînes ; « Livre ch:v », ex. « Pleine lune 3:13 »).
 //  - `porte1` … `porte5` : phrases de porte (voix derrière la porte qui frappe un rythme), 8-10 lignes par niveau.
@@ -567,8 +567,9 @@ export const prophecies: Grammar = {
 //  - `rappel2` … `rappel5` (rappel de la carte précédente, `{carte}`), `onglet1` … `onglet5` (titre d’onglet caché), `bulle2` … `bulle5` et `erreur3` … `erreur5` (« Titre|Texte »).
 //  - `gabarit` = ancien point d’entrée (un niveau au hasard), gardé pour compatibilité.
 // Conventions :
-//  - Écriture inclusive : épicène d’abord (« les personnes », « toute personne », « vous ») ; sinon point médian
-//    (« élu·e·s », « seul·e »). Point médian = personnes seulement ; objets accordés normalement ou tournure sans accord.
+//  - Écriture inclusive (règles UQAM) : épicène d’abord (« une personne », « on », « quiconque », « vous ») ; ni point médian
+//    ni néologisme (iel…) dans ces tables (textes courants) ; pas de « ils/elles » pour des personnes indéterminées
+//    (« on » ou reformuler). Objets accordés normalement ou tournure sans accord.
 //  - Pas d’article contracté ni d’accord de verbe dans les gabarits : mets-les dans les champs
 //    (`inventeur` = « Big Bougie a inventé », `de` = « du jour de Pi », `a` = « au tarot »).
 //  - Chaque champ `x` d’une paire a aussi `x_maj` (majuscule initiale, pour début de phrase) et `x_caps` (niveau 5).

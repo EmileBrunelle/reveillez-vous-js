@@ -8,7 +8,7 @@ export interface Notification {
 
 /** État de la session en cours (non persisté). */
 export const useSessionStore = defineStore('session', () => {
-  // Impulsion de coup (voyant·e ou joueur·euse) : `seq` change à chaque coup, `at` = performance.now().
+  // Impulsion de coup (personne voyante ou personne qui joue) : `seq` change à chaque coup, `at` = performance.now().
   const knock = shallowRef({ seq: 0, amp: 0, at: 0 })
   const pulse = (amp = 1) => {
     knock.value = { seq: knock.value.seq + 1, amp, at: performance.now() }

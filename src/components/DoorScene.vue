@@ -170,7 +170,7 @@ const startListen = () => {
   retryIntro = ''
   if (firstListen) said.value = props.line
   firstListen = false
-  announce.value = `${intro}La voyante cogne : ${describe(pattern.value)}`
+  announce.value = `${intro}La personne voyante cogne : ${describe(pattern.value)}`
   knocks = scheduleKnocks(toOffsets(pattern.value, props.level), intensity(), seerHit)
 }
 
@@ -378,7 +378,7 @@ const onSceneClick = (e: MouseEvent) => {
         <span v-for="(g, i) in ghosts" :key="i" class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1] invisible pointer-events-none" aria-hidden="true">{{ g }}</span>
       </div>
       <KnockPattern :class="{ invisible: phase === 'invite' }" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
-      <p class="m-0 text-[0.9rem]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'La voyante cogne…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
+      <p class="m-0 text-[0.9rem]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'La personne voyante cogne…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
       <p class="sr-only" role="status" aria-live="polite">{{ announce }}</p>
     </div>
     <SparkPool ref="sparks" />

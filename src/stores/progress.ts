@@ -30,7 +30,7 @@ export const arcaneIndex = (numero: string): number | null => {
   return n
 }
 
-// Format historique conservé : un simple nombre en clair (les joueur·euses existant·es gardent leur niveau).
+// Format historique conservé : un simple nombre en clair (les personnes qui jouent déjà gardent leur niveau).
 const visitsSerializer = {
   read: (raw: string): number => {
     const n = Number(raw)

@@ -46,10 +46,10 @@
 
 ## Content rules (French, Québec standard, full accents)
 
-- Inclusive writing: épicène wording first; point médian for people only (« voyant·e »). Objects agree normally; templates avoid object participle agreement (put verbs in paired fields).
+- Inclusive writing follows the UQAM rules (UQ network guide 2021 + UQAM BIRÉ 2023; BIRÉ wins): épicène wording first (« une personne », « on », « quiconque », collective nouns, « vous »); complete doublets (« voyantes et voyants ») sparingly; point médian only as a last resort in tight UI spots, one point per word (« voyant·e », « voyant·es », never « ·e·s »), never in prophecies or other running text (every table in `prophecies.ts`). No iel/iels/celleux/toustes or other neologisms in public text. « ils/elles » for undetermined people gets rephrased (« on », a noun); « ils/elles » for objects or animals is fine. Objects agree normally; templates avoid object participle agreement (put verbs in paired fields). Enforced by `tests/content/inclusive.test.ts`.
 - Typographic apostrophe ’ everywhere (tests check it).
 - Québec references over obscure internet memes. Jokes target places, never people.
-- Deliberate exception, approved by Émile: a nod to the meme « Les gens qui parlent en français, iels ont tellement de charisme » (Pokimane origin, widely reshared by Québec meme pages such as Fruiter, so it counts as Québec-circulated). Quoted affectionately, mocks no one; never name Pokimane in game content. « iel/iels » is acceptable for people where it fits the tone.
+- Deliberate exception, approved by Émile: a nod to the meme « Les gens qui parlent en français ont tellement de charisme » (Pokimane origin, widely reshared by Québec meme pages such as Fruiter, so it counts as Québec-circulated). Quoted affectionately, mocks no one; never name Pokimane in game content. The pronoun « iels » of the original is dropped (no neologisms).
 - Theme first: every prophecy predicts something about the reader plus a voyance/Halloween element; conspiracy nods are seasoning (~3 in 10 per level).
 - Excluded: 5G, vaccines, lizard people, CIA/"glowie", flat earth, real conspiracies; any mental-illness word (fou, schizo…; use « Vendredi noir »); no religion named in our own text (XVI = « La Tour foudroyée »).
 - Homage to Terry A. Davis is strictly separate from the paranoia escalation: About text covers his work only; no Terry/Davis/TempleOS/HolyC in prophecy/arcane/knock content (enforced by `tests/content/prophecies.test.ts`); the level-5 ending must not lead to him; no "TempleOS predicted COVID" joke.
