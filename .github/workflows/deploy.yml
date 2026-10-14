@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # La doc seule ne change pas le site : pas de déploiement.
+    paths-ignore: ['**.md', '.git-blame-ignore-revs']
   workflow_dispatch:
 
 permissions:
