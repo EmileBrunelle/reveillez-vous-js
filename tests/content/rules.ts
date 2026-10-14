@@ -9,16 +9,17 @@ export const INCLUSIVE_BANNED = /(?<![\p{L}])(iel|iels|celleux|toustes)(?![\p{L}
 
 /**
  * « ils » / « elles » tolérés : l’entrée contient l’un de ces extraits et le pronom désigne des objets ou des animaux
- * (cartes, drones, preuves…), jamais des personnes indéterminées. Les inversions (« évitent-ils ») sont ignorées.
+ * (cartes, drones, preuves…), jamais des personnes indéterminées. Les inversions (« évitent-ils ») sont ignorées. Le test retire l’extrait toléré, puis exige qu’il ne reste aucun autre ils/elles dans l’entrée.
  */
 export const PRONOUN_ALLOWLIST = [
   'Elles ont aussi vu la rondelle', // les cartes
   'Elles voient aussi la 77ᵉ', // les cartes
+  'Elles vous déconseillent la 78ᵉ', // les cartes
   'Elles ne le diront pas', // les cartes
   'Elles sont patientes', // les cartes
   'Elles mentent aussi', // les cartes
   'Ils attendent {moment}', // les oiseaux-drones
-  'ILS SERONT TROIS', // la boule de cristal et l’objet tiré
+  'ILS SERONT TROIS. ILS SERONT UN', // la boule de cristal et l’objet tiré
   'ELLES EN AVAIENT PRÉVU QUATRE', // les cartes
   'Elles sont dans un sac à bonbons', // les preuves
   'Elles s’en lassent', // les cartes

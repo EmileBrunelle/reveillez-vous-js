@@ -50,7 +50,7 @@ const btn =
       <h2 id="reset-title" class="m-0 text-[1rem] font-bold">Tout oublier ?</h2>
     </div>
     <div class="p-4">
-      <p id="reset-desc" class="[margin:0_0_1.2rem]">La personne voyante oubliera votre visage et vos visites. Le niveau de vigilance revient à 1.</p>
+      <p id="reset-desc" class="[margin:0_0_1.2rem]">La voyance oubliera votre visage et vos visites. Le niveau de vigilance revient à 1.</p>
       <div class="flex flex-wrap gap-3 justify-end">
         <button ref="cancelBtn" :class="`${btn} bg-[#ffff55]`" type="button" autofocus @click="dlg?.close()">Annuler</button>
         <button :class="`${btn} bg-[#aaaaaa]`" type="button" @click="confirm">Oublier</button>
