@@ -42,6 +42,8 @@ export const prophecies: Grammar = {
     '{question1}|Cette semaine, quelqu’un vous offrira une citrouille. Acceptez-la : ce sera la première d’une longue série.|{verset}',
     '{question1}|Vous entrerez chez Renaud-Bray pour acheter un livre. Vous ressortirez avec une planche à découper en bambou et des chandelles. Les cartes l’avaient prévu.|{verset}',
     '{question1}|Les cartes sont formelles : le fromage en grains ne doit pas fondre. Quelqu’un, quelque part, met sa poutine au micro-ondes en ce moment. Les cartes pleurent.|{verset}',
+    '{question1}|Votre téléphone contient 4 000 photos du même chat. Ce soir, vous en prendrez une 4 001ᵉ. Les cartes la trouvent très réussie.|{verset}',
+    '{question1}|Ce week-end, au hockey bottine, vous serez encore pogné·e dans les buts. Les cartes l’ont vu venir. Elles ont aussi vu la rondelle.|{verset}',
   ],
 
   // ---- Niveau 2 · Suspicieux·se : les liens apparaissent ----------------------------------
@@ -95,6 +97,7 @@ export const prophecies: Grammar = {
     '{question4}|Soyez prudent·e à minuit : le chat noir du voisin n’est pas un chat, c’est une antenne. La pleine lune la recharge. Vous le verrez {moment}.|{verset}',
     '{question4}|Piko, l’esprit des montgolfières de Saint-Jean, plane au-dessus de votre maison. Il sourit. Il a toujours souri. Il ne redescendra pas.|{verset}',
     '{question4}|Réveillez-vous. Montréal n’a jamais existé. Regardez une carte : c’est le Grand Lac Saint-Laurent. Ils ont tout peint.|{verset}',
+    '{question4}|Les cartes voient une petite décision : une tablette achetée pour une fête quelconque. Puis une plage. Une statue à moitié enterrée. Elles n’en disent pas plus.|{verset}',
   ],
 
   // ---- Niveau 5 · Illuminé·e : MAJUSCULES, phrases coupées, contradictions ----------------------
@@ -113,6 +116,7 @@ export const prophecies: Grammar = {
     '{question5}|LA SOCIÉTÉ EST UN CAUCHEMAR DONT ON NE PEUT PAS SE RÉVEILLER. RÉVEILLEZ-VOUS QUAND MÊME. VOUS Y ARRIVEREZ CE SOIR.|{verset}',
     '{question5}|ILLUMINATION. LA VÉRITÉ ULTIME VOUS EST RÉVÉLÉE : VOUS AVEZ LE DROIT DE NE RIEN FAIRE CE SOIR. FERMEZ LA PORTE. ALLEZ DORMIR.|{verset}',
     '{question5}|CES PROPHÉTIES ONT ÉTÉ ÉCRITES PAR UNE MACHINE QUI RECOPIE TOUT CE QU’ELLE A LU. COMME TOUTES LES PROPHÉTIES DEPUIS TOUJOURS. ÇA NE LES REND PAS FAUSSES. VOTRE AVENIR NON PLUS.|{verset}',
+    '{question5}|MANGER. DORMIR. FUIR LA SOCIÉTÉ. LES CARTES ONT RÉSUMÉ VOTRE DESTIN EN TROIS MOTS. ELLES EN AVAIENT PRÉVU QUATRE.|{verset}',
   ],
 
   // ---- Phrases de porte : la porte reste fermée, la personne frappe ; la voix derrière frappe un rythme et invite à le répéter
