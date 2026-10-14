@@ -67,7 +67,7 @@ const howBox = 'border-2 border-solid border-alt px-4 py-3 [&_h2]:mt-0 [&_h2]:mx
 
     <button class="btn justify-self-start" type="button" @click="$emit('retry')">Réessayer</button>
     <footer class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8rem]">
-      <span class="opacity-90">Hommage à Terry A. Davis (1969–2018)</span>
+      <a class="linklike opacity-90" href="https://en.wikipedia.org/wiki/Terry_A._Davis" target="_blank" rel="noopener noreferrer" aria-label="Hommage à Terry A. Davis (1969–2018), Wikipédia (nouvel onglet)">Hommage à Terry A. Davis (1969–2018)</a>
       <button class="linklike opacity-90" type="button" @click="$emit('about')">À propos</button>
       <a class="linklike opacity-90" href="https://github.com/EmileBrunelle/reveillez-vous-js" target="_blank" rel="noopener noreferrer" aria-label="Code source sur GitHub (nouvel onglet)">
         <IconGithub class="w-[1em] h-[1em] align-[-0.125em] mr-[0.3em]" aria-hidden="true" />

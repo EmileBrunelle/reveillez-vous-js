@@ -32,9 +32,9 @@ const panelEl = ref<HTMLElement>()
 const bodyEl = ref<HTMLElement>()
 // Largest font size (px) in [MIN_PX, max] for which the body fits the panel without scrolling.
 // Uses layout sizes (offset/client/scroll*), which ignore the deal/flip/tilt transforms.
-// max = min(5% of card width, 26px); floor = 11px (a longest level-5 prophecy must fit a 360x640 phone).
+// max = min(9% of card width, 34px); floor = 11px (a longest level-5 prophecy must fit a 360x640 phone).
 const MIN_PX = 11
-const MAX_PX = 26
+const MAX_PX = 34
 let lastW = 0
 let lastH = 0
 let fitRaf = 0
@@ -68,7 +68,7 @@ const fitBody = () => {
     if (emb) el.dataset.emblem = emb
     else delete el.dataset.emblem
     let lo = MIN_PX
-    let hi = Math.max(lo, Math.min(MAX_PX, w * 0.05))
+    let hi = Math.max(lo, Math.min(MAX_PX, w * 0.09))
     if (fits(hi)) return
     if (emb !== 'none' && !fits(lo)) continue
     for (let i = 0; i < 10; i++) {

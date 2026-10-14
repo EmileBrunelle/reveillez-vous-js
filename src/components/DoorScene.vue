@@ -311,7 +311,7 @@ const onSceneClick = (e: MouseEvent) => {
 
 <template>
   <section class="scene" @click="onSceneClick">
-    <div ref="stage" data-stage class="relative w-auto h-[clamp(10rem,45dvh,28rem)] aspect-[120/190] [perspective:900px] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]">
+    <div ref="stage" data-stage class="relative w-auto h-[clamp(10rem,45dvh,28rem)] max-sm:portrait:h-[clamp(10rem,54dvh,30rem)] aspect-[120/190] [perspective:900px] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]">
       <div class="absolute inset-0" aria-hidden="true">
         <div ref="glow" class="absolute inset-[3%_5%_0] opacity-0 [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]" />
         <div ref="seer" class="absolute left-1/2 bottom-0 w-[38%] -ml-[19%] opacity-0 [&_.seer]:block [&_.seer]:w-full"><Seer /></div>
@@ -330,7 +330,7 @@ const onSceneClick = (e: MouseEvent) => {
       </div>
     </div>
     <div v-if="!closing" ref="ui" class="scene scene--ui">
-      <p id="door-said" class="lead">{{ said }}</p>
+      <p id="door-said" class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)]">{{ said }}</p>
       <KnockPattern v-if="phase !== 'invite'" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
       <p class="m-0 text-[0.9rem] min-h-[1.35em]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'La voyante cogne…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
       <p class="sr-only" role="status" aria-live="polite">{{ announce }}</p>
