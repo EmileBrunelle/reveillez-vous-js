@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { mulberry32 } from './rng'
-import { draw, drawPersisted, type Bag } from './shuffleBag'
+import { mulberry32 } from '../../src/../src/engine/rng'
+import { draw, drawPersisted, type Bag } from '../../src/../src/engine/shuffleBag'
 
 const memStore = () => {
   const m = new Map<string, string>()

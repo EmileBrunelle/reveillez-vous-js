@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { crtEdgeTerms } from './crtMath'
+import { crtEdgeTerms } from '../../src/../src/effects/crtMath'
 
 describe('CRT bords lisibles', () => {
   for (const p of [0, 1]) {

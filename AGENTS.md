@@ -19,7 +19,7 @@
 ## Architecture (src/)
 - `App.vue`: flow WebGPU gate, door, Concentration, TarotCard, « Fermer la porte », next variant.
 - `engine/`: `grammar.ts` (Tracery-like, throws on unknown table/field), `shuffleBag.ts` (no repeats, localStorage `rvj-bags`), `prophecy.ts`, `knock.ts`, `variant.ts`, `rng.ts`, `paranoia.ts`.
-- `content/`: `prophecies.ts` (levels 1–5, knocks, questions, paired tables, arcana), `scenes.ts` (5 doors, 5 backgrounds, `minLevel`), `prophecies.test.ts` (regression suite on real content).
+- `content/`: `prophecies.ts` (levels 1–5, knocks, questions, paired tables, arcana), `scenes.ts` (5 doors, 5 backgrounds, `minLevel`). Tests live in top-level `tests/` (mirrors `src/`, outside the bundle; `tests/content/prophecies.test.ts` = regression suite on real content, typed by `tsconfig.test.json`).
 - `components/`: door/background variants in `doors/`, `backgrounds/`; TarotCard (`fitBody` fits text 11–26 px, emblem shrinks/hides), Concentration, Vigilance, AboutTempleOS, WebGpuGate, CrtOverlay.
 - `effects/`: `crt.wgsl` + `crt.ts` (vgpu, lazy chunk), `webgpu.ts` (navigator.gpu + requestAdapter check).
 - `audio/sfx.ts`: all sounds synthesized (Web Audio), mute toggle.
@@ -43,7 +43,7 @@
 - Deliberate exception, approved by Émile: a nod to the meme « Les gens qui parlent en français, iels ont tellement de charisme » (Pokimane origin, widely reshared by Québec meme pages such as Fruiter, so it counts as Québec-circulated). Quoted affectionately, mocks no one; never name Pokimane in game content. « iel/iels » is acceptable for people where it fits the tone.
 - Theme first: every prophecy predicts something about the reader plus a voyance/Halloween element; conspiracy nods are seasoning (~3 in 10 per level).
 - Excluded: 5G, vaccines, lizard people, CIA/"glowie", flat earth, real conspiracies; any mental-illness word (fou, schizo…; use « Vendredi noir »); no religion named in our own text (XVI = « La Tour foudroyée »).
-- Homage to Terry A. Davis is strictly separate from the paranoia escalation: About text covers his work only; no Terry/Davis/TempleOS/HolyC in prophecy/arcane/knock content (enforced by `prophecies.test.ts`); the level-5 ending must not lead to him; no "TempleOS predicted COVID" joke.
+- Homage to Terry A. Davis is strictly separate from the paranoia escalation: About text covers his work only; no Terry/Davis/TempleOS/HolyC in prophecy/arcane/knock content (enforced by `tests/content/prophecies.test.ts`); the level-5 ending must not lead to him; no "TempleOS predicted COVID" joke.
 - game-icons attribution (CC BY 3.0) stays in About and README.
 
 ## Accessibility and photosensitivity
@@ -57,7 +57,8 @@
 - No seed system, no share feature.
 
 ## Testing in a browser
-- Playwright headless Chromium with `--enable-unsafe-webgpu --use-webgpu-adapter=swiftshader` reaches the card. The CRT pipeline failing to compile under swiftshader is expected.
+- Real GPU (CRT and shaders render, Intel Iris Xe via Vulkan): Playwright headless Chromium with `--enable-unsafe-webgpu --enable-features=Vulkan,WebGPU --ignore-gpu-blocklist --enable-gpu`, and NO swiftshader flag. Phone proxy (Galaxy S26+): viewport 384×832 (384×740 with toolbars), deviceScaleFactor 3, isMobile, hasTouch. Install Playwright in the scratchpad, not in the project.
+- With `--use-webgpu-adapter=swiftshader` the app still reaches the card, but the CRT pipeline fails to compile (expected).
 - Open the door via aria-label « Ouvrir la porte » (the door itself is the button).
 - Phone tests need HTTPS (insecure context has no WebGPU).
 - Never `pkill`/`killall` browsers.

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { bumpVisits, levelForVisits, readVisits, resetVisits } from './useVisits'
+import { bumpVisits, levelForVisits, readVisits, resetVisits } from '../../src/../src/composables/useVisits'
 
 describe('resetVisits', () => {
   beforeEach(() => {

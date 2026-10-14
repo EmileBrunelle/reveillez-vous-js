@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { expandTemplate, type Grammar, type ObjectTable } from '../engine/grammar'
-import { mulberry32 } from '../engine/rng'
-import { prophecies } from './prophecies'
-import raw from './prophecies.ts?raw'
+import { expandTemplate, type Grammar, type ObjectTable } from '../../src/engine/grammar'
+import { mulberry32 } from '../../src/engine/rng'
+import { prophecies } from '../../src/../src/content/prophecies'
+import raw from '../../src/../src/content/prophecies.ts?raw'
 
 const SEEDS = 60
 const levels = [1, 2, 3, 4, 5]

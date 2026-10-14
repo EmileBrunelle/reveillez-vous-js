@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { mulberry32 } from './rng'
-import { classifyGaps, judge, rhythmFor, toOffsets, type Gap } from './rhythm'
+import { mulberry32 } from '../../src/../src/engine/rng'
+import { classifyGaps, judge, rhythmFor, toOffsets, type Gap } from '../../src/../src/engine/rhythm'
 
 const taps = (intervals: number[], start = 1000) => intervals.reduce((a, d) => [...a, a[a.length - 1] + d], [start])
 

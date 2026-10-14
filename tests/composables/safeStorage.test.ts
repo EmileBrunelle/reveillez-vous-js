@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { safeStorage } from './safeStorage'
+import { safeStorage } from '../../src/../src/composables/safeStorage'
 
 describe('safeStorage', () => {
   afterEach(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { stepBaseline, type Point } from './useTilt'
+import { stepBaseline, type Point } from '../../src/../src/composables/useTilt'
 
 const run = (base: Point, reading: Point, steps: number, dt: number) => {
   let b = base

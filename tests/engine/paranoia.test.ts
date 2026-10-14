@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { paranoiaLevel } from './paranoia'
+import { paranoiaLevel } from '../../src/../src/engine/paranoia'
 
 describe('paranoiaLevel', () => {
   it('returns an integer 1..5 for 0..100 and never decreases', () => {

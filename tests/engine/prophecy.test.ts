@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { Grammar } from './grammar'
-import { doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, templatesFor } from './prophecy'
-import { mulberry32 } from './rng'
-import { pickVariant } from './variant'
-import { detectBrowser } from '../effects/webgpu'
+import type { Grammar } from '../../src/../src/engine/grammar'
+import { doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, templatesFor } from '../../src/../src/engine/prophecy'
+import { mulberry32 } from '../../src/../src/engine/rng'
+import { pickVariant } from '../../src/../src/engine/variant'
+import { detectBrowser } from '../../src/effects/webgpu'
 
 const g: Grammar = {
   niveau1: ['Q1|{x}|V1', 'Q2|{x}|V2'],

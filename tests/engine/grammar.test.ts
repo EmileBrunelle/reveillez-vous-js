@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { expand, expandTemplate, type Grammar } from './grammar'
-import { mulberry32 } from './rng'
+import { expand, expandTemplate, type Grammar } from '../../src/../src/engine/grammar'
+import { mulberry32 } from '../../src/../src/engine/rng'
 
 const g: Grammar = {
   start: ['{p.a}/{p.b}/{p.a}'],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { knockIntensity } from './knock'
+import { knockIntensity } from '../../src/../src/engine/knock'
 
 describe('knockIntensity', () => {
   it('goes from 0 at level 1 to 1 at level 5, increasing', () => {
