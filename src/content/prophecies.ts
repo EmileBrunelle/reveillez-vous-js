@@ -44,6 +44,7 @@ export const prophecies: Grammar = {
     '{question1}|Les cartes sont formelles : le fromage en grains ne doit pas fondre. Quelqu’un, quelque part, met sa poutine au micro-ondes en ce moment. Les cartes pleurent.|{verset}',
     '{question1}|Votre téléphone contient 4 000 photos du même chat. Ce soir, vous en prendrez une 4 001ᵉ. Les cartes la trouvent très réussie.|{verset}',
     '{question1}|Ce week-end, au hockey bottine, vous serez encore pogné·e dans les buts. Les cartes l’ont vu venir. Elles ont aussi vu la rondelle.|{verset}',
+    '{question1}|Les cartes voient votre fin de session : 76 tasses de café. Elles voient aussi la 77ᵉ. Elles vous déconseillent la 78ᵉ.|{verset}',
   ],
 
   // ---- Niveau 2 · Suspicieux·se : les liens apparaissent ----------------------------------
@@ -63,6 +64,9 @@ export const prophecies: Grammar = {
     '{question2}|Les cartes sont formelles : les Nordiques reviendront. Les Expos aussi. Les cartes disent ça depuis 1995. Elles sont patientes.|{verset}',
     '{question2}|Une malédiction pèse sur vous : le chili du Tim, avec le p’tit pain et les deux beurres. Vous y retournerez demain. Les cartes ne peuvent rien pour vous.|{verset}',
     '{question2}|Votre carte est le Magicien du Québec. Dès que quelque chose arrive dans votre vie, vous lancez un sort. Le sort s’appelle “Tabarnouche”. Il est très efficace.|{verset}',
+    '{question2}|En entrevue, on vous demandera d’expliquer le trou de trois ans dans votre CV. Répondez : “J’étais chez une voyante.” C’est la vérité.|{verset}',
+    '{question2}|Un·e touriste vous dira “Quebec is great”. Vous aurez envie de l’adopter. Les cartes vous comprennent.|{verset}',
+    '{question2}|Ce temps des fêtes, vous recevrez une bouteille de whisky à l’érable. Vous l’offrirez à quelqu’un d’autre l’an prochain. Les cartes ont vu son voyage : elle circule depuis 2014.|{verset}',
   ],
 
   // ---- Niveau 3 · Convaincu·e : fausses fêtes, Big Citrouille dans l’ombre ---------------------
@@ -81,6 +85,8 @@ export const prophecies: Grammar = {
     '{question3}|Cinq chats noirs dans un grand manteau vous demanderont l’heure. Répondez poliment. L’un d’eux sera un jour premier ministre.|{verset}',
     '{question3}|Les cartes voient un crime : une poutine au fromage râpé, servie dans un festival. Le coupable court toujours.|{verset}',
     '{question3}|Pleine lune sur la Belle Province. Ce soir, quelque chose hurlera dans votre rue. Ne lui ouvrez pas. Il cogne mieux que vous.|{verset}',
+    '{question3}|Cet hiver, par −30, vous direz que vous aimez l’hiver. Avec un chapeau de poil et un café. Les cartes savent que vous mentez. Elles mentent aussi.|{verset}',
+    '{question3}|Vous êtes né·e pour mener une carriole sous la pleine lune. Demain matin, vous ouvrirez Teams. Les cartes compatissent.|{verset}',
   ],
 
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
@@ -98,6 +104,7 @@ export const prophecies: Grammar = {
     '{question4}|Piko, l’esprit des montgolfières de Saint-Jean, plane au-dessus de votre maison. Il sourit. Il a toujours souri. Il ne redescendra pas.|{verset}',
     '{question4}|Réveillez-vous. Montréal n’a jamais existé. Regardez une carte : c’est le Grand Lac Saint-Laurent. Ils ont tout peint.|{verset}',
     '{question4}|Les cartes voient une petite décision : une tablette achetée pour une fête quelconque. Puis une plage. Une statue à moitié enterrée. Elles n’en disent pas plus.|{verset}',
+    '{question4}|Réveillez-vous. La Floride était une région du Québec. Cette année, vos grands-parents ont passé l’hiver à Saint-Sauveur. Les cartes ont tout redessiné.|{verset}',
   ],
 
   // ---- Niveau 5 · Illuminé·e : MAJUSCULES, phrases coupées, contradictions ----------------------
