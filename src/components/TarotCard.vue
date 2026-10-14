@@ -233,10 +233,11 @@ onUnmounted(() => {
 
 <template>
   <div ref="root" class="tarot" :class="`tarot--l${level}`" @click="skip">
+    <div class="tarot__stage">
     <div ref="dealEl" class="tarot__deal">
       <div ref="tiltEl" class="tarot__tilt">
         <div ref="flipEl" class="tarot__flip">
-          <div class="tarot__face tarot__front" :aria-hidden="!faceUp">
+          <div class="tarot__face tarot__front" :class="{ 'tarot__face--up': faceUp }" :aria-hidden="!faceUp">
             <div class="tarot__content" :style="{ '--title': `${titleSize}cqw` }">
               <span class="tarot__corner tarot__corner--tl" /><span class="tarot__corner tarot__corner--tr" />
               <span class="tarot__corner tarot__corner--bl" /><span class="tarot__corner tarot__corner--br" />
@@ -249,7 +250,7 @@ onUnmounted(() => {
             </div>
             <div class="tarot__glare" />
           </div>
-          <div class="tarot__face tarot__back" :aria-hidden="faceUp">
+          <div class="tarot__face tarot__back" :class="{ 'tarot__face--up': faceUp }" :aria-hidden="faceUp">
             <div class="tarot__backframe">
               <TarotEmblem class="tarot__backeye" symbole="eye" />
             </div>
@@ -257,6 +258,7 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -269,16 +271,19 @@ onUnmounted(() => {
   /* Fits its slot (.tarot-slot is a size container) while keeping the 7:12 ratio. */
   width: min(100cqw, calc(100cqh * 7 / 12));
   aspect-ratio: 7 / 12;
+  /* Containment lives here, OUTSIDE the 3D chain (Firefox flattens preserve-3d through contained elements). */
   container-type: inline-size;
-  perspective: 1100px;
   position: relative;
 }
+.tarot__stage { position: absolute; inset: 0; perspective: 1100px; }
 .tarot__deal, .tarot__tilt, .tarot__flip { position: absolute; inset: 0; transform-style: preserve-3d; }
 .tarot__tilt { transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.12s ease-out; }
 .tarot__face {
   position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   border-radius: 4cqw; overflow: hidden; box-shadow: 1.5cqw 1.5cqw 0 #000; border: 1.2cqw solid var(--tarot-ink);
 }
+/* Belt and braces: explicit visibility by side, in case a browser flattens the 3D context and backface-visibility is ignored. */
+.tarot__front:not(.tarot__face--up), .tarot__back.tarot__face--up { visibility: hidden; }
 .tarot__front { background: var(--tarot-paper); color: var(--tarot-ink); transform: rotateY(180deg); text-align: left; }
 .tarot__content {
   position: absolute; inset: 1.6cqw; border: 0.6cqw solid var(--tarot-gold); outline: 0.5cqw solid var(--tarot-ink); outline-offset: -2.2cqw;

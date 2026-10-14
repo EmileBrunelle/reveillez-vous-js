@@ -15,7 +15,7 @@ Le **niveau de vigilance** (de 1 à 5, affiché en badge) monte avec le nombre d
 ## Prérequis
 
 - **WebGPU obligatoire** (aucune version de secours, c’est un choix assumé). Chrome ou Edge récents sont recommandés.
-- Firefox : activer `dom.webgpu.enabled` dans `about:config`. Un écran d’accueil explique la marche à suivre si WebGPU est absent.
+- Firefox : WebGPU est actif par défaut sous Windows et macOS (Apple Silicon). Sous Linux, il faut encore activer `dom.webgpu.enabled` dans `about:config`. Un écran d’accueil explique la marche à suivre si WebGPU est absent.
 - Sur téléphone, la page doit être servie en HTTPS (WebGPU exige un contexte sécurisé).
 - L’animation respecte la préférence « réduire les animations » du système.
 
