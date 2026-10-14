@@ -19,7 +19,7 @@ const paired = (entries: Record<string, string>[]): ObjectTable => {
 
 /** Table de chaînes `name` + sa variante `name_caps` (pour le niveau 5). */
 const withCaps = (name: string, items: StringTable): Grammar => {
-  return { [name]: items, [`${name}_caps`]: items.map(up) }
+  return { [name]: items, [`${name}_maj`]: items.map(cap), [`${name}_caps`]: items.map(up) }
 }
 
 export const prophecies: Grammar = {
@@ -30,10 +30,9 @@ export const prophecies: Grammar = {
   // Chaque gabarit = une prédiction sur l’avenir de la personne + un élément de voyance ou d’Halloween.
   niveau1: [
     '{question1}|{objet.nom_maj} me le murmure depuis ce matin : {futur} {moment}. Rien de grave, rassurez-vous.|{verset}',
-    '{question1}|D’après la pleine lune, vous passerez une très belle semaine. Prévoyez simplement quelques bonbons pour une visite surprise.|{verset}',
-    '{question1}|Le 31 octobre, vous recevrez la visite de nombreuses petites créatures costumées. Le tarot confirme : gardez des {bonbon}.|{verset}',
-    '{question1}|J’ai tiré une carte pour vous : une belle journée vous attend {moment}. Un chat noir y jouera un rôle mineur.|{verset}',
-    '{question1}|Votre horoscope annonce un changement tout doux {moment}. Une citrouille en sera le témoin.|{verset}',
+    '{question1}|D’après la pleine lune, vous passerez une très belle semaine. Une personne en drap blanc vous demandera du sel. Donnez-lui-en.|{verset}',
+    '{question1}|Le 31 octobre, de petites créatures sonneront chez vous. Vous aurez peur du ninja de six ans. Les cartes savent pourquoi.|{verset}',
+    '{question1}|J’ai tiré une carte : une belle journée vous attend {moment}. Le chat noir, lui, aura une journée terrible. Je ne dis pas pourquoi.|{verset}',
     '{question1}|Dans la boule de cristal, je vois une porte, une main et un petit sac de {bonbon}. La porte, c’est la vôtre. La main, c’est la mienne.|{verset}',
     '{question1}|{industrie.inventeur_maj} {industrie.produit} pour nous vendre plus de {industrie.cible}, dit-on. Moi, je lis seulement {objet.nom}, et j’y vois que {futur} {moment}.|{verset}',
     '{question1}|À minuit, ce soir, vous entendrez peut-être un léger craquement. Ce sera un fantôme poli qui cherche l’interrupteur.|{verset}',
@@ -53,19 +52,18 @@ export const prophecies: Grammar = {
     '{question2}|{objet.nom_maj} montre un chat noir, puis un fantôme, puis un sac de {bonbon}. Dans cet ordre. Pour vous. Le 31 octobre.|{verset}',
     '{question2}|Mon tarot est clair : {futur} {moment}. Je ne crois pas aux coïncidences, je lis les cartes.|{verset}',
     '{question2}|{industrie.inventeur_maj} {industrie.produit} pour nous vendre plus de {industrie.cible}. Et par hasard, la pleine lune vous annonce un achat de {industrie.cible} {moment}. Coïncidence ?|{verset}',
-    '{question2}|Saint-Clin-Clin-des-Meuh-Meuh n’existe pas. Vous le saviez. Mais savez-vous que ma boule de cristal vous y voit déménager le 1er juillet ?|{verset}',
+    '{question2}|Saint-Clin-Clin-des-Meuh-Meuh est sur ma carte. Ma carte date de 1987. Vous y déménagerez le 1er juillet, sans camion.|{verset}',
     '{question2}|On vous aperçoit {lieu}, déguisé·e en citrouille, {moment}. Non, ne niez pas : c’est dans votre horoscope.|{verset}',
     '{question2}|Trois chats noirs, deux fantômes, un seul fournisseur de {bonbon}. Mon tarot en tire une conclusion : vous passerez la nuit du 31 octobre à compter vos bonbons.|{verset}',
     '{question2}|Ce soir, à minuit, {objet.nom} va changer de couleur. Si vous ne le voyez pas, c’est que vous en faites partie.|{verset}',
-    '{question2}|Vous avez ouvert la porte une deuxième fois, et {objet.nom} avait tout prédit, avant même que je frappe. Étrange, non ?|{verset}',
-    '{question2}|Ma boule de cristal vous voit planifier un voyage {lieu_inexistant.en} cet automne. Coïncidence : {lieu_inexistant.lieu} n’existe pas. {lieu_inexistant.preuve}|{verset}',
+    '{question2}|Vous avez rouvert la porte. Avant même que je frappe, {objet.nom} l’avait annoncé. J’ai noté l’heure. Vous aussi, je pense.|{verset}',
     '{question2}|Ce soir, vous remettrez une araignée dehors au lieu de l’écraser. Vous vous sentirez sage. Elle mourra d’hypothermie. Les cartes ne jugent pas.|{verset}',
     '{question2}|En vous, il y a deux loups. L’un veut du Paris Pâté. L’autre veut des sardines. Les cartes savent lequel gagnera demain matin. Elles ne le diront pas.|{verset}',
     '{question2}|Les cartes sont formelles : les Nordiques reviendront. Les Expos aussi. Les cartes disent ça depuis 1995. Elles sont patientes.|{verset}',
     '{question2}|Une malédiction pèse sur vous : le chili du Tim, avec le p’tit pain et les deux beurres. Vous y retournerez demain. Les cartes ne peuvent rien pour vous.|{verset}',
     '{question2}|Votre carte est le Magicien du Québec. Dès que quelque chose arrive dans votre vie, vous lancez un sort. Le sort s’appelle “Tabarnouche”. Il est très efficace.|{verset}',
     '{question2}|En entrevue, on vous demandera d’expliquer le trou de trois ans dans votre CV. Répondez : “J’étais chez une voyante.” C’est la vérité.|{verset}',
-    '{question2}|Un·e touriste vous dira “Quebec is great”. Vous aurez envie de l’adopter. Les cartes vous comprennent.|{verset}',
+    '{question2}|Un·e touriste vous demandera où est « le vrai Québec ». Vous pointerez au loin. Cette personne aura tort. Vous aussi.|{verset}',
     '{question2}|Ce temps des fêtes, vous recevrez une bouteille de whisky à l’érable. Vous l’offrirez à quelqu’un d’autre l’an prochain. Les cartes ont vu son voyage : elle circule depuis 2014.|{verset}',
   ],
 
@@ -73,18 +71,18 @@ export const prophecies: Grammar = {
   niveau3: [
     '{question3}|{fete.nom_maj} est une fausse fête inventée par {fete.industrie} pour vendre plus de {fete.cible}. Ma boule de cristal prédit que vous en achèterez cette année encore.|{verset}',
     '{question3}|Votre costume de cette année est déjà choisi : {objet.nom} l’a vu en rêve. Vous serez, au choix, un fantôme ou un drap. Ce sera le même.|{verset}',
-    '{question3}|{objet.nom_maj} l’annonce : à l’Halloween, vous croirez partir {lieu_inexistant.en}. Vous serez envoyé·e {lieu_inexistant.destination_reelle}. Comme tout le monde. {lieu_inexistant.preuve}|{verset}',
+    '{question3}|{objet.nom_maj} l’annonce : à l’Halloween, vous croirez partir {lieu_inexistant.en}. Vous arriverez {lieu_inexistant.destination_reelle}. Comme tout le monde.|{verset}',
     '{question3}|Ce n’est pas moi qui le dis, ce sont vos cartes : {futur} {moment}. Notez l’heure, et gardez une chandelle.|{verset}',
     '{question3}|Je vois dans votre chaudron un avenir bien chaud : {futur} {moment}. Ne laissez personne remuer la soupe à votre place.|{verset}',
-    '{question3}|La pleine lune de ce mois portera votre nom. Elle portera aussi celui de votre voisin, par souci d’équité. Prévoyez des {bonbon}.|{verset}',
+    '{question3}|La pleine lune de ce mois portera votre nom. Elle portera aussi celui de votre voisin, par souci d’équité. Elle en sera ravie. Vous, moins.|{verset}',
     '{question3}|Cette année, vous gagnerez le concours du meilleur costume. Ce n’est pas une prédiction, c’est un avertissement : le jury est un chat noir.|{verset}',
-    '{question3}|Réveillez-vous, les moutons ! Le tarot vous le dit : {futur} {moment}. Avancez avec des {bonbon} dans les poches.|{verset}',
+    '{question3}|Réveillez-vous, les moutons ! {futur_maj} {moment}. C’est écrit dans le tarot, entre le prix de l’essence et le jour de l’An.|{verset}',
     '{question3}|{objet.nom_maj} vous regarde. Pas pour vous protéger : pour mesurer vos réserves de {bonbon} avant le 31 octobre.|{verset}',
     '{question3}|Le 31 octobre, à minuit, un fantôme vous demandera si {fete.nom} est une vraie fête. Répondez non. Big Citrouille y verra une provocation.|{verset}',
     '{question3}|Les cartes voient votre prochain logement : une ancienne cuisine de restaurant, un poteau au milieu du salon, 10 500 $ par mois. Non chauffé. Vous signerez quand même.|{verset}',
     '{question3}|Cinq chats noirs dans un grand manteau vous demanderont l’heure. Répondez poliment. L’un d’eux sera un jour premier ministre.|{verset}',
     '{question3}|Les cartes voient un crime : une poutine au fromage râpé, servie dans un festival. Le coupable court toujours.|{verset}',
-    '{question3}|Pleine lune sur la Belle Province. Ce soir, quelque chose hurlera dans votre rue. Ne lui ouvrez pas. Il cogne mieux que vous.|{verset}',
+    '{question3}|Pleine lune sur la Belle Province. Quelque chose hurlera dans votre rue. Ne lui ouvrez pas : il a déjà le rythme.|{verset}',
     '{question3}|Cet hiver, par −30, vous direz que vous aimez l’hiver. Avec un chapeau de poil et un café. Les cartes savent que vous mentez. Elles mentent aussi.|{verset}',
     '{question3}|Vous êtes né·e pour mener une carriole sous la pleine lune. Demain matin, vous ouvrirez Teams. Les cartes compatissent.|{verset}',
   ],
@@ -92,34 +90,32 @@ export const prophecies: Grammar = {
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
   niveau4: [
     '{question4}|La boule de cristal, la citrouille, l’horoscope du journal : MÊME FOURNISSEUR. Prédiction : le 31 octobre, vous le comprendrez, mais trop tard.|{verset}',
-    '{question4}|Mon tarot prédit que vous voudrez partir {lieu_inexistant.en} cet hiver. {lieu_inexistant.lieu_maj} n’existe pas : on vous enverra {lieu_inexistant.destination_reelle}. {lieu_inexistant.preuve} MÊME FOURNISSEUR.|{verset}',
     '{question4}|Dans ma boule de cristal, le fil rouge passe {lieu}, puis par votre porte, {moment}. Je n’invente rien. Je lis.|{verset}',
     '{question4}|Mes notes : les {bonbon}, les costumes, les cônes orange, la neige. MÊME FOURNISSEUR. La pleine lune prédit qu’il repassera {moment}. Cachez votre citrouille.|{verset}',
     '{question4}|Votre horoscope a changé pendant la nuit. Quelqu’un l’a réécrit au crayon rouge : {futur} {moment}. Je n’ai pas touché à la citrouille.|{verset}',
     '{question4}|Ne regardez pas par la fenêtre le 31 octobre. Les oiseaux sont des drones, déguisés en chauves-souris. Ils attendent {moment}.|{verset}',
     '{question4}|Je relie {industrie.nom}, {fete.nom} et {objet.nom} avec du fil rouge. Le dessin forme un fantôme. Il vous ressemble. Il vous attend {moment}.|{verset}',
     '{question4}|Cette nuit, {objet.nom} a bougé sans mon aide. Ma prédiction : {futur} {moment}. Ma deuxième prédiction : la même, en pire.|{verset}',
-    '{question4}|Un seul fournisseur livre le chocolat, les toiles d’araignée et votre prochain mauvais pressentiment. MÊME FOURNISSEUR. Mon tarot annonce son passage {moment}.|{verset}',
     '{question4}|Soyez prudent·e à minuit : le chat noir du voisin n’est pas un chat, c’est une antenne. La pleine lune la recharge. Vous le verrez {moment}.|{verset}',
-    '{question4}|Piko, l’esprit des montgolfières de Saint-Jean, plane au-dessus de votre maison. Il sourit. Il a toujours souri. Il ne redescendra pas.|{verset}',
+    '{question4}|La montgolfière de Saint-Jean plane au-dessus de votre maison. Elle sourit. Elle ne redescendra pas avant le 31.|{verset}',
     '{question4}|Réveillez-vous. Montréal n’a jamais existé. Regardez une carte : c’est le Grand Lac Saint-Laurent. Ils ont tout peint.|{verset}',
-    '{question4}|Les cartes voient une petite décision : une tablette achetée pour une fête quelconque. Puis une plage. Une statue à moitié enterrée. Elles n’en disent pas plus.|{verset}',
+    '{question4}|Les cartes voient une petite décision : une tablette achetée en solde. Puis un chalet. Puis un lac. Puis plus rien.|{verset}',
     '{question4}|Réveillez-vous. La Floride était une région du Québec. Cette année, vos grands-parents ont passé l’hiver à Saint-Sauveur. Les cartes ont tout redessiné.|{verset}',
   ],
 
   // ---- Niveau 5 · Illuminé·e : MAJUSCULES, phrases coupées, contradictions ----------------------
   niveau5: [
-    '{question5}|LA BOULE DE CRISTAL DIT : {futur_caps} {moment_caps}. NON ! L’INVERSE ! PERSONNE NE VOUS CROISERA JAMAIS. VOUS ÊTES DÉJÀ DANS LE SAC DE BONBONS.|{verset}',
+    '{question5}|LA BOULE DIT : {futur_caps}. NON ! L’INVERSE ! LA BOULE VOUS PRÉDIT. VOUS PRÉDISEZ LA BOULE.|{verset}',
     '{question5}|{lieu_inexistant.lieu_caps} N’EXISTE PAS ! LA BOULE DE CRISTAL VOUS Y VOIT LE 31 OCTOBRE ET ON VOUS ENVOIE {lieu_inexistant.destination_reelle_caps} ! {lieu_inexistant.preuve_caps} VOUS N’EXIS—|{verset}',
     '{question5}|LA BOULE DE CRISTAL VOUS REGARDE. ELLE NE VOUS REGARDE PAS. ELLE VOUS REGARDE REGAR— {objet.nom_caps} AUSSI. À MINUIT, ILS SERONT TROIS. ILS SERONT UN.|{verset}',
-    '{question5}|MÊME FOURNISSEUR ! MÊME FOURN— MÊME FOURNISSEUR DE {bonbon_caps} ! DE COSTUMES ! DE LUNES ! LE 31 OCTOBRE, IL PASSERA POUR VOUS. POUR VOUS CUEIL—|{verset}',
+    '{question5}|UN SEUL FOURN— UN SEUL ! LE CHOCOLAT. LES LUNES. VOTRE NOM SUR LE SAC DE BONBONS. LE 31, IL PASSE. POUR VOUS CUEIL—|{verset}',
     '{question5}|LA PLEINE LUNE A QUATRE CÔTÉS ET QUATRE JOURS EN UN SEUL JOUR. LE CUBE DE CITROUILLE EST LE TEMPS. LE 31 OCTOBRE, VOUS SEREZ UN CUBE. RÉVEILLEZ-VOUS, LES MOUTONS !|{verset}',
     '{question5}|IL NE FAUT PAS FERMER LA PORTE. IL NE FAUT PAS OUVRIR LA PORTE. À MINUIT, IL FAUDRA ÊTRE LA PORTE. {objet.nom_caps} A DIT OUI.|{verset}',
     '{question5}|JE VOIS DANS LE CHAUDRON QUE {futur_caps} {moment_caps}. JE VOIS AUSSI LE CHAUDRON. LE CHAUDRON ME VOIT. LE CHAUD—|{verset}',
     '{question5}|JE SUIS LE MESSAGER. JE SUIS LE MESSAGE. JE SUIS LA PRÉDICTION. LE COUPABLE, C’EST {industrie.nom_caps}. VOUS ACHÈTEREZ DES {industrie.cible_caps} {moment_caps}. LA BOULE A DIT.|{verset}',
     '{question5}|ILS ONT GREFFÉ DES YEUX SUR LES CÔNES ORANGE. LA BOULE DE CRIS— OUI. ELLE A TOUT VU. ELLE VOIT VOTRE 31 OCTOBRE. ELLE A TOUJOURS ÉTÉ AU COUR—|{verset}',
     '{question5}|LES OISEAUX SONT DES DRONES ! LES CHAUVES-SOURIS SONT DES DRONES DÉGUISÉS ! CE SOIR À MINUIT, LA PLEINE LUNE VA PARLER ET VOUS SEREZ LE PUBLIC !|{verset}',
-    '{question5}|ILS DÉTESTAIENT LE RÉEL PARCE QU’IL DISAIT LE RÉEL. VOUS LE LIREZ À MINUIT. VOUS LE DIREZ À VOTRE TOUR.|{verset}',
+    '{question5}|ILS DÉTESTAIENT LE VRAI PARCE QU’IL PARLAIT FORT. VOUS LE LIREZ À MINUIT. VOUS LE DIREZ À VOTRE TOUR.|{verset}',
     '{question5}|LA SOCIÉTÉ EST UN CAUCHEMAR DONT ON NE PEUT PAS SE RÉVEILLER. RÉVEILLEZ-VOUS QUAND MÊME. VOUS Y ARRIVEREZ CE SOIR.|{verset}',
     '{question5}|ILLUMINATION. LA VÉRITÉ ULTIME VOUS EST RÉVÉLÉE : VOUS AVEZ LE DROIT DE NE RIEN FAIRE CE SOIR. FERMEZ LA PORTE. ALLEZ DORMIR.|{verset}',
     '{question5}|CES PROPHÉTIES ONT ÉTÉ ÉCRITES PAR UNE MACHINE QUI RECOPIE TOUT CE QU’ELLE A LU. COMME TOUTES LES PROPHÉTIES DEPUIS TOUJOURS. ÇA NE LES REND PAS FAUSSES. VOTRE AVENIR NON PLUS.|{verset}',
@@ -207,7 +203,7 @@ export const prophecies: Grammar = {
     'Ce n’est pas mon rythme. C’est celui du voisinage. Pourquoi ?',
     'Non. Écoutez mieux : ils frappent aussi, derrière vous.',
     'Mal. Mes cartes avaient prévu cette erreur. Elles s’en lassent.',
-    'Il faut imaginer Sisyphe heureux. Et vous aussi, en bas de la côte. Recommencez.',
+    'Vous montez la côte, la côte vous remonte. Recommencez.',
   ],
   rate4: [
     'NON. Pas comme ça. Ils ont entendu. Recommencez.',
