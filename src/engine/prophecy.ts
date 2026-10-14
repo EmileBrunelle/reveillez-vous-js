@@ -124,6 +124,40 @@ export const nextTitled = (grammar: Grammar, key: string, store: Store, rng: Rng
   return { title, text: rest.join('|') }
 }
 
+export type ErrorIcon = 'stop' | 'warn' | 'info' | 'question'
+export interface FakeError {
+  title: string
+  text: string
+  icon: ErrorIcon
+  buttons: string[]
+}
+const ICONS: readonly ErrorIcon[] = ['stop', 'warn', 'info', 'question']
+
+const pickOf = <T>(items: T[], rng: Rng): T => items[Math.floor(rng() * items.length)]
+
+/**
+ * Fausse erreur Windows 98 du niveau `level` : message « Titre|Texte » tiré du sac persisté `erreur<N>` (aucun message ne revient avant
+ * d’avoir tout vu, d’une visite à l’autre), icône et boutons tirés des tables `erreur_icone` / `erreur_boutons` (« Réessayer/Annuler »).
+ * `seen` = messages déjà affichés pendant cette visite : un message n’y est jamais répété (un retour de sac ne peut donc pas le ramener).
+ * Null si la table manque ou si tout a déjà été vu.
+ */
+export const nextFakeError = (grammar: Grammar, level: number, store: Store, rng: Rng, seen: Set<string>): FakeError | null => {
+  const key = `erreur${level}`
+  const lines = strings(grammar, key)
+  let raw: string | null = null
+  for (let i = 0; i < lines.length && raw === null; i++) {
+    const candidate = lines[drawPersisted(store, key, lines.length, rng)]
+    if (!seen.has(candidate)) raw = candidate
+  }
+  if (raw === null) return null
+  seen.add(raw)
+  const [title = '', ...rest] = expandTemplate(grammar, raw, rng).split('|')
+  const icons = strings(grammar, 'erreur_icone').filter((i): i is ErrorIcon => (ICONS as readonly string[]).includes(i))
+  const sets = strings(grammar, 'erreur_boutons')
+  const buttons = (sets.length > 0 ? pickOf(sets, rng) : 'OK').split('/')
+  return { title, text: rest.join('|'), icon: icons.length > 0 ? pickOf(icons, rng) : 'stop', buttons }
+}
+
 /** Mockery after a failed rhythm (table `rate<N>`). */
 export const nextFailLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, `rate${level}`, store, rng, fallback)
 

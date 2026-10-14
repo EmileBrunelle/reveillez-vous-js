@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { prophecies } from '../content/prophecies'
-import { nextTitled } from '../engine/prophecy'
+import { nextFakeError, type ErrorIcon } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
 import { intersects, pickFreeSlot, type Box } from '../engine/freeZones'
 import { safeStorage } from '../composables/safeStorage'
@@ -15,6 +15,8 @@ interface Win {
   id: number
   title: string
   text: string
+  icon: ErrorIcon
+  buttons: string[]
   x: number
   y: number
 }
@@ -22,6 +24,14 @@ const WIDTH = 288
 const HEIGHT = 176
 const rng = secureRng()
 const wins = ref<Win[]>([])
+const seen = new Set<string>() // messages déjà affichés pendant cette visite : jamais deux fois le même
+// Icône Windows 98 : disque rouge (×), triangle jaune (!), bulle bleue (i) ou point d’interrogation (?). Classes en littéraux complets (scanner UnoCSS).
+const ICON: Record<ErrorIcon, { glyph: string; cls: string }> = {
+  stop: { glyph: '×', cls: 'rounded-full bg-[#c00] text-white' },
+  warn: { glyph: '!', cls: 'bg-[#ffd800] text-black [clip-path:polygon(50%_0,100%_100%,0_100%)] pt-2' },
+  info: { glyph: 'i', cls: 'rounded-full bg-[#0000a8] text-white' },
+  question: { glyph: '?', cls: 'rounded-full bg-[#0000a8] text-white' },
+}
 let nextId = 1
 const desktop = () => window.matchMedia('(min-width: 641px)').matches
 
@@ -40,7 +50,7 @@ const boxOfWin = (w: Win): Box => ({ left: w.x, top: w.y, right: w.x + WIDTH, bo
 
 const spawn = () => {
   if (!desktop()) return
-  const line = nextTitled(prophecies, `erreur${props.level}`, safeStorage(), rng)
+  const line = nextFakeError(prophecies, props.level, safeStorage(), rng, seen)
   if (!line) return
   const slot = pickFreeSlot(area(), WIDTH, HEIGHT, [...avoidBoxes(), ...wins.value.map(boxOfWin)], rng)
   if (slot) {
@@ -95,16 +105,18 @@ onBeforeUnmount(() => timers.forEach((t) => t.stop()))
         <button class="win-btn grid place-items-center w-[18px] h-[16px] p-0 leading-none border-0 text-[0.8rem]" type="button" aria-label="Fermer la fausse erreur" @click="close(w.id)">×</button>
       </div>
       <div class="flex items-start gap-3 px-3 pt-4 pb-3">
-        <span class="flex-none grid place-items-center w-8 h-8 rounded-full bg-[#c00] text-white font-bold text-[1.2rem] leading-none" aria-hidden="true">×</span>
+        <span class="flex-none grid place-items-center w-8 h-8 font-bold text-[1.2rem] leading-none" :class="ICON[w.icon].cls" aria-hidden="true">{{ ICON[w.icon].glyph }}</span>
         <p class="m-0 text-black">{{ w.text }}</p>
       </div>
-      <div class="flex justify-center pb-2">
+      <div class="flex justify-center gap-2 pb-2">
         <button
-          class="win-btn min-w-[5.5rem] min-h-[1.75rem] border-0 [font:inherit] focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-5px]"
+          v-for="b in w.buttons"
+          :key="b"
+          class="win-btn min-w-[4.5rem] px-2 min-h-[1.75rem] border-0 [font:inherit] focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-5px]"
           type="button"
           @click="close(w.id)"
         >
-          OK
+          {{ b }}
         </button>
       </div>
     </div>
