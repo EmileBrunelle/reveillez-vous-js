@@ -88,7 +88,7 @@ watch(open, async (o) => {
     await nextTick()
     void playOpen()
   } else if (!o && shown.value && !busy) void playClose()
-})
+}, { immediate: true }) // composant async : il peut se monter alors que le parent veut déjà l’ouvrir
 
 const request = (v: boolean) => {
   if (!v && shown.value) void closeNow()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 
 // Parent v-model = "wants open". Native <dialog>: Esc, focus trap and inert background come for free.
 const open = defineModel<boolean>({ default: false })
@@ -8,7 +8,7 @@ const dlg = ref<HTMLDialogElement>()
 const cancelBtn = ref<HTMLButtonElement>()
 let opener: HTMLElement | null = null
 
-watch(open, async (o) => {
+const sync = async (o: boolean) => {
   const d = dlg.value
   if (!d) return
   if (o && !d.open) {
@@ -17,7 +17,10 @@ watch(open, async (o) => {
     await nextTick()
     cancelBtn.value?.focus()
   } else if (!o && d.open) d.close()
-})
+}
+// Composant async : il peut se monter alors que le parent veut déjà l’ouvrir.
+watch(open, sync)
+onMounted(() => open.value && sync(true))
 
 const onClose = () => {
   open.value = false

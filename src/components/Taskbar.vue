@@ -2,6 +2,7 @@
 import { nextTick, ref, useTemplateRef } from 'vue'
 import { onClickOutside, useIntervalFn } from '@vueuse/core'
 import { muted } from '../audio/sfx'
+import { loadAbout, loadReset, prefetch } from '../lazy'
 import Vigilance from './Vigilance.vue'
 import IconGithub from '~icons/simple-icons/github'
 
@@ -9,6 +10,7 @@ defineProps<{ level: number }>()
 const emit = defineEmits<{ about: []; reset: []; resetLevel: [] }>()
 
 const open = ref(false)
+const warm = () => prefetch(loadAbout, loadReset) // les boîtes de dialogue sont des chunks à part
 const startBtn = useTemplateRef<HTMLButtonElement>('startBtn')
 const menu = useTemplateRef<HTMLElement>('menu')
 const items = () => Array.from(menu.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
@@ -18,6 +20,7 @@ const close = (refocus = false) => {
   if (refocus) startBtn.value?.focus()
 }
 const toggle = async () => {
+  warm()
   open.value = !open.value
   if (open.value) {
     await nextTick()
@@ -63,6 +66,8 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         :aria-expanded="open"
         aria-controls="start-menu"
         @click="toggle"
+        @pointerenter="warm"
+        @focus="warm"
       >
         <svg class="w-4 h-4" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M1 3l6-1v6H1z" fill="#f00" /><path d="M8 2l7-1v7H8z" fill="#0a0" /><path d="M1 9h6v6l-6-1z" fill="#00f" /><path d="M8 9h7v6l-7-1z" fill="#fc0" />

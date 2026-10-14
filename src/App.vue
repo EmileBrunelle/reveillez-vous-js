@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, shallowRef, watch, watchEffect } from 'vue'
+import { computed, defineAsyncComponent, markRaw, nextTick, ref, shallowRef, watch, watchEffect, type Component } from 'vue'
 import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
-import DoorScene from './components/DoorScene.vue'
-import TarotCard from './components/TarotCard.vue'
+import TarotCardBack from './components/TarotCardBack.vue'
 import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
-import AboutTempleOS from './components/AboutTempleOS.vue'
-import ResetConfirm from './components/ResetConfirm.vue'
 import Taskbar from './components/Taskbar.vue'
 import { bumpVisits, levelForVisits, readVisits, resetVisits } from './composables/useVisits'
 import { backgrounds, doors } from './content/scenes'
@@ -19,6 +16,26 @@ import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
 import { safeStorage } from './composables/safeStorage'
 import { hymn, unlock } from './audio/sfx'
+import { loadAbout, loadDoorScene, loadReset, loadTarotCard, prefetch } from './lazy'
+
+// Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
+const TarotCard = defineAsyncComponent({ loader: loadTarotCard, loadingComponent: TarotCardBack, delay: 150 })
+const AboutTempleOS = defineAsyncComponent(loadAbout)
+const ResetConfirm = defineAsyncComponent(loadReset)
+// La scène de la porte s’affiche après « Approchez-vous » : on garde ce bouton tant que son chunk n’est pas là (pas de substitut, donc pas de saut).
+const DoorScene = shallowRef<Component | null>(null)
+let doorLoad: Promise<unknown> | null = null
+const ensureDoor = () =>
+  (doorLoad ??= loadDoorScene().then(
+    (m) => {
+      DoorScene.value = markRaw(m.default)
+      prefetch(loadTarotCard) // la carte se tire après les coups : on la réchauffe pendant que la porte s’affiche
+    },
+    (e) => {
+      doorLoad = null // réseau coupé : le prochain clic réessaie
+      throw e
+    },
+  ))
 
 type Phase = 'door' | 'reading'
 const rng = secureRng()
@@ -26,6 +43,8 @@ const FALLBACK_LINE = 'Toc toc toc… Avez-vous un moment pour parler de votre a
 
 // 'checking' until the CRT overlay got a WebGPU device; nothing of the experience renders before that.
 const gpu = ref<'checking' | 'ok' | 'blocked'>('checking')
+// Le réseau sert d’abord au premier écran (CRT, vgpu) : le reste ne part qu’une fois le GPU confirmé.
+watch(gpu, (g) => g === 'ok' && void ensureDoor().catch(() => undefined), { immediate: true })
 const attempt = ref(0)
 const retry = () => {
   gpu.value = 'checking'
@@ -34,7 +53,10 @@ const retry = () => {
 
 const aboutOpen = ref(false)
 let opener: HTMLElement | null = null
+const aboutWanted = ref(false) // monté (donc chargé) à la première ouverture seulement
+const resetWanted = ref(false)
 const openAbout = () => {
+  aboutWanted.value = true
   opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
   aboutOpen.value = true
 }
@@ -47,6 +69,7 @@ const paranoia = computed(() => (level.value - 1) / 4)
 watchEffect(() => document.documentElement.style.setProperty('--paranoia', String(paranoia.value)))
 
 const resetOpen = ref(false)
+watch(resetOpen, (o) => o && (resetWanted.value = true))
 const resetLevel = () => {
   resetVisits()
   level.value = levelForVisits(readVisits())
@@ -102,7 +125,7 @@ const approach = () => {
   unlock()
   requestOrientationPermission()
   // Give the context a moment to reach 'running' so scheduleKnocks sees it live.
-  startAwaitEnd()
+  ensureDoor().then(startAwaitEnd, () => undefined)
 }
 
 const closeBtn = ref<HTMLButtonElement>()
@@ -118,9 +141,9 @@ const focusSoon = (find: () => HTMLElement | null | undefined) => {
 const onFlipped = () => void nextTick(() => closeBtn.value?.focus({ preventScroll: true }))
 // A phase unmounting drops focus to <body>: send it to the door button of the next door.
 watch(
-  () => [phase.value, closing.value, awaiting.value, gpu.value] as const,
-  ([p, c, a, g]) => {
-    if (p === 'door' && !c && !a && g === 'ok') focusSoon(() => document.querySelector<HTMLElement>('.door-hit'))
+  () => [phase.value, closing.value, awaiting.value, gpu.value, DoorScene.value] as const,
+  ([p, c, a, g, d]) => {
+    if (p === 'door' && !c && !a && g === 'ok' && d) focusSoon(() => document.querySelector<HTMLElement>('.door-hit'))
   },
   { flush: 'post' },
 )
@@ -138,10 +161,11 @@ const onClosed = () => {
       <component :is="background.component" />
       <div class="fixed inset-0 z-0 pointer-events-none bg-[rgb(120_0_0/0.35)] transition-opacity duration-[400ms] motion-reduce:transition-none" :class="listening ? 'opacity-100' : 'opacity-0'" aria-hidden="true" />
       <button v-if="awaiting" class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-0.6667rem]" type="button" autofocus @click="approach">Approchez-vous de la porte</button>
-      <main v-else ref="mainEl" class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip" :class="{ 'app--reading': phase === 'reading' }">
+      <main v-else-if="DoorScene" ref="mainEl" class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip" :class="{ 'app--reading': phase === 'reading' }">
         <AnimatePresence mode="wait">
           <Motion v-if="phase === 'door'" :key="`door-${sceneKey}`" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
-            <DoorScene
+            <component
+              :is="DoorScene"
               :door="door"
               :line="doorLine"
               :level="level"
@@ -150,7 +174,7 @@ const onClosed = () => {
               @about="openAbout"
               @reset="resetOpen = true"
               @reset-level="resetLevel"
-              @listening="(v) => (listening = v)"
+              @listening="(v: boolean) => (listening = v)"
               @impact="shake"
               @closed="onClosed"
             />
@@ -170,6 +194,6 @@ const onClosed = () => {
     </template>
   </MotionConfig>
   <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @reset="resetOpen = true" @reset-level="resetLevel" />
-  <AboutTempleOS v-model="aboutOpen" />
-  <ResetConfirm v-model="resetOpen" @confirm="resetLevel" />
+  <AboutTempleOS v-if="aboutWanted" v-model="aboutOpen" />
+  <ResetConfirm v-if="resetWanted" v-model="resetOpen" @confirm="resetLevel" />
 </template>
