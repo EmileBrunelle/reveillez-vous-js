@@ -1,3 +1,4 @@
+import { paramsKey } from './paramsKey'
 import { clock, effect, frameLoop, init, surface } from 'vgpu'
 
 /** Internal resolution: ~0.5x CSS px, long side capped (mobile budget); the canvas is upscaled by CSS (linear). */
@@ -67,11 +68,6 @@ export const createRaymarch = async (canvas: HTMLCanvasElement, opts: RaymarchOp
     gpu.dispose()
     throw e
   }
-  const variantKey = () => {
-    const rest: Record<string, number> = { ...params(0) }
-    delete rest.time
-    return JSON.stringify(rest)
-  }
   let lastDraw = -1
   let lastKey = ''
   const run = () =>
@@ -80,7 +76,7 @@ export const createRaymarch = async (canvas: HTMLCanvasElement, opts: RaymarchOp
       p += (paranoia() - p) * (1 - Math.pow(0.97, dt * 60))
       const animated = motion()
       // En image statique, la clé inclut les paramètres de la variante (hors `time`) : changer de variante sans remontage redessine.
-      const key = `${canvas.width}x${canvas.height}|${p.toFixed(3)}|${animated}` + (animated ? '' : `|${variantKey()}`)
+      const key = `${canvas.width}x${canvas.height}|${p.toFixed(3)}|${animated}` + (animated ? '' : `|${paramsKey(params(0))}`)
       if (animated) {
         const par = parallax()
         const k = 1 - Math.exp(-dt / 0.35) // ~0.35 s time constant, frame-rate independent

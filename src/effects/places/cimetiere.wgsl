@@ -184,7 +184,7 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
     }
   }
   let f = fract(params.drift / 9.0 + ph);
-  return g * smoothstep(0.004, 0.012, f);
+  return g * smoothstep(0.0, 0.04, min(f, 1.0 - f));
 }
 
 @fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
