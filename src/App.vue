@@ -4,7 +4,6 @@ import { AnimatePresence, Motion, MotionConfig, animate, useReducedMotion } from
 import DoorScene from './components/DoorScene.vue'
 import TarotCard from './components/TarotCard.vue'
 import CrtOverlay from './components/CrtOverlay.vue'
-import MuteToggle from './components/MuteToggle.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
 import AboutTempleOS from './components/AboutTempleOS.vue'
 import ResetConfirm from './components/ResetConfirm.vue'
@@ -51,6 +50,7 @@ const resetLevel = () => {
   level.value = levelForVisits(readVisits())
 }
 
+const listening = ref(false)
 const phase = ref<Phase>('door')
 const closing = ref(false)
 const sceneKey = ref(0)
@@ -71,6 +71,7 @@ const enterDoor = () => {
   background.value = pickVariant(backgrounds, level.value, background.value.id, rng)
   doorLine.value = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE)
   phase.value = 'door'
+  listening.value = false
   closing.value = false
   sceneKey.value++
 }
@@ -79,6 +80,7 @@ enterDoor()
 const onDone = () => {
   prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng)
   phase.value = 'reading'
+  listening.value = false
   hymn()
 }
 const restart = () => {
@@ -131,7 +133,7 @@ const onClosed = () => {
     <p v-if="gpu === 'checking'" class="fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none" role="status">Connexion aux ondes…</p>
     <template v-if="gpu === 'ok'">
       <component :is="background.component" />
-      <MuteToggle class="fixed top-[0.6rem] right-[0.6rem] z-10" />
+      <div class="fixed inset-0 z-0 pointer-events-none bg-[rgb(120_0_0/0.35)] transition-opacity duration-[400ms] motion-reduce:transition-none" :class="listening ? 'opacity-100' : 'opacity-0'" aria-hidden="true" />
       <button v-if="awaiting" class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-12px]" type="button" autofocus @click="approach">Approchez-vous de la porte</button>
       <main v-else ref="mainEl" class="app relative z-1 min-h-[100vh] grid place-items-center pt-[3.5rem] px-[1rem] pb-[3rem] overflow-clip" :class="{ 'app--reading': phase === 'reading' }">
         <AnimatePresence mode="wait">
@@ -144,6 +146,7 @@ const onClosed = () => {
               @open="onDone"
               @about="openAbout"
               @reset="resetOpen = true"
+              @listening="(v) => (listening = v)"
               @impact="shake"
               @closed="onClosed"
             />

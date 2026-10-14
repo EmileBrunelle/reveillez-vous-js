@@ -15,7 +15,7 @@ export const requestOrientationPermission = () => {
   }
 }
 
-const RANGE = 25 // degrés d’inclinaison du téléphone = inclinaison max de la carte
+const RANGE = 15 // degrés d’inclinaison du téléphone pour atteindre l’inclinaison max de la carte
 const clamp = (v: number) => Math.max(-1, Math.min(1, v))
 
 type Options = {

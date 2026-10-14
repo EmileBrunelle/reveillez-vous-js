@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SiteFooter from './SiteFooter.vue'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { animate, useReducedMotion } from 'motion-v'
 import type { SceneVariant } from '../content/scenes'
 import { creak, knock, scheduleKnocks, slam, unlock, type KnockHandle } from '../audio/sfx'
@@ -16,7 +16,7 @@ import SparkPool from './SparkPool.vue'
 import KnockPattern from './KnockPattern.vue'
 
 const props = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean }>()
-const emit = defineEmits<{ open: []; about: []; reset: []; impact: [number]; closed: [] }>()
+const emit = defineEmits<{ open: []; about: []; reset: []; impact: [number]; closed: []; listening: [boolean] }>()
 const reduced = useReducedMotion()
 
 const stage = ref<HTMLElement>()
@@ -115,6 +115,7 @@ const caption = (i: number) => {
 
 type Phase = 'invite' | 'listen' | 'repeat' | 'busy'
 const phase = ref<Phase>('invite')
+watch(phase, (p) => emit('listening', p === 'listen'))
 const said = ref('(Cognez à la porte)')
 const verdictText = ref('')
 const announce = ref('')

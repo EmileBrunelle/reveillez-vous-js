@@ -217,13 +217,15 @@ const onMove = (e: PointerEvent) => {
   })
 }
 // Gyroscope (mobile) : mêmes variables CSS que le pointeur ; la carte reste « fixe » dans le monde (sens inverse du téléphone).
+// Plus ample que le pointeur : à 8°, sur un téléphone, ça ne se voyait presque pas.
+const GYRO_TILT = 20
 useDeviceTilt({
   enabled: () => !reduced.value && !finePointer && settled.value,
   apply: (nx, ny) => {
     const s = tiltEl.value?.style
     if (!s) return
-    s.setProperty('--ry', `${-nx * MAX_TILT}deg`)
-    s.setProperty('--rx', `${ny * MAX_TILT}deg`)
+    s.setProperty('--ry', `${-nx * GYRO_TILT}deg`)
+    s.setProperty('--rx', `${ny * GYRO_TILT}deg`)
     s.setProperty('--gx', `${50 - nx * 60}%`)
     s.setProperty('--gy', `${50 - ny * 60}%`)
     s.setProperty('--glare', '1')

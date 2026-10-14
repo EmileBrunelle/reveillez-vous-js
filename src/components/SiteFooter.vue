@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { muted } from '../audio/sfx'
 import IconGithub from '~icons/simple-icons/github'
 
 defineProps<{ canReset?: boolean }>()
@@ -20,6 +21,8 @@ const emit = defineEmits<{ about: []; reset: [] }>()
       <IconGithub class="w-[1em] h-[1em] align-[-0.125em] mr-[0.3em]" aria-hidden="true" />
       Code source
     </a>
+    ·
+    <button class="linklike" type="button" :aria-pressed="muted" @click="muted = !muted">{{ muted ? 'Son : coupé' : 'Son : actif' }}</button>
     <template v-if="canReset">
       ·
       <button class="linklike" type="button" @click="emit('reset')">Recommencer à zéro</button>
