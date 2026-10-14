@@ -2,6 +2,7 @@ import { expandTemplate, type Grammar } from './grammar'
 import type { Rng } from './rng'
 import { drawPersisted } from './shuffleBag'
 import { isPaquet, type Paquet } from './paquets'
+import { arcaneIndex } from '../stores/progress'
 
 export interface Arcane {
   /** Roman numeral (« XVIII », « XIII bis »). */
@@ -77,8 +78,43 @@ export const nextLine = (grammar: Grammar, key: string, store: Store, rng: Rng, 
   return expandTemplate(grammar, lines[drawPersisted(store, key, lines.length, rng)], rng)
 }
 
-/** Next door knock line of `level` (shuffle bag), or `fallback` when the key is missing. */
-export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, `porte${level}`, store, rng, fallback)
+/** Nom de l’arcane d’indice `index` (voir `arcaneIndex`) dans la table `arcane`, ou null. Plusieurs cartes peuvent partager un indice (« XIII bis », « XIII ½ ») : le rng départage. */
+export const arcaneNameAt = (grammar: Grammar, index: number | null, rng: Rng): string | null => {
+  const table = grammar.arcane
+  if (index === null || !Array.isArray(table) || typeof table[0] !== 'object') return null
+  const found = (table as Record<string, string>[]).filter((a) => a.nom && arcaneIndex(a.numero ?? '') === index)
+  return found.length > 0 ? found[Math.floor(rng() * found.length)].nom : null
+}
+
+/** Part des visites (niveau 2+, carte précédente connue) où la porte rappelle la carte précédente. */
+export const RAPPEL_CHANCE = 0.5
+
+/**
+ * Next door knock line of `level` (shuffle bag), or `fallback` when the key is missing.
+ * Avec une mémoire (`lastArcane` connu, niveau ≥ 2), environ une fois sur deux la ligne vient de `rappel<N>`,
+ * où `{carte}` (+ `_maj`, `_caps`) est le nom de la carte précédente.
+ */
+export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string, memory?: { lastArcane: number | null }): string => {
+  if (level >= 2 && memory && memory.lastArcane !== null && strings(grammar, `rappel${level}`).length > 0 && rng() < RAPPEL_CHANCE) {
+    const nom = arcaneNameAt(grammar, memory.lastArcane, rng)
+    if (nom) {
+      const g: Grammar = { ...grammar, carte: [nom], carte_maj: [nom.charAt(0).toLocaleUpperCase('fr-CA') + nom.slice(1)], carte_caps: [nom.toLocaleUpperCase('fr-CA')] }
+      return nextLine(g, `rappel${level}`, store, rng, fallback)
+    }
+  }
+  return nextLine(grammar, `porte${level}`, store, rng, fallback)
+}
+
+/** Titre de l’onglet quand il est caché (table `onglet<N>`, sac persisté), ou `fallback`. */
+export const nextTabTitle = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, `onglet${level}`, store, rng, fallback)
+
+/** Une bulle ou fausse erreur « Titre|Texte » de la table `key` (sac persisté) ; null si la table manque. */
+export const nextTitled = (grammar: Grammar, key: string, store: Store, rng: Rng): { title: string; text: string } | null => {
+  const line = nextLine(grammar, key, store, rng, '')
+  if (!line) return null
+  const [title = '', ...rest] = line.split('|')
+  return { title, text: rest.join('|') }
+}
 
 /** Mockery after a failed rhythm (table `rate<N>`). */
 export const nextFailLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, `rate${level}`, store, rng, fallback)

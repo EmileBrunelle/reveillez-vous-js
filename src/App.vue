@@ -4,16 +4,19 @@ import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
 import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
 import Taskbar from './components/Taskbar.vue'
+import FakeErrors from './components/FakeErrors.vue'
 import BgPlace from './components/backgrounds/BgPlace.vue'
 import { useProgressStore } from './stores/progress'
+import { useSessionStore } from './stores/session'
+import { useTabTitle } from './composables/useTabTitle'
 import { doors, pickPlaceVariant, placeForLevel } from './content/scenes'
 import { prophecies } from './content/prophecies'
-import { nextDoorLine, nextProphecy, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
+import { nextDoorLine, nextProphecy, nextTitled, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import { pickVariant } from './engine/variant'
 import type { Paquet } from './engine/paquets'
 import { storeToRefs } from 'pinia'
-import { useTimeoutFn } from '@vueuse/core'
+import { useMediaQuery, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
 import { safeStorage } from './composables/safeStorage'
@@ -79,6 +82,8 @@ watch(aboutOpen, (o) => {
 
 const progress = useProgressStore()
 const { level, paranoia } = storeToRefs(progress)
+const session = useSessionStore()
+useTabTitle(level)
 // Activité du niveau courant (null au niveau 1 ou sans activité) ; le composant ne change qu’avec le niveau.
 const Activity = computed(() => {
   const loader = activityFor(level.value)
@@ -118,7 +123,7 @@ const enterDoor = () => {
   door.value = pickVariant(doors, level.value, door.value.id, rng)
   place.value = placeForLevel(level.value)
   placeVariant.value = pickPlaceVariant(place.value, placeVariant.value.id, rng)
-  doorLine.value = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE)
+  doorLine.value = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
   phase.value = 'door'
   listening.value = false
   closing.value = false
@@ -135,6 +140,15 @@ const onDone = () => {
 const onActivityDone = () => {
   phase.value = 'cut'
 }
+// Une bulle de la barre des tâches par visite (niveau 2+), peu après l’arrivée à la porte. Sur écran étroit, elle ne reste pas au-delà de la porte (elle couvrirait la carte ou « Fermer la porte »).
+const { start: startBubble, stop: stopBubble } = useTimeoutFn(
+  () => {
+    const b = level.value >= 2 ? nextTitled(prophecies, `bulle${level.value}`, safeStorage(), rng) : null
+    if (b) session.notify(`${b.title}|${b.text}`)
+  },
+  2500,
+  { immediate: false },
+)
 // La prophétie est tirée ici, une fois par visite : l’arcane vient du paquet choisi.
 const onPick = async (paquet: Paquet) => {
   if (phase.value !== 'cut' || closing.value) return // « Recommencer à zéro » pendant le vol : on ne rouvre pas une lecture
@@ -149,6 +163,7 @@ const onPick = async (paquet: Paquet) => {
 }
 const leave = (count: boolean) => {
   if (closing.value) return
+  stopBubble()
   closing.value = true
   unlock()
   if (count) progress.bump()
@@ -184,10 +199,19 @@ const onFlipped = () => void nextTick(() => closeBtn.value?.focus({ preventScrol
 watch(
   () => [phase.value, closing.value, awaiting.value, gpu.value, DoorScene.value] as const,
   ([p, c, a, g, d]) => {
-    if (p === 'door' && !c && !a && g === 'ok' && d) focusSoon(() => document.querySelector<HTMLElement>('.door-hit'))
+    if (p === 'door' && !c && !a && g === 'ok' && d) {
+      focusSoon(() => document.querySelector<HTMLElement>('.door-hit'))
+      startBubble()
+    }
   },
   { flush: 'post' },
 )
+const narrow = useMediaQuery('(max-width: 900px)')
+watch(phase, (p) => {
+  if (p === 'door' || !narrow.value) return
+  stopBubble()
+  session.notifications.forEach((n) => session.dismiss(n.id))
+})
 const onClosed = () => {
   enterDoor()
 }
@@ -319,6 +343,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
       </main>
     </template>
   </MotionConfig>
+  <FakeErrors v-if="gpu === 'ok' && phase === 'reading'" :key="sceneKey" :level="level" />
   <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @reset="resetOpen = true" @reset-level="resetLevel" />
   <AboutTempleOS v-if="aboutWanted" v-model="aboutOpen" />
   <ResetConfirm v-if="resetWanted" v-model="resetOpen" @confirm="resetLevel" />

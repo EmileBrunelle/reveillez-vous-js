@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { nextTick, ref, useTemplateRef } from 'vue'
-import { onClickOutside, useIntervalFn } from '@vueuse/core'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import { onClickOutside, useIntervalFn, useTimeoutFn } from '@vueuse/core'
+import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
 import { loadAbout, loadReset, prefetch } from '../lazy'
 import Vigilance from './Vigilance.vue'
@@ -58,6 +59,21 @@ const onMenuKey = (e: KeyboardEvent) => {
     list[list.length - 1]?.focus()
   } else if (e.key === 'Tab') close()
 }
+
+// Bulle de notification (une à la fois, file d’attente) : « Titre|Texte », disparaît seule après 7 s.
+const session = useSessionStore()
+const BALLOON_MS = 7000
+const balloon = computed(() => {
+  const n = session.notifications[0]
+  if (!n) return null
+  const [title = '', ...rest] = n.text.split('|')
+  return rest.length > 0 ? { id: n.id, title, text: rest.join('|') } : { id: n.id, title: '', text: title }
+})
+const { start: startBalloonTimer, stop: stopBalloonTimer } = useTimeoutFn(() => balloon.value && session.dismiss(balloon.value.id), BALLOON_MS, { immediate: false })
+watch(
+  () => balloon.value?.id,
+  (id) => (id === undefined ? stopBalloonTimer() : startBalloonTimer()),
+)
 
 const nowMs = ref(Date.now())
 useIntervalFn(() => (nowMs.value = Date.now()), 15000)
@@ -138,6 +154,30 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
       </div>
     </div>
 
+    <div
+      v-if="balloon"
+      :key="balloon.id"
+      class="balloon box-border absolute bottom-full right-1 mb-[10px] w-[min(18rem,calc(100vw-0.5rem))] max-sm:w-64 bg-[#ffffe1] text-black text-[0.85rem] border border-solid border-black p-[3px] shadow-[2px_2px_0_rgb(0_0_0/0.35)] motion-safe:animate-[balloon-in_0.2s_ease-out_both]"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="flex items-center gap-1 min-h-6">
+        <span class="flex-none grid place-items-center w-4 h-4 rounded-full bg-[#000080] text-white text-[0.7rem] font-bold leading-none" aria-hidden="true">i</span>
+        <strong v-if="balloon.title" class="flex-1 min-w-0 truncate">{{ balloon.title }}</strong>
+        <span v-else class="flex-1" />
+        <button
+          class="flex-none grid place-items-center w-6 h-6 p-0 border-0 bg-transparent text-black cursor-pointer text-[1rem] leading-none hover:bg-[#c0c0c0] focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black"
+          type="button"
+          aria-label="Fermer la notification"
+          @click="session.dismiss(balloon.id)"
+        >
+          ×
+        </button>
+      </div>
+      <p class="m-0 px-[2px] pb-[3px] pt-[2px]">{{ balloon.text }}</p>
+      <span class="absolute -bottom-[6px] right-5 w-[10px] h-[10px] bg-[#ffffe1] border-0 border-r border-b border-solid border-black rotate-45" aria-hidden="true" />
+    </div>
+
     <div class="flex items-stretch gap-1 pl-1 pr-1 bg-[#c0c0c0]" :class="inset">
       <Vigilance :level="level" class="flex items-center min-h-10 min-w-10 justify-center" @reset="emit('resetLevel')" />
       <button
@@ -155,3 +195,16 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes balloon-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+</style>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Grammar } from '../../src/../src/engine/grammar'
-import { doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, templatesFor } from '../../src/../src/engine/prophecy'
+import { prophecies } from '../../src/content/prophecies'
+import { arcaneNameAt, doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, nextTabTitle, nextTitled, templatesFor } from '../../src/../src/engine/prophecy'
 import { mulberry32 } from '../../src/../src/engine/rng'
 import { pickVariant } from '../../src/../src/engine/variant'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
@@ -65,6 +66,54 @@ describe('prophecy', () => {
     expect(nextFailLine(g, 3, store(), mulberry32(1), 'fb')).toBe('fb')
     expect(nextEntrezLine(g, store(), mulberry32(1), 'fb')).toBe('Entrez')
     expect(nextEntrezLine({}, store(), mulberry32(1), 'fb')).toBe('fb')
+  })
+})
+
+describe('rappel de la carte précédente', () => {
+  const gr: Grammar = {
+    porte2: ['Porte {x}'],
+    rappel2: ['Rappel {carte} / {carte_caps}'],
+    arcane: [
+      { numero: 'XIII bis', nom: 'Big Citrouille', symbole: 'pumpkin' },
+      { numero: 'XIII ½', nom: 'Le Chat noir', symbole: 'cat' },
+      { numero: 'XVIII', nom: 'La Lune', symbole: 'moon' },
+    ],
+    x: ['a'],
+  }
+  it('arcaneNameAt maps the integer index back to a name (ties resolved by rng)', () => {
+    expect(arcaneNameAt(gr, 18, mulberry32(1))).toBe('La Lune')
+    expect(arcaneNameAt(gr, null, mulberry32(1))).toBeNull()
+    expect(arcaneNameAt(gr, 99, mulberry32(1))).toBeNull()
+    expect(new Set(Array.from({ length: 40 }, (_, s) => arcaneNameAt(gr, 13, mulberry32(s))))).toEqual(new Set(['Big Citrouille', 'Le Chat noir']))
+  })
+  it('lastArcane null, level 1 or missing table: always the porte line', () => {
+    for (let s = 0; s < 60; s++) {
+      expect(nextDoorLine(gr, 2, store(), mulberry32(s), 'fb', { lastArcane: null })).toBe('Porte a')
+      expect(nextDoorLine(gr, 2, store(), mulberry32(s), 'fb')).toBe('Porte a')
+      expect(nextDoorLine({ ...gr, porte1: ['P1'], rappel1: ['R {carte}'] }, 1, store(), mulberry32(s), 'fb', { lastArcane: 18 })).toBe('P1')
+      expect(nextDoorLine({ porte2: ['P'], arcane: gr.arcane }, 2, store(), mulberry32(s), 'fb', { lastArcane: 18 })).toBe('P')
+    }
+  })
+  it('lastArcane set: both sources occur, {carte} is substituted, unknown index falls back to porte', () => {
+    const seen = new Set<string>()
+    for (let s = 0; s < 80; s++) seen.add(nextDoorLine(gr, 2, store(), mulberry32(s), 'fb', { lastArcane: 18 }))
+    expect(seen).toEqual(new Set(['Porte a', 'Rappel La Lune / LA LUNE']))
+    for (let s = 0; s < 40; s++) expect(nextDoorLine(gr, 2, store(), mulberry32(s), 'fb', { lastArcane: 99 })).toBe('Porte a')
+  })
+  it('real content: every level 2..5 line expands with a real previous card', () => {
+    for (let lvl = 2; lvl <= 5; lvl++) for (let s = 0; s < 80; s++) expect(nextDoorLine(prophecies, lvl, store(), mulberry32(s), 'fb', { lastArcane: 13 })).not.toMatch(/[{}]/)
+  })
+})
+
+describe('titre d’onglet et bulles', () => {
+  it('nextTabTitle draws onglet<N> with fallback', () => {
+    const gt: Grammar = { onglet2: ['Revenez'] }
+    expect(nextTabTitle(gt, 2, store(), mulberry32(1), 'Base')).toBe('Revenez')
+    expect(nextTabTitle(gt, 3, store(), mulberry32(1), 'Base')).toBe('Base')
+  })
+  it('nextTitled splits « Titre|Texte », null when the table is missing', () => {
+    expect(nextTitled({ bulle2: ['Titre|Un texte | avec barre'] }, 'bulle2', store(), mulberry32(1))).toEqual({ title: 'Titre', text: 'Un texte | avec barre' })
+    expect(nextTitled({}, 'bulle2', store(), mulberry32(1))).toBeNull()
   })
 })
 

@@ -224,6 +224,94 @@ export const prophecies: Grammar = {
   // ---- Après 3 ratés : la voix abandonne et ouvre quand même ---------------------------------
   entrez: ['Bon. Entrez, on n’a pas toute la nuit.', 'Trois essais. Ça suffit : je vous ouvre. Ne touchez à rien.', 'Les cartes disent d’abandonner. Entrez, ce n’est pas verrouillé.'],
 
+  // ---- Rappels (T6) : la porte se souvient de la carte précédente. `{carte}` / `{carte_maj}` / `{carte_caps}` = nom de l’arcane tiré à la visite d’avant
+  // (table temporaire injectée par `nextDoorLine`). Pas de « de {carte} » ni « à {carte} » (le nom porte déjà son article) ; pas d’accord au participe avec la carte.
+  rappel2: [
+    'La dernière fois, vous avez tiré {carte}. Je m’en souviens très bien.',
+    'Vous revoilà. {carte}, c’était la dernière fois. Je l’ai noté quelque part.',
+    'Après {carte}, je me doutais que vous reviendriez.',
+    'Je repense à votre tirage : {carte}. Vous aussi, je parie.',
+    'Alors, {carte} ? Ça a fait son effet depuis ?',
+    'Toc toc. Vous avez tiré {carte} et vous voilà de retour. Les cartes aiment avoir raison.',
+  ],
+  rappel3: [
+    'Vous avez tiré {carte}, et vous revenez. Les cartes avaient prévu les deux.',
+    'TOC TOC. Depuis {carte}, plus rien n’est pareil. Vous l’avez senti ?',
+    'J’ai gardé {carte} dans ma manche, au cas où.',
+    'Ce n’est pas un hasard si vous avez tiré {carte}. Frappez, je m’explique.',
+    'Toc toc toc ! {carte} vous attend toujours derrière cette porte.',
+    'Frappez. Au sujet de la dernière carte, {carte}, il faut qu’on parle. Pas au téléphone.',
+  ],
+  rappel4: [
+    'TOC TOC. {carte}, c’était un avertissement. Vous n’avez pas écouté.',
+    'Depuis {carte}, quelqu’un cogne chez moi aussi. Frappez vite.',
+    'Ne dites pas {carte} à voix haute. On vous entend. Frappez.',
+    'J’ai jeté {carte}. Ce matin, dans mon sac : encore {carte}.',
+    'Votre dernière carte, {carte}, intéresse d’autres personnes que moi. Frappez.',
+    'Fermez les rideaux. Après {carte}, on parle de vous dans tout le quartier.',
+  ],
+  rappel5: [
+    'VOUS AVEZ TIRÉ {carte_caps}. ILS LE SAVENT. FRAPPEZ.',
+    'APRÈS {carte_caps}, PLUS PERSONNE NE VOUS RÉPOND. MOI, SI. FRAPPEZ.',
+    'JE SUIS DERRIÈRE {carte_caps}. NON. {carte_caps} EST DERRIÈRE MOI.',
+    '{carte_caps} N’ÉTAIT PAS UNE CARTE. C’ÉTAIT UNE PORTE. FRAPPEZ.',
+    'TOC— {carte_caps}. TOC— {carte_caps}. MÊME RYTHME. MÊME CARTE. FRAPPEZ.',
+    'LA DERNIÈRE FOIS : {carte_caps}. CE SOIR : ILS ONT TOUT LU. FRAPPEZ.',
+  ],
+
+  // ---- Titre de l’onglet quand il est caché (≤ 40 caractères) -----------------------------------
+  onglet1: ['Revenez…', 'La porte vous attend.', 'On n’a pas fini.'],
+  onglet2: ['Je vous vois encore.', 'Vous partez déjà ?', 'La carte vous attend.'],
+  onglet3: ['Revenez. Maintenant.', 'Je sais où vous êtes.', 'Je sais que vous revenez.'],
+  onglet4: ['Quelqu’un est entré.', 'Ne me laissez pas ici.', 'Je regarde l’onglet vide.'],
+  onglet5: ['REVENEZ.', 'JE SUIS DANS L’ONGLET.', 'IL N’Y A PERSONNE. REVENEZ.'],
+
+  // ---- Bulles de la barre des tâches (« Titre|Texte ») -------------------------------------------
+  bulle2: [
+    'Nouveau message|La boule de cristal a essayé de vous joindre.',
+    'Mise à jour disponible|Votre avenir a été mis à jour. Redémarrage requis.',
+    'Rappel|Vous avez rendez-vous avec le 31 octobre.',
+    'Barre des tâches|Quelqu’un a ouvert la porte avant vous.',
+  ],
+  bulle3: [
+    'Connexion détectée|Quelqu’un consulte votre horoscope en ce moment.',
+    'Avertissement|Un chat noir a traversé votre bureau.',
+    'Nouveau matériel détecté|Une carte de tarot a été installée sans votre accord.',
+    'Rappel|Le fil rouge est branché. Ne le débranchez pas.',
+  ],
+  bulle4: [
+    'Connexion à distance|Quelqu’un s’est connecté à votre avenir.',
+    'Espace disque faible|Il reste très peu de destin sur le disque C:.',
+    'Avertissement de sécurité|Un fantôme demande l’accès à vos fichiers.',
+    'Programme inconnu|Ça tourne en arrière-plan depuis le 1er octobre.',
+  ],
+  bulle5: [
+    'Dernier avertissement|Il n’y a plus de barre des tâches. Il n’y en a jamais eu.',
+    'Erreur fatale|Le futur a cessé de répondre.',
+    'Session terminée|Vous n’avez jamais ouvert cette porte.',
+    'Message de personne|Regardez derrière vous.',
+  ],
+
+  // ---- Fausses fenêtres d’erreur Windows 98 (« Titre|Message »), niveaux 3 à 5 ---------------------
+  erreur3: [
+    'AVENIR.EXE|Le fichier AVENIR.DLL est introuvable.',
+    'Boule de cristal|Une opération illégale a été prédite.',
+    'Tarot|Mémoire insuffisante pour contenir tout ce que les cartes savent.',
+    'Halloween|Le fichier CHAT_NOIR.SYS a cessé de répondre.',
+  ],
+  erreur4: [
+    'Avertissement|Le fichier FIL_ROUGE.DLL est utilisé par un autre programme. Ce programme, c’est vous.',
+    'FANTOME.EXE|FANTOME.EXE a provoqué une faute de protection générale dans le module PORTE.DLL.',
+    'Mémoire insuffisante|Impossible d’oublier ce que vous avez vu.',
+    'Erreur système|Quelqu’un utilise déjà ce destin.',
+  ],
+  erreur5: [
+    'ERREUR FATALE|Une exception 0E a eu lieu à 31:10:00. Elle vous attendait.',
+    'Écran bleu|Appuyez sur une touche pour continuer. Il n’y a plus de touche.',
+    'ILS|Le fichier VOUS.DLL est introuvable. Il se trouvait derrière vous.',
+    'Redémarrage|Windows doit redémarrer. Pas vous. Vous restez.',
+  ],
+
   // ---- Questions d’accroche, par niveau --------------------------------------------------
   question1: [
     'Puis-je consulter votre avenir, entre deux portes ?',
@@ -476,6 +564,7 @@ export const prophecies: Grammar = {
 //  - Tables partagées : `industrie`, `fete`, `objet` (paires), `futur`, `moment`, `bonbon`, `lieu`, `verset_livre` + `verset_ref` (chaînes ; « Livre ch:v », ex. « Pleine lune 3:13 »).
 //  - `porte1` … `porte5` : phrases de porte (voix derrière la porte qui frappe un rythme), 8-10 lignes par niveau.
 //  - `rate1` … `rate5` : 4 à 6 phrases par niveau quand le rythme est raté ; `entrez` : 3 phrases après 3 ratés.
+//  - `rappel2` … `rappel5` (rappel de la carte précédente, `{carte}`), `onglet1` … `onglet5` (titre d’onglet caché), `bulle2` … `bulle5` et `erreur3` … `erreur5` (« Titre|Texte »).
 //  - `gabarit` = ancien point d’entrée (un niveau au hasard), gardé pour compatibilité.
 // Conventions :
 //  - Écriture inclusive : épicène d’abord (« les personnes », « toute personne », « vous ») ; sinon point médian
