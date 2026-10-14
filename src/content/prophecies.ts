@@ -410,7 +410,7 @@ export const prophecies: Grammar = {
     'Bonbons 1:31',
     'Horoscope 12:12',
     'Fantômes 2:3',
-    'Chaudron 4:20',
+    'Chaudron 3:13',
     'Déménagement 1:7',
     'Poutine 5:55',
     'Cônes 9:11',
