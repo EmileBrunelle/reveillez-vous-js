@@ -2,14 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { expandTemplate, type Grammar, type ObjectTable } from '../../src/engine/grammar'
 import { mulberry32 } from '../../src/engine/rng'
 import { prophecies } from '../../src/../src/content/prophecies'
+import { BANNED, CONTRACTIONS, RELIGION, bannedRe } from './rules'
 import raw from '../../src/../src/content/prophecies.ts?raw'
 
 const SEEDS = 60
 const levels = [1, 2, 3, 4, 5]
-const BANNED = ['5G', 'vaccin', 'lézard', 'CIA', 'glowie', 'terre plate', 'fou', 'folle', 'schizo', 'psychose', 'dément', 'cinglé']
-const CONTRACTIONS = [' de le ', ' de les ', ' à le ', ' à les ']
-
-const bannedRe = (w: string) => new RegExp(`(?<![\\p{L}\\p{N}])${w}(?![\\p{L}\\p{N}])`, 'iu')
 
 /** Every (key, template, seed) expansion of the real content. */
 // eslint-disable-next-line func-style -- générateur : func-style n’exempte pas `function*`
@@ -145,7 +142,7 @@ describe('prophecies content', () => {
           expect(v).not.toContain("'")
           expect(v).not.toContain('|')
           expect(v).not.toMatch(/ {2}/)
-          for (const w of [...BANNED, 'pape', 'papesse', 'dieu', 'diable', 'jugement']) expect(v, `${w} in ${v}`).not.toMatch(bannedRe(w))
+          for (const w of [...BANNED, ...RELIGION]) expect(v, `${w} in ${v}`).not.toMatch(bannedRe(w))
         }
       }
     })

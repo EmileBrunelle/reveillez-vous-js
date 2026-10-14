@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Grammar } from '../../src/../src/engine/grammar'
 import { prophecies } from '../../src/content/prophecies'
-import { arcaneNameAt, doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, nextTabTitle, nextTitled, templatesFor } from '../../src/../src/engine/prophecy'
+import { arcaneNameAt, carteTables, doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, nextTabTitle, nextTitled, templatesFor } from '../../src/../src/engine/prophecy'
 import { mulberry32 } from '../../src/../src/engine/rng'
 import { pickVariant } from '../../src/../src/engine/variant'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
@@ -86,6 +86,12 @@ describe('rappel de la carte précédente', () => {
     expect(arcaneNameAt(gr, 99, mulberry32(1))).toBeNull()
     expect(new Set(Array.from({ length: 40 }, (_, s) => arcaneNameAt(gr, 13, mulberry32(s))))).toEqual(new Set(['Big Citrouille', 'Le Chat noir']))
   })
+  it('lastNom wins over the shared index; unknown lastNom falls back to the index', () => {
+    for (let s = 0; s < 30; s++) {
+      expect(arcaneNameAt(gr, 13, mulberry32(s), 'Le Chat noir')).toBe('Le Chat noir')
+      expect(arcaneNameAt(gr, 18, mulberry32(s), 'Inconnue')).toBe('La Lune')
+    }
+  })
   it('lastArcane null, level 1 or missing table: always the porte line', () => {
     for (let s = 0; s < 60; s++) {
       expect(nextDoorLine(gr, 2, store(), mulberry32(s), 'fb', { lastArcane: null })).toBe('Porte a')
@@ -97,11 +103,23 @@ describe('rappel de la carte précédente', () => {
   it('lastArcane set: both sources occur, {carte} is substituted, unknown index falls back to porte', () => {
     const seen = new Set<string>()
     for (let s = 0; s < 80; s++) seen.add(nextDoorLine(gr, 2, store(), mulberry32(s), 'fb', { lastArcane: 18 }))
-    expect(seen).toEqual(new Set(['Porte a', 'Rappel La Lune / LA LUNE']))
+    expect(seen).toEqual(new Set(['Porte a', 'Rappel la Lune / LA LUNE']))
     for (let s = 0; s < 40; s++) expect(nextDoorLine(gr, 2, store(), mulberry32(s), 'fb', { lastArcane: 99 })).toBe('Porte a')
   })
   it('real content: every level 2..5 line expands with a real previous card', () => {
     for (let lvl = 2; lvl <= 5; lvl++) for (let s = 0; s < 80; s++) expect(nextDoorLine(prophecies, lvl, store(), mulberry32(s), 'fb', { lastArcane: 13 })).not.toMatch(/[{}]/)
+  })
+})
+
+describe('carteTables', () => {
+  it('lowercases only a leading article', () => {
+    expect(carteTables('La Lune').carte).toEqual(['la Lune'])
+    expect(carteTables('L’Étoile').carte).toEqual(['l’Étoile'])
+    expect(carteTables('Le Magicien du Québec').carte).toEqual(['le Magicien du Québec'])
+    expect(carteTables('Big Citrouille').carte).toEqual(['Big Citrouille'])
+    expect(carteTables('Lanterne').carte).toEqual(['Lanterne'])
+    expect(carteTables('La Lune').carte_maj).toEqual(['La Lune'])
+    expect(carteTables('La Lune').carte_caps).toEqual(['LA LUNE'])
   })
 })
 

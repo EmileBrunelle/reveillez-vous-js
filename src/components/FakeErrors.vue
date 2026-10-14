@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useEventListener, useTimeoutFn } from '@vueuse/core'
+import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { prophecies } from '../content/prophecies'
 import { nextTitled } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
@@ -43,7 +43,10 @@ const spawn = () => {
   const line = nextTitled(prophecies, `erreur${props.level}`, safeStorage(), rng)
   if (!line) return
   const slot = pickFreeSlot(area(), WIDTH, HEIGHT, [...avoidBoxes(), ...wins.value.map(boxOfWin)], rng)
-  if (slot) wins.value.push({ id: nextId++, ...line, ...slot })
+  if (slot) {
+    wins.value.push({ id: nextId++, ...line, ...slot })
+    settle.start() // la carte ou la colonne a pu bouger depuis la mesure : on revérifie peu après
+  }
 }
 const close = (id: number) => (wins.value = wins.value.filter((w) => w.id !== id))
 
@@ -61,10 +64,19 @@ const recheck = () => {
   })
 }
 useEventListener(window, 'resize', recheck)
+const settle = useTimeoutFn(recheck, 700, { immediate: false })
+// La carte et la colonne changent de taille (retournement, polices, orientation) : on revérifie à chaque changement.
+const tarotEl = shallowRef<HTMLElement | null>(null)
+const mainEl = shallowRef<HTMLElement | null>(null)
+useResizeObserver([tarotEl, mainEl], recheck)
 
 const count = props.level >= 5 ? 3 : props.level === 4 ? 1 + Math.floor(rng() * 2) : 1
 const timers = Array.from({ length: props.level >= 3 ? count : 0 }, (_, i) => useTimeoutFn(spawn, 3500 + i * 2500, { immediate: false }))
-onMounted(() => timers.forEach((t) => t.start()))
+onMounted(() => {
+  tarotEl.value = document.querySelector<HTMLElement>('.tarot')
+  mainEl.value = document.querySelector<HTMLElement>('main')
+  timers.forEach((t) => t.start())
+})
 onBeforeUnmount(() => timers.forEach((t) => t.stop()))
 </script>
 

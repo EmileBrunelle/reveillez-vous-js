@@ -20,7 +20,7 @@ describe('progress store', () => {
     expect(s.visits).toBe(0)
     expect(s.level).toBe(1)
     expect(s.paranoia).toBe(0)
-    expect(s.memory).toEqual({ lastArcane: null, lastLevel: null, finished: false })
+    expect(s.memory).toEqual({ lastArcane: null, lastNom: null, lastLevel: null, finished: false })
   })
 
   it('reads the legacy plain-number visits format and keeps writing it', () => {
@@ -39,12 +39,12 @@ describe('progress store', () => {
 
   it.each(['{not json', 'null', '42', '"x"', '[]'])('falls back to default memory on garbage %j', (raw) => {
     m.set(MEMORY_KEY, raw)
-    expect(fresh().memory).toEqual({ lastArcane: null, lastLevel: null, finished: false })
+    expect(fresh().memory).toEqual({ lastArcane: null, lastNom: null, lastLevel: null, finished: false })
   })
 
   it('merges partial or mistyped memory with defaults', () => {
-    m.set(MEMORY_KEY, JSON.stringify({ lastArcane: 'x', lastLevel: 3, finished: 'yes' }))
-    expect(fresh().memory).toEqual({ lastArcane: null, lastLevel: 3, finished: false })
+    m.set(MEMORY_KEY, JSON.stringify({ lastArcane: 'x', lastNom: 42, lastLevel: 3, finished: 'yes' }))
+    expect(fresh().memory).toEqual({ lastArcane: null, lastNom: null, lastLevel: 3, finished: false })
   })
 
   it('bump increments and returns the new count; reset only clears visits', () => {
@@ -59,13 +59,13 @@ describe('progress store', () => {
     expect(s.level).toBe(1)
     expect(m.get(VISITS_KEY)).toBe('0')
     expect(m.get(BAGS_KEY)).toBe('keep')
-    expect(s.memory).toEqual({ lastArcane: 17, lastLevel: 2, finished: true })
+    expect(s.memory).toEqual({ lastArcane: 17, lastNom: null, lastLevel: 2, finished: true })
   })
 
   it('remember and finish persist to rvj-memory', () => {
     const s = fresh()
     s.remember('0', 1)
-    expect(JSON.parse(m.get(MEMORY_KEY)!)).toEqual({ lastArcane: 0, lastLevel: 1, finished: false })
+    expect(JSON.parse(m.get(MEMORY_KEY)!)).toEqual({ lastArcane: 0, lastNom: null, lastLevel: 1, finished: false })
     s.finish()
     expect(fresh().memory.finished).toBe(true)
   })

@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { expandTemplate, type Grammar, type ObjectTable } from '../../src/engine/grammar'
 import { mulberry32 } from '../../src/engine/rng'
+import { carteTables } from '../../src/engine/prophecy'
 import { prophecies } from '../../src/content/prophecies'
-
-const BANNED = ['5G', 'vaccin', 'lézard', 'CIA', 'glowie', 'terre plate', 'fou', 'folle', 'schizo', 'psychose', 'dément', 'cinglé']
-const CONTRACTIONS = [' de le ', ' de les ', ' à le ', ' à les ']
-const bannedRe = (w: string) => new RegExp(`(?<![\\p{L}\\p{N}])${w}(?![\\p{L}\\p{N}])`, 'iu')
+import { BANNED, CONTRACTIONS, RELIGION, bannedRe } from './rules'
 
 describe('T6 tables (rappel, onglet, bulle, erreur)', () => {
   const arcanes = prophecies.arcane as ObjectTable
-  const asGrammar = (nom: string): Grammar => ({ ...prophecies, carte: [nom], carte_maj: [nom], carte_caps: [nom.toLocaleUpperCase('fr-CA')] })
+  const asGrammar = (nom: string): Grammar => ({ ...prophecies, ...carteTables(nom) })
   const tables: { prefix: string; levels: number[]; min: number; max: number }[] = [
     { prefix: 'rappel', levels: [2, 3, 4, 5], min: 6, max: 110 },
     { prefix: 'onglet', levels: [1, 2, 3, 4, 5], min: 3, max: 40 },
@@ -36,7 +34,7 @@ describe('T6 tables (rappel, onglet, bulle, erreur)', () => {
             // « de/à » devant un nom de carte (« de La Lune », « à Le Chat noir ») : contraction impossible, tournure interdite.
             expect(out, ctx).not.toMatch(/\b(de|à) (Le|La|Les|L’)/)
             expect(out, ctx).not.toMatch(/terry|davis|templeos|holyc/i)
-            for (const w of BANNED) expect(out, `${w} in ${ctx}`).not.toMatch(bannedRe(w))
+            for (const w of [...BANNED, ...RELIGION]) expect(out, `${w} in ${ctx}`).not.toMatch(bannedRe(w))
             if (prefix === 'bulle' || prefix === 'erreur') {
               const [title, ...rest] = out.split('|')
               expect(rest.length, ctx).toBe(1)
@@ -49,7 +47,20 @@ describe('T6 tables (rappel, onglet, bulle, erreur)', () => {
     })
   }
   it('rappel*: every line mentions the previous card', () => {
-    for (const n of [2, 3, 4, 5]) for (const tpl of prophecies[`rappel${n}`] as string[]) expect(tpl).toMatch(/\{carte(_caps)?\}/)
+    for (const n of [2, 3, 4, 5]) for (const tpl of prophecies[`rappel${n}`] as string[]) expect(tpl).toMatch(/\{carte(_maj|_caps)?\}/)
+  })
+  it('rappel*: {carte} never starts a sentence (use {carte_maj})', () => {
+    for (const n of [2, 3, 4, 5]) for (const tpl of prophecies[`rappel${n}`] as string[]) expect(tpl, tpl).not.toMatch(/(^|[.!?…—] )\{carte\}/)
+  })
+  it('new tables: no « ils », « iel(s) », « eux » or point médian (épicène wording only)', () => {
+    for (const prefix of ['rappel', 'onglet', 'bulle', 'erreur']) {
+      for (let n = 1; n <= 5; n++) {
+        for (const tpl of (prophecies[`${prefix}${n}`] as string[] | undefined) ?? []) {
+          expect(tpl, tpl).not.toMatch(/(?<![\p{L}])(ils|iels?|eux)(?![\p{L}])/iu)
+          expect(tpl, tpl).not.toContain('·')
+        }
+      }
+    }
   })
   it('rappel5 is in capitals', () => {
     for (const tpl of prophecies.rappel5 as string[]) {

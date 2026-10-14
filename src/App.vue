@@ -94,8 +94,11 @@ watchEffect(() => document.documentElement.style.setProperty('--paranoia', Strin
 const resetOpen = ref(false)
 watch(resetOpen, (o) => o && (resetWanted.value = true))
 // « Recommencer à zéro » : on repart tout de suite au niveau 1, sans compter la visite en cours.
+const clearBubbles = () => session.notifications.forEach((n) => session.dismiss(n.id))
 const resetLevel = () => {
   progress.reset()
+  stopBubble()
+  clearBubbles()
   if (phase.value === 'door') {
     if (!closing.value) enterDoor() // porte pas encore ouverte : on retire porte, réplique et lieu pour le niveau 1
   } else leave(false)
@@ -116,6 +119,7 @@ const door = shallowRef(doors[0])
 const place = shallowRef(placeForLevel(level.value))
 const placeVariant = shallowRef(place.value.variants[0])
 const pickedPaquet = ref<Paquet>('nuit')
+const cardSettled = ref(false) // la carte est retournée : les fausses erreurs peuvent se mesurer
 const doorLine = ref(FALLBACK_LINE)
 const prophecy = ref<Prophecy>({ question: '', body: '', verse: '', arcane: EMPTY_ARCANE })
 
@@ -156,7 +160,8 @@ const onPick = async (paquet: Paquet) => {
   if (phase.value !== 'cut' || closing.value) return
   pickedPaquet.value = paquet
   prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng, paquet)
-  progress.remember(prophecy.value.arcane.numero, level.value)
+  progress.remember(prophecy.value.arcane.numero, level.value, prophecy.value.arcane.nom)
+  cardSettled.value = false
   phase.value = 'reading'
   hymn()
   void nextTick(() => (tarotFailed.value ? closeBtn.value : readingEl.value)?.focus({ preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
@@ -194,7 +199,10 @@ const focusSoon = (find: () => HTMLElement | null | undefined) => {
   }
   requestAnimationFrame(t)
 }
-const onFlipped = () => void nextTick(() => closeBtn.value?.focus({ preventScroll: true }))
+const onFlipped = () => {
+  cardSettled.value = true
+  void nextTick(() => closeBtn.value?.focus({ preventScroll: true }))
+}
 // A phase unmounting drops focus to <body>: send it to the door button of the next door.
 watch(
   () => [phase.value, closing.value, awaiting.value, gpu.value, DoorScene.value] as const,
@@ -206,11 +214,12 @@ watch(
   },
   { flush: 'post' },
 )
+// Une bulle appartient à la porte : dès qu’on la quitte, la bulle en attente est annulée ; l’affichée est retirée sur écran étroit (elle couvrirait la carte).
 const narrow = useMediaQuery('(max-width: 900px)')
 watch(phase, (p) => {
-  if (p === 'door' || !narrow.value) return
+  if (p === 'door') return
   stopBubble()
-  session.notifications.forEach((n) => session.dismiss(n.id))
+  if (narrow.value) clearBubbles()
 })
 const onClosed = () => {
   enterDoor()
@@ -343,7 +352,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
       </main>
     </template>
   </MotionConfig>
-  <FakeErrors v-if="gpu === 'ok' && phase === 'reading'" :key="sceneKey" :level="level" />
+  <FakeErrors v-if="gpu === 'ok' && phase === 'reading' && cardSettled" :key="sceneKey" :level="level" />
   <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @reset="resetOpen = true" @reset-level="resetLevel" />
   <AboutTempleOS v-if="aboutWanted" v-model="aboutOpen" />
   <ResetConfirm v-if="resetWanted" v-model="resetOpen" @confirm="resetLevel" />

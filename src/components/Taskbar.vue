@@ -73,6 +73,7 @@ const { start: startBalloonTimer, stop: stopBalloonTimer } = useTimeoutFn(() => 
 watch(
   () => balloon.value?.id,
   (id) => (id === undefined ? stopBalloonTimer() : startBalloonTimer()),
+  { immediate: true },
 )
 
 const nowMs = ref(Date.now())

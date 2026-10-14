@@ -79,12 +79,21 @@ export const nextLine = (grammar: Grammar, key: string, store: Store, rng: Rng, 
 }
 
 /** Nom de l’arcane d’indice `index` (voir `arcaneIndex`) dans la table `arcane`, ou null. Plusieurs cartes peuvent partager un indice (« XIII bis », « XIII ½ ») : le rng départage. */
-export const arcaneNameAt = (grammar: Grammar, index: number | null, rng: Rng): string | null => {
+export const arcaneNameAt = (grammar: Grammar, index: number | null, rng: Rng, nom?: string | null): string | null => {
   const table = grammar.arcane
-  if (index === null || !Array.isArray(table) || typeof table[0] !== 'object') return null
+  if (!Array.isArray(table) || typeof table[0] !== 'object') return null
+  // Le nom enregistré gagne (même indice, cartes différentes) ; sinon repli sur l’indice (anciennes sauvegardes).
+  if (nom && (table as Record<string, string>[]).some((a) => a.nom === nom)) return nom
+  if (index === null) return null
   const found = (table as Record<string, string>[]).filter((a) => a.nom && arcaneIndex(a.numero ?? '') === index)
   return found.length > 0 ? found[Math.floor(rng() * found.length)].nom : null
 }
+
+/** Nom de carte au milieu d’une phrase : l’article initial passe en minuscules (« La Lune » -> « la Lune », « L’Étoile » -> « l’Étoile »). */
+export const lowerArticle = (nom: string): string => nom.replace(/^(?:(?:Le|La|Les)(?=\s)|L’)/u, (a) => a.toLocaleLowerCase('fr-CA'))
+
+/** Tables temporaires du rappel : `carte` (milieu de phrase), `carte_maj` (nom tel quel, début de phrase), `carte_caps`. */
+export const carteTables = (nom: string): Grammar => ({ carte: [lowerArticle(nom)], carte_maj: [nom], carte_caps: [nom.toLocaleUpperCase('fr-CA')] })
 
 /** Part des visites (niveau 2+, carte précédente connue) où la porte rappelle la carte précédente. */
 export const RAPPEL_CHANCE = 0.5
@@ -94,12 +103,11 @@ export const RAPPEL_CHANCE = 0.5
  * Avec une mémoire (`lastArcane` connu, niveau ≥ 2), environ une fois sur deux la ligne vient de `rappel<N>`,
  * où `{carte}` (+ `_maj`, `_caps`) est le nom de la carte précédente.
  */
-export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string, memory?: { lastArcane: number | null }): string => {
+export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string, memory?: { lastArcane: number | null; lastNom?: string | null }): string => {
   if (level >= 2 && memory && memory.lastArcane !== null && strings(grammar, `rappel${level}`).length > 0 && rng() < RAPPEL_CHANCE) {
-    const nom = arcaneNameAt(grammar, memory.lastArcane, rng)
+    const nom = arcaneNameAt(grammar, memory.lastArcane, rng, memory.lastNom)
     if (nom) {
-      const g: Grammar = { ...grammar, carte: [nom], carte_maj: [nom.charAt(0).toLocaleUpperCase('fr-CA') + nom.slice(1)], carte_caps: [nom.toLocaleUpperCase('fr-CA')] }
-      return nextLine(g, `rappel${level}`, store, rng, fallback)
+      return nextLine({ ...grammar, ...carteTables(nom) }, `rappel${level}`, store, rng, fallback)
     }
   }
   return nextLine(grammar, `porte${level}`, store, rng, fallback)

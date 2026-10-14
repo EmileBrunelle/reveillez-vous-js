@@ -224,11 +224,11 @@ export const prophecies: Grammar = {
   // ---- Après 3 ratés : la voix abandonne et ouvre quand même ---------------------------------
   entrez: ['Bon. Entrez, on n’a pas toute la nuit.', 'Trois essais. Ça suffit : je vous ouvre. Ne touchez à rien.', 'Les cartes disent d’abandonner. Entrez, ce n’est pas verrouillé.'],
 
-  // ---- Rappels (T6) : la porte se souvient de la carte précédente. `{carte}` / `{carte_maj}` / `{carte_caps}` = nom de l’arcane tiré à la visite d’avant
+  // ---- Rappels (T6) : la porte se souvient de la carte précédente. `{carte}` (article en minuscules : « la Lune ») / `{carte_maj}` (nom tel quel, pour début de phrase) / `{carte_caps}` = nom de l’arcane tiré à la visite d’avant
   // (table temporaire injectée par `nextDoorLine`). Pas de « de {carte} » ni « à {carte} » (le nom porte déjà son article) ; pas d’accord au participe avec la carte.
   rappel2: [
     'La dernière fois, vous avez tiré {carte}. Je m’en souviens très bien.',
-    'Vous revoilà. {carte}, c’était la dernière fois. Je l’ai noté quelque part.',
+    'Vous revoilà. {carte_maj}, c’était la dernière fois. Je l’ai noté quelque part.',
     'Après {carte}, je me doutais que vous reviendriez.',
     'Je repense à votre tirage : {carte}. Vous aussi, je parie.',
     'Alors, {carte} ? Ça a fait son effet depuis ?',
@@ -239,11 +239,11 @@ export const prophecies: Grammar = {
     'TOC TOC. Depuis {carte}, plus rien n’est pareil. Vous l’avez senti ?',
     'J’ai gardé {carte} dans ma manche, au cas où.',
     'Ce n’est pas un hasard si vous avez tiré {carte}. Frappez, je m’explique.',
-    'Toc toc toc ! {carte} vous attend toujours derrière cette porte.',
+    'Toc toc toc ! {carte_maj} vous attend toujours derrière cette porte.',
     'Frappez. Au sujet de la dernière carte, {carte}, il faut qu’on parle. Pas au téléphone.',
   ],
   rappel4: [
-    'TOC TOC. {carte}, c’était un avertissement. Vous n’avez pas écouté.',
+    'TOC TOC. {carte_maj}, c’était un avertissement. Vous n’avez pas écouté.',
     'Depuis {carte}, quelqu’un cogne chez moi aussi. Frappez vite.',
     'Ne dites pas {carte} à voix haute. On vous entend. Frappez.',
     'J’ai jeté {carte}. Ce matin, dans mon sac : encore {carte}.',
@@ -251,12 +251,12 @@ export const prophecies: Grammar = {
     'Fermez les rideaux. Après {carte}, on parle de vous dans tout le quartier.',
   ],
   rappel5: [
-    'VOUS AVEZ TIRÉ {carte_caps}. ILS LE SAVENT. FRAPPEZ.',
+    'VOUS AVEZ TIRÉ {carte_caps}. ON LE SAIT. FRAPPEZ.',
     'APRÈS {carte_caps}, PLUS PERSONNE NE VOUS RÉPOND. MOI, SI. FRAPPEZ.',
     'JE SUIS DERRIÈRE {carte_caps}. NON. {carte_caps} EST DERRIÈRE MOI.',
     '{carte_caps} N’ÉTAIT PAS UNE CARTE. C’ÉTAIT UNE PORTE. FRAPPEZ.',
     'TOC— {carte_caps}. TOC— {carte_caps}. MÊME RYTHME. MÊME CARTE. FRAPPEZ.',
-    'LA DERNIÈRE FOIS : {carte_caps}. CE SOIR : ILS ONT TOUT LU. FRAPPEZ.',
+    'LA DERNIÈRE FOIS : {carte_caps}. CE SOIR : LA MÊME, À L’ENVERS. FRAPPEZ.',
   ],
 
   // ---- Titre de l’onglet quand il est caché (≤ 40 caractères) -----------------------------------
@@ -308,7 +308,7 @@ export const prophecies: Grammar = {
   erreur5: [
     'ERREUR FATALE|Une exception 0E a eu lieu à 31:10:00. Elle vous attendait.',
     'Écran bleu|Appuyez sur une touche pour continuer. Il n’y a plus de touche.',
-    'ILS|Le fichier VOUS.DLL est introuvable. Il se trouvait derrière vous.',
+    'PERSONNE|Le fichier VOUS.DLL est introuvable. Il se trouvait derrière vous.',
     'Redémarrage|Windows doit redémarrer. Pas vous. Vous restez.',
   ],
 

@@ -9,10 +9,12 @@ export const MEMORY_KEY = 'rvj-memory'
 
 export interface Memory {
   lastArcane: number | null
+  /** Nom de la dernière carte (départage les arcanes qui partagent un indice : XIII / XIII bis). */
+  lastNom: string | null
   lastLevel: number | null
   finished: boolean
 }
-const defaultMemory = (): Memory => ({ lastArcane: null, lastLevel: null, finished: false })
+const defaultMemory = (): Memory => ({ lastArcane: null, lastNom: null, lastLevel: null, finished: false })
 
 const ROMAN: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100 }
 /** Numéro d’arcane (« 0 », « XVII »…) vers un entier ; null si illisible. */
@@ -43,7 +45,7 @@ const memorySerializer = {
       const o: unknown = JSON.parse(raw)
       if (typeof o !== 'object' || o === null) return defaultMemory()
       const m = o as Record<string, unknown>
-      return { lastArcane: intOrNull(m.lastArcane), lastLevel: intOrNull(m.lastLevel), finished: m.finished === true }
+      return { lastArcane: intOrNull(m.lastArcane), lastNom: typeof m.lastNom === 'string' && m.lastNom ? m.lastNom : null, lastLevel: intOrNull(m.lastLevel), finished: m.finished === true }
     } catch {
       return defaultMemory()
     }
@@ -65,8 +67,8 @@ export const useProgressStore = defineStore('progress', () => {
   const reset = () => {
     visits.value = 0
   }
-  const remember = (arcane: string | number | null, lvl: number) => {
-    memory.value = { ...memory.value, lastArcane: typeof arcane === 'string' ? arcaneIndex(arcane) : arcane, lastLevel: lvl }
+  const remember = (arcane: string | number | null, lvl: number, nom: string | null = null) => {
+    memory.value = { ...memory.value, lastArcane: typeof arcane === 'string' ? arcaneIndex(arcane) : arcane, lastNom: nom, lastLevel: lvl }
   }
   const finish = () => {
     memory.value = { ...memory.value, finished: true }
