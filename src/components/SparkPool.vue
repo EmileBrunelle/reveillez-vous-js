@@ -24,7 +24,7 @@ defineExpose({ emit })
 </script>
 
 <template>
-  <div ref="root" class="sparks" aria-hidden="true">
-    <span v-for="n in SIZE" :key="n" class="spark" />
+  <div ref="root" class="fixed inset-0 pointer-events-none z-6" aria-hidden="true">
+    <span v-for="n in SIZE" :key="n" class="fixed top-0 left-0 w-[6px] h-[6px] [margin:-3px_0_0_-3px] bg-accent opacity-0" />
   </div>
 </template>

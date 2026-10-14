@@ -125,14 +125,14 @@ const onClosed = () => {
   <WebGpuGate v-if="gpu === 'blocked'" @retry="retry" @about="openAbout" />
   <MotionConfig v-else reduced-motion="user">
     <CrtOverlay :key="attempt" :paranoia="paranoia" @ready="gpu = 'ok'" @fail="gpu = 'blocked'" />
-    <p v-if="gpu === 'checking'" class="checking" role="status">Connexion aux ondes…</p>
+    <p v-if="gpu === 'checking'" class="fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none" role="status">Connexion aux ondes…</p>
     <template v-if="gpu === 'ok'">
       <component :is="background.component" />
-      <MuteToggle class="corner" />
-      <button v-if="awaiting" class="wake" type="button" autofocus @click="approach">Approchez-vous de la porte</button>
-      <main v-else ref="mainEl" class="app" :class="{ 'app--reading': phase === 'reading' }">
+      <MuteToggle class="fixed top-[0.6rem] right-[0.6rem] z-10" />
+      <button v-if="awaiting" class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-12px]" type="button" autofocus @click="approach">Approchez-vous de la porte</button>
+      <main v-else ref="mainEl" class="app relative z-1 min-h-[100vh] grid place-items-center pt-[3.5rem] px-[1rem] pb-[3rem] overflow-clip" :class="{ 'app--reading': phase === 'reading' }">
         <AnimatePresence mode="wait">
-          <Motion v-if="phase === 'door'" :key="`door-${sceneKey}`" class="phase" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+          <Motion v-if="phase === 'door'" :key="`door-${sceneKey}`" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
             <DoorScene
               :door="door"
               :line="doorLine"
@@ -144,22 +144,22 @@ const onClosed = () => {
               @closed="onClosed"
             />
           </Motion>
-          <Motion v-else-if="phase === 'concentration'" key="concentration" class="phase" :initial="{ opacity: 0, scale: 0.96 }" :animate="{ opacity: 1, scale: 1 }" :exit="{ opacity: 0, scale: 1.04 }" :transition="{ duration: 0.25 }">
+          <Motion v-else-if="phase === 'concentration'" key="concentration" class="w-full max-w-[36rem] grid justify-items-center" :initial="{ opacity: 0, scale: 0.96 }" :animate="{ opacity: 1, scale: 1 }" :exit="{ opacity: 0, scale: 1.04 }" :transition="{ duration: 0.25 }">
             <Concentration @done="onDone" />
           </Motion>
-          <Motion v-else key="reading" class="phase phase--reading" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
-            <section class="scene scene--reading">
-              <div class="tarot-slot">
+          <Motion v-else key="reading" class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:520px)]:max-w-[48rem]" :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }" :transition="{ duration: 0.2 }">
+            <section class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:520px)]:flex-row [@media(orientation:landscape)_and_(max-height:520px)]:gap-4">
+              <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:520px)]:h-full">
                 <TarotCard :arcane="prophecy.arcane" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" :level="level" @flipped="onFlipped" />
               </div>
-              <div class="actions">
-                <button ref="closeBtn" class="btn btn--alt" type="button" :disabled="closing" @click="restart">Fermer la porte</button>
+              <div class="flex flex-none flex-wrap gap-3 justify-center">
+                <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="restart">Fermer la porte</button>
               </div>
             </section>
           </Motion>
         </AnimatePresence>
       </main>
-      <Vigilance class="vigil--corner" :level="level" @reset="resetLevel" />
+      <Vigilance class="fixed left-[0.6rem] bottom-[0.6rem] z-10 bg-[#000] px-2 py-[0.2rem]" :level="level" @reset="resetLevel" />
     </template>
   </MotionConfig>
   <AboutTempleOS v-model="aboutOpen" />

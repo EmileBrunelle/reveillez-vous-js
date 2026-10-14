@@ -40,9 +40,5 @@ const icon = computed(() => ICONS[props.symbole] ?? IconEye)
 </script>
 
 <template>
-  <component :is="icon" class="emblem" aria-hidden="true" />
+  <component :is="icon" class="block size-full" aria-hidden="true" />
 </template>
-
-<style scoped>
-.emblem { display: block; width: 100%; height: 100%; }
-</style>

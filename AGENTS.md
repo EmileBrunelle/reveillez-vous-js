@@ -29,8 +29,9 @@
 ## Conventions
 - Arrow functions everywhere (only generators excepted).
 - Components held in refs: `shallowRef` + `markRaw`.
-- UnoCSS only in `src/ui/**` (scanning is limited there; reset preflight disabled, presetWind4). Bespoke visuals: scoped CSS.
-- Gameplay randomness: `secureRng` (crypto), never `Math.random`. `mulberry32` is for tests only.
+- UnoCSS utilities and shortcuts (from `uno.config.ts`) for layout, spacing, color, typography, borders, states; reset preflight disabled, presetWind4. Scoped CSS stays for @keyframes, 3D chains (preserve-3d/perspective/backface/container queries), JS-driven CSS vars, decorative ::before/::after and multi-layer gradients, :deep/:has/data-attribute selectors. Dynamic class names must be full literals (the scanner can't see template-string classes).
+- Code comments may be in French.
+- Gameplay randomness goes through an injected `Rng` (`secureRng` in production, `mulberry32` in tests) so draws stay testable. Crypto is not a requirement; `Math.random` is fine for purely cosmetic noise (sparks, dust, audio).
 - Listeners/timers: VueUse (`@vueuse/core`). CRT pauses when the tab is hidden.
 - Keep Vue console warnings at zero.
 
@@ -52,7 +53,6 @@
 - WebGPU mandatory, no CSS/WebGL fallback (gate screen only).
 - vgpu (raymarching) over Three.js/TresJS.
 - No seed system, no share feature.
-- `paranoiaLevel()` in `src/engine/paranoia.ts` is Émile's to write (learning mode): do not edit it.
 
 ## Testing in a browser
 - Playwright headless Chromium with `--enable-unsafe-webgpu --use-webgpu-adapter=swiftshader` reaches the card. The CRT pipeline failing to compile under swiftshader is expected.

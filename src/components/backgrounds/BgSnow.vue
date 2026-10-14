@@ -1,9 +1,8 @@
 <template>
-  <div class="bg snow" aria-hidden="true"></div>
+  <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden snow" aria-hidden="true"></div>
 </template>
 
 <style scoped>
-.bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .snow { background: linear-gradient(#202060, #8080c0); }
 /* Each layer: ONE tile size T for both dot patterns, element oversized by T on every side and translated by
    exactly (-T, +T) = one tile period, so the last frame equals the first (no seam). transform = GPU compositing. */

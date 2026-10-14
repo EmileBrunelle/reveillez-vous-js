@@ -1,5 +1,5 @@
 <template>
-  <svg viewBox="0 0 120 190" class="door-svg" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 120 190" class="block w-full h-full" aria-hidden="true" focusable="false">
     <path d="M6 190V84a54 54 0 0 1 108 0V190Z" fill="#555" stroke="#aaa" stroke-width="4"/>
     <rect x="22" y="76" width="76" height="114" fill="#222" stroke="#888" stroke-width="3"/>
     <path d="M36 100l12 10-8 14 14 12M84 92l-10 18 10 12" stroke="#000" stroke-width="2" fill="none"/>

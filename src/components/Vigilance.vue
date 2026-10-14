@@ -19,14 +19,13 @@ onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>
-  <p class="vigil" :class="{ 'vigil--reset': flash }" @click="onClick">
+  <p class="m-0 text-[0.8rem] opacity-80 tracking-[0.05em] select-none [-webkit-tap-highlight-color:transparent]" :class="{ 'vigil--reset': flash }" @click="onClick">
     <span v-if="flash" role="status">Vigilance réinitialisée</span>
     <span v-else role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">Niveau de vigilance : {{ bar }}</span>
   </p>
 </template>
 
 <style scoped>
-.vigil { -webkit-user-select: none; user-select: none; }
 .vigil--reset { animation: vigil-flash 0.4s steps(4); }
 @keyframes vigil-flash { 0% { opacity: 0.1; } 100% { opacity: 0.8; } }
 @media (prefers-reduced-motion: reduce) { .vigil--reset { animation: none; } }

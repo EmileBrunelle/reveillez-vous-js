@@ -54,5 +54,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <canvas v-show="!lost" ref="canvas" class="crt" aria-hidden="true" />
+  <canvas v-show="!lost" ref="canvas" class="fixed inset-0 w-full h-full pointer-events-none z-5 select-none [-webkit-tap-highlight-color:transparent]" aria-hidden="true" />
 </template>

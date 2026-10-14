@@ -1,9 +1,8 @@
 <template>
-  <div class="bg void" aria-hidden="true"></div>
+  <div class="fixed inset-0 z-0 pointer-events-none void" aria-hidden="true"></div>
 </template>
 
 <style scoped>
-.bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 .void { background: radial-gradient(ellipse at 30% 40%, #1a0030, #000 70%), #000; }
 /* Two star layers with unrelated periods and negative delays so they never pulse in sync or start together at t=0.
    `alternate` + ease-in-out on opacity is continuous (no snap): it is a smooth there-and-back, not a restart. */

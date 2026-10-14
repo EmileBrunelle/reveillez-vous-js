@@ -1,13 +1,12 @@
 <template>
-  <div class="bg fog" aria-hidden="true">
-    <div class="stones"/>
+  <div class="fixed inset-0 z-0 pointer-events-none fog" aria-hidden="true">
+    <div class="stones absolute inset-x-0 bottom-0 h-[40%]"/>
   </div>
 </template>
 
 <style scoped>
-.bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 .fog { background: linear-gradient(#10101a, #2a3a3a); }
-.stones { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background:
+.stones { background:
   radial-gradient(ellipse at 15% 100%, #000 0 18%, transparent 19%),
   radial-gradient(ellipse at 40% 100%, #000 0 12%, transparent 13%),
   radial-gradient(ellipse at 70% 100%, #000 0 20%, transparent 21%),

@@ -5,7 +5,7 @@ const emit = defineEmits<{ about: [] }>()
 </script>
 
 <template>
-  <p class="footer">
+  <p class="mt-2 mx-0 mb-0 text-[0.8rem] opacity-90">
     Hommage à Terry A. Davis (1969–2018) ·
     <button class="linklike" type="button" @click="emit('about')">À propos</button>
     ·
@@ -16,12 +16,8 @@ const emit = defineEmits<{ about: [] }>()
       rel="noopener noreferrer"
       aria-label="Code source sur GitHub (nouvel onglet)"
     >
-      <IconGithub class="footer__icon" aria-hidden="true" />
+      <IconGithub class="w-[1em] h-[1em] align-[-0.125em] mr-[0.3em]" aria-hidden="true" />
       Code source
     </a>
   </p>
 </template>
-
-<style scoped>
-.footer__icon { width: 1em; height: 1em; vertical-align: -0.125em; margin-right: 0.3em; }
-</style>

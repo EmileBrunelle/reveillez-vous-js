@@ -4,17 +4,19 @@ import { detectBrowser } from '../effects/webgpu'
 
 defineEmits<{ retry: []; about: [] }>()
 const browser = detectBrowser(navigator.userAgent)
+// Boîte d'instructions: h2 et code stylés par descendance (aucune classe par élément).
+const howBox = 'border-2 border-solid border-alt px-4 py-3 [&_h2]:mt-0 [&_h2]:mx-0 [&_h2]:mb-2 [&_h2]:text-[1.1rem] [&_h2]:text-alt [&_code]:bg-[#222] [&_code]:py-0 [&_code]:px-[0.3rem] [&_code]:text-accent [&_code]:select-text'
 </script>
 
 <template>
-  <main class="gate" role="alert">
-    <h1 class="gate__title">Les ondes divines exigent WebGPU</h1>
+  <main class="min-h-screen max-w-[40rem] mx-auto px-4 py-8 grid gap-4 content-center leading-[1.5] bg-[#000] text-fg select-none [-webkit-tap-highlight-color:transparent]" role="alert">
+    <h1 class="m-0 text-accent uppercase text-[1.6rem]">Les ondes divines exigent WebGPU</h1>
     <p>
       Sans WebGPU, impossible de capter la transmission. Ce n’est pas négociable : le dépliant ne
       s’ouvrira pas tant que votre navigateur n’aura pas accès à votre carte graphique.
     </p>
 
-    <section v-if="browser === 'firefox'" class="gate__how">
+    <section v-if="browser === 'firefox'" :class="howBox">
       <h2>Firefox</h2>
       <ol>
         <li>Mettez Firefox à jour (version récente).</li>
@@ -29,7 +31,7 @@ const browser = detectBrowser(navigator.userAgent)
       <p>Sous Linux, WebGPU est souvent désactivé par défaut dans Firefox.</p>
     </section>
 
-    <section v-else-if="browser === 'chromium'" class="gate__how">
+    <section v-else-if="browser === 'chromium'" :class="howBox">
       <h2>Chrome, Edge et cie</h2>
       <p>WebGPU devrait fonctionner sans réglage. Sinon :</p>
       <ol>
@@ -43,7 +45,7 @@ const browser = detectBrowser(navigator.userAgent)
       </ol>
     </section>
 
-    <section v-else-if="browser === 'safari'" class="gate__how">
+    <section v-else-if="browser === 'safari'" :class="howBox">
       <h2>Safari</h2>
       <ol>
         <li>Utilisez une version récente de Safari (macOS, iOS ou iPadOS à jour).</li>
@@ -55,7 +57,7 @@ const browser = detectBrowser(navigator.userAgent)
       </ol>
     </section>
 
-    <section v-else class="gate__how">
+    <section v-else :class="howBox">
       <h2>Votre navigateur</h2>
       <p>
         Essayez une version récente de Chrome, Edge, Safari ou Firefox, avec l’accélération matérielle
@@ -63,7 +65,7 @@ const browser = detectBrowser(navigator.userAgent)
       </p>
     </section>
 
-    <button class="btn" type="button" @click="$emit('retry')">Réessayer</button>
-    <SiteFooter @about="$emit('about')" />
+    <button class="btn justify-self-start" type="button" @click="$emit('retry')">Réessayer</button>
+    <SiteFooter class="justify-self-start" @about="$emit('about')" />
   </main>
 </template>

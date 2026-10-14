@@ -50,7 +50,7 @@ const onMouseDown = (e: MouseEvent) => {
       aria-valuemax="100"
       :aria-valuenow="Math.round(progress * 100)"
     >
-      <div class="bar__fill" :style="{ width: progress * 100 + '%' }" />
+      <div class="h-full bg-accent [transition:width_0.15s]" :style="{ width: progress * 100 + '%' }" />
     </div>
   </section>
 </template>
