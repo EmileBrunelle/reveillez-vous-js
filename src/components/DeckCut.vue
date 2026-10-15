@@ -49,7 +49,7 @@ const step = (p: Spr, k: number, d: number, dt: number) => {
   p.c += p.v * dt
 }
 // Boîte étroite (téléphone en paysage) : les cartes latérales s’écartent davantage pour garder une bande cliquable d’au moins ~44 px.
-const fx = (i: number) => FAN[i].x * (W < 260 ? 1.7 : 1)
+const fx = (i: number) => FAN[i].x * (W < 260 ? 1.8 : 1)
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 
 let W = 0 // largeur de la boîte de la carte (px)
@@ -62,8 +62,8 @@ useResizeObserver(deckEl, () => {
 const restOf = (i: number, h: number | null) => {
   const f = FAN[i]
   const me = h === i
-  const sep = h === null || me ? 0 : (i < h ? -1 : 1) * 0.02 * W
-  return { x: (fx(i) / 100) * W + sep, y: (f.y / 100) * W + (me ? -0.06 * W : 0), r: me ? f.rot * 0.35 : f.rot, s: me ? FAN_SCALE * 1.07 : FAN_SCALE }
+  const sep = h === null || me ? 0 : (i < h ? -1 : 1) * 0.015 * W
+  return { x: (fx(i) / 100) * W + sep, y: (f.y / 100) * W + (me ? -0.04 * W : 0), r: me ? f.rot * 0.35 : f.rot, s: me ? FAN_SCALE * 1.04 : FAN_SCALE }
 }
 const stackOf = (i: number) => ({ x: (i - 1) * 0.006 * W, y: 0.05 * W - i * 0.006 * W, r: (i - 1) * 2, s: FAN_SCALE * 0.92 })
 
@@ -271,7 +271,7 @@ const onMove = (i: number, e: PointerEvent) => {
   const f = FAN[i]
   const cardW = FAN_SCALE * r.width
   const cx = r.left + r.width / 2 + (fx(i) / 100) * r.width
-  const cy = r.top + r.height / 2 + (f.y / 100) * r.width - 0.06 * r.width
+  const cy = r.top + r.height / 2 + (f.y / 100) * r.width - 0.04 * r.width
   nx = clamp((e.clientX - cx) / (cardW / 2), -1, 1)
   ny = clamp((e.clientY - cy) / ((cardW * 12) / 7 / 2), -1, 1)
 }
