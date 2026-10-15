@@ -290,7 +290,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
           <Motion
             v-else-if="phase === 'activity' && Activity"
             key="activity"
-            class="w-full max-w-[36rem] h-[calc(100dvh-1.5rem-var(--taskbar-h))] min-h-[22rem] grid"
+            class="relative w-full max-w-[36rem] h-[calc(100dvh-1.5rem-var(--taskbar-h))] min-h-[22rem] grid"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"

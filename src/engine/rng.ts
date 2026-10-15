@@ -10,6 +10,9 @@ export const secureRng = (): Rng => {
   }
 }
 
+/** Rng injecté, ou production par défaut (à appeler une fois ; jamais en défaut de prop Vue, qui prendrait la fabrique pour la valeur). */
+export const orSecure = (rng?: Rng): Rng => rng ?? secureRng()
+
 /** mulberry32: small seeded PRNG, for tests only. */
 export const mulberry32 = (seed: number): Rng => {
   let a = seed >>> 0

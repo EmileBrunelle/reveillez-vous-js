@@ -5,9 +5,11 @@ import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { advanceHold, isNearWick, pickSnuffed } from '../../engine/candles'
 import IconChandelle from '~icons/rvj/chandelle'
-import { secureRng, type Rng } from '../../engine/rng'
+import { orSecure, type Rng } from '../../engine/rng'
 
-const props = withDefaults(defineProps<{ level: number; rng?: Rng }>(), { rng: secureRng })
+const props = defineProps<{ level: number; rng?: Rng }>()
+// Pas de défaut de prop : Vue prendrait la fabrique secureRng comme valeur.
+const rng = orSecure(props.rng)
 const emit = defineEmits<{ done: [] }>()
 
 const { finish, isFinished } = useActivityDone(() => emit('done'), {
@@ -47,7 +49,7 @@ let snuffUsed = props.level !== 3
 const { start: snuffLater } = useTimeoutFn(
   () => {
     if (isFinished()) return
-    const i = pickSnuffed(lit, props.rng)
+    const i = pickSnuffed(lit, rng)
     if (i < 0) return
     lit[i] = false
     hold[i] = 0

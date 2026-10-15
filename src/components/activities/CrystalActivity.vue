@@ -52,14 +52,20 @@ const wipeAt = (x: number, y: number) => {
 const doneAmount = () => (cleared.value ? (reducedMotion.value ? 1 : Math.min(1, (now() - clearedAt.value) / 0.8)) : 0)
 
 // Pointeur (souris et tactile) : glisser pour essuyer.
+let captured: { el: HTMLElement; id: number } | null = null
 const toBall = (e: PointerEvent) => {
-  const r = ball.value!.getBoundingClientRect()
+  const el = ball.value
+  if (!el) return null
+  const r = el.getBoundingClientRect()
   return { x: ((e.clientX - r.left) / r.width) * 2 - 1, y: ((e.clientY - r.top) / r.height) * 2 - 1 }
 }
 const onDown = (e: PointerEvent) => {
-  ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+  const el = e.currentTarget as HTMLElement
+  el.setPointerCapture?.(e.pointerId)
+  captured = { el, id: e.pointerId }
   last = null
   const p = toBall(e)
+  if (!p) return
   wipeAt(p.x, p.y)
   kbd.value = null
 }
@@ -67,10 +73,12 @@ const onMove = (e: PointerEvent) => {
   if (e.buttons === 0 && e.pointerType === 'mouse') return
   if (!last && e.pointerType !== 'mouse') return
   const p = toBall(e)
+  if (!p) return
   wipeAt(p.x, p.y)
 }
 const onUp = () => {
   last = null
+  captured = null
 }
 
 // Clavier : les flèches déplacent le chiffon (et essuient en chemin).
@@ -130,6 +138,13 @@ onMounted(async () => {
 })
 onUnmounted(() => {
   gone = true
+  last = null
+  try {
+    if (captured?.el.hasPointerCapture?.(captured.id)) captured.el.releasePointerCapture(captured.id)
+  } catch {
+    // élément déjà détaché : la capture est déjà relâchée
+  }
+  captured = null
   scene?.stop()
   scene = null
 })
