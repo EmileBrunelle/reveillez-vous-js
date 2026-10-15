@@ -61,8 +61,8 @@ fn cell(i: i32, j: i32) -> f32 {
   if (i < 0 || j < 0 || i > 15 || j > 15) { return 0.0; }
   var g = array<vec4f, 4>(params.g0, params.g1, params.g2, params.g3);
   let row = g[j / 4][j % 4];
-  let pw = exp2(f32(i));
-  return floor(row / pw) - 2.0 * floor(row / (2.0 * pw));
+  let r = u32(row + 0.5); // entier exact dans un f32 (< 2^24) ; décodage en entiers, sans exp2
+  return f32((r >> u32(i)) & 1u);
 }
 
 // Couverture lissée (interpolation bilinéaire des 4 cellules voisines) en uv disque unité.

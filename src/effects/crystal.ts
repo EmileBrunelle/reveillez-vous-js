@@ -35,7 +35,11 @@ export const createCrystal = async (canvas: HTMLCanvasElement, opts: CrystalOpti
   let loop: { stop(): void } | null = null
   void gpu.lost.then(() => {
     if (stopped) return
-    loop?.stop()
+    try {
+      loop?.stop()
+    } catch {
+      /* périphérique déjà perdu */
+    }
     loop = null
     opts.onLost?.()
   })

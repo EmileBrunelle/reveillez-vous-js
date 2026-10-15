@@ -74,9 +74,8 @@ export const packCoverage = (wiped: boolean[], n = 16): number[] =>
 /** Lit la cellule (i, j) d’une grille emballée ; miroir exact de `cell` dans crystal.wgsl (en f32). */
 export const decodeCell = (packed: number[], i: number, j: number, n = 16): boolean => {
   if (i < 0 || j < 0 || i >= n || j >= n) return false
-  const row = Math.fround(packed[j]!)
-  const pw = 2 ** i
-  return Math.floor(row / pw) - 2 * Math.floor(row / (2 * pw)) === 1
+  const r = Math.floor(Math.fround(packed[j]!) + 0.5)
+  return ((r >> i) & 1) === 1
 }
 
 /** Grille grossière n × n : seules les cellules dont le centre est dans le disque comptent. */
