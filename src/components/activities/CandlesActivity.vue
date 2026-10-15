@@ -1,0 +1,227 @@
+<script setup lang="ts">
+import { computed, reactive, ref } from 'vue'
+import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useActivityDone } from '../../composables/useActivityDone'
+import { useReducedMotion } from '../../composables/useReducedMotion'
+import { advanceHold, isNearWick, pickSnuffed } from '../../engine/candles'
+import { secureRng, type Rng } from '../../engine/rng'
+
+const props = withDefaults(defineProps<{ level: number; rng?: Rng }>(), { rng: secureRng })
+const emit = defineEmits<{ done: [] }>()
+
+const { finish, isFinished } = useActivityDone(() => emit('done'))
+const reduced = useReducedMotion()
+
+const COUNT = 3
+const stage = ref<HTMLElement>()
+const candleEls: (HTMLElement | null)[] = []
+const matchEl = ref<HTMLElement>()
+const lit = reactive<boolean[]>(Array(COUNT).fill(false))
+const hold = reactive<number[]>(Array(COUNT).fill(0))
+const litCount = computed(() => lit.filter(Boolean).length)
+
+// Allumette : cible (pointeur) et position ressort, écrite directement dans le DOM (un seul maître du transform).
+const target = { x: 0, y: 0 }
+const pos = { x: 0, y: 0, vx: 0, vy: 0 }
+const matchVisible = ref(false)
+const over = ref(false)
+
+// Niveau 3 : une chandelle s’éteint une seule fois, juste après la troisième allumée.
+let snuffUsed = props.level !== 3
+const { start: snuffLater } = useTimeoutFn(
+  () => {
+    if (isFinished()) return
+    const i = pickSnuffed(lit, props.rng)
+    if (i < 0) return
+    lit[i] = false
+    hold[i] = 0
+  },
+  700,
+  { immediate: false },
+)
+
+const light = (i: number) => {
+  if (lit[i]) return
+  lit[i] = true
+  hold[i] = 1
+  if (litCount.value < COUNT) return
+  if (!snuffUsed) {
+    snuffUsed = true
+    snuffLater()
+    return
+  }
+  over.value = true
+  finish()
+}
+
+const setTarget = (e: PointerEvent) => {
+  const r = stage.value?.getBoundingClientRect()
+  if (!r) return
+  target.x = e.clientX - r.left
+  target.y = e.clientY - r.top
+  if (!matchVisible.value) {
+    pos.x = target.x
+    pos.y = target.y
+    pos.vx = pos.vy = 0
+  }
+  matchVisible.value = true
+}
+useEventListener(stage, 'pointermove', setTarget)
+useEventListener(stage, 'pointerdown', setTarget)
+useEventListener(stage, 'pointerup', (e: PointerEvent) => {
+  if (e.pointerType === 'touch') matchVisible.value = false
+})
+useEventListener(stage, 'pointercancel', () => {
+  matchVisible.value = false
+  hold.forEach((_, i) => {
+    if (!lit[i]) hold[i] = 0
+  })
+})
+useEventListener(stage, 'pointerleave', () => (matchVisible.value = false))
+
+const wickPoint = (i: number) => {
+  const c = candleEls[i]
+  const s = stage.value?.getBoundingClientRect()
+  if (!c || !s) return null
+  const r = c.getBoundingClientRect()
+  return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height * 0.28 }
+}
+
+useRafFn(({ delta }) => {
+  const dt = Math.min(delta, 50)
+  if (reduced.value) {
+    pos.x = target.x
+    pos.y = target.y
+  } else {
+    // Ressort amorti : suit le pointeur avec un léger dépassement.
+    pos.vx += (target.x - pos.x) * 0.012 * dt
+    pos.vy += (target.y - pos.y) * 0.012 * dt
+    const damp = Math.exp(-dt * 0.012)
+    pos.vx *= damp
+    pos.vy *= damp
+    pos.x += pos.vx * dt * 0.06
+    pos.y += pos.vy * dt * 0.06
+  }
+  if (matchEl.value) matchEl.value.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
+  for (let i = 0; i < COUNT; i++) {
+    if (lit[i]) continue
+    const w = wickPoint(i)
+    const touching = matchVisible.value && !!w && isNearWick(pos.x, pos.y - 20, w.x, w.y, 44)
+    const p = advanceHold(hold[i], touching, dt)
+    if (p !== hold[i]) hold[i] = p
+    if (p >= 1) light(i)
+  }
+})
+</script>
+
+<template>
+  <div ref="stage" class="relative size-full overflow-hidden touch-none select-none bg-[#07050a] flex flex-col items-center justify-center gap-6 font-ui text-center">
+    <div class="warm absolute inset-0 pointer-events-none" :class="{ 'no-motion': reduced }" :style="{ opacity: litCount / COUNT }" aria-hidden="true" />
+    <p class="relative m-0 text-[1.4rem] text-[#e8d9b0]" aria-live="polite">
+      {{ over ? 'La pièce se réchauffe…' : 'Allumez les trois chandelles' }}
+    </p>
+    <div class="relative flex items-end gap-8 sm:gap-14">
+      <button
+        v-for="n in COUNT"
+        :key="n"
+        :ref="(el) => (candleEls[n - 1] = el as HTMLElement | null)"
+        type="button"
+        class="relative bg-transparent border-0 p-0 cursor-pointer w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4"
+        :aria-label="lit[n - 1] ? `Chandelle ${n} allumée` : `Allumer la chandelle ${n}`"
+        @click="light(n - 1)"
+      >
+        <svg viewBox="0 0 60 150" class="absolute inset-0 size-full" aria-hidden="true">
+          <rect x="16" y="52" width="28" height="96" rx="3" fill="#cdbf9a" />
+          <rect x="16" y="52" width="9" height="96" rx="3" fill="#e6dcc0" />
+          <ellipse cx="30" cy="52" rx="14" ry="3.5" fill="#efe6cc" />
+          <path d="M44 56 q5 18 -1 30" stroke="#efe6cc" stroke-width="3" fill="none" />
+          <line x1="30" y1="52" x2="30" y2="42" stroke="#2a2018" stroke-width="2" stroke-linecap="round" />
+          <circle cx="30" cy="42" r="3" fill="#ff9a2e" :opacity="hold[n - 1] * 0.9" />
+        </svg>
+        <span class="flame" :class="{ on: lit[n - 1], 'no-motion': reduced }" aria-hidden="true">
+          <span class="flame-sway" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.9}s` }" />
+        </span>
+      </button>
+    </div>
+    <span ref="matchEl" class="match absolute left-0 top-0 pointer-events-none" :class="{ shown: matchVisible, 'no-motion': reduced }" aria-hidden="true">
+      <span class="match-flame" :class="{ 'no-motion': reduced }" />
+      <span class="match-stick" />
+    </span>
+  </div>
+</template>
+
+<style scoped>
+.warm {
+  background: radial-gradient(ellipse at 50% 65%, rgb(255 140 40 / 0.38), rgb(120 40 10 / 0.18) 55%, transparent 80%);
+  transition: opacity 2.4s ease-in-out;
+}
+.flame {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, 0) scale(0);
+  transform-origin: 50% 0;
+  transition: transform 0.45s cubic-bezier(0.34, 1.7, 0.5, 1);
+}
+.flame.on {
+  transform: translate(-50%, 0) scale(1);
+}
+.flame-sway {
+  position: absolute;
+  left: -9px;
+  bottom: 0;
+  width: 18px;
+  height: 36px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(ellipse at 50% 75%, #fff3c0 0 25%, #ffb52e 55%, #ff6a1a 100%);
+  box-shadow: 0 0 22px 8px rgb(255 160 50 / 0.55);
+  transform-origin: 50% 100%;
+  animation: sway 3.2s ease-in-out infinite;
+}
+.match {
+  opacity: 0;
+  transition: opacity 0.2s;
+  will-change: transform;
+}
+.match.shown {
+  opacity: 1;
+}
+.match-flame {
+  position: absolute;
+  left: -6px;
+  top: -20px;
+  width: 12px;
+  height: 22px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(ellipse at 50% 75%, #fff3c0 0 25%, #ffb52e 60%, #ff6a1a 100%);
+  box-shadow: 0 0 12px 4px rgb(255 160 50 / 0.5);
+  transform-origin: 50% 100%;
+  animation: sway 2.4s ease-in-out infinite;
+}
+.match-stick {
+  position: absolute;
+  left: -1.5px;
+  top: 0;
+  width: 3px;
+  height: 34px;
+  background: #8a5a2b;
+  border-radius: 2px;
+  transform: rotate(14deg);
+  transform-origin: 50% 0;
+}
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-3deg) scaleY(1);
+  }
+  50% {
+    transform: rotate(3deg) scaleY(1.06);
+  }
+}
+.no-motion {
+  animation: none;
+  transition-duration: 0s;
+}
+</style>
