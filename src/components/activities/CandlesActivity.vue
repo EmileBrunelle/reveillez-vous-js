@@ -9,7 +9,20 @@ import { secureRng, type Rng } from '../../engine/rng'
 const props = withDefaults(defineProps<{ level: number; rng?: Rng }>(), { rng: secureRng })
 const emit = defineEmits<{ done: [] }>()
 
-const { finish, isFinished } = useActivityDone(() => emit('done'), { delayMs: 600 })
+const { finish, isFinished } = useActivityDone(() => emit('done'), {
+  delayMs: 600,
+  // Fin par n’importe quel chemin (dont les 20 s) : la chandelle soufflée se rallume, rien ne reste sombre.
+  onFinish: () => {
+    const i = snuffed.value
+    if (i >= 0) {
+      lit[i] = true
+      hold[i] = 1
+      snuffed.value = -1
+    }
+    relightStop()
+    over.value = true
+  },
+})
 const reduced = useReducedMotion()
 
 const COUNT = 3
@@ -214,6 +227,10 @@ useRafFn(({ delta }) => {
   background: radial-gradient(circle, rgb(190 190 200 / 0.55), rgb(120 120 130 / 0) 70%);
   pointer-events: none;
   animation: smoke 1.2s ease-out forwards;
+}
+.candle.pulse:focus-visible {
+  outline: 3px solid #e8d9b0;
+  animation: none;
 }
 .candle.pulse {
   outline: 2px solid rgb(232 217 176 / 0.15);
