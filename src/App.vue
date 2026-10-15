@@ -141,6 +141,8 @@ const onDone = () => {
   listening.value = false
 }
 const onActivityDone = () => {
+  // Un `done` tardif (activité en sortie après « Recommencer à zéro » ou « Fermer la porte ») ne doit rien relancer.
+  if (phase.value !== 'activity' || closing.value) return
   phase.value = 'cut'
 }
 // Une bulle de la barre des tâches par visite (niveau 2+), peu après l’arrivée à la porte. Sur écran étroit, elle ne reste pas au-delà de la porte (elle couvrirait la carte ou « Fermer la porte »).
