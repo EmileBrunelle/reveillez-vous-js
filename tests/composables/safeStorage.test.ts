@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { safeStorage } from '../../src/../src/composables/safeStorage'
+import { safeSessionStorage, safeStorage } from '../../src/../src/composables/safeStorage'
 
 describe('safeStorage', () => {
   afterEach(() => {
     delete (globalThis as { localStorage?: unknown }).localStorage
+    delete (globalThis as { sessionStorage?: unknown }).sessionStorage
   })
 
   it('falls back to memory when reading localStorage throws', () => {
@@ -42,5 +43,25 @@ describe('safeStorage', () => {
     const real = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }
     Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: real })
     expect(safeStorage()).toBe(real)
+  })
+
+  it('session variant falls back to its own memory when sessionStorage throws', () => {
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      configurable: true,
+      get: () => {
+        throw new DOMException('denied', 'SecurityError')
+      },
+    })
+    const s = safeSessionStorage()
+    s.setItem('sk', 'v')
+    expect(safeSessionStorage().getItem('sk')).toBe('v')
+    expect(safeStorage().getItem('sk')).toBeNull()
+  })
+
+  it('session variant uses the real sessionStorage when it works', () => {
+    const m = new Map<string, string>()
+    const real = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: real })
+    expect(safeSessionStorage()).toBe(real)
   })
 })

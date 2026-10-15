@@ -2,7 +2,7 @@ import { computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
 import { paranoiaLevel } from '../engine/paranoia'
-import { safeStorage } from '../composables/safeStorage'
+import { safeSessionStorage, safeStorage } from '../composables/safeStorage'
 
 export const VISITS_KEY = 'rvj-visits'
 export const MEMORY_KEY = 'rvj-memory'
@@ -30,7 +30,7 @@ export const arcaneIndex = (numero: string): number | null => {
   return n
 }
 
-// Format historique conservé : un simple nombre en clair (les personnes qui jouent déjà gardent leur niveau).
+// Simple nombre en clair. Les visites vivent en sessionStorage : fermer l’onglet ou le navigateur remet le jeu à zéro.
 const visitsSerializer = {
   read: (raw: string): number => {
     const n = Number(raw)
@@ -55,7 +55,9 @@ const memorySerializer = {
 
 export const useProgressStore = defineStore('progress', () => {
   const opts = { flush: 'sync', writeDefaults: false, listenToStorageChanges: false } as const
-  const visits = useStorage(VISITS_KEY, 0, safeStorage(), { ...opts, serializer: visitsSerializer })
+  // Migration : l’ancien compteur persistant (localStorage) est supprimé sans être importé, tout le monde repart au niveau 1.
+  safeStorage().removeItem(VISITS_KEY)
+  const visits = useStorage(VISITS_KEY, 0, safeSessionStorage(), { ...opts, serializer: visitsSerializer })
   const memory = useStorage(MEMORY_KEY, defaultMemory(), safeStorage(), { ...opts, serializer: memorySerializer })
 
   const level = computed(() => paranoiaLevel(visits.value))
@@ -63,7 +65,7 @@ export const useProgressStore = defineStore('progress', () => {
 
   /** Une porte rouverte de plus ; renvoie le nouveau nombre de visites. */
   const bump = () => ++visits.value
-  /** Retour à 0 visite (niveau 1). Sacs de tirage et mémoire restent intacts. */
+  /** Retour à 0 visite (niveau 1). Sacs de tirage et mémoire (localStorage) restent intacts. */
   const reset = () => {
     visits.value = 0
   }

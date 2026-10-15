@@ -29,7 +29,7 @@
 - `effects/`: `crt.wgsl` + `crt.ts` (vgpu, lazy chunk), `webgpu.ts` (navigator.gpu + requestAdapter check).
 - Fonts: self-hosted via Fontsource (no CDN), latin subset only. VT323 = UI/terminal (`font-ui`, own `@font-face` in `styles.css` with `size-adjust: 125%` since VT323 is much smaller than Courier at equal size), IM Fell English 400/italic = card body and verse (`font-card`), Cinzel 700 = card numeral, question and banner (`font-title`). Families registered in `uno.config.ts` theme.font; imports in `main.ts`.
 - `audio/sfx.ts`: all sounds synthesized (Web Audio), mute toggle.
-- `composables/`: `useVisits` (localStorage `rvj-visits`; triple-click on the « Niveau de vigilance » badge resets), `useEntropy`.
+- `composables/`: `useVisits` (sessionStorage `rvj-visits` via `safeSessionStorage`, so progress resets when the tab or browser closes; the old localStorage key is deleted at startup; `rvj-bags` and `rvj-memory` stay in localStorage; triple-click on the « Niveau de vigilance » badge resets), `useEntropy`.
 - `components/Taskbar.vue`: fixed Windows 98 taskbar (Start menu: À propos, Code source, homage, reset; tray: Vigilance badge, sound toggle, clock); `--taskbar-h` in styles.css is the reserved height.
 - `ui/`: UnoCSS-styled components (Windows 98 look; shortcuts `win-window`, `win-btn`).
 - `assets/svg/`: inline SVGs live as `.svg` files (doors, seer, icons), imported as components via `~icons/rvj/<name>` (unplugin-icons custom collection in `vite.config.ts`, `iconCustomizer` sets width/height to `unset` for `rvj` only, so no 1.2em: size with CSS classes on the usage, game-icons keep theirs; `class="door-handle"` inside door SVGs is animated by DoorScene).

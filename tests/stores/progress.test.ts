@@ -4,6 +4,8 @@ import { arcaneIndex, MEMORY_KEY, useProgressStore, VISITS_KEY } from '../../src
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
 
 const m = new Map<string, string>()
+const ss = new Map<string, string>()
+const stub = (map: Map<string, string>) => ({ getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) })
 const fresh = () => {
   setActivePinia(createPinia())
   return useProgressStore()
@@ -12,7 +14,9 @@ const fresh = () => {
 describe('progress store', () => {
   beforeEach(() => {
     m.clear()
-    vi.stubGlobal('localStorage', { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) })
+    ss.clear()
+    vi.stubGlobal('localStorage', stub(m))
+    vi.stubGlobal('sessionStorage', stub(ss))
   })
 
   it('starts at level 1 with default memory', () => {
@@ -23,17 +27,37 @@ describe('progress store', () => {
     expect(s.memory).toEqual({ lastArcane: null, lastNom: null, lastLevel: null, finished: false })
   })
 
-  it('reads the legacy plain-number visits format and keeps writing it', () => {
-    m.set(VISITS_KEY, '20')
+  it('reads the plain-number visits format from sessionStorage and keeps writing it there', () => {
+    ss.set(VISITS_KEY, '20')
     const s = fresh()
     expect(s.level).toBe(5)
     expect(s.paranoia).toBe(1)
     s.bump()
-    expect(m.get(VISITS_KEY)).toBe('21')
+    expect(ss.get(VISITS_KEY)).toBe('21')
+    expect(m.has(VISITS_KEY)).toBe(false)
+  })
+
+  it('migration: drops the old localStorage visits without importing them', () => {
+    m.set(VISITS_KEY, '20')
+    m.set(MEMORY_KEY, JSON.stringify({ lastArcane: 3, lastNom: null, lastLevel: 2, finished: true }))
+    const s = fresh()
+    expect(m.has(VISITS_KEY)).toBe(false)
+    expect(s.level).toBe(1)
+    expect(s.memory.finished).toBe(true)
+  })
+
+  it('progress does not survive a new session but memory does', () => {
+    const s = fresh()
+    s.bump()
+    s.finish()
+    ss.clear()
+    const again = fresh()
+    expect(again.visits).toBe(0)
+    expect(again.memory.finished).toBe(true)
   })
 
   it.each(['abc', '-3', '1.5', '', '{"a":1}'])('falls back to 0 visits on garbage %j', (raw) => {
-    m.set(VISITS_KEY, raw)
+    ss.set(VISITS_KEY, raw)
     expect(fresh().visits).toBe(0)
   })
 
@@ -57,7 +81,7 @@ describe('progress store', () => {
     expect(s.level).toBe(5)
     s.reset()
     expect(s.level).toBe(1)
-    expect(m.get(VISITS_KEY)).toBe('0')
+    expect(ss.get(VISITS_KEY)).toBe('0')
     expect(m.get(BAGS_KEY)).toBe('keep')
     expect(s.memory).toEqual({ lastArcane: 17, lastNom: null, lastLevel: 2, finished: true })
   })
