@@ -36,4 +36,22 @@ describe('useActivityDone', () => {
     vi.advanceTimersByTime(AUTO_SUCCESS_MS * 2)
     expect(emit).not.toHaveBeenCalled()
   })
+
+  it('appelle onFinish une seule fois, avant done, pour une réussite manuelle ou automatique', () => {
+    const order: string[] = []
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(() => order.push('done'), { delayMs: 100, onFinish: () => order.push('finish') }))!
+    api.finish()
+    api.finish()
+    expect(order).toEqual(['finish'])
+    vi.advanceTimersByTime(100)
+    expect(order).toEqual(['finish', 'done'])
+    scope.stop()
+    const auto: string[] = []
+    const s2 = effectScope()
+    s2.run(() => useActivityDone(() => auto.push('done'), { delayMs: 100, onFinish: () => auto.push('finish') }))
+    vi.advanceTimersByTime(AUTO_SUCCESS_MS)
+    expect(auto).toEqual(['finish'])
+    s2.stop()
+  })
 })
