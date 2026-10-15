@@ -9,7 +9,7 @@ import { secureRng, type Rng } from '../../engine/rng'
 const props = withDefaults(defineProps<{ level: number; rng?: Rng }>(), { rng: secureRng })
 const emit = defineEmits<{ done: [] }>()
 
-const { finish, isFinished } = useActivityDone(() => emit('done'))
+const { finish, isFinished } = useActivityDone(() => emit('done'), { delayMs: 600 })
 const reduced = useReducedMotion()
 
 const COUNT = 3
@@ -25,6 +25,8 @@ const target = { x: 0, y: 0 }
 const pos = { x: 0, y: 0, vx: 0, vy: 0 }
 const matchVisible = ref(false)
 const over = ref(false)
+// Indice de la chandelle soufflée (-1 : aucune) : courant d’air une seule fois au niveau 3.
+const snuffed = ref(-1)
 
 // Niveau 3 : une chandelle s’éteint une seule fois, juste après la troisième allumée.
 let snuffUsed = props.level !== 3
@@ -35,8 +37,24 @@ const { start: snuffLater } = useTimeoutFn(
     if (i < 0) return
     lit[i] = false
     hold[i] = 0
+    snuffed.value = i
+    relightLater()
   },
-  700,
+  450,
+  { immediate: false },
+)
+// Sans rallumage après 4 s, la chandelle se rallume seule (douce chaleur) et l’activité se termine.
+const { start: relightLater, stop: relightStop } = useTimeoutFn(
+  () => {
+    const i = snuffed.value
+    if (i < 0 || isFinished()) return
+    lit[i] = true
+    hold[i] = 1
+    snuffed.value = -1
+    over.value = true
+    finish()
+  },
+  4000,
   { immediate: false },
 )
 
@@ -44,6 +62,10 @@ const light = (i: number) => {
   if (lit[i]) return
   lit[i] = true
   hold[i] = 1
+  if (snuffed.value === i) {
+    snuffed.value = -1
+    relightStop()
+  }
   if (litCount.value < COUNT) return
   if (!snuffUsed) {
     snuffUsed = true
@@ -118,7 +140,7 @@ useRafFn(({ delta }) => {
   <div ref="stage" class="relative size-full overflow-hidden touch-none select-none bg-[#07050a] flex flex-col items-center justify-center gap-6 font-ui text-center">
     <div class="warm absolute inset-0 pointer-events-none" :class="{ 'no-motion': reduced }" :style="{ opacity: litCount / COUNT }" aria-hidden="true" />
     <p class="relative m-0 text-[1.4rem] text-[#e8d9b0]" aria-live="polite">
-      {{ over ? 'La pièce se réchauffe…' : 'Allumez les trois chandelles' }}
+      {{ over ? 'La pièce se réchauffe…' : snuffed >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles' }}
     </p>
     <div class="relative flex items-end gap-8 sm:gap-14">
       <button
@@ -126,7 +148,8 @@ useRafFn(({ delta }) => {
         :key="n"
         :ref="(el) => (candleEls[n - 1] = el as HTMLElement | null)"
         type="button"
-        class="relative bg-transparent border-0 p-0 cursor-pointer w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4"
+        class="candle relative bg-transparent border-0 p-0 cursor-pointer w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4"
+        :class="{ pulse: snuffed === n - 1 && !reduced }"
         :aria-label="lit[n - 1] ? `Chandelle ${n} allumée` : `Allumer la chandelle ${n}`"
         @click="light(n - 1)"
       >
@@ -138,6 +161,7 @@ useRafFn(({ delta }) => {
           <line x1="30" y1="52" x2="30" y2="42" stroke="#2a2018" stroke-width="2" stroke-linecap="round" />
           <circle cx="30" cy="42" r="3" fill="#ff9a2e" :opacity="hold[n - 1] * 0.9" />
         </svg>
+        <span v-if="snuffed === n - 1 && !reduced" class="smoke" aria-hidden="true" />
         <span class="flame" :class="{ on: lit[n - 1], 'no-motion': reduced }" aria-hidden="true">
           <span class="flame-sway" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.9}s` }" />
         </span>
@@ -179,6 +203,37 @@ useRafFn(({ delta }) => {
   box-shadow: 0 0 22px 8px rgb(255 160 50 / 0.55);
   transform-origin: 50% 100%;
   animation: sway 3.2s ease-in-out infinite;
+}
+.smoke {
+  position: absolute;
+  left: calc(50% - 7px);
+  top: 28%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(190 190 200 / 0.55), rgb(120 120 130 / 0) 70%);
+  pointer-events: none;
+  animation: smoke 1.2s ease-out forwards;
+}
+.candle.pulse {
+  outline: 2px solid rgb(232 217 176 / 0.15);
+  outline-offset: 4px;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes smoke {
+  from {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: translate(6px, -64px) scale(2.6);
+    opacity: 0;
+  }
+}
+@keyframes pulse {
+  50% {
+    outline-color: rgb(232 217 176 / 0.45);
+  }
 }
 .match {
   opacity: 0;
