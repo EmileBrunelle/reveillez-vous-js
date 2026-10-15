@@ -60,7 +60,7 @@ useResizeObserver(deckEl, () => {
 const restOf = (i: number, h: number | null) => {
   const f = FAN[i]
   const me = h === i
-  const sep = h === null || me ? 0 : (i < h ? -1 : 1) * 0.04 * W
+  const sep = h === null || me ? 0 : (i < h ? -1 : 1) * 0.03 * W
   return { x: (f.x / 100) * W + sep, y: (f.y / 100) * W + (me ? -0.06 * W : 0), r: me ? f.rot * 0.35 : f.rot, s: me ? FAN_SCALE * 1.07 : FAN_SCALE }
 }
 const stackOf = (i: number) => ({ x: (i - 1) * 0.006 * W, y: 0.05 * W - i * 0.006 * W, r: (i - 1) * 2, s: FAN_SCALE * 0.92 })
@@ -75,7 +75,7 @@ type Phase = 'deal' | 'idle' | 'pick'
 let phase: Phase = 'deal'
 let pickAt = 0
 let lastTs = 0
-const FINAL_S = 1 / FAN_SCALE
+const FINAL_S = 1 // l’élément a la largeur de la boîte : échelle 1 = la carte du tirage
 let startS = FAN_SCALE
 const OTHERS_DELAY = 90 // anticipation de la carte choisie (ms) avant la fuite des autres et l’envol
 let finished = false
@@ -344,7 +344,7 @@ const choose = (i: number) => {
   container-type: inline-size;
 }
 .deck__card {
-  width: calc(100cqw * 0.55) /* = FAN_SCALE */;
+  width: 100cqw; /* échelle de repos = FAN_SCALE, échelle 1 = carte du tirage */
   translate: -50% -50%;
 }
 /* Seules des opacités passent par CSS : aucun transform n’a de transition (le mouvement est entièrement piloté par la boucle rAF). */
