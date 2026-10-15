@@ -4,6 +4,7 @@ import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { advanceHold, isNearWick, pickSnuffed } from '../../engine/candles'
+import IconChandelle from '~icons/rvj/chandelle'
 import { secureRng, type Rng } from '../../engine/rng'
 
 const props = withDefaults(defineProps<{ level: number; rng?: Rng }>(), { rng: secureRng })
@@ -166,14 +167,8 @@ useRafFn(({ delta }) => {
         :aria-label="lit[n - 1] ? `Chandelle ${n} allumée` : `Allumer la chandelle ${n}`"
         @click="light(n - 1)"
       >
-        <svg viewBox="0 0 60 150" class="absolute inset-0 size-full" aria-hidden="true">
-          <rect x="16" y="52" width="28" height="96" rx="3" fill="#cdbf9a" />
-          <rect x="16" y="52" width="9" height="96" rx="3" fill="#e6dcc0" />
-          <ellipse cx="30" cy="52" rx="14" ry="3.5" fill="#efe6cc" />
-          <path d="M44 56 q5 18 -1 30" stroke="#efe6cc" stroke-width="3" fill="none" />
-          <line x1="30" y1="52" x2="30" y2="42" stroke="#2a2018" stroke-width="2" stroke-linecap="round" />
-          <circle cx="30" cy="42" r="3" fill="#ff9a2e" :opacity="hold[n - 1] * 0.9" />
-        </svg>
+        <IconChandelle class="absolute inset-0 size-full" />
+        <span class="wick-glow" :style="{ opacity: hold[n - 1] * 0.9 }" aria-hidden="true" />
         <span v-if="snuffed === n - 1 && !reduced" class="smoke" aria-hidden="true" />
         <span class="flame" :class="{ on: lit[n - 1], 'no-motion': reduced }" aria-hidden="true">
           <span class="flame-sway" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.9}s` }" />
@@ -191,6 +186,17 @@ useRafFn(({ delta }) => {
 .warm {
   background: radial-gradient(ellipse at 50% 65%, rgb(255 140 40 / 0.38), rgb(120 40 10 / 0.18) 55%, transparent 80%);
   transition: opacity 2.4s ease-in-out;
+}
+.wick-glow {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: #ff9a2e;
+  pointer-events: none;
 }
 .flame {
   position: absolute;
