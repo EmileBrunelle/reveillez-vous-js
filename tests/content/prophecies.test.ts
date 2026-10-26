@@ -123,7 +123,29 @@ describe('prophecies content', () => {
 
   describe('arcane', () => {
     const table = prophecies.arcane as ObjectTable
-    const SYMBOLES = ['fool', 'wheel', 'star', 'moon', 'sun', 'lantern', 'tower', 'pumpkin', 'cone', 'bridge', 'crystal', 'cat', 'signpost', 'ghost', 'eye']
+    const SYMBOLES = [
+      'fool',
+      'wheel',
+      'star',
+      'moon',
+      'sun',
+      'lantern',
+      'tower',
+      'pumpkin',
+      'cone',
+      'bridge',
+      'crystal',
+      'cat',
+      'signpost',
+      'ghost',
+      'eye',
+      'beaver',
+      'hourglass',
+      'web',
+      'bat',
+      'snowman',
+      'antenna',
+    ]
     it('has ~15 entries with numero, nom and a known symbole', () => {
       expect(table.length).toBeGreaterThanOrEqual(12)
       for (const a of table) {

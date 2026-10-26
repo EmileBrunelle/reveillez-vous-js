@@ -14,8 +14,14 @@ import cat from '~icons/game-icons/cat?raw'
 import signpost from '~icons/game-icons/doorway?raw'
 import ghost from '~icons/game-icons/ghost?raw'
 import eye from '~icons/game-icons/all-seeing-eye?raw'
+import beaver from '~icons/game-icons/beaver?raw'
+import hourglass from '~icons/game-icons/hourglass?raw'
+import web from '~icons/game-icons/spider-web?raw'
+import bat from '~icons/game-icons/bat?raw'
+import snowman from '~icons/game-icons/snowman?raw'
+import antenna from '~icons/game-icons/tv-tower?raw'
 
-const RAW: Record<string, string> = { fool, wheel, star, moon, sun, lantern, tower, pumpkin, cone, bridge, crystal, cat, signpost, ghost, eye }
+const RAW: Record<string, string> = { fool, wheel, star, moon, sun, lantern, tower, pumpkin, cone, bridge, crystal, cat, signpost, ghost, eye, beaver, hourglass, web, bat, snowman, antenna }
 
 /** `url("data:…")` prêt pour la propriété CSS `mask-image` (« none » si le symbole est inconnu). */
 export const emblemMask = (symbole: string) => (RAW[symbole] ? `url("data:image/svg+xml,${encodeURIComponent(RAW[symbole])}")` : 'none')

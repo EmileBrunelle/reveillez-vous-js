@@ -483,6 +483,12 @@ export const prophecies: Grammar = {
     { numero: 'XXII', nom: 'Saint-Clin-Clin-des-Meuh-Meuh', paquet: 'brume', symbole: 'signpost', niveaux: '23' },
     { numero: 'XXIII', nom: 'Le Fantôme du troisième', paquet: 'brume', symbole: 'ghost', niveaux: '1245' },
     { numero: 'LXVI', nom: 'L’Œil derrière la porte', paquet: 'nuit', symbole: 'eye', niveaux: '45' },
+    { numero: 'II ¼', nom: 'Le Castor ingénieur', paquet: 'brume', symbole: 'beaver', niveaux: '12' },
+    { numero: 'XII', nom: 'Le Sablier de la relâche', paquet: 'nuit', symbole: 'hourglass', niveaux: '1234' },
+    { numero: 'XIV', nom: 'La Toile du sous-sol', paquet: 'brume', symbole: 'web', niveaux: '45' },
+    { numero: 'XXIV', nom: 'La Chauve-souris du Stade', paquet: 'nuit', symbole: 'bat', niveaux: '345' },
+    { numero: 'XXV', nom: 'Le Bonhomme de neige déplacé', paquet: 'brume', symbole: 'snowman', niveaux: '345' },
+    { numero: 'LXXV', nom: 'L’Antenne du toit d’en face', paquet: 'feu', symbole: 'antenna', niveaux: '45' },
   ],
 
   // ---- Tables de chaînes partagées ---------------------------------------------------------
