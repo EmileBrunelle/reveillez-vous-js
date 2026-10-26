@@ -4,6 +4,7 @@ import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { useCollectionStore } from '../stores/collection'
 import TarotEmblem from './TarotEmblem.vue'
+import { focusQuietly } from '../composables/focusQuietly'
 
 // Parent v-model = « veut ouvert ». <dialog> natif : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
@@ -28,7 +29,7 @@ const sync = async (o: boolean) => {
     highlight.value = collection.fresh
     d.showModal()
     await nextTick()
-    closeBtn.value?.focus()
+    focusQuietly(closeBtn.value)
     const el = highlight.value ? cells[highlight.value] : undefined
     if (el) {
       el.scrollIntoView({ block: 'nearest' })
@@ -46,7 +47,7 @@ const onClose = () => {
   collection.consult()
   const el = opener
   opener = null
-  if (el?.isConnected) el.focus()
+  if (el?.isConnected) focusQuietly(el)
 }
 
 const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focus-visible:[outline:2px_dotted_#000] focus-visible:outline-offset-[-4px] min-h-8 px-4'

@@ -25,6 +25,7 @@ import { hymn, unlock } from './audio/sfx'
 import { finaleActive } from './engine/finaleFlow'
 import { WAKE_LABEL } from './content/finale'
 import { activityFor, loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
+import { focusQuietly } from './composables/focusQuietly'
 
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
 // La carte du tirage est chargée avant la fin de la coupe (jamais de substitut) : on ne la rend qu’une fois le chunk là.
@@ -81,7 +82,7 @@ const openAbout = () => {
   aboutOpen.value = true
 }
 watch(aboutOpen, (o) => {
-  if (!o) nextTick(() => opener?.focus())
+  if (!o) nextTick(() => focusQuietly(opener))
 })
 
 const progress = useProgressStore()
@@ -207,7 +208,7 @@ const onPick = async (paquet: Paquet) => {
   cardSettled.value = false
   phase.value = 'reading'
   hymn()
-  void nextTick(() => (tarotFailed.value ? closeBtn.value : readingEl.value)?.focus({ preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
+  void nextTick(() => focusQuietly(tarotFailed.value ? closeBtn.value : readingEl.value, { preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
 }
 const leave = (count: boolean) => {
   if (closing.value) return
@@ -231,13 +232,17 @@ const approach = () => {
   ensureDoor().then(startAwaitEnd, () => undefined)
 }
 
+// Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
+const focusOverlay = (el: unknown) => {
+  if (el instanceof HTMLElement) focusQuietly(el)
+}
 const closeBtn = ref<HTMLButtonElement>()
 const readingEl = ref<HTMLElement>()
 const focusSoon = (find: () => HTMLElement | null | undefined) => {
   let n = 0
   const t = () => {
     const el = find()
-    if (el) return el.focus({ preventScroll: true })
+    if (el) return focusQuietly(el, { preventScroll: true })
     if (n++ < 60) requestAnimationFrame(t)
   }
   requestAnimationFrame(t)
@@ -245,7 +250,7 @@ const focusSoon = (find: () => HTMLElement | null | undefined) => {
 const onFlipped = () => {
   collection.record(prophecy.value.arcane.nom)
   cardSettled.value = true
-  void nextTick(() => closeBtn.value?.focus({ preventScroll: true }))
+  void nextTick(() => focusQuietly(closeBtn.value, { preventScroll: true }))
 }
 // A phase unmounting drops focus to <body>: send it to the door button of the next door.
 watch(
@@ -309,9 +314,9 @@ const onFinaleRestart = () => {
       />
       <button
         v-if="awaiting"
+        :ref="focusOverlay"
         class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-0.6667rem]"
         type="button"
-        autofocus
         @click="approach"
       >
         Approchez-vous de la porte

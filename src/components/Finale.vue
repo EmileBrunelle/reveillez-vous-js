@@ -4,6 +4,7 @@ import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { CREDITS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL } from '../content/finale'
+import { focusQuietly } from '../composables/focusQuietly'
 
 // Finale du niveau 5 : la télé s’éteint en une ligne, l’aube se lève, le texte arrive ligne par ligne, puis le générique.
 // `collapsed` : l’écran est noir (l’app coupe le CRT et passe le lieu en aube sans qu’on le voie). `restart` : « Recommencer ».
@@ -23,7 +24,7 @@ const restartBtn = ref<HTMLButtonElement>()
 // Le générique peut dépasser (téléphone) : « Recommencer » est ramené dans la section défilante, en douceur sauf mouvement réduit.
 const focusRestart = () =>
   void nextTick(() => {
-    restartBtn.value?.focus({ preventScroll: true })
+    focusQuietly(restartBtn.value, { preventScroll: true })
     restartBtn.value?.scrollIntoView({ block: 'nearest', behavior: reduced.value ? 'auto' : 'smooth' })
   })
 
