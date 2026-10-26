@@ -19,8 +19,8 @@ import { storeToRefs } from 'pinia'
 import { useMediaQuery, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
-import { safeStorage } from './composables/safeStorage'
-import { pickActivity, type ActivityId } from './engine/activityPick'
+import { safeSessionStorage, safeStorage } from './composables/safeStorage'
+import { LAST_ACTIVITY_KEY, parseActivityId, pickActivity, type ActivityId } from './engine/activityPick'
 import { hymn, unlock } from './audio/sfx'
 import { finaleActive } from './engine/finaleFlow'
 import { WAKE_LABEL } from './content/finale'
@@ -101,7 +101,7 @@ const { level, paranoia } = storeToRefs(progress)
 const session = useSessionStore()
 useTabTitle(level)
 // Activité de la visite (tirée à l’ouverture de la porte ; null au niveau 1).
-const activityId = ref<ActivityId | null>(null)
+const activityId = ref<ActivityId | null>(parseActivityId(safeSessionStorage().getItem(LAST_ACTIVITY_KEY))) // relue : un rechargement ne rejoue pas la même
 const Activity = computed(() => {
   const loader = activityFor(activityId.value)
   return loader ? defineAsyncComponent(loader) : null
@@ -114,6 +114,7 @@ watch(resetOpen, (o) => o && (resetWanted.value = true))
 const clearBubbles = () => session.notifications.forEach((n) => session.dismiss(n.id))
 const resetLevel = () => {
   progress.reset()
+  safeSessionStorage().removeItem(LAST_ACTIVITY_KEY)
   stopBubble()
   clearBubbles()
   if (phase.value === 'finale')
@@ -154,6 +155,8 @@ const enterDoor = () => {
   returnGreeted = true
   doorLine.value = greet ? nextReturnLine(safeStorage(), rng, FALLBACK_LINE) : nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
   activityId.value = pickActivity(progress.visits, activityId.value, safeStorage(), rng)
+  if (activityId.value) safeSessionStorage().setItem(LAST_ACTIVITY_KEY, activityId.value)
+  else safeSessionStorage().removeItem(LAST_ACTIVITY_KEY)
   const loadActivity = activityFor(activityId.value)
   if (loadActivity) prefetch(loadActivity) // on réchauffe celle qui sera vraiment jouée
   phase.value = 'door'
@@ -268,6 +271,7 @@ const onCollapsed = () => {
 const onFinaleRestart = () => {
   if (!finaleActive(phase.value)) return // double clic pendant la sortie : un seul « Recommencer »
   progress.completeFinale()
+  safeSessionStorage().removeItem(LAST_ACTIVITY_KEY)
   returnGreeted = false
   stopBubble()
   clearBubbles()

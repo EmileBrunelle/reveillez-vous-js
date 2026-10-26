@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ACTIVITIES, pickActivity, type ActivityId } from '../../src/engine/activityPick'
+import { ACTIVITIES, parseActivityId, pickActivity, type ActivityId } from '../../src/engine/activityPick'
 import { paranoiaLevel } from '../../src/engine/paranoia'
 import { mulberry32 } from '../../src/engine/rng'
 
@@ -45,5 +45,12 @@ describe('pickActivity', () => {
       expect(seq[4]).toBe('wisps') // seule autre candidate au niveau 3
       expect(['wisps', 'candles']).toContain(seq[6]) // niveau 4 : pas Fenêtres, jouée à la visite 5
     }
+  })
+})
+
+describe('parseActivityId', () => {
+  it('relit un identifiant connu, ignore le reste', () => {
+    expect(parseActivityId('candles')).toBe('candles')
+    for (const raw of [null, '', 'nope', '{"a":1}']) expect(parseActivityId(raw)).toBeNull()
   })
 })

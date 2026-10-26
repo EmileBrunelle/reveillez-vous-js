@@ -12,6 +12,12 @@ export const ACTIVITIES: readonly { id: ActivityId; introLevel: number }[] = [
   { id: 'crystal', introLevel: 5 },
 ]
 
+/** Clé sessionStorage de la dernière activité jouée (survit à un rechargement en pleine visite). */
+export const LAST_ACTIVITY_KEY = 'rvj-last-activity'
+
+/** Relit une valeur stockée : un identifiant d’activité connu, sinon null. */
+export const parseActivityId = (raw: string | null): ActivityId | null => ACTIVITIES.find((a) => a.id === raw)?.id ?? null
+
 type Store = Pick<Storage, 'getItem' | 'setItem'>
 
 /**
