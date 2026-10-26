@@ -1,0 +1,272 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useActivityDone } from '../../composables/useActivityDone'
+import { useReducedMotion } from '../../composables/useReducedMotion'
+import { OUIJA_WORDS } from '../../content/ouija'
+import { OUIJA_BYE, OUIJA_NO, OUIJA_ROWS, OUIJA_YES, advanceDwell, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../engine/ouija'
+import { orSecure, type Rng } from '../../engine/rng'
+import IconGoutte from '~icons/rvj/goutte'
+
+const props = defineProps<{ level: number; rng?: Rng }>()
+// Pas de défaut de prop : Vue prendrait la fabrique secureRng comme valeur.
+const rng = orSecure(props.rng)
+const emit = defineEmits<{ done: [] }>()
+
+const word = pickWord(OUIJA_WORDS, rng)
+const driftAt = pickDriftAt(props.level, word.length, rng)
+let driftUsed = false
+
+const index = ref(0)
+const dwell = ref(0)
+const farewell = ref(false)
+const status = ref('')
+const reduced = useReducedMotion()
+
+const { finish, isFinished } = useActivityDone(() => emit('done'), {
+  delayMs: 1300,
+  // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
+  onFinish: () => {
+    index.value = word.length
+    dwell.value = 0
+    farewell.value = true
+    override = els[OUIJA_BYE] ?? null
+    driftStop()
+    status.value = `${word} : la planche vous dit au revoir.`
+  },
+})
+
+const stage = ref<HTMLElement>()
+const dropEl = ref<HTMLElement>()
+const els: Record<string, HTMLElement | null> = {}
+const setEl = (key: string) => (el: unknown) => (els[key] = el as HTMLElement | null)
+
+// Goutte : cible (pointeur) et position ressort, écrites directement dans le DOM (un seul maître du transform).
+const target = { x: 0, y: 0 }
+const pos = { x: 0, y: 0, vx: 0, vy: 0 }
+let placed = false
+// Case que la goutte rejoint d’elle-même (dérive vers NON, puis AU REVOIR) ; sinon elle suit le pointeur.
+let override: HTMLElement | null = null
+
+const centerOf = (el: HTMLElement) => {
+  const s = stage.value?.getBoundingClientRect()
+  if (!s) return null
+  const r = el.getBoundingClientRect()
+  return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2, left: r.left - s.left, right: r.right - s.left, top: r.top - s.top, bottom: r.bottom - s.top }
+}
+
+const { start: driftLater, stop: driftStop } = useTimeoutFn(
+  () => {
+    override = null
+    status.value = 'La goutte revient vers vous.'
+  },
+  1700,
+  { immediate: false },
+)
+
+const validate = (letter: string) => {
+  if (isFinished() || override) return
+  const next = pressLetter(word, index.value, letter)
+  if (next === index.value) return
+  index.value = next
+  dwell.value = 0
+  status.value = `Lettre ${letter}. ${next} sur ${word.length}.`
+  if (next >= word.length) {
+    farewell.value = true
+    override = els[OUIJA_BYE] ?? null
+    finish()
+    return
+  }
+  if (shouldDrift(driftAt, next, driftUsed)) {
+    driftUsed = true
+    override = els[OUIJA_NO] ?? null
+    status.value = 'La goutte dérive d’elle-même vers NON.'
+    driftLater()
+  }
+}
+
+const setTarget = (e: PointerEvent) => {
+  const r = stage.value?.getBoundingClientRect()
+  if (!r) return
+  target.x = e.clientX - r.left
+  target.y = e.clientY - r.top
+}
+useEventListener(stage, 'pointermove', setTarget)
+useEventListener(stage, 'pointerdown', setTarget)
+
+// Épellation au clavier : taper les lettres du mot (accents ignorés) ; la goutte glisse vers la lettre validée.
+useEventListener(document, 'keydown', (e: KeyboardEvent) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return
+  const letter = normalizeKey(e.key)
+  if (!letter) return
+  const el = els[letter]
+  const before = index.value
+  validate(letter)
+  const c = el && index.value !== before ? centerOf(el) : null
+  if (c) {
+    target.x = c.x
+    target.y = c.y
+  }
+})
+
+const expected = computed(() => nextLetter(word, index.value))
+
+useRafFn(({ delta }) => {
+  const dt = Math.min(delta, 50)
+  const s = stage.value
+  if (!s) return
+  if (!placed) {
+    target.x = pos.x = s.clientWidth / 2
+    target.y = pos.y = s.clientHeight * 0.55
+    placed = true
+  }
+  const goal = override ? centerOf(override) : null
+  const tx = goal ? goal.x : target.x
+  const ty = goal ? goal.y : target.y
+  if (reduced.value) {
+    pos.x = tx
+    pos.y = ty
+    pos.vx = pos.vy = 0
+  } else {
+    // Ressort presque critique (ζ ≈ 0,7, ~5 % de dépassement) : suit le pointeur avec du poids, sans rebondir.
+    pos.vx += (tx - pos.x) * 0.012 * dt
+    pos.vy += (ty - pos.y) * 0.012 * dt
+    const damp = Math.exp(-dt * 0.0375)
+    pos.vx *= damp
+    pos.vy *= damp
+    pos.x += pos.vx * dt * 0.06
+    pos.y += pos.vy * dt * 0.06
+  }
+  if (dropEl.value) dropEl.value.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
+  // Survol de la lettre attendue (les autres sont ignorées) ; en pause pendant la dérive.
+  const letter = expected.value
+  const el = letter && !override && !isFinished() ? els[letter] : null
+  const c = el ? centerOf(el) : null
+  const over = !!c && pos.x >= c.left - 4 && pos.x <= c.right + 4 && pos.y >= c.top - 4 && pos.y <= c.bottom + 4
+  const p = advanceDwell(dwell.value, over, dt)
+  if (p !== dwell.value) dwell.value = p
+  if (p >= 1 && letter) validate(letter)
+})
+</script>
+
+<template>
+  <div ref="stage" class="ouija relative size-full overflow-hidden touch-none select-none flex flex-col items-center justify-center gap-3 sm:gap-5 px-2 font-title text-center">
+    <p class="sr-only" aria-live="polite">{{ status }}</p>
+    <p class="relative m-0 text-[#e8d9b0] text-sm tracking-[0.18em]" aria-hidden="true">Épelez le mot</p>
+    <p class="relative m-0 flex gap-2 sm:gap-3 text-[2rem] sm:text-[2.6rem] leading-none text-[#d9b55a]" :aria-label="`Mot à épeler : ${word}`">
+      <span
+        v-for="(ch, i) in word"
+        :key="i"
+        aria-hidden="true"
+        class="inline-block min-w-[1.1em] border-0 border-b-[3px] border-solid pb-1"
+        :class="i < index ? 'border-[#d9b55a]' : i === index ? 'border-[#e8d9b0] opacity-80' : 'border-[#d9b55a]/25 opacity-40'"
+        >{{ ch }}</span
+      >
+    </p>
+    <div class="board relative flex flex-col items-center gap-1.5 sm:gap-2 px-2 py-3 sm:px-6 sm:py-5" role="group" aria-label="Planche Ouija">
+      <div class="flex gap-10 sm:gap-16">
+        <button :ref="setEl(OUIJA_YES)" type="button" class="key answer" :aria-label="OUIJA_YES" tabindex="-1">{{ OUIJA_YES }}</button>
+        <button :ref="setEl(OUIJA_NO)" type="button" class="key answer" :aria-label="OUIJA_NO" tabindex="-1">{{ OUIJA_NO }}</button>
+      </div>
+      <div v-for="row in OUIJA_ROWS" :key="row" class="flex gap-1 sm:gap-1.5">
+        <button
+          v-for="l in row"
+          :key="l"
+          :ref="setEl(l)"
+          type="button"
+          class="key letter"
+          :class="{ next: expected === l, 'no-motion': reduced }"
+          :style="expected === l ? { '--dwell': dwell } : undefined"
+          :aria-label="`Lettre ${l}`"
+          @click="validate(l)"
+        >
+          {{ l }}
+        </button>
+      </div>
+      <button :ref="setEl(OUIJA_BYE)" type="button" class="key answer bye" :class="{ lit: farewell, 'no-motion': reduced }" :aria-label="OUIJA_BYE" tabindex="-1">{{ OUIJA_BYE }}</button>
+    </div>
+    <span ref="dropEl" class="drop absolute left-0 top-0 pointer-events-none" aria-hidden="true">
+      <IconGoutte class="drop-shape" />
+    </span>
+  </div>
+</template>
+
+<style scoped>
+.ouija {
+  background: radial-gradient(ellipse at 50% 40%, rgb(60 30 14 / 0.55), transparent 70%), #08050a;
+}
+.board {
+  border: 3px solid #d9b55a;
+  border-radius: 14px;
+  background: repeating-linear-gradient(92deg, rgb(255 255 255 / 0.025) 0 2px, transparent 2px 9px), linear-gradient(180deg, #3a2112, #26140a 60%, #1d0f07);
+  box-shadow:
+    inset 0 0 0 3px #1a0d06,
+    inset 0 0 0 4px rgb(217 181 90 / 0.4),
+    0 10px 30px rgb(0 0 0 / 0.6);
+}
+.key {
+  font-family: inherit;
+  color: #d9b55a;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  position: relative;
+  border-radius: 8px;
+}
+.key:focus-visible {
+  outline: 3px solid #e8d9b0;
+  outline-offset: 2px;
+}
+.letter {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.answer {
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.bye {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  transition:
+    color 0.6s ease,
+    background-color 0.6s ease,
+    box-shadow 0.6s ease;
+}
+.bye.lit {
+  color: #1a0d06;
+  background: #f1d98a;
+  box-shadow: 0 0 22px 6px rgb(241 217 138 / 0.55);
+}
+/* Lettre attendue : un anneau d’or se remplit pendant le survol (progression pilotée par --dwell, pas de clignotement). */
+.letter.next {
+  background: radial-gradient(circle, rgb(217 181 90 / calc(var(--dwell, 0) * 0.55)) 0 calc(var(--dwell, 0) * 75%), transparent calc(var(--dwell, 0) * 75% + 1px));
+  box-shadow: inset 0 0 0 2px rgb(217 181 90 / 0.45);
+}
+@media (min-width: 640px) {
+  .letter {
+    width: 3.25rem;
+    height: 3.25rem;
+    font-size: 1.7rem;
+  }
+}
+.drop {
+  will-change: transform;
+}
+.drop-shape {
+  position: absolute;
+  left: -20px;
+  top: -34px;
+  width: 40px;
+  height: 52px;
+  filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.55));
+}
+.no-motion {
+  transition-duration: 0s;
+}
+</style>

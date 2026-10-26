@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ACTIVITIES, parseActivityId, pickActivity, type ActivityId } from '../../src/engine/activityPick'
+import { ACTIVITIES, parseActivityId, parsePlayed, pickActivity, type ActivityId } from '../../src/engine/activityPick'
 import { paranoiaLevel } from '../../src/engine/paranoia'
 import { mulberry32 } from '../../src/engine/rng'
 
@@ -12,8 +12,10 @@ const run = (seed: number, upTo = 7) => {
   const rng = mulberry32(seed)
   const seq: (ActivityId | null)[] = []
   let last: ActivityId | null = null
+  const played: ActivityId[] = []
   for (let v = 0; v <= upTo; v++) {
-    last = pickActivity(v, last, store, rng)
+    last = pickActivity(v, last, store, rng, played)
+    if (last && !played.includes(last)) played.push(last)
     seq.push(last)
   }
   return seq
@@ -39,12 +41,26 @@ describe('pickActivity', () => {
       }
     }
   })
-  it('parcours des visites 0 à 7 : les rejeux aux niveaux 3 et 4 changent d’activité', () => {
+  it('séquence des visites 0 à 7 : Feux, Chandelles, Ouija (pas encore jouée), Fenêtres, une rejouée, Cristal', () => {
     for (let seed = 1; seed <= 50; seed++) {
       const seq = run(seed)
-      expect(seq[4]).toBe('wisps') // seule autre candidate au niveau 3
-      expect(['wisps', 'candles']).toContain(seq[6]) // niveau 4 : pas Fenêtres, jouée à la visite 5
+      expect(seq.slice(0, 6)).toEqual([null, null, 'wisps', 'candles', 'ouija', 'windows'])
+      expect(['wisps', 'candles', 'ouija']).toContain(seq[6]) // déjà jouée, mais pas Fenêtres (visite précédente)
+      expect(seq[7]).toBe('crystal')
     }
+  })
+  it('préfère une activité débloquée pas encore jouée ; sans liste, retombe sur le sac sans répétition', () => {
+    expect(pickActivity(4, 'candles', memStore(), mulberry32(1), ['wisps', 'candles'])).toBe('ouija')
+    for (let seed = 1; seed <= 30; seed++) {
+      expect(pickActivity(4, 'candles', memStore(), mulberry32(seed))).not.toBe('candles')
+    }
+  })
+})
+
+describe('parsePlayed', () => {
+  it('relit une liste d’identifiants connus, vide si illisible', () => {
+    expect(parsePlayed('["ouija","nope","wisps","ouija"]')).toEqual(['wisps', 'ouija'])
+    for (const raw of [null, '', '{', '{"a":1}', '3']) expect(parsePlayed(raw)).toEqual([])
   })
 })
 

@@ -12,6 +12,7 @@ export const loadFinale = () => import('./components/Finale.vue')
 const activities: Record<ActivityId, () => Promise<{ default: Component }>> = {
   wisps: () => import('./components/activities/WispsActivity.vue'),
   candles: () => import('./components/activities/CandlesActivity.vue'),
+  ouija: () => import('./components/activities/OuijaActivity.vue'),
   windows: () => import('./components/activities/WindowsActivity.vue'),
   crystal: () => import('./components/activities/CrystalActivity.vue'),
 }
