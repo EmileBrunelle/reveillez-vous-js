@@ -128,7 +128,7 @@ const skip = () => {
     >
       <div ref="win" class="about__win">
         <div ref="bar" class="flex items-center justify-between gap-2 bg-[#0000aa] text-white py-1 px-2 select-none [-webkit-tap-highlight-color:transparent]">
-          <Dialog.Title class="m-0 text-[1rem] font-bold"><span ref="title" class="inline-block whitespace-nowrap">À propos — TempleOS</span></Dialog.Title>
+          <Dialog.Title class="m-0 text-[1rem] font-bold"><span ref="title" class="inline-block whitespace-nowrap">À propos</span></Dialog.Title>
           <Dialog.Close
             class="select-none touch-manipulation [-webkit-tap-highlight-color:transparent] [font:inherit] cursor-pointer text-black border-2 border-solid border-black focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px] bg-[#aaaaaa] py-0 px-[0.6rem]"
             aria-label="Fermer"
@@ -137,30 +137,18 @@ const skip = () => {
         </div>
         <div ref="body" class="p-4 min-h-[21.1111rem] select-text">
           <Dialog.Description as="p" class="[margin:0_0_0.9rem]">
-            <strong>Hommage à Terry A. Davis (1969–2018)</strong>, qui a écrit seul TempleOS, un système d’exploitation 64 bits complet, avec son propre compilateur et son propre langage, HolyC. Il
-            l’a conçu comme un temple, en 640×480 et 16 couleurs.
+            <strong>Réveillez-vous.js</strong> : un jeu de voyance où l’on ouvre la porte, se concentre et tire une carte de tarot, pendant que la paranoïa monte.
           </Dialog.Description>
-          <p class="[margin:0_0_0.9rem]">TempleOS avait un « oracle » qui tirait des mots au hasard. Ce site tire lui aussi ses prophéties au hasard.</p>
-          <ul class="[margin:0_0_1rem] pl-[1.2rem]">
-            <li>
-              <a
-                class="select-text text-[#0000aa] underline visited:text-[#550055] focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px]"
-                href="https://fr.wikipedia.org/wiki/Terry_A._Davis"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Terry A. Davis — Wikipédia</a
-              >
-            </li>
-            <li>
-              <a
-                class="select-text text-[#0000aa] underline visited:text-[#550055] focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px]"
-                href="https://archive.org/details/TerryADavis_TempleOS_Archive"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Archives de TempleOS</a
-              >
-            </li>
-          </ul>
+          <p class="[margin:0_0_0.9rem]">Par Émile Brunelle, pour le défi Fortune.js de l’AGEEI (UQAM), 2026.</p>
+          <p class="[margin:0_0_0.9rem]">
+            <a
+              class="select-text text-[#0000aa] underline visited:text-[#550055] focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px]"
+              href="https://github.com/EmileBrunelle/reveillez-vous-js"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Code source</a
+            >
+          </p>
           <p class="[margin:0_0_0.9rem]">
             Icônes :
             <a
@@ -170,7 +158,7 @@ const skip = () => {
               rel="noopener noreferrer"
               >game-icons.net</a
             >
-            (CC BY 3.0)
+            (CC BY 3.0). Polices : VT323, IM Fell English et Cinzel (SIL OFL 1.1).
           </p>
           <Dialog.Close
             class="select-none touch-manipulation [-webkit-tap-highlight-color:transparent] [font:inherit] cursor-pointer text-black border-2 border-solid border-black focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px] bg-[#ffff55] py-[0.4rem] px-4"

@@ -136,17 +136,6 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
             <IconGithub class="w-4 h-4 flex-none" aria-hidden="true" />
             Code source
           </a>
-          <a
-            :class="item"
-            href="https://fr.wikipedia.org/wiki/Terry_A._Davis"
-            target="_blank"
-            rel="noopener noreferrer"
-            role="menuitem"
-            tabindex="-1"
-            aria-label="Hommage à Terry A. Davis (1969–2018), Wikipédia (nouvel onglet)"
-            @click="close()"
-            >Hommage à Terry A. Davis (1969–2018)</a
-          >
           <template v-if="level > 1">
             <hr class="my-[3px] mx-[2px] border-0 h-[2px] bg-transparent shadow-[inset_0_1px_grey,inset_0_-1px_#fff]" role="separator" />
             <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('reset')">Recommencer à zéro</button>

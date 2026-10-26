@@ -36,7 +36,7 @@ const ensureTarot = async () => {
   for (let n = 0; n < 2 && !TarotCard.value; n++) await Promise.race([loadTarotOnce(), timeout(3000)]).catch(() => undefined)
   tarotFailed.value = !TarotCard.value
 }
-const AboutTempleOS = defineAsyncComponent(loadAbout)
+const About = defineAsyncComponent(loadAbout)
 const ResetConfirm = defineAsyncComponent(loadReset)
 const DeckCut = defineAsyncComponent(loadDeckCut)
 const Finale = defineAsyncComponent(loadFinale)
@@ -386,6 +386,6 @@ const onFinaleRestart = () => {
   </MotionConfig>
   <FakeErrors v-if="gpu === 'ok' && phase === 'reading' && cardSettled" :key="sceneKey" :level="level" />
   <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @reset="resetOpen = true" @reset-level="resetLevel" />
-  <AboutTempleOS v-if="aboutWanted" v-model="aboutOpen" />
+  <About v-if="aboutWanted" v-model="aboutOpen" />
   <ResetConfirm v-if="resetWanted" v-model="resetOpen" @confirm="resetLevel" />
 </template>

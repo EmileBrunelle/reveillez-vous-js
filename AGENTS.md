@@ -25,12 +25,12 @@
 - `App.vue`: flow WebGPU gate, door, Concentration, TarotCard, « Fermer la porte », next variant.
 - `engine/`: `grammar.ts` (Tracery-like, throws on unknown table/field), `shuffleBag.ts` (no repeats, localStorage `rvj-bags`), `prophecy.ts`, `knock.ts`, `variant.ts`, `rng.ts`, `paranoia.ts`.
 - `content/`: `prophecies.ts` (levels 1–5, knocks, questions, paired tables, arcana), `scenes.ts` (5 backgrounds; doors: 5 place doors + 2 rare humorous ones without `place`, picked by place first via `pickDoor`, `weight` 12 vs 1). Tests live in top-level `tests/` (mirrors `src/`, outside the bundle; `tests/content/prophecies.test.ts` = regression suite on real content, typed by `tsconfig.test.json`).
-- `components/`: door/background variants in `doors/`, `backgrounds/`; TarotCard (`fitBody` fits text 11–26 px, emblem shrinks/hides), Concentration, Vigilance, AboutTempleOS, WebGpuGate, CrtOverlay.
+- `components/`: door/background variants in `doors/`, `backgrounds/`; TarotCard (`fitBody` fits text 11–26 px, emblem shrinks/hides), Concentration, Vigilance, About, WebGpuGate, CrtOverlay.
 - `effects/`: `crt.wgsl` + `crt.ts` (vgpu, lazy chunk), `webgpu.ts` (navigator.gpu + requestAdapter check).
 - Fonts: self-hosted via Fontsource (no CDN), latin subset only. VT323 = UI/terminal (`font-ui`, own `@font-face` in `styles.css` with `size-adjust: 125%` since VT323 is much smaller than Courier at equal size), IM Fell English 400/italic = card body and verse (`font-card`), Cinzel 700 = card numeral, question and banner (`font-title`). Families registered in `uno.config.ts` theme.font; imports in `main.ts`.
 - `audio/sfx.ts`: all sounds synthesized (Web Audio), mute toggle.
 - `stores/progress.ts`: visit count (sessionStorage `rvj-visits` via `safeSessionStorage`, so progress resets when the tab or browser closes; the old localStorage key is deleted at startup; `rvj-bags` and `rvj-memory` stay in localStorage; triple-click on the « Niveau de vigilance » badge resets). `composables/`: `safeStorage`, `useActivityDone` (shared activity completion, 20 s auto-success), `useReducedMotion`, `useTilt`, `useTabTitle`.
-- `components/Taskbar.vue`: fixed Windows 98 taskbar (Start menu: À propos, Code source, homage, reset; tray: Vigilance badge, sound toggle, clock); `--taskbar-h` in styles.css is the reserved height.
+- `components/Taskbar.vue`: fixed Windows 98 taskbar (Start menu: À propos, Code source, reset; tray: Vigilance badge, sound toggle, clock); `--taskbar-h` in styles.css is the reserved height.
 - `ui/`: UnoCSS-styled components (Windows 98 look; shortcuts `win-window`, `win-btn`).
 - `assets/svg/`: inline SVGs live as `.svg` files (doors, seer, icons), imported as components via `~icons/rvj/<name>` (unplugin-icons custom collection in `vite.config.ts`, `iconCustomizer` sets width/height to `unset` for `rvj` only, so no 1.2em: size with CSS classes on the usage, game-icons keep theirs; `class="door-handle"` inside door SVGs is animated by DoorScene).
 
@@ -52,7 +52,7 @@
 - Deliberate exception, approved by Émile: a nod to the meme « Les gens qui parlent en français ont tellement de charisme » (Pokimane origin, widely reshared by Québec meme pages such as Fruiter, so it counts as Québec-circulated). Quoted affectionately, mocks no one; never name Pokimane in game content. The pronoun « iels » of the original is dropped (no neologisms).
 - Theme first: every prophecy predicts something about the reader plus a voyance/Halloween element; conspiracy nods are seasoning (~3 in 10 per level).
 - Excluded: 5G, vaccines, lizard people, CIA/"glowie", flat earth, real conspiracies; any mental-illness word (fou, schizo…; use « Vendredi noir »); no religion named in our own text (XVI = « La Tour foudroyée »).
-- Homage to Terry A. Davis is strictly separate from the paranoia escalation: About text covers his work only; no Terry/Davis/TempleOS/HolyC in prophecy/arcane/knock content (enforced by `tests/content/prophecies.test.ts`); the level-5 ending must not lead to him; no "TempleOS predicted COVID" joke.
+- No homage to Terry A. Davis/TempleOS anywhere (removed 2026-10-26, Émile’s decision); the content tests keep banning those names.
 - game-icons attribution (CC BY 3.0) stays in About and README.
 
 ## Accessibility and photosensitivity

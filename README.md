@@ -85,8 +85,6 @@ tests/             engine/, content/, composables/, effects/
 - Icône GitHub : [Simple Icons](https://simpleicons.org) (CC0).
 - Les bibliothèques ci-dessus sont utilisées selon leurs licences respectives.
 
-**Hommage.** À Terry A. Davis (1969–2018), qui a écrit seul TempleOS, un système d’exploitation complet avec son propre compilateur et son propre langage, HolyC. Son « oracle » tirait des mots au hasard ; ce site tire lui aussi ses prophéties au hasard. Cet hommage porte sur son œuvre uniquement.
-
 ## Déclaration d’utilisation de l’IA
 
 Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic), avec les modèles Claude Opus, Sonnet et Haiku. Une session principale découpait le travail et le confiait à des sous-agents, puis vérifiait leurs résultats.
@@ -96,7 +94,7 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 - écrire la grande majorité du code (Vue, TypeScript, shader WGSL du CRT, sons synthétisés, moteur de génération des prophéties, détection du rythme cogné par la personne qui joue, courbe de progression des niveaux) ;
 - rédiger des ébauches de prophéties, de répliques et d’arcanes, retravaillées selon mes consignes ;
 - écrire les tests automatisés et vérifier l’affichage dans un navigateur automatisé (Playwright) ;
-- faire de la recherche (support de WebGPU selon les navigateurs, sources sur TempleOS, licences) ;
+- faire de la recherche (support de WebGPU selon les navigateurs, licences) ;
 - rédiger la documentation, dont ce fichier.
 
 **Ce que j’ai fait :**
@@ -104,7 +102,6 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 - le concept, la direction artistique et le ton (vieux PC hanté, carte de tarot, montée du mystère) ;
 - toutes les décisions de conception : WebGPU obligatoire, cartes plutôt que dépliant, porte fermée où l’on cogne un rythme à reproduire (règles de réussite et d’échec), pas de partage ni de graine ;
 - les règles de contenu : écriture inclusive, références québécoises, blagues qui visent des lieux et jamais des personnes, exclusions ;
-- la décision de séparer l’hommage à Terry A. Davis de la paranoïa, par respect ;
 - les tests à la main dans le navigateur et les retours sur ce qui n’allait pas (taille de la carte, glitchs trop visibles, porte trop petite…) ;
 - certaines blagues (dont l’Australie qui devient l’Argentine).
 
