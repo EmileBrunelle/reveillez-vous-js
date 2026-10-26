@@ -2,6 +2,7 @@ import { expandTemplate, type Grammar } from './grammar'
 import type { Rng } from './rng'
 import { drawPersisted } from './shuffleBag'
 import { isPaquet, type Paquet } from './paquets'
+import { returnGrammar } from '../content/finale'
 import { arcaneIndex } from '../stores/progress'
 
 export interface Arcane {
@@ -112,6 +113,9 @@ export const nextDoorLine = (grammar: Grammar, level: number, store: Store, rng:
   }
   return nextLine(grammar, `porte${level}`, store, rng, fallback)
 }
+
+/** Première réplique de la porte au retour après une finale (table `retour`, sac persisté), ou `fallback`. */
+export const nextReturnLine = (store: Store, rng: Rng, fallback: string): string => nextLine(returnGrammar, 'retour', store, rng, fallback)
 
 /** Titre de l’onglet quand il est caché (table `onglet<N>`, sac persisté), ou `fallback`. */
 export const nextTabTitle = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, `onglet${level}`, store, rng, fallback)

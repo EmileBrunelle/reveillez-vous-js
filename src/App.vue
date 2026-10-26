@@ -9,9 +9,9 @@ import BgPlace from './components/backgrounds/BgPlace.vue'
 import { useProgressStore } from './stores/progress'
 import { useSessionStore } from './stores/session'
 import { useTabTitle } from './composables/useTabTitle'
-import { doors, pickDoor, pickPlaceVariant, placeForLevel } from './content/scenes'
+import { doors, pickDoor, pickPlaceVariant, placeForLevel, places } from './content/scenes'
 import { prophecies } from './content/prophecies'
-import { nextDoorLine, nextProphecy, nextTitled, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
+import { nextDoorLine, nextProphecy, nextReturnLine, nextTitled, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import type { Paquet } from './engine/paquets'
 import { storeToRefs } from 'pinia'
@@ -20,6 +20,7 @@ import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
 import { safeStorage } from './composables/safeStorage'
 import { hymn, unlock } from './audio/sfx'
+import { WAKE_LABEL } from './content/finale'
 import { activityFor, loadAbout, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
 
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
@@ -98,7 +99,9 @@ const resetLevel = () => {
   progress.reset()
   stopBubble()
   clearBubbles()
-  if (phase.value === 'door') {
+  if (phase.value === 'finale')
+    enterDoor() // finale interrompue : retour direct à la porte du niveau 1
+  else if (phase.value === 'door') {
     if (!closing.value) enterDoor() // porte pas encore ouverte : on retire porte, réplique et lieu pour le niveau 1
   } else leave(false)
 }
@@ -120,13 +123,19 @@ const placeVariant = shallowRef(place.value.variants[0])
 const pickedPaquet = ref<Paquet>('nuit')
 const cardSettled = ref(false) // la carte est retournée : les fausses erreurs peuvent se mesurer
 const doorLine = ref(FALLBACK_LINE)
+const crtOff = ref(false) // finale : la télé est éteinte
+// Au retour après une finale, la toute première porte salue la personne (une fois par départ, y compris après « Recommencer »).
+let returnGreeted = false
 const prophecy = ref<Prophecy>({ question: '', body: '', verse: '', arcane: EMPTY_ARCANE })
 
 const enterDoor = () => {
   place.value = placeForLevel(level.value)
   door.value = pickDoor(place.value.id, rng)
   placeVariant.value = pickPlaceVariant(place.value, placeVariant.value.id, rng)
-  doorLine.value = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
+  crtOff.value = false
+  const greet = progress.memory.finished && level.value === 1 && !returnGreeted
+  returnGreeted = true
+  doorLine.value = greet ? nextReturnLine(safeStorage(), rng, FALLBACK_LINE) : nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
   phase.value = 'door'
   listening.value = false
   closing.value = false
@@ -227,12 +236,26 @@ const onClosed = () => {
 }
 // Niveau 5 : « Fermer la porte » passe par la finale, puis reprend le chemin habituel.
 const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
+// L’écran est noir : le CRT s’éteint et le lieu passe à l’aube sans qu’on le voie.
+const onCollapsed = () => {
+  crtOff.value = true
+  place.value = places.find((p) => p.id === 'nuages') ?? place.value
+  placeVariant.value = place.value.variants.find((v) => v.id === 'aube') ?? placeVariant.value
+}
+// « Recommencer » : visites et sacs à zéro, finale marquée, retour à la porte du niveau 1.
+const onFinaleRestart = () => {
+  progress.completeFinale()
+  returnGreeted = false
+  stopBubble()
+  clearBubbles()
+  enterDoor()
+}
 </script>
 
 <template>
   <WebGpuGate v-if="gpu === 'blocked'" @retry="retry" @about="openAbout" />
   <MotionConfig v-else reduced-motion="user">
-    <CrtOverlay :key="attempt" :paranoia="paranoia" @ready="gpu = 'ok'" @fail="gpu = 'blocked'" />
+    <CrtOverlay :key="attempt" :paranoia="paranoia" :off="crtOff" @ready="gpu = 'ok'" @fail="gpu = 'blocked'" />
     <p
       v-if="gpu === 'checking'"
       class="fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none"
@@ -334,7 +357,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
                 />
               </div>
               <div class="flex flex-none flex-wrap gap-3 justify-center" :class="{ invisible: phase === 'cut' }" :inert="phase === 'cut'">
-                <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">Fermer la porte</button>
+                <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">{{ level >= 5 ? WAKE_LABEL : 'Fermer la porte' }}</button>
               </div>
             </section>
           </Motion>
@@ -347,7 +370,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
             :exit="{ opacity: 0 }"
             :transition="{ duration: 0.2 }"
           >
-            <Finale @done="restart" />
+            <Finale @collapsed="onCollapsed" @restart="onFinaleRestart" />
           </Motion>
         </AnimatePresence>
       </main>
