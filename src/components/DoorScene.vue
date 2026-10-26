@@ -9,6 +9,7 @@ import { knockIntensity } from '../engine/knock'
 import { judge, rhythmFor, toOffsets, type Gap, type Verdict } from '../engine/rhythm'
 import { nextEntrezLine, nextFailLine } from '../engine/prophecy'
 import { prophecies } from '../content/prophecies'
+import { useKeyboardModality } from '../composables/useKeyboardModality'
 import { requestOrientationPermission } from '../composables/useTilt'
 import { safeStorage } from '../composables/safeStorage'
 import { secureRng } from '../engine/rng'
@@ -20,6 +21,7 @@ import KnockPattern from './KnockPattern.vue'
 const props = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean }>()
 const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; closed: []; listening: [boolean] }>()
 const reduced = useReducedMotion()
+const keyboard = useKeyboardModality()
 const visibility = useDocumentVisibility()
 const { vibrate: buzz } = useVibrate()
 // Le haptique n’est pas du mouvement (aide au jeu muet) : pas bloqué par « mouvement réduit », seulement onglet caché.
@@ -359,12 +361,13 @@ const onSceneClick = (e: MouseEvent) => {
       <div ref="strip" class="absolute left-[8%] right-[8%] -bottom-px h-[2px] opacity-0 bg-[#ffd56a] shadow-[0_0_6px_1px_rgb(255_213_106/0.6)] pointer-events-none" aria-hidden="true" />
       <button
         v-if="!closing"
-        class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] focus-visible:[outline:3px_solid_var(--accent)] focus-visible:outline-offset-[6px]"
+        class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] outline-none"
         type="button"
         aria-label="Ouvrir la porte"
         :aria-describedby="phase === 'invite' ? 'door-said' : undefined"
         :data-phase="phase"
-                @click="onDoor"
+        :data-kbd="keyboard"
+        @click="onDoor"
         @keydown="onDoorKeydown"
         @mousedown="onDoorMousedown"
       />
@@ -420,7 +423,7 @@ const onSceneClick = (e: MouseEvent) => {
   opacity: 0;
   transition: opacity 0.2s;
 }
-.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)::after {
+.door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)::after {
   opacity: 1;
 }
 [data-leaf] :deep(svg) {
@@ -429,9 +432,13 @@ const onSceneClick = (e: MouseEvent) => {
     transform 0.25s,
     filter 0.25s;
 }
-[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) {
+[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)) [data-leaf] :deep(svg) {
   transform: perspective(700px) rotateY(-5deg);
   filter: drop-shadow(0 0 0.5556rem rgb(255 226 140 / 0.55));
+}
+/* Focus clavier : anneau qui suit la silhouette de la porte (quatre ombres nettes, une par côté), jamais au clic ni au tap (data-kbd). */
+[data-stage]:has(.door-hit[data-kbd='true'][data-phase]:focus-visible:not([data-off])) [data-leaf] :deep(svg) {
+  filter: drop-shadow(3px 0 0 var(--accent)) drop-shadow(-3px 0 0 var(--accent)) drop-shadow(0 3px 0 var(--accent)) drop-shadow(0 -3px 0 var(--accent));
 }
 /* Halo de la boule de cristal : respiration lente (5 s, ≈0,2 Hz), faible amplitude, jamais de scintillement. */
 [data-stage] :deep(.seer-halo) {
@@ -446,7 +453,7 @@ const onSceneClick = (e: MouseEvent) => {
   [data-stage] :deep(.seer-halo) {
     animation: none;
   }
-  [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, :focus-visible)) [data-leaf] :deep(svg) {
+  [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)) [data-leaf] :deep(svg) {
     transform: none;
   }
 }
