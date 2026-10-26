@@ -72,7 +72,7 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
         </button>
       </div>
       <p class="m-0 px-3 pt-3 pb-2" role="status">{{ collection.count }} / {{ collection.total }} arcanes révélés</p>
-      <ul class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]">
+      <ul role="list" class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]">
         <li
           v-for="e in collection.inventory"
           :key="e.nom"
@@ -82,7 +82,7 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
             collection.seen.has(e.nom) ? 'bg-[#f0e4c8] text-[#2a1450] border-[#2a1450]' : 'bg-[#3a1f66] text-[#b9821a] border-[#1f1038]',
             e.nom === highlight ? 'border-[#e0b030] shadow-[0_0_0_2px_#e0b030,0_0_0.75rem_#e0b030]' : '',
           ]"
-          :aria-label="collection.seen.has(e.nom) ? `${e.numero}, ${e.nom}` : 'Arcane inconnu'"
+          :aria-label="collection.seen.has(e.nom) ? `${e.numero}, ${e.nom}${e.nom === highlight ? ' (nouveau)' : ''}` : 'Arcane inconnu'"
           :data-new="e.nom === highlight ? '' : undefined"
         >
           <template v-if="collection.seen.has(e.nom)">
