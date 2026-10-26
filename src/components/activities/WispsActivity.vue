@@ -141,7 +141,7 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
 </script>
 
 <template>
-  <div ref="stage" class="absolute inset-0 touch-none overflow-hidden select-none" data-testid="wisps-stage">
+  <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
     <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-200/90" aria-live="polite">
       Suivez les trois feux follets ({{ caught }}/{{ TOTAL }}). Sinon, ils finiront par venir d’eux-mêmes.
     </p>

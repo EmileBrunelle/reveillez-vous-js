@@ -153,8 +153,10 @@ useRafFn(({ delta }) => {
 </script>
 
 <template>
-  <div ref="stage" class="relative size-full overflow-hidden touch-none select-none bg-[#07050a] flex flex-col items-center justify-center gap-6 font-ui text-center">
-    <div class="warm absolute inset-0 pointer-events-none" :class="{ 'no-motion': reduced }" :style="{ opacity: litCount / COUNT }" aria-hidden="true" />
+  <div ref="stage" class="relative size-full touch-none select-none flex flex-col items-center justify-center gap-6 font-ui text-center">
+    <!-- La pièce sombre et sa chaleur couvrent toute la fenêtre (fixed, hors de la colonne de 36 rem) : rien n’est rogné, aucun rectangle visible. -->
+    <div class="fixed inset-0 -z-1 pointer-events-none bg-[#07050a]" aria-hidden="true" />
+    <div class="warm fixed inset-0 -z-1 pointer-events-none" :class="{ 'no-motion': reduced }" :style="{ opacity: litCount / COUNT }" aria-hidden="true" />
     <p class="relative m-0 text-[1.4rem] text-[#e8d9b0]" aria-live="polite">
       {{ over ? 'La pièce se réchauffe…' : snuffed >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles' }}
     </p>
