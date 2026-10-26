@@ -48,11 +48,19 @@ export const drawArcane = (grammar: Grammar, level: number, rng: Rng, paquet?: P
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>
 
-/** Draw the next prophecy of `level` (arcane taken from the chosen `paquet`) through the persisted shuffle bag, and expand it. */
+/** Part des lectures qui viennent des prophéties sèches (tables `seche<N>`), soit environ 1 sur 8. */
+export const SECHE_CHANCE = 0.125
+/** Prophéties sèches d’un niveau : table `seche<N>`. */
+export const secheFor = (grammar: Grammar, level: number) => strings(grammar, `seche${level}`)
+
+/** Draw the next prophecy of `level` (arcane taken from the chosen `paquet`) through the persisted shuffle bag, and expand it. Environ 1 lecture sur 8 (SECHE_CHANCE) vient plutôt de la table `seche<N>`, avec son propre sac. */
 export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng: Rng, paquet?: Paquet): Prophecy => {
   const templates = templatesFor(grammar, level)
   if (templates.length === 0) return { question: '', body: '', verse: '', arcane: EMPTY_ARCANE }
-  let tpl = templates[drawPersisted(store, `niveau${level}`, templates.length, rng)]
+  const seches = secheFor(grammar, level)
+  let tpl: string
+  if (seches.length > 0 && rng() < SECHE_CHANCE) tpl = seches[drawPersisted(store, `seche${level}`, seches.length, rng)]
+  else tpl = templates[drawPersisted(store, `niveau${level}`, templates.length, rng)]
   // Verset = livre + référence : le livre passe par un sac persisté (pas de répétition avant d’avoir tout vu,
   // donc jamais deux fois le même verset de suite), la référence est tirée au hasard.
   // Repli : ancienne table `verset` (chaînes complètes) si les deux nouvelles tables manquent.
