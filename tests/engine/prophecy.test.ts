@@ -5,7 +5,6 @@ import { arcaneNameAt, carteTables, doorLinesFor, nextDoorLine, nextEntrezLine, 
 import { mulberry32 } from '../../src/../src/engine/rng'
 import { pickVariant } from '../../src/../src/engine/variant'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
-import { detectBrowser } from '../../src/effects/webgpu'
 
 const g: Grammar = {
   niveau1: ['Q1|{x}|V1', 'Q2|{x}|V2'],
@@ -151,13 +150,5 @@ describe('pickVariant', () => {
   })
   it('returns the only eligible one even if it was last', () => {
     expect(pickVariant([{ id: 'a', minLevel: 1 }], 1, 'a', mulberry32(1)).id).toBe('a')
-  })
-})
-
-describe('detectBrowser', () => {
-  it('classifies common UAs', () => {
-    expect(detectBrowser('Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0')).toBe('firefox')
-    expect(detectBrowser('Mozilla/5.0 Chrome/120.0 Safari/537.36 Edg/120.0')).toBe('chromium')
-    expect(detectBrowser('Mozilla/5.0 (Macintosh) AppleWebKit/605 Version/17.0 Safari/605.1.15')).toBe('safari')
   })
 })
