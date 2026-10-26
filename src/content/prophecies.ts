@@ -122,6 +122,30 @@ export const prophecies: Grammar = {
     '{question5}|MANGER. DORMIR. FUIR LA SOCIÉTÉ. LES CARTES ONT RÉSUMÉ VOTRE DESTIN EN TROIS MOTS. ELLES EN AVAIENT PRÉVU QUATRE.|{verset}',
   ],
 
+  // ---- Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur ----
+  // Tables `seche<N>` (même format que `niveau<N>`), tirées par `nextProphecy` avec la probabilité SECHE_CHANCE.
+  // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
+  seche1: [
+    '{question1}|Vous irez à un rendez-vous galant. Ça se passera mal. Votre chat mourra. Il ira beaucoup mieux après : il reviendra miauler à votre fenêtre, en pleine forme.|{verset}',
+    '{question1}|Vous irez au dépanneur chercher du lait. Vous reviendrez avec des {bonbon}. Le lait restera au dépanneur. Un fantôme le boira, très poliment.|{verset}',
+  ],
+  seche2: [
+    '{question2}|Vous irez à un souper de famille. Ça se passera mal. On parlera de politique. Un fantôme apportera le dessert et sauvera la soirée.|{verset}',
+    '{question2}|Vous traverserez le pont Jacques-Cartier à minuit. Ça se passera mal. Il y aura des cônes orange. Un fantôme vous offrira du covoiturage. Vous accepterez.|{verset}',
+  ],
+  seche3: [
+    '{question3}|Vous retournerez au cégep chercher votre diplôme. Ça se passera mal. Le registrariat sera fermé. Un fantôme vous remettra le diplôme, avec mention.|{verset}',
+    '{question3}|Vous irez à la Saint-Jean avec un plan. Ça se passera mal. {objet.nom_maj} vous l’annoncera la veille. Vous ne l’écouterez pas. Le feu de joie, lui, vous écoutera.|{verset}',
+  ],
+  seche4: [
+    '{question4}|Vous partirez en relâche, loin de tout. Ça se passera mal. Big Valise aura tout planifié, jusqu’à la tempête. Vous reviendrez avec un fantôme en bagage à main. Il connaîtra déjà votre adresse.|{verset}',
+    '{question4}|Vous croirez choisir votre chalet. Ça se passera mal. Le chalet vous aura choisi. Le lac, la cheminée, le fantôme : MÊME FOURNISSEUR.|{verset}',
+  ],
+  seche5: [
+    '{question5}|VOUS FERMEREZ CETTE PORTE SIX FOIS. NOUS COMPTERONS. À LA SEPTIÈME, ELLE VOUS FERMERA.|{verset}',
+    '{question5}|VOUS RENTREREZ CHEZ VOUS À MINUIT. TOUT SERA À SA PLACE. C’EST ÇA, LE PROBLÈME. LA BOULE SERA DANS VOTRE FAUTEUIL. ELLE DIRA : ENFIN.|{verset}',
+  ],
+
   // ---- Phrases de porte : la porte reste fermée, la personne frappe ; la voix derrière frappe un rythme et invite à le répéter
   porte1: [
     'Toc toc toc… Voilà mon rythme. À votre tour : frappez la même chose.',
