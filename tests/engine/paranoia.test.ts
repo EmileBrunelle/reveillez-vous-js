@@ -12,7 +12,7 @@ describe('paranoiaLevel', () => {
     }
   })
 
-  it('escalates fast: level 2 at 1 visit, level 5 at 6', () => {
-    expect([0, 1, 2, 3, 4, 5, 6].map(paranoiaLevel)).toEqual([1, 2, 3, 3, 4, 4, 5])
+  it('escalates slowly: level 2 at 2 visits, level 5 at 7', () => {
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8].map(paranoiaLevel)).toEqual([1, 1, 2, 3, 3, 4, 4, 5, 5])
   })
 })

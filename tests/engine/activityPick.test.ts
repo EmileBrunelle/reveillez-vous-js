@@ -7,7 +7,7 @@ const memStore = () => {
   const m = new Map<string, string>()
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) }
 }
-const run = (seed: number, upTo = 6) => {
+const run = (seed: number, upTo = 7) => {
   const store = memStore()
   const rng = mulberry32(seed)
   const seq: (ActivityId | null)[] = []
@@ -20,30 +20,30 @@ const run = (seed: number, upTo = 6) => {
 }
 
 describe('pickActivity', () => {
-  it('aucune activité au niveau 1', () => {
-    expect(run(1)[0]).toBeNull()
+  it('aucune activité au niveau 1 (visites 0 et 1)', () => {
+    expect(run(1).slice(0, 2)).toEqual([null, null])
   })
   it('la première visite de chaque niveau joue l’activité introduite', () => {
     for (let seed = 1; seed <= 50; seed++) {
       const seq = run(seed)
-      expect([seq[1], seq[2], seq[4], seq[6]]).toEqual(['wisps', 'candles', 'windows', 'crystal'])
+      expect([seq[2], seq[3], seq[5], seq[7]]).toEqual(['wisps', 'candles', 'windows', 'crystal'])
     }
   })
   it('jamais deux fois la même d’affilée, seulement des activités débloquées', () => {
     for (let seed = 1; seed <= 200; seed++) {
       const seq = run(seed, 40)
-      for (let v = 1; v < seq.length; v++) {
-        if (v > 1) expect(seq[v]).not.toBe(seq[v - 1])
+      for (let v = 2; v < seq.length; v++) {
+        if (v > 2) expect(seq[v]).not.toBe(seq[v - 1])
         const intro = ACTIVITIES.find((a) => a.id === seq[v])!.introLevel
         expect(intro).toBeLessThanOrEqual(paranoiaLevel(v))
       }
     }
   })
-  it('parcours des visites 1 à 6 : les rejeux aux niveaux 3 et 4 changent d’activité', () => {
+  it('parcours des visites 0 à 7 : les rejeux aux niveaux 3 et 4 changent d’activité', () => {
     for (let seed = 1; seed <= 50; seed++) {
       const seq = run(seed)
-      expect(seq[3]).toBe('wisps') // seule autre candidate au niveau 3
-      expect(['wisps', 'candles']).toContain(seq[5]) // niveau 4 : pas Fenêtres, jouée à la visite 4
+      expect(seq[4]).toBe('wisps') // seule autre candidate au niveau 3
+      expect(['wisps', 'candles']).toContain(seq[6]) // niveau 4 : pas Fenêtres, jouée à la visite 5
     }
   })
 })

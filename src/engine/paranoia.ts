@@ -9,9 +9,8 @@ export type ParanoiaLevel = 1 | 2 | 3 | 4 | 5
  * - Expected default: monotonic non-decreasing (the tract never gets calmer as visits grow).
  */
 // Visites nécessaires pour atteindre chaque niveau (index 0 = niveau 1).
-// Escalade rapide au début : un jury fait quelques parties, il doit sentir que ça dérape
-// dès la 2e visite et voir l’Illumination (niveau 5) en environ 6 parties.
-const THRESHOLDS = [0, 1, 2, 4, 6] as const
+// Montée plus lente : N1 aux visites 0-1, N2 à la 2, N3 aux 3-4, N4 aux 5-6, N5 à la 7, puis la finale.
+const THRESHOLDS = [0, 2, 3, 5, 7] as const
 
 export const paranoiaLevel = (visits: number): ParanoiaLevel => {
   const reached = THRESHOLDS.filter((t) => visits >= t).length

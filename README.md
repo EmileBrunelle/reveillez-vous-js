@@ -12,7 +12,7 @@ Une personne voyante frappe un rythme derrière une porte ; vous le répétez, l
 4. Une **carte de tarot** est tirée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur ou en bougeant votre téléphone.
 5. « Fermer la porte » : une nouvelle porte, un nouveau décor, une nouvelle prophétie.
 
-Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches) monte avec le nombre de visites de la session en cours (`sessionStorage` : la progression repart à zéro quand l’onglet ou le navigateur se ferme) ; il atteint le niveau 5 après six fermetures de porte. Prophéties, répliques de la voyante, portes et décors changent avec lui. Pour recommencer à zéro : menu **Démarrer › Recommencer à zéro**, ou triple clic sur le badge.
+Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches) monte avec le nombre de visites de la session en cours (`sessionStorage` : la progression repart à zéro quand l’onglet ou le navigateur se ferme) ; il atteint le niveau 5 après sept fermetures de porte. Prophéties, répliques de la voyante, portes et décors changent avec lui. Pour recommencer à zéro : menu **Démarrer › Recommencer à zéro**, ou triple clic sur le badge.
 
 ## Ce qui rend le projet spécial
 
