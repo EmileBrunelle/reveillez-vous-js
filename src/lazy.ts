@@ -5,7 +5,7 @@ export const loadTarotCard = () => import('./components/TarotCard.vue')
 export const loadAbout = () => import('./components/AboutTempleOS.vue')
 export const loadReset = () => import('./components/ResetConfirm.vue')
 export const loadDeckCut = () => import('./components/DeckCut.vue')
-export const loadFinale = () => import('./components/FinaleStub.vue')
+export const loadFinale = () => import('./components/Finale.vue')
 /** Activité jouée avant la coupe du paquet, par niveau (niveau 1 : aucune). */
 const activities: Record<number, () => Promise<{ default: Component }>> = {
   2: () => import('./components/activities/WispsActivity.vue'),

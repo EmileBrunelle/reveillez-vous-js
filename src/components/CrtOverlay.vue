@@ -5,7 +5,7 @@ import { useReducedMotion } from '../composables/useReducedMotion'
 import { hasWebGpuAdapter } from '../effects/webgpu'
 import { useSessionStore } from '../stores/session'
 
-const props = defineProps<{ paranoia: number }>()
+const props = defineProps<{ paranoia: number; off?: boolean }>()
 const emit = defineEmits<{ ready: []; fail: [] }>()
 
 const session = useSessionStore()
@@ -13,7 +13,8 @@ const canvas = ref<HTMLCanvasElement | null>(null)
 let crt: { setPaused(paused: boolean): void; stop(): void } | null = null
 const reducedMotion = useReducedMotion()
 const visibility = useDocumentVisibility()
-watch(visibility, (v) => crt?.setPaused(v === 'hidden'))
+// `off` : la finale a éteint l’écran, le CRT ne rend plus rien (et ne coûte plus de GPU).
+watch([visibility, () => props.off], ([v, off]) => crt?.setPaused(v === 'hidden' || !!off))
 let gone = false
 const lost = ref(false)
 const TIMEOUT_MS = 5000
@@ -53,7 +54,7 @@ onMounted(async () => {
     const s = await timeout(start, 'CRT init')
     if (gone) return s.stop()
     crt = s
-    if (visibility.value === 'hidden') s.setPaused(true)
+    if (visibility.value === 'hidden' || props.off) s.setPaused(true)
   } catch (e) {
     console.warn('CRT overlay disabled:', e)
     lost.value = true
@@ -71,5 +72,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <canvas v-show="!lost" ref="canvas" class="fixed inset-0 w-full h-full pointer-events-none z-5 select-none [-webkit-tap-highlight-color:transparent]" aria-hidden="true" />
+  <canvas v-show="!lost && !off" ref="canvas" class="fixed inset-0 w-full h-full pointer-events-none z-5 select-none [-webkit-tap-highlight-color:transparent]" aria-hidden="true" />
 </template>

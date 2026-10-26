@@ -94,6 +94,20 @@ describe('progress store', () => {
     expect(fresh().memory.finished).toBe(true)
   })
 
+  it('completeFinale zeroes visits and bags, keeps the memory and marks finished', () => {
+    const s = fresh()
+    s.remember('XVII', 2)
+    for (let i = 0; i < 12; i++) s.bump()
+    m.set(BAGS_KEY, '{"niveau3":{"order":[0],"pos":1}}')
+    s.completeFinale()
+    expect(s.visits).toBe(0)
+    expect(s.level).toBe(1)
+    expect(ss.get(VISITS_KEY)).toBe('0')
+    expect(m.has(BAGS_KEY)).toBe(false)
+    expect(s.memory).toEqual({ lastArcane: 17, lastNom: null, lastLevel: 2, finished: true })
+    expect(fresh().memory.finished).toBe(true)
+  })
+
   it('arcaneIndex parses roman numerals', () => {
     expect(['0', 'I', 'IV', 'IX', 'XVI', 'XVIII', 'XXI', 'XIII bis', 'XIII ½', 'LXVI', '?'].map(arcaneIndex)).toEqual([0, 1, 4, 9, 16, 18, 21, 13, 13, 66, null])
   })

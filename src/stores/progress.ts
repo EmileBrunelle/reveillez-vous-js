@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
 import { paranoiaLevel } from '../engine/paranoia'
+import { BAGS_KEY } from '../engine/shuffleBag'
 import { safeSessionStorage, safeStorage } from '../composables/safeStorage'
 
 export const VISITS_KEY = 'rvj-visits'
@@ -76,5 +77,12 @@ export const useProgressStore = defineStore('progress', () => {
     memory.value = { ...memory.value, finished: true }
   }
 
-  return { visits, memory, level, paranoia, bump, reset, remember, finish }
+  /** « Recommencer » à la fin de la finale : visites et sacs de tirage à zéro, finale marquée dans la mémoire. */
+  const completeFinale = () => {
+    reset()
+    safeStorage().removeItem(BAGS_KEY)
+    finish()
+  }
+
+  return { visits, memory, level, paranoia, bump, reset, remember, finish, completeFinale }
 })
