@@ -222,6 +222,10 @@ const approach = () => {
   ensureDoor().then(startAwaitEnd, () => undefined)
 }
 
+// Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
+const focusOverlay = (el: unknown) => {
+  if (el instanceof HTMLElement) focusQuietly(el)
+}
 const closeBtn = ref<HTMLButtonElement>()
 const readingEl = ref<HTMLElement>()
 const focusSoon = (find: () => HTMLElement | null | undefined) => {
@@ -300,9 +304,9 @@ const onFinaleRestart = () => {
       />
       <button
         v-if="awaiting"
+        :ref="focusOverlay"
         class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-0.6667rem]"
         type="button"
-        autofocus
         @click="approach"
       >
         Approchez-vous de la porte
