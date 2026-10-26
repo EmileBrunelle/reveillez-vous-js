@@ -179,7 +179,6 @@ useRafFn(({ delta }) => {
   <div ref="stage" class="ouija relative size-full overflow-hidden touch-none select-none flex flex-col items-center justify-center gap-3 sm:gap-5 px-2 font-title text-center">
     <p class="sr-only" aria-live="polite">{{ status }}</p>
     <p class="relative m-0 text-[#e8d9b0] text-sm tracking-[0.18em]" aria-hidden="true">Épelez le mot</p>
-    <p class="sr-only">Mot à épeler : {{ shown }}</p>
     <p class="relative m-0 flex gap-2 sm:gap-3 text-[2rem] sm:text-[2.6rem] leading-none text-[#d9b55a]" aria-hidden="true">
       <span
         v-for="(seg, i) in segments"

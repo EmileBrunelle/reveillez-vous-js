@@ -437,8 +437,15 @@ const onSceneClick = (e: MouseEvent) => {
   filter: drop-shadow(0 0 0.5556rem rgb(255 226 140 / 0.55));
 }
 /* Focus clavier : anneau qui suit la silhouette de la porte (quatre ombres nettes, une par côté), jamais au clic ni au tap (data-kbd). */
-[data-stage]:has(.door-hit[data-kbd='true'][data-phase]:focus-visible:not([data-off])) [data-leaf] :deep(svg) {
+[data-stage]:has(.door-hit[data-kbd='true'][data-phase]:focus-visible) [data-leaf] :deep(svg) {
   filter: drop-shadow(3px 0 0 var(--accent)) drop-shadow(-3px 0 0 var(--accent)) drop-shadow(0 3px 0 var(--accent)) drop-shadow(0 -3px 0 var(--accent));
+}
+/* Contraste forcé (Windows High Contrast) : les ombres et lueurs disparaissent, on dessine un vrai contour. */
+@media (forced-colors: active) {
+  .door-hit[data-kbd='true']:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -4px;
+  }
 }
 /* Halo de la boule de cristal : respiration lente (5 s, ≈0,2 Hz), faible amplitude, jamais de scintillement. */
 [data-stage] :deep(.seer-halo) {
