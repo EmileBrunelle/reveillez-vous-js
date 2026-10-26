@@ -131,10 +131,10 @@ useRafFn(({ delta }) => {
     pos.x = target.x
     pos.y = target.y
   } else {
-    // Ressort amorti : suit le pointeur avec un léger dépassement.
+    // Ressort presque critique (ζ ≈ 0,7, ~5 % de dépassement) : suit le pointeur avec du poids, sans rebondir.
     pos.vx += (target.x - pos.x) * 0.012 * dt
     pos.vy += (target.y - pos.y) * 0.012 * dt
-    const damp = Math.exp(-dt * 0.012)
+    const damp = Math.exp(-dt * 0.0375)
     pos.vx *= damp
     pos.vy *= damp
     pos.x += pos.vx * dt * 0.06
@@ -208,7 +208,7 @@ useRafFn(({ delta }) => {
   height: 0;
   transform: translate(-50%, 0) scale(0);
   transform-origin: 50% 0;
-  transition: transform 0.45s cubic-bezier(0.34, 1.7, 0.5, 1);
+  transition: transform 0.45s cubic-bezier(0.34, 1.2, 0.5, 1);
 }
 .flame.on {
   transform: translate(-50%, 0) scale(1);
