@@ -335,7 +335,11 @@ const onSceneClick = (e: MouseEvent) => {
       class="relative w-auto h-full max-h-[var(--stage-cap)] self-end aspect-[120/190] [perspective:900px] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]"
     >
       <div class="absolute inset-0" aria-hidden="true">
-        <div ref="glow" class="absolute inset-[3%_5%_0] opacity-0 [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]" />
+        <div
+          ref="glow"
+          class="absolute inset-0 opacity-0 [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat] [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]"
+          :style="{ maskImage: `url('${door.mask}')`, WebkitMaskImage: `url('${door.mask}')` }"
+        />
         <div ref="seer" class="absolute left-1/2 bottom-0 w-[38%] -ml-[19%] opacity-0 [&_.seer]:block [&_.seer]:w-full"><Seer class="seer" /></div>
       </div>
       <div
@@ -360,7 +364,7 @@ const onSceneClick = (e: MouseEvent) => {
         aria-label="Ouvrir la porte"
         :aria-describedby="phase === 'invite' ? 'door-said' : undefined"
         :data-phase="phase"
-        @click="onDoor"
+                @click="onDoor"
         @keydown="onDoorKeydown"
         @mousedown="onDoorMousedown"
       />
@@ -375,7 +379,13 @@ const onSceneClick = (e: MouseEvent) => {
       <!-- Phrase + fantômes invisibles (toutes les phrases possibles de la visite) dans la même cellule : la hauteur réservée est celle de la plus longue, la scène ne bouge pas entre les phases. -->
       <div class="grid justify-items-center">
         <p id="door-said" class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1]">{{ said }}</p>
-        <span v-for="(g, i) in ghosts" :key="i" class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1] invisible pointer-events-none" aria-hidden="true">{{ g }}</span>
+        <span
+          v-for="(g, i) in ghosts"
+          :key="i"
+          class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1] invisible pointer-events-none"
+          aria-hidden="true"
+          >{{ g }}</span
+        >
       </div>
       <KnockPattern :class="{ invisible: phase === 'invite' }" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
       <p class="m-0 text-[0.9rem]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'Ça cogne de l’intérieur…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
