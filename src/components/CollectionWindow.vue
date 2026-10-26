@@ -55,11 +55,11 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
 <template>
   <dialog
     ref="dlg"
-    class="m-auto p-0 w-[34rem] max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
+    class="mt-2 mb-[calc(var(--taskbar-h)+0.5rem)] mx-auto p-0 w-[34rem] max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-var(--taskbar-h)-1rem)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
     aria-labelledby="collection-title"
     @close="onClose"
   >
-    <div class="win-window flex flex-col max-h-[calc(100dvh-1rem)]">
+    <div class="win-window flex flex-col max-h-[calc(100dvh-var(--taskbar-h)-1rem)]">
       <div class="flex items-center justify-between gap-2 bg-[#000080] text-white py-[2px] px-2 select-none">
         <h2 id="collection-title" class="m-0 text-[1rem] font-bold">Collection</h2>
         <button
@@ -72,12 +72,15 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
         </button>
       </div>
       <p class="m-0 px-3 pt-3 pb-2" role="status">{{ collection.count }} / {{ collection.total }} arcanes révélés</p>
-      <ul role="list" class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]">
+      <ul
+        role="list"
+        class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] auto-rows-max content-start min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]"
+      >
         <li
           v-for="e in collection.inventory"
           :key="e.nom"
           :ref="(el) => setCell(e.nom, el)"
-          class="relative aspect-[7/12] min-w-0 box-border overflow-hidden rounded-[0.4rem] border-2 border-solid flex flex-col items-center justify-center gap-1 p-1 text-center"
+          class="relative aspect-[7/12] shrink-0 min-w-0 box-border overflow-hidden rounded-[0.4rem] border-2 border-solid flex flex-col items-center justify-center gap-1 p-1 text-center"
           :class="[
             collection.seen.has(e.nom) ? 'bg-[#f0e4c8] text-[#2a1450] border-[#2a1450]' : 'bg-[#3a1f66] text-[#b9821a] border-[#1f1038]',
             e.nom === highlight ? 'border-[#e0b030] shadow-[0_0_0_2px_#e0b030,0_0_0.75rem_#e0b030]' : '',
