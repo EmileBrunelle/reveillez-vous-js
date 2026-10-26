@@ -246,7 +246,11 @@ export const prophecies: Grammar = {
   ],
 
   // ---- Après 3 ratés : la voix abandonne et ouvre quand même ---------------------------------
-  entrez: ['Bon. Entrez, on n’a pas toute la nuit.', 'Trois essais. Ça suffit : je vous ouvre. Ne touchez à rien.', 'Les cartes disent d’abandonner. Entrez, ce n’est pas verrouillé.'],
+  entrez: [
+    'Bon. Entrez, on n’a pas toute la nuit.',
+    'Trois essais, et la porte a le cœur tendre. Entrez, c’est moi qui vous ouvre.',
+    'Les cartes disent d’abandonner. Entrez, ce n’est pas verrouillé.',
+  ],
 
   // ---- Rappels (T6) : la porte se souvient de la carte précédente. `{carte}` (article en minuscules : « la Lune ») / `{carte_maj}` (nom tel quel, pour début de phrase) / `{carte_caps}` = nom de l’arcane tiré à la visite d’avant
   // (table temporaire injectée par `nextDoorLine`). Pas de « de {carte} » ni « à {carte} » (le nom porte déjà son article) ; pas d’accord au participe avec la carte.
