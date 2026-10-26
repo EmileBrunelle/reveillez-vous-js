@@ -56,7 +56,7 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
 <template>
   <dialog
     ref="dlg"
-    class="mt-2 mb-[calc(var(--taskbar-h)+0.5rem)] mx-auto p-0 w-[34rem] max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-var(--taskbar-h)-1rem)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
+    class="mt-2 mb-[calc(var(--taskbar-h)+0.5rem)] mx-auto p-0 w-[34rem] sm:w-[52rem] max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-var(--taskbar-h)-1rem)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
     aria-labelledby="collection-title"
     @close="onClose"
   >
@@ -75,7 +75,7 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
       <p class="m-0 px-3 pt-3 pb-2" role="status">{{ collection.count }} / {{ collection.total }} arcanes révélés</p>
       <ul
         role="list"
-        class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(3.75rem,1fr))] auto-rows-max content-start min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]"
+        class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(3.75rem,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] auto-rows-max content-start min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]"
       >
         <li
           v-for="e in collection.inventory"
