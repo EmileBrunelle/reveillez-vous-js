@@ -322,7 +322,7 @@ const choose = (i: number) => {
       type="button"
       style="opacity: 0"
       class="deck__card absolute top-1/2 left-1/2 p-0 m-0 border-0 [background:none] cursor-pointer rounded-[4cqw] will-change-transform focus-visible:[outline:0.9cqw_solid_#f3e3b3] focus-visible:outline-offset-[1.2cqw]"
-      :class="{ 'z-10': chosen === i, 'z-5': hot === i && chosen === null, 'pointer-events-none': !ready }"
+      :class="{ 'z-10': chosen === i, 'z-5': hot === i && chosen === null, 'z-3': i === 1 && hot !== 1 && chosen !== 1, 'z-1': i !== 1 && hot !== i && chosen !== i, 'pointer-events-none': !ready }"
       :aria-label="PAQUET_NOMS[paquets[i]]"
       :disabled="chosen !== null"
       @click="choose(i)"
