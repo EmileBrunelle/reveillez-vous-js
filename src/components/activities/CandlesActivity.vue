@@ -41,11 +41,11 @@ const target = { x: 0, y: 0 }
 const pos = { x: 0, y: 0, vx: 0, vy: 0 }
 const matchVisible = ref(false)
 const over = ref(false)
-// Indice de la chandelle soufflée (-1 : aucune) : courant d’air une seule fois au niveau 3.
+// Indice de la chandelle soufflée (-1 : aucune) : courant d’air une seule fois, dès le niveau 3 (l’activité peut être rejouée aux niveaux suivants).
 const snuffed = ref(-1)
 
 // Niveau 3 : une chandelle s’éteint une seule fois, juste après la troisième allumée.
-let snuffUsed = props.level !== 3
+let snuffUsed = props.level < 3
 const { start: snuffLater } = useTimeoutFn(
   () => {
     if (isFinished()) return

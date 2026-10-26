@@ -19,6 +19,7 @@ import { useMediaQuery, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
 import { safeStorage } from './composables/safeStorage'
+import { pickActivity, type ActivityId } from './engine/activityPick'
 import { hymn, unlock } from './audio/sfx'
 import { activityFor, loadAbout, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
 
@@ -83,9 +84,10 @@ const progress = useProgressStore()
 const { level, paranoia } = storeToRefs(progress)
 const session = useSessionStore()
 useTabTitle(level)
-// Activité du niveau courant (null au niveau 1 ou sans activité) ; le composant ne change qu’avec le niveau.
+// Activité de la visite (tirée à l’ouverture de la porte ; null au niveau 1).
+const activityId = ref<ActivityId | null>(null)
 const Activity = computed(() => {
-  const loader = activityFor(level.value)
+  const loader = activityFor(activityId.value)
   return loader ? defineAsyncComponent(loader) : null
 })
 watchEffect(() => document.documentElement.style.setProperty('--paranoia', String(paranoia.value)))
@@ -127,6 +129,9 @@ const enterDoor = () => {
   door.value = pickDoor(place.value.id, rng)
   placeVariant.value = pickPlaceVariant(place.value, placeVariant.value.id, rng)
   doorLine.value = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
+  activityId.value = pickActivity(progress.visits, activityId.value, safeStorage(), rng)
+  const loadActivity = activityFor(activityId.value)
+  if (loadActivity) prefetch(loadActivity) // on réchauffe celle qui sera vraiment jouée
   phase.value = 'door'
   listening.value = false
   closing.value = false
@@ -137,7 +142,7 @@ enterDoor()
 // Une visite : la porte s’ouvre -> activité (niveau 2+) -> coupe du paquet -> lecture. La prophétie est tirée une fois, à l’ouverture.
 const onDone = () => {
   prefetch(loadTarotCard)
-  phase.value = activityFor(level.value) ? 'activity' : 'cut'
+  phase.value = activityId.value ? 'activity' : 'cut'
   listening.value = false
 }
 const onActivityDone = () => {
