@@ -126,7 +126,7 @@ export const prophecies: Grammar = {
   // Tables `seche<N>` (même format que `niveau<N>`), tirées par `nextProphecy` avec la probabilité SECHE_CHANCE.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
   seche1: [
-    '{question1}|Vous irez à un rendez-vous galant. Ça se passera mal. Votre chat mourra. Il ira beaucoup mieux après : il reviendra miauler à votre fenêtre, en pleine forme.|{verset}',
+    '{question1}|Vous irez à un rendez-vous galant. Ça se passera mal. Votre chat mourra. Il ira beaucoup mieux après.|{verset}',
     '{question1}|Vous irez au dépanneur chercher du lait. Vous reviendrez avec des {bonbon}. Le lait restera au dépanneur. Un fantôme le boira, très poliment.|{verset}',
   ],
   seche2: [
@@ -139,7 +139,7 @@ export const prophecies: Grammar = {
   ],
   seche4: [
     '{question4}|Vous partirez en relâche, loin de tout. Ça se passera mal. Big Valise aura tout planifié, jusqu’à la tempête. Vous reviendrez avec un fantôme en bagage à main. Il connaîtra déjà votre adresse.|{verset}',
-    '{question4}|Vous croirez choisir votre chalet. Ça se passera mal. Le chalet vous aura choisi. Le lac, la cheminée, le fantôme : MÊME FOURNISSEUR.|{verset}',
+    '{question4}|Vous croirez choisir votre chalet. Ça se passera mal. Le chalet aura fait son choix avant vous. Le lac, la cheminée, le fantôme : MÊME FOURNISSEUR.|{verset}',
   ],
   seche5: [
     '{question5}|VOUS FERMEREZ CETTE PORTE SIX FOIS. NOUS COMPTERONS. À LA SEPTIÈME, ELLE VOUS FERMERA.|{verset}',
