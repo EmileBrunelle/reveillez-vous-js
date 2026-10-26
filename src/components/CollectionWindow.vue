@@ -74,26 +74,29 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
       <p class="m-0 px-3 pt-3 pb-2" role="status">{{ collection.count }} / {{ collection.total }} arcanes révélés</p>
       <ul
         role="list"
-        class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] auto-rows-max content-start min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]"
+        class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(3.75rem,1fr))] auto-rows-max content-start min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]"
       >
         <li
           v-for="e in collection.inventory"
           :key="e.nom"
           :ref="(el) => setCell(e.nom, el)"
-          class="relative aspect-[7/12] shrink-0 min-w-0 box-border overflow-hidden rounded-[0.4rem] border-2 border-solid flex flex-col items-center justify-center gap-1 p-1 text-center"
+          class="relative aspect-[7/12] shrink-0 min-w-0 box-border overflow-hidden rounded-[0.4rem] border-2 border-solid text-center [container-type:inline-size]"
           :class="[
             collection.seen.has(e.nom) ? 'bg-[#f0e4c8] text-[#2a1450] border-[#2a1450]' : 'bg-[#3a1f66] text-[#b9821a] border-[#1f1038]',
             e.nom === highlight ? 'border-[#e0b030] shadow-[0_0_0_2px_#e0b030,0_0_0.75rem_#e0b030]' : '',
           ]"
+          :title="collection.seen.has(e.nom) ? e.nom : undefined"
           :aria-label="collection.seen.has(e.nom) ? `${e.numero}, ${e.nom}${e.nom === highlight ? ' (nouveau)' : ''}` : 'Arcane inconnu'"
           :data-new="e.nom === highlight ? '' : undefined"
         >
-          <template v-if="collection.seen.has(e.nom)">
-            <span class="font-title font-bold text-[1rem] leading-none tracking-[0.1em]" aria-hidden="true">{{ e.numero }}</span>
-            <span class="block size-[3rem] flex-none" aria-hidden="true"><TarotEmblem :symbole="e.symbole" /></span>
-            <span class="font-card text-[0.85rem] leading-tight [overflow-wrap:anywhere]" aria-hidden="true">{{ e.nom }}</span>
-          </template>
-          <span v-else class="font-title font-bold text-[2.5rem] leading-none" aria-hidden="true">?</span>
+          <div class="size-full box-border flex flex-col items-center justify-center gap-[4cqw] p-[5cqw]">
+            <template v-if="collection.seen.has(e.nom)">
+              <span class="font-title font-bold text-[16cqw] leading-none tracking-[0.08em]" aria-hidden="true">{{ e.numero }}</span>
+              <span class="block size-[42cqw] flex-none" aria-hidden="true"><TarotEmblem :symbole="e.symbole" /></span>
+              <span class="font-card text-[15cqw] leading-[1.05] line-clamp-2 [overflow-wrap:anywhere]" aria-hidden="true">{{ e.nom }}</span>
+            </template>
+            <span v-else class="font-title font-bold text-[48cqw] leading-none" aria-hidden="true">?</span>
+          </div>
         </li>
       </ul>
       <div class="px-3 pb-3 flex justify-end">
