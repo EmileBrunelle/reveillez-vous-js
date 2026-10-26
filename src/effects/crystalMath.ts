@@ -27,14 +27,7 @@ export const createWipeRing = (size = RING_SIZE) => {
     },
     pack: (now: number): number[] => stamps.flatMap((s, i) => (s ? [s.x, s.y, Math.max(0, now - s.t), rankWeight((head - 1 - i + size) % size)] : [0, 0, 0, 0])),
     /** Points actifs, du plus ancien au plus récent. */
-    active: (): Stamp[] => {
-      const out: Stamp[] = []
-      for (let i = 0; i < size; i++) {
-        const s = stamps[(head + i) % size]
-        if (s) out.push(s)
-      }
-      return out
-    },
+    active: (): Stamp[] => [...stamps.slice(head), ...stamps.slice(0, head)].filter((s) => s !== null),
   }
 }
 
