@@ -4,6 +4,7 @@ import type { ActivityId } from './engine/activityPick'
 export const loadDoorScene = () => import('./components/DoorScene.vue')
 export const loadTarotCard = () => import('./components/TarotCard.vue')
 export const loadAbout = () => import('./components/About.vue')
+export const loadCollection = () => import('./components/CollectionWindow.vue')
 export const loadReset = () => import('./components/ResetConfirm.vue')
 export const loadDeckCut = () => import('./components/DeckCut.vue')
 export const loadFinale = () => import('./components/Finale.vue')

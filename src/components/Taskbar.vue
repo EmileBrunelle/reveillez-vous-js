@@ -3,7 +3,7 @@ import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { onClickOutside, useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
-import { loadAbout, loadReset, prefetch } from '../lazy'
+import { loadAbout, loadCollection, loadReset, prefetch } from '../lazy'
 import Vigilance from './Vigilance.vue'
 import IconStart from '~icons/rvj/demarrer'
 import IconSound from '~icons/rvj/son'
@@ -11,10 +11,10 @@ import IconSoundOff from '~icons/rvj/son-coupe'
 import IconGithub from '~icons/simple-icons/github'
 
 defineProps<{ level: number }>()
-const emit = defineEmits<{ about: []; reset: []; resetLevel: [] }>()
+const emit = defineEmits<{ about: []; collection: []; reset: []; resetLevel: [] }>()
 
 const open = ref(false)
-const warm = () => prefetch(loadAbout, loadReset) // les boîtes de dialogue sont des chunks à part
+const warm = () => prefetch(loadAbout, loadCollection, loadReset) // les boîtes de dialogue sont des chunks à part
 const startBtn = useTemplateRef<HTMLButtonElement>('startBtn')
 const menu = useTemplateRef<HTMLElement>('menu')
 const items = () => Array.from(menu.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
@@ -31,9 +31,10 @@ const toggle = async () => {
     items()[0]?.focus()
   }
 }
-const choose = (e: 'about' | 'reset') => {
-  close()
+const choose = (e: 'about' | 'collection' | 'reset') => {
+  close(e === 'collection') // le focus revient sur « Démarrer » avant l’ouverture : c’est là que la fenêtre le rendra
   if (e === 'about') emit('about')
+  else if (e === 'collection') emit('collection')
   else emit('reset')
 }
 onClickOutside(menu, () => close(), { ignore: [startBtn] })
@@ -123,6 +124,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         </div>
         <div class="flex-1 min-w-0 py-[2px]">
           <button class="" :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
+          <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('collection')">Collection</button>
           <a
             :class="item"
             href="https://github.com/EmileBrunelle/reveillez-vous-js"
