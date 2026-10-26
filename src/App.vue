@@ -138,6 +138,7 @@ const shake = (amp: number) => {
 const door = shallowRef(doors[0])
 const place = shallowRef(placeForLevel(level.value))
 const placeVariant = shallowRef(place.value.variants[0])
+let variantSeen = false // la toute première visite n’a pas de décor précédent à éviter
 const pickedPaquet = ref<Paquet>('nuit')
 const cardSettled = ref(false) // la carte est retournée : les fausses erreurs peuvent se mesurer
 const doorLine = ref(FALLBACK_LINE)
@@ -149,7 +150,8 @@ const prophecy = ref<Prophecy>({ question: '', body: '', verse: '', arcane: EMPT
 const enterDoor = () => {
   place.value = placeForLevel(level.value)
   door.value = pickDoor(place.value.id, rng)
-  placeVariant.value = pickPlaceVariant(place.value, placeVariant.value.id, rng)
+  placeVariant.value = pickPlaceVariant(place.value, variantSeen ? placeVariant.value.id : null, rng)
+  variantSeen = true
   crtOff.value = false
   const greet = progress.memory.finished && level.value === 1 && !returnGreeted
   returnGreeted = true

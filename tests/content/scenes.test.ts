@@ -10,17 +10,17 @@ describe('places', () => {
   it('every place has at least one variant', () => {
     places.forEach((p) => expect(p.variants.length).toBeGreaterThan(0))
   })
-  it.each(['foret', 'cimetiere', 'rue', 'nuages'] as const)('%s has at least 2 variants with unique ids', (id) => {
+  it.each(['perron', 'foret', 'cimetiere', 'rue', 'nuages'] as const)('%s has at least 2 variants with unique ids', (id) => {
     const ids = places.find((x) => x.id === id)!.variants.map((v) => v.id)
     expect(ids.length).toBeGreaterThanOrEqual(2)
     expect(new Set(ids).size).toBe(ids.length)
   })
-  it.each(['foret', 'cimetiere', 'rue', 'nuages'] as const)('%s variants share the same param keys, all declared in the WGSL Params struct', (id) => {
+  it.each(['perron', 'foret', 'cimetiere', 'rue', 'nuages'] as const)('%s variants share the same param keys, all declared in the WGSL Params struct', (id) => {
     const variants = places.find((x) => x.id === id)!.variants
     const keys = Object.keys(variants[0].params ?? {}).sort()
     expect(keys.length).toBeGreaterThan(0)
     variants.forEach((v) => expect(Object.keys(v.params ?? {}).sort()).toEqual(keys))
-    const src = readFileSync(`src/effects/places/${id}.wgsl`, 'utf8')
+    const src = readFileSync(id === 'perron' ? 'src/effects/porch.wgsl' : `src/effects/places/${id}.wgsl`, 'utf8')
     const struct = /struct Params \{([^}]*)\}/.exec(src)![1]
     keys.forEach((k) => expect(struct).toMatch(new RegExp(`\\b${k}:`)))
   })
@@ -38,7 +38,14 @@ describe('places', () => {
     const n = Array.from({ length: 400 }, (_, s) => pickPlaceVariant(p, null, mulberry32(s)).id).filter((id) => id === 'a').length
     expect(n).toBeGreaterThan(320)
     expect(pickPlaceVariant(p, 'a', mulberry32(3)).id).toBe('b')
-    expect(pickPlaceVariant(placeForLevel(1), 'defaut', mulberry32(3)).id).toBe('defaut')
+  })
+  it('the 2 visits of level 1 never replay the same backdrop', () => {
+    const perron = placeForLevel(1)
+    for (let s = 0; s < 300; s++) {
+      const rng = mulberry32(s)
+      const first = pickPlaceVariant(perron, null, rng)
+      expect(pickPlaceVariant(perron, first.id, rng).id).not.toBe(first.id)
+    }
   })
 })
 

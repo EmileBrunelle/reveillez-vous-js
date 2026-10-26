@@ -3,10 +3,11 @@ import type { RaymarchState } from './raymarch'
 
 export { porchShader }
 
-/** Paramètres propres au perron : balancement de caméra (amplitude croît avec la paranoïa, rythme ralentit) et loup-garou. */
-export const porchParams = (s: RaymarchState): Record<string, number> => {
+/** Paramètres propres au perron : balancement de caméra (amplitude croît avec la paranoïa, rythme ralentit) et loup-garou ; variantes (brume, lune, pluie, feuilles, lanterne) via `variant`. */
+export const porchParams = (s: RaymarchState & { variant?: Record<string, number> }): Record<string, number> => {
   const { t, paranoia: p } = s
   const m = s.motion
+  const v = s.variant ?? {}
   const k = 1 + 1.2 * p // uneasy: amplitude grows ...
   const speed = 0.13 / (1 + 0.8 * p) // ... while the rhythm slows
   return {
@@ -20,5 +21,10 @@ export const porchParams = (s: RaymarchState): Record<string, number> => {
     wolf: Math.min(1, Math.max(0, (p - 0.62) / 0.16)),
     px: s.px,
     py: s.py,
+    mist: v.mist ?? 1,
+    moon: v.moon ?? 1,
+    rain: v.rain ?? 0,
+    leaves: v.leaves ?? 0,
+    lamp: v.lamp ?? 0,
   }
 }
