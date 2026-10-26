@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
-import { OUIJA_WORDS } from '../../content/ouija'
+import { OUIJA_SHOWN, OUIJA_WORDS } from '../../content/ouija'
 import { OUIJA_BYE, OUIJA_NO, OUIJA_ROWS, OUIJA_YES, advanceDwell, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../engine/ouija'
 import { orSecure, type Rng } from '../../engine/rng'
 import IconGoutte from '~icons/rvj/goutte'
@@ -14,13 +14,19 @@ const rng = orSecure(props.rng)
 const emit = defineEmits<{ done: [] }>()
 
 const word = pickWord(OUIJA_WORDS, rng)
+const shown = OUIJA_SHOWN[word]
+// Segments affichés : une lettre accentuée couvre une case de la planche, « œ » en couvre deux (OE).
+const segments = [...shown].map((ch, i, all) => {
+  const start = all.slice(0, i).reduce((n, c) => n + (c === 'œ' ? 2 : 1), 0)
+  return { ch: ch.toUpperCase(), start, end: start + (ch === 'œ' ? 2 : 1) }
+})
 const driftAt = pickDriftAt(props.level, word.length, rng)
 let driftUsed = false
 
 const index = ref(0)
-const dwell = ref(0)
+let dwell = 0
 const farewell = ref(false)
-const status = ref('')
+const status = ref(`Épelez le mot ${shown}.`)
 const reduced = useReducedMotion()
 
 const { finish, isFinished } = useActivityDone(() => emit('done'), {
@@ -28,18 +34,24 @@ const { finish, isFinished } = useActivityDone(() => emit('done'), {
   // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
   onFinish: () => {
     index.value = word.length
-    dwell.value = 0
+    dwell = 0
     farewell.value = true
     override = els[OUIJA_BYE] ?? null
     driftStop()
-    status.value = `${word} : la planche vous dit au revoir.`
+    status.value = `${shown} : la planche vous dit au revoir.`
   },
 })
 
 const stage = ref<HTMLElement>()
 const dropEl = ref<HTMLElement>()
 const els: Record<string, HTMLElement | null> = {}
-const setEl = (key: string) => (el: unknown) => (els[key] = el as HTMLElement | null)
+// Fonctions de ref mémorisées : une seule par case, pour que le rendu n’en recrée pas à chaque passe.
+const setters = new Map<string, (el: unknown) => void>()
+const setEl = (key: string) => {
+  let f = setters.get(key)
+  if (!f) setters.set(key, (f = (el: unknown) => (els[key] = el as HTMLElement | null)))
+  return f
+}
 
 // Goutte : cible (pointeur) et position ressort, écrites directement dans le DOM (un seul maître du transform).
 const target = { x: 0, y: 0 }
@@ -69,7 +81,8 @@ const validate = (letter: string) => {
   const next = pressLetter(word, index.value, letter)
   if (next === index.value) return
   index.value = next
-  dwell.value = 0
+  dwell = 0
+  els[letter]?.style.removeProperty('--dwell')
   status.value = `Lettre ${letter}. ${next} sur ${word.length}.`
   if (next >= word.length) {
     farewell.value = true
@@ -96,7 +109,17 @@ useEventListener(stage, 'pointerdown', setTarget)
 
 // Épellation au clavier : taper les lettres du mot (accents ignorés) ; la goutte glisse vers la lettre validée.
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
-  if (e.ctrlKey || e.metaKey || e.altKey) return
+  if (e.repeat || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return
+  // Une fenêtre ou un menu est ouvert (Collection, À propos, Démarrer, réinitialisation) : la touche ne lui appartient pas.
+  const t = e.target instanceof Element ? e.target : null
+  const f = document.activeElement
+  if (
+    t?.closest('dialog[open], [role=menu]') ||
+    f?.closest('dialog[open], [role=menu]') ||
+    document.querySelector('dialog[open]') ||
+    [...document.querySelectorAll<HTMLElement>('[role=menu]')].some((m) => m.offsetParent)
+  )
+    return // le menu Démarrer reste dans le DOM (v-show) : seul un menu visible compte
   const letter = normalizeKey(e.key)
   if (!letter) return
   const el = els[letter]
@@ -121,7 +144,8 @@ useRafFn(({ delta }) => {
     placed = true
   }
   const goal = override ? centerOf(override) : null
-  const tx = goal ? goal.x : target.x
+  // À la fin, la goutte s’arrête à gauche d’AU REVOIR pour que le texte reste lisible.
+  const tx = goal ? (override === els[OUIJA_BYE] ? goal.left - 26 : goal.x) : target.x
   const ty = goal ? goal.y : target.y
   if (reduced.value) {
     pos.x = tx
@@ -143,8 +167,10 @@ useRafFn(({ delta }) => {
   const el = letter && !override && !isFinished() ? els[letter] : null
   const c = el ? centerOf(el) : null
   const over = !!c && pos.x >= c.left - 4 && pos.x <= c.right + 4 && pos.y >= c.top - 4 && pos.y <= c.bottom + 4
-  const p = advanceDwell(dwell.value, over, dt)
-  if (p !== dwell.value) dwell.value = p
+  const p = advanceDwell(dwell, over, dt)
+  // Anneau de survol : variable CSS écrite directement sur la lettre (pas de rendu Vue à chaque image).
+  if (p !== dwell && el) el.style.setProperty('--dwell', String(p))
+  dwell = p
   if (p >= 1 && letter) validate(letter)
 })
 </script>
@@ -153,14 +179,15 @@ useRafFn(({ delta }) => {
   <div ref="stage" class="ouija relative size-full overflow-hidden touch-none select-none flex flex-col items-center justify-center gap-3 sm:gap-5 px-2 font-title text-center">
     <p class="sr-only" aria-live="polite">{{ status }}</p>
     <p class="relative m-0 text-[#e8d9b0] text-sm tracking-[0.18em]" aria-hidden="true">Épelez le mot</p>
-    <p class="relative m-0 flex gap-2 sm:gap-3 text-[2rem] sm:text-[2.6rem] leading-none text-[#d9b55a]" :aria-label="`Mot à épeler : ${word}`">
+    <p class="sr-only">Mot à épeler : {{ shown }}</p>
+    <p class="relative m-0 flex gap-2 sm:gap-3 text-[2rem] sm:text-[2.6rem] leading-none text-[#d9b55a]" aria-hidden="true">
       <span
-        v-for="(ch, i) in word"
+        v-for="(seg, i) in segments"
         :key="i"
         aria-hidden="true"
         class="inline-block min-w-[1.1em] border-0 border-b-[3px] border-solid pb-1"
-        :class="i < index ? 'border-[#d9b55a]' : i === index ? 'border-[#e8d9b0] opacity-80' : 'border-[#d9b55a]/25 opacity-40'"
-        >{{ ch }}</span
+        :class="seg.end <= index ? 'border-[#d9b55a]' : seg.start <= index ? 'border-[#e8d9b0] opacity-80' : 'border-[#d9b55a]/25 opacity-40'"
+        >{{ seg.ch }}</span
       >
     </p>
     <div class="board relative flex flex-col items-center gap-1.5 sm:gap-2 px-2 py-3 sm:px-6 sm:py-5" role="group" aria-label="Planche Ouija">
@@ -169,17 +196,7 @@ useRafFn(({ delta }) => {
         <button :ref="setEl(OUIJA_NO)" type="button" class="key answer" :aria-label="OUIJA_NO" tabindex="-1">{{ OUIJA_NO }}</button>
       </div>
       <div v-for="row in OUIJA_ROWS" :key="row" class="flex gap-1 sm:gap-1.5">
-        <button
-          v-for="l in row"
-          :key="l"
-          :ref="setEl(l)"
-          type="button"
-          class="key letter"
-          :class="{ next: expected === l, 'no-motion': reduced }"
-          :style="expected === l ? { '--dwell': dwell } : undefined"
-          :aria-label="`Lettre ${l}`"
-          @click="validate(l)"
-        >
+        <button v-for="l in row" :key="l" :ref="setEl(l)" type="button" class="key letter" :class="{ next: expected === l, 'no-motion': reduced }" :aria-label="`Lettre ${l}`" @click="validate(l)">
           {{ l }}
         </button>
       </div>

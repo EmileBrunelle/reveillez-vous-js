@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { OUIJA_WORDS } from '../../src/content/ouija'
+import { OUIJA_SHOWN, OUIJA_WORDS } from '../../src/content/ouija'
 import { BANNED, INCLUSIVE_BANNED, RELIGION, bannedRe } from './rules'
 
 describe('contenu de la planche Ouija', () => {
@@ -7,6 +7,12 @@ describe('contenu de la planche Ouija', () => {
     for (const w of OUIJA_WORDS) expect(w, w).toMatch(/^[A-Z]{4,6}$/)
     expect(new Set(OUIJA_WORDS).size).toBe(OUIJA_WORDS.length)
     expect(OUIJA_WORDS.length).toBeGreaterThanOrEqual(12)
+  })
+  it('forme affichée accentuée pour chaque mot de planche', () => {
+    for (const w of OUIJA_WORDS) expect(OUIJA_SHOWN[w], w).toBeTruthy()
+    expect(['écho', 'rêve', 'réveil', 'étoile', 'œil'].map((a) => Object.values(OUIJA_SHOWN).includes(a))).toEqual([true, true, true, true, true])
+    expect(OUIJA_SHOWN.OEIL).toBe('œil')
+    expect(OUIJA_SHOWN.ECHO).toBe('écho')
   })
   it('mots exclus, religion, néologismes et hommage à Terry absents', () => {
     for (const w of OUIJA_WORDS) {
