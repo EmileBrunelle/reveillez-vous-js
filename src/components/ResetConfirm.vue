@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue'
+import { focusQuietly } from '../composables/focusQuietly'
 
 // Parent v-model = "wants open". Native <dialog>: Esc, focus trap and inert background come for free.
 const open = defineModel<boolean>({ default: false })
@@ -15,7 +16,7 @@ const sync = async (o: boolean) => {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     d.showModal()
     await nextTick()
-    cancelBtn.value?.focus()
+    focusQuietly(cancelBtn.value)
   } else if (!o && d.open) d.close()
 }
 // Composant async : il peut se monter alors que le parent veut déjà l’ouvrir.
@@ -27,7 +28,7 @@ const onClose = () => {
   const el = opener
   opener = null
   // The link disappears after a reset: only restore focus if it is still on the page.
-  if (el?.isConnected) el.focus()
+  if (el?.isConnected) focusQuietly(el)
 }
 const confirm = () => {
   emit('confirm')

@@ -9,6 +9,7 @@ import IconStart from '~icons/rvj/demarrer'
 import IconSound from '~icons/rvj/son'
 import IconSoundOff from '~icons/rvj/son-coupe'
 import IconGithub from '~icons/simple-icons/github'
+import { focusQuietly } from '../composables/focusQuietly'
 
 defineProps<{ level: number }>()
 const emit = defineEmits<{ about: []; collection: []; reset: []; resetLevel: [] }>()
@@ -21,14 +22,14 @@ const items = () => Array.from(menu.value?.querySelectorAll<HTMLElement>('[role=
 
 const close = (refocus = false) => {
   open.value = false
-  if (refocus) startBtn.value?.focus()
+  if (refocus) focusQuietly(startBtn.value)
 }
 const toggle = async () => {
   warm()
   open.value = !open.value
   if (open.value) {
     await nextTick()
-    items()[0]?.focus()
+    focusQuietly(items()[0])
   }
 }
 const choose = (e: 'about' | 'collection' | 'reset') => {

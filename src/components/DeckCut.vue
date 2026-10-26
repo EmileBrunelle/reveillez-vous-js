@@ -7,6 +7,7 @@ import { cardDeal } from '../audio/sfx'
 import { PAQUET_NOMS, shufflePaquets, type Paquet } from '../engine/paquets'
 import type { Rng } from '../engine/rng'
 import { useReducedMotion } from '../composables/useReducedMotion'
+import { focusQuietly } from '../composables/focusQuietly'
 
 // Coupe du paquet : trois paquets différents (dos, teinte, arcanes) en éventail, dans la même boîte (7:12) que la carte du tirage.
 // Tout le mouvement passe par UNE boucle rAF : chaque carte a des valeurs courantes qui poursuivent une cible avec un ressort (aucune transition CSS
@@ -284,7 +285,7 @@ const choose = (i: number) => {
   W = deckEl.value?.offsetWidth ?? W
   chosen.value = i
   hot.value = null
-  deckEl.value?.focus() // les boutons se désactivent puis disparaissent : le focus reste dans la coupe au lieu de tomber sur <body>
+  focusQuietly(deckEl.value) // les boutons se désactivent puis disparaissent : le focus reste dans la coupe au lieu de tomber sur <body>
   if (reduced.value) {
     layoutStatic()
     startReducedPick()
