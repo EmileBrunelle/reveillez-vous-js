@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useEventListener, useTimeoutFn } from '@vueuse/core'
+import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { CREDITS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL } from '../content/finale'
 
@@ -8,6 +9,7 @@ import { CREDITS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RE
 // `collapsed` : l’écran est noir (l’app coupe le CRT et passe le lieu en aube sans qu’on le voie). `restart` : « Recommencer ».
 const emit = defineEmits<{ collapsed: []; restart: [] }>()
 const reduced = useReducedMotion()
+const collection = useCollectionStore()
 
 type Step = 'pre' | 'collapse' | 'black' | 'rise' | 'text' | 'credits'
 const step = ref<Step>('pre')
@@ -98,6 +100,7 @@ const lineClass = (i: number) => (i < FINALE_TITLE.length ? 'font-title text-[1.
     <div v-if="showCredits" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.5)] finale-line">
       <h2 class="font-title m-0 text-[1.6rem] tracking-[0.06em]">{{ CREDITS_TITLE }}</h2>
       <p v-for="c in CREDITS" :key="c" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
+      <p class="m-0 font-card text-[1.05rem] leading-snug">Arcanes révélés : {{ collection.count }} sur {{ collection.total }}</p>
       <button ref="restartBtn" class="btn mt-2" type="button" @click="emit('restart')">{{ RESTART_LABEL }}</button>
     </div>
   </section>

@@ -8,6 +8,7 @@ import FakeErrors from './components/FakeErrors.vue'
 import BgPlace from './components/backgrounds/BgPlace.vue'
 import { useProgressStore } from './stores/progress'
 import { useSessionStore } from './stores/session'
+import { useCollectionStore } from './stores/collection'
 import { useTabTitle } from './composables/useTabTitle'
 import { doors, pickDoor, pickPlaceVariant, placeForLevel, places } from './content/scenes'
 import { prophecies } from './content/prophecies'
@@ -22,7 +23,7 @@ import { safeStorage } from './composables/safeStorage'
 import { hymn, unlock } from './audio/sfx'
 import { finaleActive } from './engine/finaleFlow'
 import { WAKE_LABEL } from './content/finale'
-import { activityFor, loadAbout, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
+import { activityFor, loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
 
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
 // La carte du tirage est chargée avant la fin de la coupe (jamais de substitut) : on ne la rend qu’une fois le chunk là.
@@ -37,6 +38,7 @@ const ensureTarot = async () => {
 }
 const AboutTempleOS = defineAsyncComponent(loadAbout)
 const ResetConfirm = defineAsyncComponent(loadReset)
+const CollectionWindow = defineAsyncComponent(loadCollection)
 const DeckCut = defineAsyncComponent(loadDeckCut)
 const Finale = defineAsyncComponent(loadFinale)
 // La scène de la porte s’affiche après « Approchez-vous » : on garde ce bouton tant que son chunk n’est pas là (pas de substitut, donc pas de saut).
@@ -82,6 +84,18 @@ watch(aboutOpen, (o) => {
 })
 
 const progress = useProgressStore()
+const collection = useCollectionStore()
+const collectionOpen = ref(false)
+const collectionWanted = ref(false) // monté (donc chargé) à la première ouverture seulement
+const openCollection = () => {
+  collectionWanted.value = true
+  collectionOpen.value = true
+}
+// Remise à zéro complète (« Oublier ») : en plus du niveau, la collection est effacée.
+const forgetAll = () => {
+  collection.clear()
+  resetLevel()
+}
 const { level, paranoia } = storeToRefs(progress)
 const session = useSessionStore()
 useTabTitle(level)
@@ -211,6 +225,7 @@ const focusSoon = (find: () => HTMLElement | null | undefined) => {
   requestAnimationFrame(t)
 }
 const onFlipped = () => {
+  collection.record(prophecy.value.arcane.nom)
   cardSettled.value = true
   void nextTick(() => closeBtn.value?.focus({ preventScroll: true }))
 }
@@ -380,7 +395,8 @@ const onFinaleRestart = () => {
     </template>
   </MotionConfig>
   <FakeErrors v-if="gpu === 'ok' && phase === 'reading' && cardSettled" :key="sceneKey" :level="level" />
-  <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @reset="resetOpen = true" @reset-level="resetLevel" />
+  <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @collection="openCollection" @reset="resetOpen = true" @reset-level="resetLevel" />
   <AboutTempleOS v-if="aboutWanted" v-model="aboutOpen" />
-  <ResetConfirm v-if="resetWanted" v-model="resetOpen" @confirm="resetLevel" />
+  <CollectionWindow v-if="collectionWanted" v-model="collectionOpen" />
+  <ResetConfirm v-if="resetWanted" v-model="resetOpen" @confirm="forgetAll" />
 </template>
