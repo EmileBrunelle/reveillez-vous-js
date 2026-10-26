@@ -9,6 +9,11 @@ struct Params {
   wolf: f32, // 0..1 werewolf presence
   px: f32, // parallax -1..1 (0 when reduced motion), already smoothed on the CPU
   py: f32,
+  mist: f32, // variant: fog density multiplier
+  moon: f32, // variant: moon brightness (halo, disc, fog light)
+  rain: f32, // variant: 0..1 fine drizzle
+  leaves: f32, // variant: 0..1 falling autumn leaves
+  lamp: f32, // variant: 0..1 lit jack-o’-lantern on the porch
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -98,6 +103,43 @@ fn treeline(a: f32) -> f32 {
   return h;
 }
 
+// Fine drizzle: sparse slanted streaks in screen space, falling with the drift clock (static when reduced motion).
+fn streaks(c2: vec2f) -> f32 {
+  var q = vec2f(c2.x * 40.0, c2.y * 6.0 + params.drift * 1.6);
+  q.x += q.y * 0.12;
+  let cell = floor(q);
+  let f = fract(q);
+  let rnd = h21(cell);
+  let o = 0.2 + 0.6 * h21(cell + 1.7);
+  return step(0.84, rnd) * smoothstep(0.08, 0.02, abs(f.x - o)) * smoothstep(0.0, 0.3, f.y) * smoothstep(1.0, 0.6, f.y);
+}
+
+// Autumn leaves: layers of small tilted ellipses that fall slowly and sway sideways.
+fn leaf_layer(c2: vec2f, scale: f32, speed: f32, seed: f32) -> f32 {
+  var q = c2 * scale;
+  q.y += params.drift * speed;
+  let cell = floor(q);
+  let h = h21(cell + seed);
+  let h2 = h21(cell + seed + 5.3);
+  var f = fract(q) - vec2f(0.5 + (h - 0.5) * 0.4 + 0.18 * sin(q.y * 0.9 + h * 6.28), 0.5);
+  let a = h2 * 6.28 + q.y * 0.5;
+  f = vec2f(f.x * cos(a) - f.y * sin(a), f.x * sin(a) + f.y * cos(a));
+  let d = length(f * vec2f(1.0, 2.6));
+  return step(0.55, h) * smoothstep(0.24, 0.12, d);
+}
+
+// Jack-o’-lantern in screen space: p relative to its centre, unit = body radius. Returns (body mask, face mask).
+fn pumpkin(p: vec2f) -> vec2f {
+  let body = 1.0 - smoothstep(0.92, 1.0, length(p * vec2f(1.0, 1.2)));
+  let ty = p.y - 0.18;
+  let eyeL = step(-0.14, ty) * step(ty, 0.16) * step(abs(p.x + 0.40), (0.16 - ty) * 0.8);
+  let eyeR = step(-0.14, ty) * step(ty, 0.16) * step(abs(p.x - 0.40), (0.16 - ty) * 0.8);
+  let y0 = -0.38 + 0.5 * p.x * p.x;
+  let mouth = step(abs(p.y - y0), 0.11) * step(abs(p.x), 0.62) * step(0.22, fract(p.x * 3.2 + 0.5));
+  let face = clamp(eyeL + eyeR + mouth, 0.0, 1.0) * body;
+  return vec2f(body, face);
+}
+
 fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   let up = clamp(rd.y, 0.0, 1.0);
   var c = mix(vec3f(0.21, 0.27, 0.39), vec3f(0.024, 0.036, 0.085), pow(up, 0.42));
@@ -105,7 +147,7 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   let cm = dot(rd, MOON_DIR);
   // Halo (angular distance), then disc with soft limb and faint maria.
   let ang = acos(clamp(cm, -1.0, 1.0));
-  c += moonCol * (0.30 * exp(-ang * 6.0) + 0.65 * exp(-ang * 18.0));
+  c += moonCol * (0.30 * exp(-ang * 6.0) + 0.65 * exp(-ang * 18.0)) * params.moon;
   let disc = 1.0 - smoothstep(r - 0.0025, r + 0.0015, ang);
   // Moon surface coordinates
   let ex = normalize(cross(MOON_DIR, vec3f(0, 1, 0)));
@@ -140,7 +182,7 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   MOON_DIR = vec3f(sin(moonAz) * cos(moonElev), sin(moonElev), cos(moonAz) * cos(moonElev));
   let wolfAz = mix(0.50, moonAz, land);
   let feetE = mix(0.04, moonElev - 0.31, land);
-  let moonR = mix(0.098, 0.072, land);
+  let moonR = mix(0.098, 0.072, land) * params.moon;
   // Parallax: yaw/pitch (~3.4 deg / 2.3 deg max) for every layer + a small lateral eye shift that moves the near railing more.
   let yaw = params.sway + params.px * 0.06;
   let pitch = mix(-0.10, 0.12, land) + params.swayY - params.py * 0.04;
@@ -153,8 +195,8 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
 
   let red = smoothstep(0.1, 0.9, p);
   let moonCol = mix(vec3f(0.90, 0.94, 1.0), vec3f(0.95, 0.10, 0.05), red);
-  let fogLit = mix(vec3f(0.22, 0.28, 0.40), vec3f(0.42, 0.11, 0.12), red);
-  let density = mix(0.8, 1.7, p);
+  let fogLit = mix(vec3f(0.22, 0.28, 0.40), vec3f(0.42, 0.11, 0.12), red) * mix(1.0, params.moon, 0.7) + vec3f(0.30, 0.13, 0.03) * params.lamp * 0.30;
+  let density = mix(0.8, 1.7, p) * params.mist;
 
   var col = vec3f(0.0);
   var tEnd = 70.0;
@@ -237,7 +279,7 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   var scat = vec3f(0.0);
   let wind = vec3f(params.drift * 0.35, 0.0, params.drift * 0.15);
   let cm = max(dot(rd, MOON_DIR), 0.0);
-  let lit = fogLit + moonCol * (0.30 * pow(cm, 8.0) + 0.08 * pow(cm, 2.0));
+  let lit = fogLit + moonCol * (0.30 * pow(cm, 8.0) + 0.08 * pow(cm, 2.0)) * params.moon;
   var tPrev = 0.0;
   for (var i = 0; i < N; i++) {
     let f = (f32(i) + jit) / f32(N);
@@ -255,8 +297,29 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   }
   col = col * T + scat;
 
-  // --- Grade: dim the centre so white UI text stays readable, soft vignette, dither.
+  // --- Lantern: steady warm glow + lit pumpkin on the porch (no flicker: luminance stays constant).
   let cc = length(c2 * vec2f(0.8, 0.6));
+  if (params.lamp > 0.0) {
+    let lc = vec2f(mix(-0.30, -1.05, land) - params.px * 0.05, mix(-0.95, -0.78, land));
+    let lp = c2 - lc;
+    let warm = vec3f(1.0, 0.52, 0.14);
+    col += warm * 0.34 * exp(-length(lp * vec2f(0.9, 1.3)) * 3.2) * params.lamp;
+    let pk = pumpkin(lp / 0.13);
+    col = mix(col, vec3f(0.20, 0.07, 0.012), pk.x * params.lamp);
+    col = mix(col, warm * 1.5, pk.y * params.lamp);
+  }
+
+  // --- Drizzle and leaves (screen space, dim, the centre stays clear).
+  let edge = smoothstep(0.05, 0.4, cc);
+  if (params.rain > 0.0) {
+    col += vec3f(0.45, 0.52, 0.66) * streaks(c2) * 0.24 * params.rain * edge;
+  }
+  if (params.leaves > 0.0) {
+    let lf = max(leaf_layer(c2, 7.0, 0.35, 0.0), 0.7 * leaf_layer(c2 + vec2f(0.4, 0.2), 12.0, 0.6, 9.0));
+    col = mix(col, vec3f(0.80, 0.34, 0.07), lf * 0.85 * params.leaves * edge);
+  }
+
+  // --- Grade: dim the centre so white UI text stays readable, soft vignette, dither.
   col *= mix(0.78, 1.0, smoothstep(0.0, 1.1, cc));
   col *= 1.0 - 0.35 * smoothstep(0.6, 1.5, length(c2));
   col = col / (1.0 + col * 0.6);

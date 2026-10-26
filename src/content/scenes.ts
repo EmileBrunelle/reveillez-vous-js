@@ -63,7 +63,15 @@ export interface Place {
 }
 
 export const places: Place[] = [
-  { id: 'perron', level: 1, variants: [{ id: 'defaut' }] },
+  {
+    id: 'perron',
+    level: 1,
+    variants: [
+      { id: 'defaut', params: { mist: 1, moon: 1, rain: 0, leaves: 0, lamp: 0 } },
+      { id: 'pluie-feuilles', params: { mist: 1.25, moon: 0.65, rain: 1, leaves: 1, lamp: 0 } },
+      { id: 'citrouille', params: { mist: 1.4, moon: 0.5, rain: 0, leaves: 0, lamp: 1 } },
+    ],
+  },
   {
     id: 'foret',
     level: 2,
