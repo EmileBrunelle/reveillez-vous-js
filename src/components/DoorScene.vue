@@ -380,12 +380,12 @@ const onSceneClick = (e: MouseEvent) => {
     </div>
     <div v-if="!closing" ref="ui" class="scene scene--ui content-start gap-3 grid-rows-[auto_1.25rem_2.5rem]">
       <!-- Phrase + fantômes invisibles (toutes les phrases possibles de la visite) dans la même cellule : la hauteur réservée est celle de la plus longue, la scène ne bouge pas entre les phases. -->
-      <div class="grid justify-items-center">
-        <p id="door-said" class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1]">{{ said }}</p>
+      <div class="grid grid-cols-[minmax(0,1fr)] justify-items-center w-full">
+        <p id="door-said" class="lead max-w-full [text-wrap:balance] [overflow-wrap:anywhere] max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1]">{{ said }}</p>
         <span
           v-for="(g, i) in ghosts"
           :key="i"
-          class="lead max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1] invisible pointer-events-none"
+          class="lead max-w-full [text-wrap:balance] [overflow-wrap:anywhere] max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1] invisible pointer-events-none"
           aria-hidden="true"
           >{{ g }}</span
         >
