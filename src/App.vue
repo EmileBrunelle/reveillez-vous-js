@@ -20,6 +20,7 @@ import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
 import { safeStorage } from './composables/safeStorage'
 import { hymn, unlock } from './audio/sfx'
+import { finaleActive } from './engine/finaleFlow'
 import { WAKE_LABEL } from './content/finale'
 import { activityFor, loadAbout, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
 
@@ -238,12 +239,14 @@ const onClosed = () => {
 const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
 // L’écran est noir : le CRT s’éteint et le lieu passe à l’aube sans qu’on le voie.
 const onCollapsed = () => {
+  if (!finaleActive(phase.value)) return // Finale encore montée pendant sa sortie : un collapsed tardif ne touche plus la porte
   crtOff.value = true
   place.value = places.find((p) => p.id === 'nuages') ?? place.value
   placeVariant.value = place.value.variants.find((v) => v.id === 'aube') ?? placeVariant.value
 }
 // « Recommencer » : visites et sacs à zéro, finale marquée, retour à la porte du niveau 1.
 const onFinaleRestart = () => {
+  if (!finaleActive(phase.value)) return // double clic pendant la sortie : un seul « Recommencer »
   progress.completeFinale()
   returnGreeted = false
   stopBubble()

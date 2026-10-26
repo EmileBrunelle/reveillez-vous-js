@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { CREDITS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL } from '../content/finale'
 
@@ -18,11 +18,16 @@ const showText = computed(() => reduced.value || step.value === 'text')
 const shown = computed(() => (reduced.value ? lines : lines.slice(0, count.value)))
 const showCredits = computed(() => reduced.value || step.value === 'credits')
 const restartBtn = ref<HTMLButtonElement>()
-const focusRestart = () => void nextTick(() => restartBtn.value?.focus({ preventScroll: true }))
+// Le générique peut dépasser (téléphone) : « Recommencer » est ramené dans la section défilante, en douceur sauf mouvement réduit.
+const focusRestart = () =>
+  void nextTick(() => {
+    restartBtn.value?.focus({ preventScroll: true })
+    restartBtn.value?.scrollIntoView({ block: 'nearest', behavior: reduced.value ? 'auto' : 'smooth' })
+  })
 
 // Un seul changement spatial, jamais de scintillement : barres noires qui se ferment (1,1 s), une ligne, puis le noir ; l’aube remonte en 4 s.
 const delay = ref(50)
-const { start } = useTimeoutFn(
+const { start, stop } = useTimeoutFn(
   () => {
     const s = step.value
     if (s === 'pre') [step.value, delay.value] = ['collapse', 1500]
@@ -53,6 +58,19 @@ onMounted(() => {
     focusRestart()
   } else start()
 })
+// Passer la séquence : tout le reste (texte, générique, « Recommencer ») apparaît d’un coup.
+const skip = () => {
+  if (step.value === 'credits') return
+  stop()
+  if (step.value === 'pre' || step.value === 'collapse') emit('collapsed') // l’aube doit quand même se mettre en place
+  count.value = lines.length
+  step.value = 'credits'
+  focusRestart()
+}
+// Clic ou toucher n’importe où, ou Espace/Entrée ; un bouton (« Recommencer », barre des tâches) garde son propre comportement.
+const onButton = (e: Event) => e.target instanceof Element && !!e.target.closest('button, a, [role="menuitem"]')
+useEventListener(document, 'click', (e) => onButton(e) || skip())
+useEventListener(document, 'keydown', (e) => (e.key === ' ' || e.key === 'Enter') && !onButton(e) && skip())
 const barsClosed = computed(() => step.value !== 'pre')
 const lineOut = computed(() => ['black', 'rise', 'text', 'credits'].includes(step.value))
 const veilLifted = computed(() => ['rise', 'text', 'credits'].includes(step.value))
@@ -73,6 +91,7 @@ const lineClass = (i: number) => (i < FINALE_TITLE.length ? 'font-title text-[1.
     class="w-full max-w-[34rem] max-h-[calc(100dvh-1.5rem-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
     aria-label="Finale"
   >
+    <p v-if="!showCredits" class="m-0 font-ui text-[0.95rem] opacity-70">Toucher pour tout afficher</p>
     <div v-if="showText" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.4)]" role="status">
       <p v-for="(l, i) in shown" :key="l" class="m-0 finale-line" :class="lineClass(i)">{{ l }}</p>
     </div>
