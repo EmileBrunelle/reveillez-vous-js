@@ -295,6 +295,18 @@ const events: Record<EventKind, (e: Env) => void> = {
     o.start(t0)
     o.stop(t0 + 0.6)
     e.t.release(o, [o, g])
+    // composante médium discrète (claquement du battant, triangle ~300 Hz) pour les petits haut-parleurs
+    const m = e.t.add(e.c.createOscillator())
+    m.type = 'triangle'
+    m.frequency.setValueAtTime(300, t0)
+    m.frequency.exponentialRampToValueAtTime(210, t0 + 0.12)
+    const mlp = filt(e, 'lowpass', 600)
+    const mg = gainNode(e, 0)
+    env(mg, t0, 0.4, 0.006, 0.2)
+    m.connect(mlp).connect(mg).connect(e.out)
+    m.start(t0)
+    m.stop(t0 + 0.25)
+    e.t.release(m, [m, mlp, mg])
   },
   chime: (e) => {
     const base = [523.3, 659.3, 784, 880][Math.floor(Math.random() * 4)] ?? 523.3
@@ -364,6 +376,18 @@ const rareSounds: Record<RareKind, (e: Env) => void> = {
     m.start(t0)
     m.stop(t0 + 0.7)
     e.t.release(m, [m, mlp, mg])
+    // second corps médium (triangle ~320 Hz, très bref) : le coup reste audible sur un portable
+    const h = e.t.add(e.c.createOscillator())
+    h.type = 'triangle'
+    h.frequency.setValueAtTime(320, t0)
+    h.frequency.exponentialRampToValueAtTime(220, t0 + 0.2)
+    const hlp = filt(e, 'lowpass', 600)
+    const hg = gainNode(e, 0)
+    env(hg, t0, 0.6, 0.008, 0.5)
+    h.connect(hlp).connect(hg).connect(e.out)
+    h.start(t0)
+    h.stop(t0 + 0.55)
+    e.t.release(h, [h, hlp, hg])
     swell(e, 'bandpass', 1400, 1, 0.4, 0.002, 0.05)
   },
   breath: (e) => swell(e, 'bandpass', rnd(1200, 1800), 0.8, 0.35, 1.4, 3.4, rnd(1900, 2600)),

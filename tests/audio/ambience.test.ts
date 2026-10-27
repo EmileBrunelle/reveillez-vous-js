@@ -84,6 +84,7 @@ class FakeCtx {
   sampleRate = 8000
   destination = makeNode()
   createGain = makeNode
+  createDynamicsCompressor = makeNode
   createBufferSource = makeNode
   createBiquadFilter = makeNode
   createOscillator = makeNode
@@ -111,7 +112,7 @@ describe('startAmbience (contexte factice)', () => {
     stop()
     vi.advanceTimersByTime(2000)
     expect(vi.getTimerCount()).toBe(0)
-    expect(stats.disconnected).toBeGreaterThanOrEqual(stats.created - 5) // tout sauf le destination fictif et les 4 bus de catégorie (persistants, partagés par tout le contexte)
+    expect(stats.disconnected).toBeGreaterThanOrEqual(stats.created - 7) // tout sauf le destination fictif, le limiteur, sa compensation et les 4 bus de catégorie (persistants, partagés par tout le contexte)
     const after = stats.created
     vi.advanceTimersByTime(120_000)
     expect(stats.created).toBe(after) // plus aucun événement

@@ -43,6 +43,18 @@ export const ouijaFarewell = () => {
   g.gain.linearRampToValueAtTime(OUIJA_PEAK.farewell, at + 0.06)
   g.gain.exponentialRampToValueAtTime(0.001, at + 1.4)
   lp.connect(g).connect(effetsOut(c))
+  // composante médium discrète (triangle à l’octave, ~220 Hz) : audible sur un petit haut-parleur sans changer le timbre creux
+  for (const f of [220, 225]) {
+    const o = c.createOscillator()
+    o.type = 'triangle'
+    o.frequency.setValueAtTime(f, at)
+    o.frequency.exponentialRampToValueAtTime(f * 0.8, at + 1.4)
+    const og = c.createGain()
+    og.gain.value = 1
+    o.connect(og).connect(lp)
+    o.start(at)
+    o.stop(at + 1.45)
+  }
   for (const f of [110, 112.5]) {
     const o = c.createOscillator()
     o.type = 'sine'

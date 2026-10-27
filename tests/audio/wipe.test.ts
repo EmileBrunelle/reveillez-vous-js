@@ -56,6 +56,7 @@ class FakeCtx {
   sampleRate = 8000
   destination = makeNode()
   createGain = () => makeNode()
+  createDynamicsCompressor = () => makeNode()
   createBiquadFilter = () => makeNode()
   createOscillator = () => makeNode()
   createBufferSource = () => makeNode()

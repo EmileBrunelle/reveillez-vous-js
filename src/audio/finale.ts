@@ -5,7 +5,7 @@ import { ambienceDucked } from './ambience'
 // Sons de la finale, synthétisés (Web Audio). Un seul bus `master` par finale : muet, « passer » et
 // « Recommencer » ramènent ce bus à 0 puis arrêtent et déconnectent toutes les sources (aucun oscillateur orphelin).
 export const FINALE_LEVEL = 0.5
-const PAD_PEAK = 0.05
+const PAD_PEAK = 0.16
 const BELL_PEAK = 0.1
 const WHINE_PEAK = 0.06
 const PAD_HZ = [130.81, 164.81, 196, 261.63, 329.63] // do majeur : C3 E3 G3 C4 E4
