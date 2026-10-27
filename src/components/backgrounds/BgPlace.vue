@@ -4,6 +4,7 @@ import { useDocumentVisibility, useParallax } from '@vueuse/core'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useProgressStore } from '../../stores/progress'
 import { startAmbience } from '../../audio/ambience'
+import { startMusic } from '../../audio/music'
 import { placeLoaders, type PlaceId } from '../../effects/places'
 
 const props = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
@@ -43,8 +44,10 @@ const paranoia = () => Number.parseFloat(document.documentElement.style.getPrope
 
 const progress = useProgressStore()
 let stopAmbience = () => {}
+let stopMusic = () => {}
 onMounted(async () => {
   stopAmbience = startAmbience(props.place, () => progress.level)
+  stopMusic = startMusic(() => progress.level)
   try {
     const [{ createRaymarch }, cfg] = await Promise.all([import('../../effects/raymarch'), placeLoaders[props.place]()])
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
@@ -70,6 +73,7 @@ onUnmounted(() => {
   gone = true
   scene?.stop()
   stopAmbience()
+  stopMusic()
 })
 </script>
 

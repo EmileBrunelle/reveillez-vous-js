@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { ac, effetsOut, muted } from './sfx'
 import type { Outcome } from '../engine/activityTiming'
 
@@ -32,6 +33,9 @@ export const stingerDuration = (o: Outcome): number => Math.max(...STINGERS[o].m
 
 const PEAK = 0.09
 
+/** Horloge (`c.currentTime`) jusqu’à laquelle un jingle sonne : la musique de fond ne démarre pas avant. */
+export const stingerBusyUntil = ref(0)
+
 const NOOP = () => {}
 
 /** Joue le jingle sur le bus des effets (donc le bus général et son limiteur). Renvoie une fonction d’arrêt (fondu de 30 ms, sans clic) ; muet : rien ne démarre et l’arrêt ne fait rien. */
@@ -41,6 +45,7 @@ export const playStinger = (o: Outcome, delay = 0): (() => void) => {
   const stops: (() => void)[] = []
   const t0 = c.currentTime + delay
   const out = effetsOut(c)
+  stingerBusyUntil.value = Math.max(stingerBusyUntil.value, t0 + stingerDuration(o) + 0.3)
   for (const n of STINGERS[o]) {
     const s = t0 + n.at
     const e = s + n.dur
