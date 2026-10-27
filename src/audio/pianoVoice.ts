@@ -1,19 +1,26 @@
-import type { NoteEvent } from './musicPlan'
+import { phraseGain, type NoteEvent } from './musicPlan'
 
 // Piano de feutre synthétisé, proche du micro et un peu usé (esprit C418) : partiels étirés par inharmonicité, décroissance à deux étages
 // par partiel (coup puis résonance), deux cordes légèrement désaccordées pour les trois premiers partiels (battement lent), marteau de
-// feutre (attaque douce, bref bruit sourd), passe-bas selon la vélocité, salle discrète (convolution), chaleur de bande (saturation douce
-// et très lent flottement de ±2 cents). Fonctionne sur tout BaseAudioContext (donc aussi OfflineAudioContext pour les rendus d’essai).
+// feutre (attaque douce, bref bruit sourd), passe-bas selon la vélocité, étouffoirs (la note s’éteint au changement de pédale), salle
+// discrète (convolution), très lent flottement de ±2 cents, et limiteur doux (tanh) en sortie. Fonctionne sur tout BaseAudioContext (donc
+// aussi OfflineAudioContext pour les rendus d’essai).
 const PARTIAL_COUNT = 9
-/** Partiels au-delà desquels l’écho (déjà voilé) n’en garde plus. */
-const ECHO_PARTIALS = 5
+/** L’accompagnement garde moins de partiels (plus sombre, moins de nœuds sous la pédale). */
+const ACCOMP_PARTIALS = 7
+const PARTIAL_MAX_HZ = 6000
+/** Étouffoir : constante de temps (s), plus lente dans le grave (cordes lourdes). */
+const damperTau = (midi: number) => (midi < 48 ? 0.08 : 0.05)
 /** Inharmonicité B : f_n = n·f0·√(1 + B·n²). Plus grande dans le grave (cordes épaisses). */
 const inharmonicity = (hz: number) => 0.0002 + 0.0003 * Math.max(0, Math.min(1, (330 - hz) / 250))
 /** Partiels à deux cordes (les autres n’en ont qu’une : budget de nœuds). */
 const DOUBLE_STRING_UNTIL = 3
 const ATTACK = 0.008
-/** Gain par note : vise ≈ -25 dBFS crête à l’entrée du bus (mesuré hors ligne). */
-export const NOTE_TRIM = 0.009
+/** Gain par note : avec la réserve de `phraseGain`, vise ≈ -25 dBFS crête à l’entrée du bus (mesuré hors ligne). */
+export const NOTE_TRIM = 0.03
+/** Plafond du limiteur doux (≈ -17 dBFS) : transparent à -25 dBFS, arrondit un éventuel excès. */
+const LIMIT_CEIL = 0.14
+const LIMIT_SPAN = 4
 /** Flottement lent de bande (cents) et salle. */
 const WOW_CENTS = 2
 const ROOM_SECONDS = 2
@@ -26,8 +33,8 @@ export interface PhraseHandle {
   end: number
 }
 
-/** Amplitude du partiel n (1-based) : décroît avec n, et les aigus s’effacent à faible vélocité. */
-export const partialAmp = (n: number, velocity: number): number => n ** -1.15 * velocity ** ((n - 1) * 0.35)
+/** Amplitude du partiel n (1-based) : décroît vite avec n (fondamental dominant, timbre sombre), les aigus s’effacent à faible vélocité. */
+export const partialAmp = (n: number, velocity: number): number => n ** -1.4 * velocity ** ((n - 1) * 0.4)
 /** Fréquence du partiel n d’une corde de fondamentale `hz`. */
 export const partialHz = (hz: number, n: number): number => n * hz * Math.sqrt(1 + inharmonicity(hz) * n * n)
 
@@ -67,36 +74,38 @@ const room = (c: BaseAudioContext): AudioBuffer => {
   return b
 }
 
-/** Courbe de saturation douce (tanh), presque linéaire aux faibles niveaux. */
-const saturation = (): Float32Array<ArrayBuffer> => {
-  const n = 1024
+/** Limiteur doux : y = tanh(LIMIT_SPAN·x) sur [-1, 1] ; entouré de gains 1/(plafond·span) et plafond, il donne plafond·tanh(s/plafond). */
+const limiterCurve = (): Float32Array<ArrayBuffer> => {
+  const n = 2048
   const curve = new Float32Array(n)
-  for (let i = 0; i < n; i++) {
-    const x = (i / (n - 1)) * 2 - 1
-    curve[i] = Math.tanh(x * 1.6) / Math.tanh(1.6)
-  }
+  for (let i = 0; i < n; i++) curve[i] = Math.tanh(LIMIT_SPAN * ((i / (n - 1)) * 2 - 1))
   return curve
 }
 
 /**
  * Planifie la phrase à `t0` vers `out` ; `wobble` (cents) renforce le flottement de hauteur (niveaux 3–4).
- * Nœuds par note : 12 oscillateurs (3 partiels à 2 cordes + 6 à 1 corde), 9 gains d’enveloppe, 1 gain de note, 1 passe-bas,
- * et pour le marteau 1 source, 1 passe-bas, 1 gain, soit ≈ 28 (≈ 16 pour un écho : 5 partiels, sans marteau).
+ * Nœuds par note de mélodie : 12 oscillateurs (3 partiels à 2 cordes + 6 à 1 corde), 9 gains d’enveloppe, 1 gain de note, 1 passe-bas,
+ * et pour le marteau 1 source, 1 passe-bas, 1 gain, soit ≈ 28 (≈ 23 pour l’accompagnement : 7 partiels). Les oscillateurs s’arrêtent à
+ * l’étouffoir, donc seules les notes sous la pédale en cours coûtent.
  */
 export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, notes: readonly NoteEvent[], wobble = 0): PhraseHandle => {
   const bus = c.createGain()
   bus.gain.value = 1
   bus.connect(out)
+  // réserve de dynamique : sous la pédale les notes s’additionnent, la phrase entière est abaissée d’autant
   const sum = c.createGain()
+  sum.gain.value = phraseGain(notes) / (LIMIT_CEIL * LIMIT_SPAN)
   const shaper = c.createWaveShaper()
-  shaper.curve = saturation()
+  shaper.curve = limiterCurve()
+  const ceil = c.createGain()
+  ceil.gain.value = LIMIT_CEIL
   const conv = c.createConvolver()
   conv.buffer = room(c)
   const wet = c.createGain()
   wet.gain.value = ROOM_WET
-  sum.connect(shaper)
-  shaper.connect(bus)
-  shaper.connect(conv)
+  sum.connect(shaper).connect(ceil)
+  ceil.connect(bus)
+  ceil.connect(conv)
   conv.connect(wet).connect(bus)
 
   const sources: (OscillatorNode | AudioBufferSourceNode)[] = []
@@ -111,29 +120,39 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
   let end = t0
   for (const n of notes) {
     const t = t0 + n.at
-    const count = n.echo ? ECHO_PARTIALS : PARTIAL_COUNT
+    const count = n.voice === 'melody' ? PARTIAL_COUNT : ACCOMP_PARTIALS
+    // étouffoir : au changement de pédale, la note entière s’éteint (constante damperTau) ; sinon elle sonne jusqu’à sa résonance naturelle
+    const rel = t0 + Math.max(n.at + ATTACK, n.release)
+    const tau = damperTau(n.midi)
+    const damped = rel + 6 * tau
     const g = c.createGain()
-    g.gain.value = n.velocity * NOTE_TRIM
+    g.gain.setValueAtTime(n.velocity * NOTE_TRIM, t)
+    if (rel < t + n.decay) {
+      g.gain.setValueAtTime(n.velocity * NOTE_TRIM, rel)
+      g.gain.exponentialRampToValueAtTime(n.velocity * NOTE_TRIM * 0.002, damped)
+    }
     const lp = c.createBiquadFilter()
     lp.type = 'lowpass'
-    // vélocité faible : timbre plus sombre ; l’écho est voilé
-    lp.frequency.value = n.echo ? 1500 : 900 + n.velocity * 2300
+    // vélocité faible : timbre plus sombre
+    lp.frequency.value = 650 + n.velocity * 1700
     lp.Q.value = 0.4
     g.connect(lp).connect(sum)
     const v = Math.min(1, n.velocity / 0.9)
     for (let k = 1; k <= count; k++) {
       const hz = partialHz(n.hz, k)
-      if (hz > 9000) break
+      if (hz > PARTIAL_MAX_HZ) break
       // deux étages : le coup (court, plus court encore dans l’aigu) puis la résonance (le fondamental sonne longtemps)
-      const total = n.decay / k ** 0.65
-      const prompt = Math.min(total * 0.6, 0.3 + 1.1 / k ** 0.8)
+      const natural = n.decay / k ** 0.65
+      // l’enveloppe du partiel suit la corde libre ; l’étouffoir agit sur le gain de note, et l’oscillateur s’arrête une fois étouffé
+      const total = Math.min(natural, damped - t)
+      const prompt = Math.min(natural * 0.6, 0.3 + 1.1 / k ** 0.8)
       const aftersound = 0.32 / Math.sqrt(k)
       const a = partialAmp(k, v)
       const e = c.createGain()
       e.gain.setValueAtTime(0.0001, t)
       e.gain.linearRampToValueAtTime(a, t + ATTACK)
       e.gain.exponentialRampToValueAtTime(a * aftersound, t + prompt)
-      e.gain.exponentialRampToValueAtTime(0.0001, t + total)
+      e.gain.exponentialRampToValueAtTime(0.0001, t + natural)
       e.connect(g)
       const strings = k <= DOUBLE_STRING_UNTIL ? 2 : 1
       for (let s = 0; s < strings; s++) {
@@ -142,7 +161,7 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
         // cordes de ±1–3 cents autour de l’accord de la note (battement lent) ; chute de hauteur éventuelle
         const spread = strings === 2 ? (s === 0 ? -1 : 1) * (1 + Math.random() * 2) : 0
         o.detune.setValueAtTime(n.cents + spread, t)
-        if (n.sag) o.detune.linearRampToValueAtTime(n.cents + spread + n.sag, t + total)
+        if (n.sag) o.detune.linearRampToValueAtTime(n.cents + spread + n.sag, t + natural)
         lfoGain.connect(o.detune)
         o.connect(e)
         o.start(t)
@@ -151,8 +170,8 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
       }
       end = Math.max(end, t + total + 0.05)
     }
-    // marteau de feutre : bref bruit sourd, passe-bas bas (pas pour l’écho)
-    if (!n.echo) {
+    // marteau de feutre : bref bruit sourd, passe-bas bas
+    {
       const s = c.createBufferSource()
       s.buffer = noise(c)
       const hl = c.createBiquadFilter()
@@ -175,7 +194,7 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
   // nettoyage : quand tout s’est tu, on débranche (après la queue de salle)
   let remaining = sources.length
   const cleanup = () => {
-    for (const nd of [bus, sum, shaper, conv, wet, lfoGain]) nd.disconnect()
+    for (const nd of [bus, sum, shaper, ceil, conv, wet, lfoGain]) nd.disconnect()
   }
   for (const s of sources) {
     s.onended = () => {

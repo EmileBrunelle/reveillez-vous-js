@@ -77,7 +77,7 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
     })
     if (!ok) return
     const level = getLevel()
-    session ??= createSession(rng)
+    session ??= createSession()
     const notes = planPhrase(level, rng, session)
     const t0 = c.currentTime + 0.1
     mine = current = playPhrase(c, out, t0, notes, level >= 3 && level < 5 ? WOBBLE_CENTS : 0)
