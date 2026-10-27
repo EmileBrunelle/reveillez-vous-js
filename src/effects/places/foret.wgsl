@@ -186,6 +186,52 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   return g * smoothstep(0.0, 0.04, min(f, 1.0 - f));
 }
 
+// Braises : quelques points chauds par citrouille, montée lente avec balancement, s’éteignent en haut.
+// Cycle de 14 s par braise, vacillement < 0,4 Hz, phases aléatoires : la luminance totale reste stable. Figées si drift = 0.
+fn ember(ro: vec3f, rd: vec3f, c: vec3f, sc: f32, k: f32, tEnd: f32) -> f32 {
+  var g = 0.0;
+  let nE = 2.5 + 3.5 * params.paranoia;
+  for (var n = 0; n < 6; n++) {
+    if (f32(n) > nE) { break; }
+    let sd = k * 7.3 + f32(n) * 3.1;
+    let age = fract(params.drift / (11.0 + 5.0 * h11(sd)) + h11(sd + 1.0));
+    let sw = vec2f(sin(params.drift * 0.55 + sd * 2.0), cos(params.drift * 0.43 + sd * 3.0)) * 0.16 * age;
+    let pe = c + vec3f(sw.x + (h11(sd + 2.0) - 0.5) * 0.25, 0.28 * sc + age * 1.5, sw.y + (h11(sd + 3.0) - 0.5) * 0.25);
+    let oc = pe - ro;
+    let al = dot(oc, rd);
+    if (al > 0.5 && al < tEnd) {
+      let dv = oc - rd * al;
+      let r = 0.022 + 0.006 * al;
+      let tw = 0.8 + 0.2 * sin(params.drift * 2.2 + sd * 5.0);
+      g += exp(-dot(dv, dv) / (r * r)) * smoothstep(0.0, 0.08, age) * (1.0 - age) * (1.0 - age) * tw * 4.5;
+    }
+  }
+  return g;
+}
+
+// Poussière qui capte la lueur des citrouilles : 3 tranches de profondeur, grain par cellule, éclat = lumière reçue.
+fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
+  var m = 0.0;
+  for (var s = 0; s < 3; s++) {
+    let t = 2.6 + f32(s) * 2.9;
+    if (t < tEnd) {
+      let q = ro + rd * t;
+      let cs = 0.4;
+      let gq = q / cs + vec3f(sin(params.drift * 0.17 + f32(s)) * 0.5, params.drift * 0.04, params.drift * 0.03);
+      let cell = floor(gq);
+      let h = vec3f(h31(cell + f32(s) * 17.0), h31(cell + 5.2), h31(cell + 9.7));
+      if (h.x > 0.9 - 0.05 * params.paranoia && q.y > 0.15 && q.y < 3.0) {
+        let f = (fract(gq) - 0.5 - (h.yzx - 0.5) * 0.6) * cs;
+        let r = 0.012 + 0.0035 * t;
+        let ll = lant_light(q);
+        let tw = 0.75 + 0.25 * sin(params.drift * 1.6 + h.z * 6.0);
+        m += exp(-dot(f, f) / (r * r)) * ll * tw;
+      }
+    }
+  }
+  return m;
+}
+
 @fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let p = params.paranoia;
   let res = vec2f(params.width, params.height);
@@ -239,6 +285,7 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   // --- Jack-o'-lanterns (nearest ellipsoid hit) + halos.
   var tL = 1.0e9;
   var halo = 0.0;
+  var embers = 0.0;
   var hitC = vec3f(0.0);
   var hitK = 0.0;
   var hitS = 0.0;
@@ -256,6 +303,7 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
           let dv = oc0 - rd * tc;
           let d2 = dot(dv, dv);
           halo += exp(-d2 * 3.0 / (sc * sc)) * flick(k) / (1.0 + tc * 0.12) * sc;
+          if (params.glow > 0.0 && al < 28.0) { embers += ember(ro, rd, c, sc, k, tEnd); }
           if (d2 < 0.2 * sc * sc && al < tEnd) {
             let rad = vec3f(0.40, 0.35, 0.40) * sc;
             let o = (ro - c) / rad;
@@ -273,6 +321,7 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
     }
   }
   col += warm * halo * 0.22 * params.glow;
+  col += vec3f(1.0, 0.45, 0.10) * embers * params.glow;
   if (tL < 1.0e8) {
     let sc = p_scale(hitK);
     let rad = vec3f(0.40, 0.35, 0.40) * sc;
@@ -308,6 +357,9 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
     }
   }
 
+  // --- Dust catching the lantern glow (hidden behind opaque trunks/lanterns through tEnd).
+  col += warm * 0.8 * params.glow * lant_motes(ro, rd, tEnd);
+
   // --- Eyes between the trunks (high paranoia only).
   if (params.eyes > 0.01) {
     let ec = mix(vec3f(1.0, 0.65, 0.18), vec3f(1.0, 0.12, 0.05), p);
@@ -325,6 +377,11 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   let wind = vec3f(params.drift * 0.35, 0.0, params.drift * 0.15);
   let cm = max(dot(rd, MOON_DIR), 0.0);
   let lit = fogLit + moonCol * (0.30 * pow(cm, 8.0) + 0.08 * pow(cm, 2.0)) * params.moon + warm * 0.035 * params.glow * halo;
+  // Rayons de lune : bandes de visibilité de la lune (bruit 1D dans le plan perpendiculaire à MOON_DIR), traversant la brume.
+  let mx = normalize(cross(MOON_DIR, vec3f(0, 1, 0)));
+  let my = cross(mx, MOON_DIR);
+  let shaftPh = pow(max(cm, 0.0), 3.0) * 1.6 + 0.35;
+  let shaftCol = moonCol * params.moon * shaftPh;
   var tPrev = 0.0;
   for (var i = 0; i < N; i++) {
     let f = (f32(i) + jit) / f32(N);
@@ -337,7 +394,10 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
     let dens = density * exp(-hgt * 0.55) * (0.15 + 1.3 * nz);
     let sig = dens * dt * 0.12;
     let k = 1.0 - exp(-sig);
-    scat += T * k * lit;
+    let sp2 = vec2f(dot(q, mx), dot(q, my));
+    let band = vn1(sp2.x * 0.7 + sp2.y * 0.12 + params.drift * 0.02) * 0.65 + vn1(sp2.x * 1.9 - sp2.y * 0.3 + 7.0) * 0.35;
+    let shaft = smoothstep(0.52, 0.8, band) * smoothstep(0.0, 1.2, q.y + 0.6) * exp(-max(q.y - 4.0, 0.0) * 0.5);
+    scat += T * k * (lit + shaftCol * shaft * 1.1 * (0.5 + nz));
     T *= 1.0 - k;
   }
   col = col * T + scat;
