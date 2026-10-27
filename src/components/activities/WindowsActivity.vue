@@ -13,7 +13,7 @@ import { knockIntensity } from '../../engine/knock'
 import { secureRng } from '../../engine/rng'
 import { checkStep, hintFor, makeSequence, startInput } from '../../engine/windowSequence'
 
-const props = defineProps<{ level: number }>()
+const { level } = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
@@ -95,7 +95,7 @@ const hit = (i: number) => {
     replayLater()
     return
   }
-  knock(knockIntensity(props.level))
+  knock(knockIntensity(level))
   pulse(20)
   lit.value = i
   unflash()

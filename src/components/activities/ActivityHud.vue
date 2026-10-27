@@ -11,15 +11,15 @@ import { durationOf, timeLeft, type Phase } from '../../engine/activityTiming'
 import { playStinger } from '../../audio/stinger'
 import { muted } from '../../audio/sfx'
 
-const props = defineProps<{ activity: TimedActivity; outcome: Phase; startedAt: number }>()
-const prompt = computed(() => ACTIVITY_PROMPTS[props.activity])
-const duration = computed(() => durationOf(props.activity))
+const { activity, outcome, startedAt } = defineProps<{ activity: TimedActivity; outcome: Phase; startedAt: number }>()
+const prompt = computed(() => ACTIVITY_PROMPTS[activity])
+const duration = computed(() => durationOf(activity))
 const reduced = useReducedMotion()
 
 // Barre : part de temps restante (0–100), mise à jour à chaque image ; elle s’arrête à l’issue.
 const left = ref(100)
 const { pause } = useRafFn(() => {
-  left.value = timeLeft(Date.now() - props.startedAt, duration.value) * 100
+  left.value = timeLeft(Date.now() - startedAt, duration.value) * 100
 })
 // Jingle en cours : coupé au démontage et si le son passe en muet pendant la lecture.
 let stopStinger: () => void = () => {}
@@ -53,7 +53,7 @@ onMounted(() => {
 
 // Issue : arrêt de la barre, jingle, et surgissement au ressort du texte.
 watch(
-  () => props.outcome,
+  () => outcome,
   async (o) => {
     if (o === 'play') return
     pause()
@@ -63,7 +63,7 @@ watch(
   },
 )
 
-const hurry = computed(() => left.value < 25 && props.outcome === 'play')
+const hurry = computed(() => left.value < 25 && outcome === 'play')
 </script>
 
 <template>

@@ -4,16 +4,16 @@ import type { Paquet } from '../engine/paquets'
 
 // fill : prend toute la largeur de son parent (cartes de l’éventail, dos de TarotCard) au lieu de s’ajuster à l’emplacement 7:12.
 // paquet : le dos du paquet (couleur, motif, emblème) ; la nuit sert aussi de substitut pendant le chargement.
-const props = withDefaults(defineProps<{ fill?: boolean; paquet?: Paquet }>(), { fill: false, paquet: 'nuit' })
+const { paquet = 'nuit' } = defineProps<{ fill?: boolean; paquet?: Paquet }>()
 const EMBLEMS: Record<Paquet, string> = { nuit: 'moon', feu: 'flame', brume: 'ghost' }
 </script>
 
 <!-- Dos de la carte : substitut de TarotCard pendant le chargement (même boîte 7:12), et visuel partagé par le dos de TarotCard et les cartes de DeckCut. -->
 <template>
-  <div class="back relative aspect-[7/12]" :class="[{ 'back--fill': fill }, `back--${props.paquet}`]" aria-hidden="true">
+  <div class="back relative aspect-[7/12]" :class="[{ 'back--fill': fill }, `back--${paquet}`]" aria-hidden="true">
     <div class="back__face absolute inset-0 overflow-hidden rounded-[4cqw] shadow-[1.5cqw_1.5cqw_0_#000] [border:1.2cqw_solid_#1f1038]">
       <div class="back__frame absolute inset-[3cqw] grid place-items-center">
-        <TarotEmblem class="back__eye rounded-[50%] p-[6cqw]" :symbole="EMBLEMS[props.paquet]" />
+        <TarotEmblem class="back__eye rounded-[50%] p-[6cqw]" :symbole="EMBLEMS[paquet]" />
       </div>
       <slot />
     </div>

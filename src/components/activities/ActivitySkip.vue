@@ -3,17 +3,17 @@
 // Une fois affiché, le bouton reste monté (sinon le focus clavier tombe sur <body> pendant la fin d’activité) : quand `show` repasse à faux, il devient inerte (aria-disabled, clics ignorés).
 import { ref, watch } from 'vue'
 
-const props = defineProps<{ show: boolean }>()
+const { show } = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ skip: [] }>()
-const shown = ref(props.show)
+const shown = ref(show)
 watch(
-  () => props.show,
+  () => show,
   (v) => {
     if (v) shown.value = true
   },
 )
 const onClick = () => {
-  if (props.show) emit('skip')
+  if (show) emit('skip')
 }
 </script>
 

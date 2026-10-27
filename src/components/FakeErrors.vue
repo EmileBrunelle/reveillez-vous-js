@@ -9,7 +9,7 @@ import { safeStorage } from '../composables/safeStorage'
 
 // Fausses fenêtres d’erreur Windows 98, purement décoratives (niveau 3+, bureau seulement). Elles n’apparaissent que dans les zones libres,
 // mesurées à l’exécution : jamais sur la carte, la porte, un bouton de l’interface ni la barre des tâches.
-const props = defineProps<{ level: number }>()
+const { level } = defineProps<{ level: number }>()
 
 interface Win {
   id: number
@@ -63,7 +63,7 @@ const boxOfWin = (w: Win): Box => ({ left: w.x, top: w.y, right: w.x + WIDTH, bo
 
 const spawn = () => {
   if (!desktop()) return
-  const line = nextFakeError(prophecies, props.level, safeStorage(), rng, seen)
+  const line = nextFakeError(prophecies, level, safeStorage(), rng, seen)
   if (!line) return
   const slot = pickFreeSlot(area(), WIDTH, HEIGHT, [...avoidBoxes(), ...wins.value.map(boxOfWin)], rng)
   if (slot) {
@@ -93,8 +93,8 @@ const tarotEl = shallowRef<HTMLElement | null>(null)
 const mainEl = shallowRef<HTMLElement | null>(null)
 useResizeObserver([tarotEl, mainEl], recheck)
 
-const count = props.level >= 5 ? 3 : props.level === 4 ? 1 + Math.floor(rng() * 2) : 1
-const timers = Array.from({ length: props.level >= 3 ? count : 0 }, (_, i) => useTimeoutFn(spawn, 3500 + i * 2500, { immediate: false }))
+const count = level >= 5 ? 3 : level === 4 ? 1 + Math.floor(rng() * 2) : 1
+const timers = Array.from({ length: level >= 3 ? count : 0 }, (_, i) => useTimeoutFn(spawn, 3500 + i * 2500, { immediate: false }))
 onMounted(() => {
   tarotEl.value = document.querySelector<HTMLElement>('.tarot')
   mainEl.value = document.querySelector<HTMLElement>('main')

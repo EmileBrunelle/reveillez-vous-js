@@ -49,8 +49,8 @@ const ICONS: Record<string, Component> = {
   snowman: IconSnowman,
   antenna: IconAntenna,
 }
-const props = defineProps<{ symbole: string }>()
-const icon = computed(() => ICONS[props.symbole] ?? IconEye)
+const { symbole } = defineProps<{ symbole: string }>()
+const icon = computed(() => ICONS[symbole] ?? IconEye)
 </script>
 
 <template>

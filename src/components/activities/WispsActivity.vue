@@ -10,7 +10,7 @@ import { aimPoint, TOUCH_GRACE_MS } from '../../composables/touchAim'
 import { useHaptics } from '../../composables/haptics'
 import { isNear, nextWaypoint, stepCatch, stepWisp, wispTuning, type Vec } from '../../engine/wisps'
 
-const props = defineProps<{ level: number }>()
+const { level } = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
@@ -20,7 +20,7 @@ const rng: Rng = secureRng()
 const TOTAL = 3
 const stage = useTemplateRef<HTMLElement>('stage')
 const { width, height } = useElementSize(stage)
-const tuning = computed(() => wispTuning(props.level, width.value, height.value)) // rayon ≥ 72 px : généreux pour le tactile
+const tuning = computed(() => wispTuning(level, width.value, height.value)) // rayon ≥ 72 px : généreux pour le tactile
 const reduced = usePreferredReducedMotion()
 const isReduced = computed(() => reduced.value === 'reduce')
 

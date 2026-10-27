@@ -7,7 +7,7 @@ import { startAmbience } from '../../audio/ambience'
 import { startMusic } from '../../audio/music'
 import { placeLoaders, type PlaceId } from '../../effects/places'
 
-const props = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
+const { place, variant = undefined, sharp } = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
 
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const failed = ref(false)
@@ -45,17 +45,17 @@ const paranoia = () => progress.paranoia
 let stopAmbience = () => {}
 let stopMusic = () => {}
 onMounted(async () => {
-  stopAmbience = startAmbience(props.place, () => progress.level)
+  stopAmbience = startAmbience(place, () => progress.level)
   stopMusic = startMusic(() => progress.level)
   try {
-    const [{ createRaymarch }, cfg] = await Promise.all([import('../../effects/raymarch'), placeLoaders[props.place]()])
+    const [{ createRaymarch }, cfg] = await Promise.all([import('../../effects/raymarch'), placeLoaders[place]()])
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
     if (gone) return
     const s = await createRaymarch(canvas.value!, {
       shader: cfg.shader,
-      params: (st) => cfg.params({ ...st, variant: props.variant }),
+      params: (st) => cfg.params({ ...st, variant }),
       motion: () => !reducedMotion.value,
-      sharp: () => props.sharp ?? false,
+      sharp: () => sharp ?? false,
       paranoia,
       parallax,
       onLost: () => (failed.value = true),

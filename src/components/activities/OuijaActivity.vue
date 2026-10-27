@@ -15,20 +15,20 @@ import { aimPoint } from '../../composables/touchAim'
 import { useHaptics } from '../../composables/haptics'
 import IconGoutte from '~icons/rvj/goutte'
 
-const props = defineProps<{ level: number; rng?: Rng }>()
+const { level, rng = undefined } = defineProps<{ level: number; rng?: Rng }>()
 // Pas de défaut de prop : Vue prendrait la fabrique secureRng comme valeur.
-const rng = orSecure(props.rng)
+const rand = orSecure(rng)
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
-const word = pickWord(OUIJA_WORDS, rng)
+const word = pickWord(OUIJA_WORDS, rand)
 const shown = OUIJA_SHOWN[word]
 // Segments affichés : une lettre accentuée couvre une case de la planche, « œ » en couvre deux (OE).
 const segments = [...shown].map((ch, i, all) => {
   const start = all.slice(0, i).reduce((n, c) => n + (c === 'œ' ? 2 : 1), 0)
   return { ch: ch.toUpperCase(), start, end: start + (ch === 'œ' ? 2 : 1) }
 })
-const driftAt = pickDriftAt(props.level, word.length, rng)
+const driftAt = pickDriftAt(level, word.length, rand)
 let driftUsed = false
 
 const index = ref(0)
@@ -217,7 +217,7 @@ useRafFn(({ delta }) => {
     motion.tilt = approach(motion.tilt, tiltFromVelocity(vx, motion.resist), dt, 90)
     motion.lift = approach(motion.lift, liftFromSpeed(vx, vy), dt, 120)
     // « Autres mains » : vagabondage lent ajouté au rendu seulement (le test de survol garde pos), tremblement pendant la dérive résistée.
-    const w = wanderOffset(motion.clock, props.level)
+    const w = wanderOffset(motion.clock, level)
     const t = tremorOffset(motion.clock, motion.resist)
     rx += w.x + t.x
     ry += w.y + t.y

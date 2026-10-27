@@ -13,9 +13,9 @@ import { advanceHold, isNearWick, pickSnuffed } from '../../engine/candles'
 import IconChandelle from '~icons/rvj/chandelle'
 import { orSecure, type Rng } from '../../engine/rng'
 
-const props = defineProps<{ level: number; rng?: Rng }>()
+const { level, rng = undefined } = defineProps<{ level: number; rng?: Rng }>()
 // Pas de défaut de prop : Vue prendrait la fabrique secureRng comme valeur.
-const rng = orSecure(props.rng)
+const rand = orSecure(rng)
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
@@ -64,11 +64,11 @@ useEventListener(window, 'pointerup', releaseTouch)
 useEventListener(window, 'pointercancel', releaseTouch)
 
 // Niveau 3 : une chandelle s’éteint une seule fois, juste après la troisième allumée.
-let snuffUsed = props.level < 3
+let snuffUsed = level < 3
 const { start: snuffLater } = useTimeoutFn(
   () => {
     if (isFinished()) return
-    const i = pickSnuffed(lit, rng, protectedSet())
+    const i = pickSnuffed(lit, rand, protectedSet())
     if (i < 0) {
       // Seule allumée et tenue : on reporte le courant d’air plutôt que d’éteindre sous le curseur.
       if (litCount.value > 0) snuffLater()

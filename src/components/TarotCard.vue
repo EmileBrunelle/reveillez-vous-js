@@ -15,12 +15,15 @@ import { createTapDrag } from '../composables/tapDrag'
 import { createLanding } from '../composables/cardLanding'
 import { useSessionStore } from '../stores/session'
 
-const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number; handoff?: boolean; paquet?: Paquet }>(), {
-  faceDown: false,
-  level: 1,
-  handoff: false,
-  paquet: 'nuit',
-})
+const {
+  arcane,
+  title,
+  body,
+  faceDown = false,
+  level = 1,
+  handoff = false,
+  paquet = 'nuit',
+} = defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number; handoff?: boolean; paquet?: Paquet }>()
 const emit = defineEmits<{ dealt: []; flipped: [] }>()
 const reduced = useReducedMotion()
 const session = useSessionStore()
@@ -54,9 +57,9 @@ const faceUp = ref(false)
 const settled = ref(false)
 
 // Title size by length (container-width units); body size is fitted in px by fitBody() (grows and shrinks).
-const maskUrl = computed(() => emblemMask(props.arcane.symbole))
+const maskUrl = computed(() => emblemMask(arcane.symbole))
 const titleSize = computed(() => {
-  const n = props.title.length
+  const n = title.length
   return n < 40 ? 5.4 : n < 70 ? 4.6 : 3.9
 })
 const panelEl = useTemplateRef<HTMLElement>('panelEl')
@@ -82,18 +85,18 @@ const scheduleFit = (force = false) => {
 }
 const fitBody = () => {
   const panel = panelEl.value
-  const body = bodyEl.value
+  const bodyNode = bodyEl.value
   const w = root.value?.offsetWidth
   const h = root.value?.offsetHeight
-  if (!panel || !body || !w || !h || !panel.clientHeight) return
+  if (!panel || !bodyNode || !w || !h || !panel.clientHeight) return
   if (w === lastW && h === lastH) return
   lastW = w
   lastH = h
   const cs = getComputedStyle(panel)
   const room = panel.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
   const fits = (px: number) => {
-    body.style.fontSize = `${px}px`
-    return body.offsetHeight <= room + 0.5 && panel.scrollHeight <= panel.clientHeight + 1
+    bodyNode.style.fontSize = `${px}px`
+    return bodyNode.offsetHeight <= room + 0.5 && panel.scrollHeight <= panel.clientHeight + 1
   }
   // Try the full emblem, then a half-size one, then none: the font never drops below MIN_PX.
   for (const emb of ['', 'small', 'none']) {
@@ -109,12 +112,12 @@ const fitBody = () => {
       if (fits(mid)) lo = mid
       else hi = mid
     }
-    body.style.fontSize = `${lo}px`
+    bodyNode.style.fontSize = `${lo}px`
     return
   }
 }
 watch(
-  () => [props.body, props.title],
+  () => [body, title],
   () => scheduleFit(true),
 )
 
@@ -160,11 +163,11 @@ const flip = async (toFaceUp: boolean) => {
 }
 
 const deal = async () => {
-  if (props.handoff) {
+  if (handoff) {
     // Relais de la coupe : la carte est déjà à sa place, dos visible, identique à la carte de DeckCut (rien à poser). On la retourne tout de suite.
     settled.value = true
     emit('dealt')
-    if (props.faceDown) return
+    if (faceDown) return
     await wait(reduced.value ? 150 : 140)
     if (skipped) return
     if (reduced.value) {
@@ -177,13 +180,13 @@ const deal = async () => {
     return
   }
   if (reduced.value) {
-    snap(flipEl.value, { rotateY: props.faceDown ? 0 : 180 })
-    faceUp.value = !props.faceDown
+    snap(flipEl.value, { rotateY: faceDown ? 0 : 180 })
+    faceUp.value = !faceDown
     snap(dealEl.value, { opacity: 0, x: 0, y: 0, scale: 1, rotateZ: 0 })
     await go(dealEl.value, { opacity: [0, 1] }, { duration: 0.25 })
     settled.value = true
     emit('dealt')
-    if (!props.faceDown) {
+    if (!faceDown) {
       landing.land()
       emit('flipped')
     }
@@ -198,7 +201,7 @@ const deal = async () => {
   if (skipped) return
   settled.value = true
   emit('dealt')
-  if (props.faceDown) return
+  if (faceDown) return
   await wait(250)
   if (skipped) return
   await flip(true)
@@ -210,11 +213,11 @@ const skip = () => {
   window.clearTimeout(timer)
   running.forEach((r) => r.stop())
   running = []
-  rest(props.faceDown)
+  rest(faceDown)
 }
 
 watch(
-  () => props.faceDown,
+  () => faceDown,
   (down) => {
     if (!settled.value) return
     skipped = false
@@ -239,9 +242,9 @@ const glitch = () => {
   content.animate([{ textShadow: `${split}px 0 rgb(255 0 0 / 0.5), ${-split}px 0 rgb(0 160 160 / 0.5)` }, { textShadow: 'none' }], { duration: dur, easing: 'steps(2, jump-none)' })
 }
 const armGlitch = () => {
-  if (glitchArmed || reduced.value || props.level < 4) return
+  if (glitchArmed || reduced.value || level < 4) return
   glitchArmed = true
-  const n = props.level >= 5 && rng() < 0.5 ? 2 : 1
+  const n = level >= 5 && rng() < 0.5 ? 2 : 1
   let t = 0
   Array.from({ length: n }).forEach(() => {
     t += 2000 + rng() * 6000

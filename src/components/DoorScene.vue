@@ -18,10 +18,10 @@ import Seer from '~icons/rvj/voyante'
 import SparkPool from './SparkPool.vue'
 import KnockPattern from './KnockPattern.vue'
 
-const props = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean; quick?: boolean }>()
+const { line, level, closing, quick } = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean; quick?: boolean }>()
 const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; knocked: []; closed: []; listening: [boolean] }>()
 // Visite de rappel : un seul toucher ouvre la porte (rituel déjà réussi plus tôt dans la session). Fixé au montage.
-const quick = props.quick === true
+const quickMode = quick === true
 const reduced = useReducedMotion()
 const keyboard = useKeyboardModality()
 // Le haptique n’est pas du mouvement : pas bloqué par « mouvement réduit ». Les gardes (onglet caché, vibrate absent, limiteur) vivent dans haptics.ts.
@@ -111,7 +111,7 @@ const jitterInside = (intensity: number) => {
 }
 
 const session = useSessionStore()
-const intensity = () => knockIntensity(props.level)
+const intensity = () => knockIntensity(level)
 const playerKnock = (e: MouseEvent, fromPointer = false) => {
   session.pulse(0.6)
   unlock()
@@ -137,9 +137,9 @@ const caption = (i: number) => {
 type Phase = 'invite' | 'listen' | 'repeat' | 'busy'
 const phase = ref<Phase>('invite')
 const texts = (key: string) => (Array.isArray(prophecies[key]) ? (prophecies[key] as unknown[]).filter((t): t is string => typeof t === 'string') : [])
-const ghosts = computed(() => ['(Cognez à la porte)', props.line, ...texts(`rate${props.level}`), ...texts('entrez')])
+const ghosts = computed(() => ['(Cognez à la porte)', line, ...texts(`rate${level}`), ...texts('entrez')])
 watch(phase, (p) => emit('listening', p === 'listen'))
-const said = ref(quick ? props.line : '(Cognez à la porte)')
+const said = ref(quickMode ? line : '(Cognez à la porte)')
 const verdictText = ref('')
 // Invite sans geste depuis ~3 s : on souffle que la porte se touche (respiration lente + ligne d’aide).
 const nudge = ref(false)
@@ -152,7 +152,7 @@ const hint = computed(() => {
   if (verdictText.value) return verdictText.value
   if (phase.value === 'listen') return 'Ça cogne de l’intérieur…'
   if (phase.value === 'repeat') return 'Touchez la porte : un coup par point.'
-  if (phase.value === 'invite' && (nudge.value || quick)) return quick ? 'Touchez la porte pour l’ouvrir.' : 'Touchez la porte pour cogner.'
+  if (phase.value === 'invite' && (nudge.value || quickMode)) return quickMode ? 'Touchez la porte pour l’ouvrir.' : 'Touchez la porte pour cogner.'
   return ''
 })
 const announce = ref('')
@@ -179,13 +179,13 @@ const startListen = () => {
   lit.value = 0
   filled.value = 0
   taps = []
-  if (pattern.value.length === 0) pattern.value = rhythmFor(props.level, secureRng())
-  const intro = firstListen ? `${props.line} — ` : retryIntro
+  if (pattern.value.length === 0) pattern.value = rhythmFor(level, secureRng())
+  const intro = firstListen ? `${line} — ` : retryIntro
   retryIntro = ''
-  if (firstListen) said.value = props.line
+  if (firstListen) said.value = line
   firstListen = false
   announce.value = `${intro}Ça cogne de l’intérieur : ${describe(pattern.value)}`
-  knocks = scheduleKnocks(toOffsets(pattern.value, props.level), intensity(), seerHit)
+  knocks = scheduleKnocks(toOffsets(pattern.value, level), intensity(), seerHit)
 }
 
 const seerHit = (i: number, force: number) => {
@@ -225,7 +225,7 @@ const evaluate = () => {
     void wait(1800).then(open)
     return
   }
-  said.value = nextFailLine(prophecies, props.level, store, secureRng(), 'Pas tout à fait. Écoutez encore.')
+  said.value = nextFailLine(prophecies, level, store, secureRng(), 'Pas tout à fait. Écoutez encore.')
   retryIntro = `${VERDICTS[v]} ${said.value} — `
   announce.value = ''
   void wait(1600).then(() => {
@@ -241,7 +241,7 @@ const onDoor = (e: MouseEvent, fromPointer = false) => {
   if (phase.value === 'invite') {
     stopNudge()
     playerKnock(e, fromPointer)
-    if (quick) {
+    if (quickMode) {
       // Un seul coup, la porte réagit tout de suite (secousse + étincelles), puis elle s’ouvre.
       started = true
       announce.value = 'La porte s’ouvre.'
@@ -279,7 +279,7 @@ const onDoorMousedown = (e: MouseEvent) => {
 }
 
 onMounted(() => {
-  if (props.closing) return void slamShut()
+  if (closing) return void slamShut()
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
   nudgeTimer = window.setTimeout(() => (nudge.value = true), 3000)
 })
@@ -355,7 +355,7 @@ const closed = () => {
 
 const onSceneClick = (e: MouseEvent) => {
   if ((e.target as HTMLElement).closest('button')) return
-  if (props.closing) closed()
+  if (closing) closed()
   else if (state === 'opening') finish()
 }
 </script>

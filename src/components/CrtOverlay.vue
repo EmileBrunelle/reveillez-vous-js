@@ -5,7 +5,7 @@ import { useReducedMotion } from '../composables/useReducedMotion'
 import { hasWebGpuAdapter } from '../effects/webgpu'
 import { useSessionStore } from '../stores/session'
 
-const props = defineProps<{ paranoia: number; off?: boolean }>()
+const { paranoia, off } = defineProps<{ paranoia: number; off?: boolean }>()
 const emit = defineEmits<{ ready: []; fail: [] }>()
 
 const session = useSessionStore()
@@ -14,7 +14,7 @@ let crt: { setPaused(paused: boolean): void; stop(): void } | null = null
 const reducedMotion = useReducedMotion()
 const visibility = useDocumentVisibility()
 // `off` : la finale a éteint l’écran, le CRT ne rend plus rien (et ne coûte plus de GPU).
-watch([visibility, () => props.off], ([v, off]) => crt?.setPaused(v === 'hidden' || !!off))
+watch([visibility, () => off], ([v, isOff]) => crt?.setPaused(v === 'hidden' || !!isOff))
 let gone = false
 const lost = ref(false)
 const TIMEOUT_MS = 5000
@@ -40,12 +40,12 @@ onMounted(async () => {
     return startCrt(
       canvas.value!,
       () => !reducedMotion.value,
-      () => props.paranoia,
+      () => paranoia,
       () => {
         // Âge (s) depuis le dernier coup, plafonné ; amplitude légèrement modulée par la paranoïa.
         const k = session.knock
         const age = k.seq === 0 ? 10 : Math.min(10, (performance.now() - k.at) / 1000)
-        return { age, amp: Math.min(1, k.amp * (0.7 + 0.3 * props.paranoia)) }
+        return { age, amp: Math.min(1, k.amp * (0.7 + 0.3 * paranoia)) }
       },
       () => (lost.value = true),
     )
@@ -54,7 +54,7 @@ onMounted(async () => {
     const s = await timeout(start, 'CRT init')
     if (gone) return s.stop()
     crt = s
-    if (visibility.value === 'hidden' || props.off) s.setPaused(true)
+    if (visibility.value === 'hidden' || off) s.setPaused(true)
   } catch (e) {
     console.warn('CRT overlay disabled:', e)
     lost.value = true

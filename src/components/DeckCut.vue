@@ -16,11 +16,11 @@ import { focusQuietly } from '../composables/focusQuietly'
 // Tout le mouvement passe par UNE boucle rAF : chaque carte a des valeurs courantes qui poursuivent une cible avec un ressort (aucune transition CSS
 // sur transform, rien ne « téléporte »). Au choix, la carte part de sa position courante vers la position et la taille de la carte du tirage,
 // où TarotCard prend le relais pixel pour pixel (dos identique, même boîte) : aucun remplacement visible.
-const props = defineProps<{ level: number; rng: Rng }>()
+const { rng } = defineProps<{ level: number; rng: Rng }>()
 const emit = defineEmits<{ pick: [paquet: Paquet] }>()
 const reduced = useReducedMotion()
 
-const paquets = shufflePaquets(props.rng)
+const paquets = shufflePaquets(rng)
 const deckEl = useTemplateRef<HTMLElement>('deckEl')
 const slotEls = ref<HTMLElement[]>([])
 const tiltEls = ref<HTMLElement[]>([])
