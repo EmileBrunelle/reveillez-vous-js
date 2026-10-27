@@ -15,6 +15,7 @@ import { prophecies } from './content/prophecies'
 import { nextDoorLine, nextProphecy, nextReturnLine, nextTitled, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import type { Paquet } from './engine/paquets'
+import { isQuickKnock } from './engine/paranoia'
 import { storeToRefs } from 'pinia'
 import { useMediaQuery, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from './composables/useReducedMotion'
@@ -364,7 +365,7 @@ const onFinaleRestart = () => {
               :line="doorLine"
               :level="level"
               :closing="closing"
-              :quick="progress.knocked"
+              :quick="isQuickKnock(progress.knocked, level)"
               @knocked="progress.markKnocked"
               @open="onDone"
               @about="openAbout"

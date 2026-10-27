@@ -16,3 +16,6 @@ export const paranoiaLevel = (visits: number): ParanoiaLevel => {
   const reached = THRESHOLDS.filter((t) => visits >= t).length
   return Math.max(1, reached) as ParanoiaLevel
 }
+
+// Le rituel « Toc Toc » se joue à chaque porte du niveau 1 ; dès le niveau 2, un seul toc suffit une fois frappé.
+export const isQuickKnock = (knocked: boolean, level: ParanoiaLevel): boolean => knocked && level > 1

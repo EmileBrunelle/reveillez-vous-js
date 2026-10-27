@@ -166,7 +166,7 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
 <template>
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
     <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-200/90" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
-      Suivez les trois feux follets ({{ caught }}/{{ TOTAL }}).
+      Touchez ou cliquez sur les trois feux follets ({{ caught }}/{{ TOTAL }}).
     </p>
     <p class="sr-only" role="status" aria-live="polite">{{ settled ? 'Les feux follets se sont laissé apprivoiser.' : '' }}</p>
     <span v-if="guide" class="wisp-guide pointer-events-none absolute left-0 top-0 rounded-full" :style="{ transform: `translate3d(${guide.x - 14}px, ${guide.y - 14}px, 0)` }" aria-hidden="true" />

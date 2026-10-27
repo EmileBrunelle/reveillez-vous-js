@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { arcaneIndex, FINALE_KEY, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '../../src/stores/progress'
+import { isQuickKnock } from '../../src/engine/paranoia'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
 
 const m = new Map<string, string>()
@@ -162,5 +163,15 @@ describe('progress store', () => {
     s.reset()
     expect(ss.get(FINALE_KEY)).not.toBe('1')
     expect(fresh().visits).toBe(0)
+  })
+  it('reset on the door phase leaves visits 0 and knocked false, so the remounted door runs the ritual', () => {
+    const s = fresh()
+    s.bump()
+    s.bump()
+    s.markKnocked()
+    s.reset()
+    expect(s.visits).toBe(0)
+    expect(s.level).toBe(1)
+    expect(isQuickKnock(s.knocked, s.level)).toBe(false)
   })
 })
