@@ -13,7 +13,7 @@ const inharmonicity = (hz: number) => 0.0002 + 0.0003 * Math.max(0, Math.min(1, 
 const DOUBLE_STRING_UNTIL = 3
 const ATTACK = 0.008
 /** Gain par note : vise ≈ -25 dBFS crête à l’entrée du bus (mesuré hors ligne). */
-export const NOTE_TRIM = 0.0065
+export const NOTE_TRIM = 0.009
 /** Flottement lent de bande (cents) et salle. */
 const WOW_CENTS = 2
 const ROOM_SECONDS = 2

@@ -4,7 +4,7 @@ import { orSecure, type Rng } from '../engine/rng'
 import { ambienceDucked, fadeParam } from './ambience'
 import { motifBusyUntil } from './motif'
 import { playPhrase, type PhraseHandle } from './pianoVoice'
-import { canStartPhrase, musicGap, phraseDuration, planPhrase, releaseBusy, resumeDelay } from './musicPlan'
+import { canStartPhrase, createSession, musicGap, phraseDuration, planPhrase, releaseBusy, resumeDelay, type MelodySession } from './musicPlan'
 import { ac, ambienceOut, muted } from './sfx'
 import { stingerBusyUntil } from './stinger'
 
@@ -22,6 +22,8 @@ const WOBBLE_CENTS = 6
 let nextAtMs = 0
 /** Phrase en cours (une seule à la fois, d’une instance à l’autre). */
 let current: PhraseHandle | null = null
+/** Motif de la session : le même tout le long du jeu, d’une instance à l’autre (changement de lieu). */
+let session: MelodySession | null = null
 
 /**
  * Piano clairsemé en fond : une courte phrase toutes les 40–90 s, sur le bus d’ambiance (même curseur). Ne démarre jamais sur un leitmotif
@@ -75,7 +77,8 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
     })
     if (!ok) return
     const level = getLevel()
-    const notes = planPhrase(level, rng)
+    session ??= createSession(rng)
+    const notes = planPhrase(level, rng, session)
     const t0 = c.currentTime + 0.1
     mine = current = playPhrase(c, out, t0, notes, level >= 3 && level < 5 ? WOBBLE_CENTS : 0)
     const dur = phraseDuration(notes)
