@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch, watchEffect } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
 import { storeToRefs } from 'pinia'
 import CrtOverlay from './components/CrtOverlay.vue'
@@ -102,7 +102,6 @@ const forgetAll = () => {
 }
 const { level, paranoia } = storeToRefs(progress)
 useTabTitle(level)
-watchEffect(() => document.documentElement.style.setProperty('--paranoia', String(paranoia.value)))
 
 const resetOpen = ref(false)
 watch(resetOpen, (o) => o && (resetWanted.value = true))

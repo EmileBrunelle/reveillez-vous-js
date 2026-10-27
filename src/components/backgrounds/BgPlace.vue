@@ -16,7 +16,7 @@ let gone = false
 const reducedMotion = useReducedMotion()
 const visibility = useDocumentVisibility()
 watch(visibility, (v) => scene?.setPaused(v === 'hidden'))
-// The paranoia level reaches backgrounds through the --paranoia CSS variable (set by App.vue, 0..1).
+// The paranoia level (0..1) comes straight from the progress store, read each frame by the shader params.
 const root = ref<HTMLElement | null>(null)
 const { tilt, roll, source } = useParallax(root)
 // Mouse: tilt/roll are already in [-0.5, 0.5] around the centre -> x2 gives [-1, 1].
@@ -40,9 +40,8 @@ const parallax = () => {
   base = { x: base.x + (x - base.x) * k, y: base.y + (y - base.y) * k }
   return { x: clamp1((x - base.x) / RANGE), y: clamp1((y - base.y) / RANGE) }
 }
-const paranoia = () => Number.parseFloat(document.documentElement.style.getPropertyValue('--paranoia')) || 0
-
 const progress = useProgressStore()
+const paranoia = () => progress.paranoia
 let stopAmbience = () => {}
 let stopMusic = () => {}
 onMounted(async () => {
