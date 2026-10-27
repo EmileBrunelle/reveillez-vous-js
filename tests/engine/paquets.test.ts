@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { prophecies } from '../../src/content/prophecies'
 import { drawArcane } from '../../src/engine/prophecy'
-import { PAQUETS, shufflePaquets } from '../../src/engine/paquets'
+import { PAQUETS, PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets } from '../../src/engine/paquets'
 import { mulberry32 } from '../../src/engine/rng'
 
 type Row = Record<string, string>
@@ -38,5 +38,27 @@ describe('paquets', () => {
     expect([...o].sort()).toEqual([...PAQUETS].sort())
     expect(shufflePaquets(mulberry32(5))).toEqual(o)
     expect(new Set(Array.from({ length: 30 }, (_, i) => shufflePaquets(mulberry32(i)).join())).size).toBeGreaterThan(2)
+  })
+})
+
+describe('présages des paquets', () => {
+  const entries = Object.entries(PAQUET_PRESAGES)
+  it('un présage par paquet, rien de plus', () => {
+    expect(entries.map(([k]) => k).sort()).toEqual([...PAQUETS].sort())
+  })
+  it('apostrophe typographique, jamais droite', () => {
+    for (const [, t] of entries) expect(t).not.toContain("'")
+  })
+  it('une ligne courte : 3 à 10 mots, 50 caractères au plus, ponctuation finale', () => {
+    for (const [, t] of entries) {
+      const mots = t.split(/\s+/).length
+      expect(mots).toBeGreaterThanOrEqual(3)
+      expect(mots).toBeLessThanOrEqual(10)
+      expect(t.length).toBeLessThanOrEqual(50)
+      expect(t).toMatch(/[.!…]$/)
+    }
+  })
+  it('chaque paquet a un nom', () => {
+    for (const p of PAQUETS) expect(PAQUET_NOMS[p].length).toBeGreaterThan(0)
   })
 })
