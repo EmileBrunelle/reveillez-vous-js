@@ -5,6 +5,7 @@ import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
 import { FAN, FAN_SCALE } from './deckFan'
 import { cardDeal } from '../audio/sfx'
+import { cardHover, cardPick, cardPickStill } from '../audio/cards'
 import { PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '../engine/paquets'
 import type { Rng } from '../engine/rng'
 import { useReducedMotion } from '../composables/useReducedMotion'
@@ -277,7 +278,12 @@ const labelOnly = (i: number | null) => {
   // Mouvement réduit : la description de la carte active est mise en valeur, sans mouvement.
   if (chosen.value === null) hot.value = i
 }
-const onEnter = (i: number, e: PointerEvent) => (e.pointerType === 'touch' ? undefined : reduced.value ? labelOnly(i) : setHot(i))
+const onEnter = (i: number, e: PointerEvent) => {
+  if (e.pointerType === 'touch') return
+  if (reduced.value) return labelOnly(i)
+  if (ready.value && chosen.value === null && hot.value !== i) cardHover() // pas de mouvement en mouvement réduit : pas de frôlement
+  setHot(i)
+}
 const onLeave = (i: number) => (hot.value === i ? (reduced.value ? labelOnly(null) : setHot(null)) : undefined)
 const onMove = (i: number, e: PointerEvent) => {
   if (hot.value !== i || e.pointerType === 'touch' || reduced.value || !deckEl.value) return
@@ -299,6 +305,8 @@ const choose = (i: number) => {
   flying.value = reduced.value
   chosen.value = i
   hot.value = null
+  if (reduced.value) cardPickStill()
+  else cardPick()
   focusQuietly(deckEl.value) // les boutons se désactivent puis disparaissent : le focus reste dans la coupe au lieu de tomber sur <body>
   if (reduced.value) {
     layoutStatic()
