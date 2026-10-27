@@ -1,5 +1,5 @@
-import { ref, watch, type Ref } from 'vue'
-import { tryOnMounted, tryOnScopeDispose, useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
+import { ref, type Ref } from 'vue'
+import { tryOnMounted, tryOnScopeDispose, until, useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
 import type { GpuLoop } from '../effects/gpuLoop'
 import { nextFrame } from './nextFrame'
 
@@ -28,11 +28,8 @@ export interface GpuEffectOptions {
 export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, start: (canvas: HTMLCanvasElement, onLost: () => void) => Promise<GpuLoop>, options: GpuEffectOptions = {}) => {
   const { gate, timeout, warning = 'Effet GPU désactivé :', settle = nextFrame } = options
   // Onglet ouvert en arrière-plan : rAF est suspendu, une init bornée y échouerait pour de bon. On attend donc la visibilité AVANT la porte, la mise en page
-  // et la borne : le délai ne commence qu’une fois l’onglet visible. Le `watch` vit dans le scope du composant (aucune fuite après la destruction).
+  // et la borne : le délai ne commence qu’une fois l’onglet visible. L’attente `until` vit dans le scope du composant : détruit avant la visibilité, elle ne se résout jamais et rien ne démarre.
   const visibility = options.visibility ?? useDocumentVisibility()
-  const waiters: Array<() => void> = []
-  watch(visibility, (v) => v === 'visible' && waiters.splice(0).forEach((r) => r()))
-  const whenVisible = () => (visibility.value === 'visible' ? Promise.resolve() : new Promise<void>((resolve) => waiters.push(resolve)))
   let expired = false
   const status = ref<GpuStatus>('starting')
   const lost = ref(false)
@@ -53,7 +50,7 @@ export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, st
     loop = null
   })
   tryOnMounted(async () => {
-    await whenVisible()
+    await until(visibility).toBe('visible')
     if (gone) return
     if (gate) {
       let ok = false
