@@ -6,8 +6,8 @@ import { BANNED, INCLUSIVE_BANNED, bannedRe } from './rules'
 const texts = Object.entries(ACTIVITY_PROMPTS).flatMap(([id, p]) => [`${id}.verb`, `${id}.win`, `${id}.fail`].map((key) => ({ key, text: p[key.split('.')[1] as 'verb' | 'win' | 'fail'] })))
 
 describe('textes des activités', () => {
-  it('couvre les quatre activités', () => {
-    expect(texts).toHaveLength(12)
+  it('couvre les cinq activités', () => {
+    expect(texts).toHaveLength(15)
   })
 
   it('aucun point médian, aucun néologisme, aucun ils/elles', () => {

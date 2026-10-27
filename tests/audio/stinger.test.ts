@@ -74,6 +74,11 @@ describe('stingers d’activité', () => {
     expect(h.edges.some(([, to]) => to === h.out)).toBe(true)
   })
 
+  it('un délai décale le départ (jingle de réussite d’Ouija après « au revoir »)', () => {
+    playStinger('win', 1.45)
+    expect(h.oscs[0].start).toBeCloseTo(2 + 1.45)
+  })
+
   it('muet : rien ne démarre', () => {
     h.muted.value = true
     expect(playStinger('fail')).toBe(0)

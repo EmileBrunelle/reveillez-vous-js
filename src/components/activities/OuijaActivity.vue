@@ -42,7 +42,14 @@ const reduced = useReducedMotion()
 const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('ouija'),
   // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
-  onFinish: () => {
+  // Expiration (échec) : le mot reste incomplet, pas d’au revoir.
+  onFinish: (o) => {
+    driftStop()
+    if (o === 'fail') {
+      dwell = 0
+      status.value = 'Le temps est écoulé. La partie continue.'
+      return
+    }
     index.value = word.length
     dwell = 0
     farewell.value = true
@@ -240,7 +247,7 @@ useRafFn(({ delta }) => {
 <template>
   <div ref="stage" class="ouija relative size-full overflow-hidden touch-none select-none flex flex-col items-center justify-center gap-3 sm:gap-5 px-2 font-title text-center">
     <p class="sr-only" aria-live="polite">{{ status }}</p>
-    <p class="relative m-0 text-[#e8d9b0] text-sm tracking-[0.18em]" aria-hidden="true">Épelez le mot</p>
+    <p class="relative m-0 text-[#e8d9b0] text-sm tracking-[0.18em]" :class="{ invisible: outcome !== 'play' }" aria-hidden="true">Épelez le mot</p>
     <p class="relative m-0 flex gap-2 sm:gap-3 text-[2rem] sm:text-[2.6rem] leading-none text-[#d9b55a]" aria-hidden="true">
       <span
         v-for="(seg, i) in segments"

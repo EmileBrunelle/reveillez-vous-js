@@ -50,7 +50,7 @@ watch(
   async (o) => {
     if (o === 'play') return
     pause()
-    playStinger(o)
+    playStinger(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
     await nextTick()
     if (resultEl.value && !reduced.value) animate(resultEl.value, { scale: [0.3, 1], rotate: o === 'win' ? [-6, 0] : [4, 0] }, { type: 'spring', stiffness: 480, damping: 9 })
   },
@@ -78,10 +78,10 @@ const hurry = computed(() => left.value < 25 && props.outcome === 'play')
       </Progress.Track>
     </Progress.Root>
     <!-- issue -->
-    <div v-if="outcome !== 'play'" class="absolute inset-x-0 top-[34%] flex justify-center px-4" aria-hidden="true">
+    <div v-if="outcome !== 'play'" class="absolute inset-x-0 bottom-14 flex justify-center px-4" aria-hidden="true">
       <p
         ref="resultEl"
-        class="m-0 max-w-[20ch] rounded-lg bg-black/70 px-4 py-2 text-center font-title font-bold leading-tight text-[clamp(1.9rem,9vw,3.4rem)] [text-shadow:0_4px_0_#000,0_0_22px_#000,0_0_40px_rgb(0_0_0/0.8)]"
+        class="m-0 max-w-[22ch] rounded-lg border-2 border-solid border-amber-200 bg-[#0b0a10] px-4 py-2 text-center font-title font-bold leading-tight text-[clamp(1.5rem,7vw,2.6rem)] [text-shadow:0_4px_0_#000,0_0_22px_#000,0_0_40px_rgb(0_0_0/0.8)]"
         :class="outcome === 'win' ? 'text-emerald-300' : 'text-red-300'"
       >
         {{ outcome === 'win' ? prompt.win : prompt.fail }}

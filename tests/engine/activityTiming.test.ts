@@ -12,6 +12,10 @@ describe('activityTiming', () => {
     }
   })
 
+  it('le jingle de réussite d’Ouija attend la fin du son « au revoir » (1,4 s)', () => {
+    expect(ACTIVITY_PROMPTS.ouija.winStingerDelay).toBeGreaterThanOrEqual(1.4)
+  })
+
   it('l’issue d’affichage dure environ 1 s', () => {
     expect(OUTCOME_MS).toBe(1000)
   })

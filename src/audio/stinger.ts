@@ -33,10 +33,10 @@ export const stingerDuration = (o: Outcome): number => Math.max(...STINGERS[o].m
 const PEAK = 0.09
 
 /** Joue le jingle sur le bus des effets (donc le bus général et son limiteur). Muet : rien ne démarre, renvoie 0 ; sinon la durée (s). */
-export const playStinger = (o: Outcome): number => {
+export const playStinger = (o: Outcome, delay = 0): number => {
   const c = ac()
   if (!c || muted.value) return 0
-  const t0 = c.currentTime
+  const t0 = c.currentTime + delay
   const out = effetsOut(c)
   for (const n of STINGERS[o]) {
     const s = t0 + n.at

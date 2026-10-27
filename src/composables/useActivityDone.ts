@@ -1,6 +1,6 @@
 import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { ref } from 'vue'
-import { OUTCOME_MS, type Phase } from '../engine/activityTiming'
+import { OUTCOME_MS, type Outcome, type Phase } from '../engine/activityTiming'
 
 // Délai de réussite automatique : une activité se réussit toujours, même sans y toucher.
 export const AUTO_SUCCESS_MS = 20_000
@@ -11,7 +11,13 @@ export const SKIP_REVEAL_MS = 12_000
 // `onFinish` s’exécute à cette fin, quel qu’en soit le chemin (réussite ou minuterie), et `done` attend `delayMs` pour laisser l’animation de réussite se jouer. Les minuteries meurent avec le composant.
 export const useActivityDone = (
   emit: () => void,
-  { autoMs = AUTO_SUCCESS_MS, delayMs, skipMs = SKIP_REVEAL_MS, durationMs, onFinish }: { autoMs?: number; delayMs?: number; skipMs?: number; durationMs?: number; onFinish?: () => void } = {},
+  {
+    autoMs = AUTO_SUCCESS_MS,
+    delayMs,
+    skipMs = SKIP_REVEAL_MS,
+    durationMs,
+    onFinish,
+  }: { autoMs?: number; delayMs?: number; skipMs?: number; durationMs?: number; onFinish?: (o: Outcome) => void } = {},
 ) => {
   // Avec `durationMs` (activité chronométrée), la fin du temps est un échec (`outcome` = 'fail') suivi de la même suite que la réussite ;
   // sans lui, la minuterie `autoMs` reste une réussite automatique. `outcome` passe de 'play' à 'win' ou 'fail', une seule fois.
@@ -22,14 +28,14 @@ export const useActivityDone = (
   const startedAt = Date.now()
   const canSkip = ref(false)
   const { start: emitLater } = useTimeoutFn(emit, delayMs ?? (timed ? OUTCOME_MS : 900), { immediate: false })
-  const settle = (result: Phase) => {
+  const settle = (result: Outcome) => {
     if (finished) return
     finished = true
     outcome.value = result
     auto.stop()
     reveal.stop()
     canSkip.value = false
-    onFinish?.()
+    onFinish?.(result)
     emitLater()
   }
   const finish = () => settle('win')

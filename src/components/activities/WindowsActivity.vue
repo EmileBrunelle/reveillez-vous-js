@@ -18,8 +18,13 @@ const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('windows'),
-  // Le temps est écoulé : les fenêtres se verrouillent (plus de frappe pendant l’issue).
-  onFinish: () => (phase.value = 'won'),
+  // Fin : les fenêtres se verrouillent (plus de frappe pendant l’issue) ; seule la réussite affiche la fin réussie.
+  onFinish: (o) => {
+    stopTicks()
+    lit.value = null
+    hint.value = null
+    phase.value = o === 'win' ? 'won' : 'play'
+  },
 })
 const reduced = useReducedMotion()
 
@@ -69,6 +74,7 @@ const { pause: stopTicks, resume: resumeTicks } = useIntervalFn(
   { immediate: false, immediateCallback: true },
 )
 const startPlay = () => {
+  if (outcome.value !== 'play') return
   phase.value = 'play'
   hint.value = null
   lit.value = null
@@ -81,7 +87,7 @@ onMounted(introLater)
 onUnmounted(() => shake?.stop())
 
 const hit = (i: number) => {
-  if (phase.value !== 'input') return
+  if (phase.value !== 'input' || outcome.value !== 'play') return
   const { state, result } = checkStep(seq, input.value, i)
   input.value = state
   if (result === 'wrong') {
@@ -111,7 +117,7 @@ const hit = (i: number) => {
 <template>
   <div class="size-full flex flex-col items-center justify-center gap-4 px-4 pb-2 select-none">
     <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>
-    <p class="font-ui text-xl text-center text-amber-100/90 max-w-[22ch]">Frappez aux fenêtres dans l’ordre où elles s’allument</p>
+    <p class="font-ui text-xl text-center text-amber-100/90 max-w-[22ch]" :class="{ invisible: outcome !== 'play' }">Frappez aux fenêtres dans l’ordre où elles s’allument</p>
     <div ref="house" class="relative w-[min(78vw,300px)]">
       <div class="h-[70px] bg-[#0b0a10] [clip-path:polygon(50%_0,100%_100%,0_100%)]" aria-hidden="true" />
       <div class="grid grid-cols-2 gap-4 p-4 bg-[#0b0a10]">
