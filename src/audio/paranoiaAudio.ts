@@ -1,7 +1,7 @@
 import type { ParanoiaLevel } from '../engine/paranoia'
 
-/** Bus d’ambiance (copie de `MASTER_GAIN` d’ambience.ts, gardée ici pour que le calcul reste pur et sans cycle d’import). */
-const AMBIENCE_BUS = 0.045
+/** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. Source unique : `ambience.ts` le lit d’ici. */
+export const MASTER_GAIN = 0.045
 
 /** Fondamentale de la basse fantôme (Hz) : écouteurs seulement, les petits haut-parleurs ne la rendent pas. */
 export const SUB_HZ = 41
@@ -42,7 +42,7 @@ const BASS_POWER_SHARE = 0.45
 
 const gainFor = (level: ParanoiaLevel, share: number, unitRms: number) => {
   const rms = 10 ** (TARGET_DBFS[level] / 20)
-  return Math.round(((Math.sqrt(share) * rms) / (AMBIENCE_BUS * unitRms)) * 100) / 100
+  return Math.round(((Math.sqrt(share) * rms) / (MASTER_GAIN * unitRms)) * 100) / 100
 }
 const table = (share: number, unit: number): Record<ParanoiaLevel, number> => ({
   1: 0,
@@ -60,7 +60,7 @@ export const PAD_GAINS: Record<ParanoiaLevel, number> = table(1 - BASS_POWER_SHA
 export const estimatedDbfs = (level: number) => {
   const l = clampLevel(level)
   const power = (SUB_GAINS[l] * BASS_UNIT_RMS) ** 2 + (PAD_GAINS[l] * PAD_UNIT_RMS) ** 2
-  return power === 0 ? -Infinity : 20 * Math.log10(AMBIENCE_BUS * Math.sqrt(power))
+  return power === 0 ? -Infinity : 20 * Math.log10(MASTER_GAIN * Math.sqrt(power))
 }
 
 export const clampLevel = (n: number): ParanoiaLevel => Math.min(5, Math.max(1, Math.round(Number.isFinite(n) ? n : 1))) as ParanoiaLevel
