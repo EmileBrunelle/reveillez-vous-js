@@ -222,3 +222,22 @@ describe('spécialités régionales', () => {
     expect(raw).toContain(mot)
   })
 })
+
+describe('lot de prophéties québécoises (Pacini, Winners, Benny, Beauce…)', () => {
+  const lvl = (n: number) => (prophecies[`niveau${n}`] as string[]).join('\n')
+  it.each([
+    [1, 'Pacini'],
+    [1, 'Thetford Mines'],
+    [1, 'trottinette électrique'],
+    [2, 'Tim Hortons'],
+    [2, 'Benny au St-Hubert'],
+    [3, 'Winners'],
+    [3, 'Aquarium du Québec'],
+    [4, 'Repentigny'],
+    [4, 'plaines d’Abraham'],
+    [5, 'ASSEMBLÉE NATIONALE'],
+    [5, 'EN BEAUCE'],
+  ])('le niveau %i contient « %s »', (n, mot) => {
+    expect(lvl(n)).toContain(mot)
+  })
+})

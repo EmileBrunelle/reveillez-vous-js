@@ -47,6 +47,12 @@ export const prophecies: Grammar = {
     '{question1}|Les astres vous voient entrer au Café Campus pour prendre un café. Vous en ressortirez à 3 h du matin, sans avoir vu une seule tasse.|{verset}',
     '{question1}|Dans la boule de cristal, une tasse fumante apparaît dans votre avenir. Ce ne sera pas au Café Campus. Il y a des limites à la voyance.|{verset}',
     '{question1}|Les cartes voient du bleu dans votre avenir. Pas le ciel : des bleuets du Lac-Saint-Jean, sur vos doigts, jusqu’à la fin d’août.|{verset}',
+    '{question1}|Une toune sur Thetford Mines jouera dans votre auto. Vous monterez le volume en pensant qu’elle aurait sa place dans GTA 6. Les cartes sont d’accord : votre route vers l’amiante et la gloire est tracée.|{verset}',
+    '{question1}|Les cartes voient une trottinette électrique dans votre avenir. Le Ministère l’a réservée aux maths fortes ; vous la recevrez quand même, par erreur, un mardi pluvieux.|{verset}',
+    '{question1}|Un Roméo vous attend dans le stationnement du Pacini, comme dans une soirée d’élimination d’Occupation Double. Les cartes ne disent pas s’il vous remettra une rose ou un pain à l’ail.|{verset}',
+    '{question1}|Votre semaine ressemblera à une partie du Canadien : deux périodes pleines d’espoir, puis une troisième dont les cartes préfèrent ne rien dire. Ça se décidera en tirs de barrage.|{verset}',
+    '{question1}|Vous accompagnerez votre petite sœur de 7 ans à son premier spectacle de K-pop. Vous direz que c’est pour elle. Pourtant, au premier rang, bâton lumineux en main, vous saurez chaque chorégraphie par cœur.|{verset}',
+    '{question1}|Ce soir, vous danserez pieds nus dans la cuisine sur de l’Angine de Poitrine. Les voisins parleront d’une transe ; les cartes, d’un rendez-vous avec le destin en sept temps.|{verset}',
   ],
 
   // ---- Première lecture de la session (visites = 0) : pure voyance/Halloween, jamais de clin d’œil complotiste -------
@@ -82,6 +88,12 @@ export const prophecies: Grammar = {
     '{question2}|Une personne en visite vous demandera où est « le vrai Québec ». Vous pointerez au loin. Cette personne aura tort. Vous aussi.|{verset}',
     '{question2}|Ce temps des fêtes, vous recevrez une bouteille de whisky à l’érable. Vous l’offrirez à une autre personne l’an prochain. Les cartes ont vu son voyage : elle circule depuis 2014.|{verset}',
     '{question2}|Le cipaille gaspésien de votre prochain réveillon a déjà six étages. Les astres en ont compté un septième, sous la croûte.|{verset}',
+    '{question2}|D’ici 2028, votre ancienne école deviendra une sandwicherie. Vous y commanderez un sous-marin sans savoir pourquoi votre cœur se serre devant le comptoir à condiments.|{verset}',
+    '{question2}|Vous achèterez une commode sur Marketplace à quelqu’un dont la photo de profil est un doré tenu à bout de bras. Ne posez pas de questions : le poisson, lui, vous a déjà vu venir.|{verset}',
+    '{question2}|Quelqu’un vous aime en secret : votre grand-mère, depuis l’au-delà. Elle trouve que vous ne mangez pas assez et vous laissera un pot de cretons sur le perron.|{verset}',
+    '{question2}|Cette semaine, vous remettrez votre démission chez Tim Hortons. Vous n’y avez jamais travaillé. Le gérant l’acceptera quand même, les larmes aux yeux, avec un double-double.|{verset}',
+    '{question2}|On vous l’avait dit : les maths fortes ouvrent des portes. Celle-ci, par exemple. Vous auriez peut-être dû la laisser fermée.|{verset}',
+    '{question2}|À votre premier rendez-vous, la personne en face de vous avouera préférer le Benny au St-Hubert. Les cartes se taisent. Quelque part, une sauce brune refroidit en signe de deuil.|{verset}',
   ],
 
   // ---- Niveau 3 · Conviction : fausses fêtes, Big Citrouille dans l’ombre ---------------------
@@ -104,6 +116,11 @@ export const prophecies: Grammar = {
     '{question3}|Votre vocation : mener une carriole sous la pleine lune. Demain matin, vous ouvrirez Teams. Les cartes compatissent.|{verset}',
     '{question3}|Un béluga de Tadoussac vous a vu passer sur le traversier. Il ne dira rien. Les bélugas savent garder un secret, mais celui-là a pris des notes.|{verset}',
     '{question3}|Au large de Tadoussac, un béluga vous regarde depuis ce matin. Il connaît votre horaire. Ne lui faites pas de signe : il pourrait répondre.|{verset}',
+    '{question3}|Une personne de Québec croisera votre route. Pour la retenir, les cartes conseillent un piège simple : une boîte, un bâton, un sandwich. Elle viendra d’elle-même.|{verset}',
+    '{question3}|C’est 3-1 pour le Canadien. Tout devrait aller bien ; pourtant, quelque chose dans le Centre Bell retient son souffle. Les cartes, de leur côté, ont déjà vu la fin de la troisième période.|{verset}',
+    '{question3}|Vos parents ont dit non : la gang ne restera pas à coucher. Tout le monde est reparti avant minuit. Alors qui ronfle doucement dans le sous-sol ?|{verset}',
+    '{question3}|Vous trouverez une boule de cristal chez Winners, à 14,99 $, entre un coussin de flamant rose et une poêle à crêpes. Dans le verre, votre visage vous regarde. Il a l’air d’avoir fait une bonne affaire.|{verset}',
+    '{question3}|À l’Aquarium du Québec, un mérou vous suivra d’une vitre à l’autre. Il ne cligne jamais des yeux. Ce soir, il connaîtra votre adresse, et demain, le nom de votre premier animal.|{verset}',
   ],
 
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
@@ -120,6 +137,10 @@ export const prophecies: Grammar = {
     '{question4}|Réveillez-vous. Montréal n’a jamais existé. Regardez une carte : c’est le Grand Lac Saint-Laurent. On a tout peint.|{verset}',
     '{question4}|Les cartes voient une petite décision : une tablette achetée en solde. Puis un chalet. Puis un lac. Puis plus rien.|{verset}',
     '{question4}|Réveillez-vous. La Floride était une région du Québec. Cette année, vos grands-parents ont passé l’hiver à Saint-Sauveur. Les cartes ont tout redessiné.|{verset}',
+    '{question4}|À Place-des-Arts, une personne jouera de la flûte à bec. Vous reconnaîtrez l’air : c’est celui que vous fredonnez en dormant. Au pavillon des sciences, la même mélodie vous attendra dans l’ascenseur.|{verset}',
+    '{question4}|À la colonie, l’équipe des Verts reviendra du bois avec l’histoire la plus tordue de l’été. Tout le monde rira autour du feu. Puis on recomptera l’équipe : il y aura une personne de plus que ce matin.|{verset}',
+    '{question4}|Un matin de brouillard, sur les plaines d’Abraham, un officier en tricorne vous demandera l’heure. Il semblera confiant, presque serein. Ne lui dites pas qu’il est bientôt 10 h.|{verset}',
+    '{question4}|Un soir d’été, à Repentigny, il grêlera sans prévenir. Vous ramasserez un grêlon pour le montrer à quelqu’un. Il ne fondra pas. Au centre, figé dans la glace, votre reflet vous fera signe.|{verset}',
   ],
 
   // ---- Niveau 5 · Illumination : MAJUSCULES, phrases coupées, contradictions ----------------------
@@ -139,6 +160,9 @@ export const prophecies: Grammar = {
     '{question5}|ILLUMINATION. LA VÉRITÉ ULTIME VOUS EST RÉVÉLÉE : VOUS AVEZ LE DROIT DE NE RIEN FAIRE CE SOIR. FERMEZ LA PORTE. ALLEZ DORMIR.|{verset}',
     '{question5}|CES PROPHÉTIES ONT ÉTÉ ÉCRITES PAR UNE MACHINE QUI RECOPIE TOUT CE QU’ELLE A LU. COMME TOUTES LES PROPHÉTIES DEPUIS TOUJOURS. ÇA NE LES REND PAS FAUSSES. VOTRE AVENIR NON PLUS.|{verset}',
     '{question5}|MANGER. DORMIR. FUIR LA SOCIÉTÉ. LES CARTES ONT RÉSUMÉ VOTRE DESTIN EN TROIS MOTS. ELLES EN AVAIENT PRÉVU QUATRE.|{verset}',
+    '{question5}|À 3 H DU MATIN, LE CANAL DE L’ASSEMBLÉE NATIONALE DIFFUSERA LA PÉRIODE DES QUESTIONS. AUCUNE SÉANCE CETTE NUIT, POURTANT. PUIS LA PRÉSIDENCE DIRA VOTRE NOM, ET TOUS LES VISAGES SE TOURNERONT VERS LA CAMÉRA.|{verset}',
+    '{question5}|AU KARAOKÉ, VOUS VOUDREZ IMPRESSIONNER LA PERSONNE QUI VOUS PLAÎT AVEC UNE CHANSON CONNUE. À L’ÉCRAN, LES PAROLES RACONTERONT VOTRE JOURNÉE, MINUTE PAR MINUTE, JUSQU’À CE QUE VOUS LISIEZ CE QUE VOUS CHANTEZ.|{verset}',
+    '{question5}|SOIRÉE FAMILIALE EN BEAUCE : ON PROJETTERA UN FILM SUR LE FLANC D’UNE VACHE BLANCHE. PERSONNE N’A APPORTÉ DE FILM. POURTANT, ON Y VOIT VOTRE SALON CE SOIR, ET LA VACHE TOURNE LENTEMENT LA TÊTE VERS VOUS.|{verset}',
   ],
 
   // ---- Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur ----
