@@ -69,12 +69,40 @@ useResizeObserver(deckEl, () => {
   if (reduced.value) layoutStatic()
 })
 
+// Géométrie de l’emblème du dos (TarotCardBack : disque de 52 % de la largeur de la carte, centré) : sert à calculer de combien les voisines doivent s’écarter.
+const EMBLEM_R = 0.52 / 2 // rayon du disque, en fraction de la largeur de la carte
+const HOT_LIFT = 0.07 // montée de la carte survolée (fraction de W)
+const HOT_SCALE = 1.04
+const CLEAR_MARGIN = 0.03 // marge au-delà du bord du disque (couvre aussi l’inclinaison des voisines)
+const EDGE = 0.47 // une carte ne dépasse jamais ±0,47 W du centre de la boîte (marge pour la rotation : pas de débordement du viewport)
+// Écart horizontal (fraction de W) d’une voisine i quand la carte h est visée : la carte du milieu libère tout le disque de la carte latérale visée ;
+// l’autre carte latérale recule simplement. La carte visée, elle, ne bouge pas horizontalement : le pointeur ne peut pas lui échapper (pas de va-et-vient).
+const neighbourShift = (i: number, h: number) => {
+  const dir = Math.sign(i - h)
+  const half = FAN_SCALE / 2
+  const center = fx(i) / 100
+  let shift = 0.06
+  if (i === 1 && h !== 1) {
+    const midNear = center - dir * half // bord de la carte du milieu tourné vers la carte visée
+    const embNear = fx(h) / 100 + dir * EMBLEM_R * FAN_SCALE * HOT_SCALE // bord du disque tourné vers la carte du milieu
+    shift = Math.max(shift, dir * (embNear - midNear) + CLEAR_MARGIN)
+  }
+  const target = clamp(center + dir * shift, -(EDGE - half), EDGE - half)
+  return target - center
+}
+
 // Position de repos d’une carte de l’éventail (px dans la boîte), avec l’effet du survol : la carte visée monte et se redresse, les voisines s’écartent.
 const restOf = (i: number, h: number | null) => {
   const f = FAN[i]
   const me = h === i
-  const sep = h === null || me ? 0 : (i < h ? -1 : 1) * 0.06 * W
-  return { x: (fx(i) / 100) * W + sep, y: (f.y / 100) * W + (me ? -0.04 * W : 0), r: me ? f.rot * 0.35 : f.rot, s: me ? FAN_SCALE * 1.04 : FAN_SCALE }
+  const away = h === null || me ? 0 : Math.sign(i - h)
+  const sep = away === 0 ? 0 : neighbourShift(i, h as number) * W
+  return {
+    x: (fx(i) / 100) * W + sep,
+    y: (f.y / 100) * W + (me ? -HOT_LIFT * W : 0),
+    r: me ? f.rot * 0.35 : f.rot + away * 2,
+    s: me ? FAN_SCALE * HOT_SCALE : FAN_SCALE,
+  }
 }
 const stackOf = (i: number) => ({ x: (i - 1) * 0.006 * W, y: 0.05 * W - i * 0.006 * W, r: (i - 1) * 2, s: FAN_SCALE * 0.92 })
 
@@ -220,7 +248,7 @@ const layoutStatic = () => {
   cards.forEach((i) => {
     const f = FAN[i]
     const c = state[i]
-    c.x.c = c.x.t = (fx(i) / 100) * W
+    c.x.c = c.x.t = restOf(i, chosen.value === null ? hot.value : null).x
     c.y.c = c.y.t = (f.y / 100) * W
     c.r.c = c.r.t = 0
     c.s.c = c.s.t = FAN_SCALE
@@ -276,7 +304,10 @@ const setHot = (i: number | null) => {
 }
 const labelOnly = (i: number | null) => {
   // Mouvement réduit : la description de la carte active est mise en valeur, sans mouvement.
-  if (chosen.value === null) hot.value = i
+  if (chosen.value === null) {
+    hot.value = i
+    layoutStatic() // pas d’animation : les voisines se déplacent d’un coup pour découvrir l’emblème
+  }
 }
 const onEnter = (i: number, e: PointerEvent) => {
   if (e.pointerType === 'touch') return
@@ -291,7 +322,7 @@ const onMove = (i: number, e: PointerEvent) => {
   const f = FAN[i]
   const cardW = FAN_SCALE * r.width
   const cx = r.left + r.width / 2 + (fx(i) / 100) * r.width
-  const cy = r.top + r.height / 2 + (f.y / 100) * r.width - 0.04 * r.width
+  const cy = r.top + r.height / 2 + (f.y / 100) * r.width - HOT_LIFT * r.width
   nx = clamp((e.clientX - cx) / (cardW / 2), -1, 1)
   ny = clamp((e.clientY - cy) / ((cardW * 12) / 7 / 2), -1, 1)
 }
