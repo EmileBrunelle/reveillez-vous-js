@@ -1,0 +1,11 @@
+<svg viewBox="0 0 120 190" aria-hidden="true" focusable="false">
+  <path fill-rule="evenodd" d="M14 14H106V176H14ZM21 21V169H99V21Z" fill="#0e0b1c"/>
+  <rect x="14" y="14" width="92" height="162" fill="none" stroke="#d8dcf0" stroke-width="5"/>
+  <path d="M14 14l7 7M106 14l-7 7M14 176l7-7M106 176l-7-7" stroke="#9aa0cc" stroke-width="2"/>
+  <g fill="#e6e9fa" opacity=".92">
+    <ellipse cx="22" cy="176" rx="20" ry="11"/><ellipse cx="46" cy="182" rx="22" ry="11"/><ellipse cx="72" cy="180" rx="20" ry="12"/>
+    <ellipse cx="98" cy="177" rx="22" ry="11"/><ellipse cx="60" cy="170" rx="18" ry="9"/><ellipse cx="8" cy="186" rx="14" ry="8"/><ellipse cx="114" cy="186" rx="14" ry="8"/>
+  </g>
+  <g fill="#b4b9de" opacity=".7"><ellipse cx="34" cy="186" rx="18" ry="6"/><ellipse cx="82" cy="187" rx="20" ry="6"/></g>
+  <g fill="#e6e9fa" opacity=".55"><ellipse cx="6" cy="40" rx="8" ry="4"/><ellipse cx="114" cy="62" rx="7" ry="3.5"/><ellipse cx="112" cy="120" rx="8" ry="4"/></g>
+</svg>
