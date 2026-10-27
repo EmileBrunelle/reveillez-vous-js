@@ -1,8 +1,11 @@
 // Chunks chargés à la demande (hors du premier écran) : la carte du tirage, la scène de la porte
 // et les fenêtres/écrans secondaires. Les préchargements partent dès que possible (voir `prefetch`).
-import { defineAsyncComponent, markRaw, shallowRef, type Component } from 'vue'
+import { defineAsyncComponent, markRaw, shallowRef } from 'vue'
 import { loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadSound, loadTarotCard, prefetch } from '../lazy'
 import { lazyScene } from './lazyScene'
+
+// Type seul (effacé à la compilation) : le chunk de la porte reste paresseux, mais vue-tsc vérifie ses props et événements.
+type DoorSceneComponent = (typeof import('../components/DoorScene.vue'))['default']
 
 // `skip` : comment la partie continue sans la scène si son chunk reste introuvable (coupe : un paquet au hasard ; finale : retour à la porte).
 export const useLazyScenes = (skip: { deck?: () => void; finale?: () => void } = {}) => {
@@ -18,7 +21,7 @@ export const useLazyScenes = (skip: { deck?: () => void; finale?: () => void } =
   const Finale = lazyScene(loadFinale, skip.finale)
 
   // La scène de la porte s’affiche après « Approchez-vous » : on garde ce bouton tant que son chunk n’est pas là (pas de substitut, donc pas de saut).
-  const DoorScene = shallowRef<Component | null>(null)
+  const DoorScene = shallowRef<DoorSceneComponent | null>(null)
   let doorLoad: Promise<unknown> | null = null
   const ensureDoor = () =>
     (doorLoad ??= loadDoorScene().then(

@@ -166,8 +166,7 @@ watch(
             :exit="{ opacity: 0 }"
             :transition="{ duration: 0.2 }"
           >
-            <component
-              :is="DoorScene"
+            <DoorScene
               ref="doorScene"
               :door="door"
               :line="doorLine"
