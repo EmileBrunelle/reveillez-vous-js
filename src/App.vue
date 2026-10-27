@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch, useTemplateRef } from 'vue'
+import { computed, nextTick, ref, watch, useTemplateRef, type ComponentPublicInstance } from 'vue'
 import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
 import { storeToRefs } from 'pinia'
 import CrtOverlay from './components/CrtOverlay.vue'
@@ -14,7 +14,7 @@ import { isQuickKnock } from './engine/paranoia'
 import { useTabTitle } from './composables/useTabTitle'
 import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
-import { useTimeoutFn } from '@vueuse/core'
+import { unrefElement, useTimeoutFn } from '@vueuse/core'
 import { unlock } from './audio/sfx'
 import { WAKE_LABEL } from './content/finale'
 import { ACTIVITY_PROMPTS } from './content/activityPrompts'
@@ -22,16 +22,17 @@ import { focusQuietly } from './composables/focusQuietly'
 import { createFocusOnce } from './composables/focusOnce'
 import { useLazyScenes } from './composables/useLazyScenes'
 import { useGameFlow } from './composables/useGameFlow'
+import { useDeferredText } from './composables/useDeferredText'
 
 // Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
 // Ref fonction rappelée à chaque rendu : createFocusOnce ne focalise qu’une fois par élément (une réapparition de l’overlay = nouvel élément).
 const focusOverlay = createFocusOnce()
 const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
 const readingEl = useTemplateRef<HTMLElement>('readingEl')
-const activityEl = useTemplateRef<HTMLElement | { $el: HTMLElement }>('activityEl')
+const activityEl = useTemplateRef<ComponentPublicInstance>('activityEl')
 const finaleEl = useTemplateRef<{ focus: () => void }>('finaleEl')
 const deckEl = useTemplateRef<{ focus: () => void }>('deckEl')
-const doorScene = useTemplateRef<{ $el?: Element }>('doorScene')
+const doorScene = useTemplateRef<{ focus: () => void }>('doorScene')
 
 // Phases d’une visite (porte -> activité -> coupe -> lecture -> finale) : voir useGameFlow.
 const {
@@ -62,15 +63,17 @@ const {
   onClosed,
   onCollapsed,
   onFinaleRestart,
+  skipDeck,
 } = useGameFlow()
 
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir useLazyScenes).
-const { TarotCard, DoorScene, ensureDoor, About, ResetConfirm, CollectionWindow, SoundWindow, DeckCut, Finale } = useLazyScenes()
+const { TarotCard, DoorScene, ensureDoor, About, ResetConfirm, CollectionWindow, SoundWindow, DeckCut, Finale } = useLazyScenes({ deck: skipDeck, finale: onFinaleRestart })
 
-// 'checking' until the CRT overlay got a WebGPU device; nothing of the experience renders before that.
+// 'checking' tant que la surcouche CRT n’a pas obtenu un appareil WebGPU : rien de l’expérience ne s’affiche avant.
 const gpu = ref<'checking' | 'ok' | 'blocked'>('checking')
 // Le réseau sert d’abord au premier écran (CRT, vgpu) : le reste ne part qu’une fois le GPU confirmé.
 watch(gpu, (g) => g === 'ok' && void ensureDoor().catch(() => undefined), { immediate: true })
+const connecting = useDeferredText(() => 'Connexion aux ondes…')
 const attempt = ref(0)
 const retry = () => {
   gpu.value = 'checking'
@@ -124,25 +127,24 @@ const shake = (amp: number) => {
   animate(mainEl.value, { x: [0, -a, a * 0.8, -a * 0.5, a * 0.3, 0], y: [0, a * 0.4, -a * 0.5, a * 0.2, 0] }, { duration: 0.35 })
 }
 
-// Browsers keep the AudioContext suspended until a user gesture; without one, the first knocks would be silent.
+// Les navigateurs gardent l’AudioContext suspendu avant un geste de la personne ; sans geste, les premiers coups seraient muets.
 const awaiting = ref(!navigator.userActivation?.hasBeenActive)
 const { start: startAwaitEnd } = useTimeoutFn(() => (awaiting.value = false), 120, { immediate: false })
 const approach = () => {
   unlock()
   requestOrientationPermission()
-  // Give the context a moment to reach 'running' so scheduleKnocks sees it live.
+  // On laisse un instant au contexte pour passer à « running » : scheduleKnocks le verra actif.
   ensureDoor().then(startAwaitEnd, () => undefined)
 }
 
 // Un écran qui se démonte laisse le focus sur <body> : useGameFlow nomme où il doit atterrir (focusTarget), ce watcher unique le traduit en élément.
 // Pas de sondage : AnimatePresence (mode wait) ne monte l’écran suivant qu’après la sortie du précédent, et sa ref passe alors de null à l’élément,
 // ce qui relance le watcher. Changer de cible entre-temps annule l’attente (targetEl repart de la nouvelle cible).
-type Focusable = HTMLElement | { $el?: Node; focus?: () => void }
-const domOf = (f: Focusable) => (f instanceof HTMLElement ? f : f.$el)
+type Focusable = HTMLElement | ComponentPublicInstance | { focus: () => void }
 const targetEl = computed<Focusable | null>(() => {
   switch (focusTarget.value) {
     case 'door':
-      return doorScene.value?.$el?.querySelector?.('.door-hit') ?? null
+      return doorScene.value
     case 'activity':
       return activityEl.value
     case 'deck':
@@ -164,7 +166,7 @@ const mayMoveFocus = (t: NonNullable<typeof focusTarget.value>, el: Focusable) =
   const a = document.activeElement
   if (!a || a === document.body) return true
   if (t === 'close') return a === readingEl.value
-  const dom = domOf(el)
+  const dom = unrefElement(el as HTMLElement | ComponentPublicInstance)
   if (dom instanceof Element && dom !== a && dom.contains(a)) return false
   return !!mainEl.value?.contains(a)
 }
@@ -175,10 +177,12 @@ watch(
     if (!t || !el) return
     focusTarget.value = null
     if (!mayMoveFocus(t, el)) return
-    const dom = domOf(el)
-    if (typeof (el as { focus?: unknown }).focus === 'function' && !(el instanceof HTMLElement))
-      el.focus?.() // DeckCut et Finale se focalisent eux-mêmes (conteneur nommé)
-    else if (dom instanceof HTMLElement) focusQuietly(dom, { preventScroll: true })
+    // La porte, DeckCut et Finale exposent `focus()` (ils savent quoi focaliser) ; les autres cibles sont des éléments (ou des composants dont on prend l’élément racine).
+    if (!(el instanceof HTMLElement) && 'focus' in el && typeof el.focus === 'function') el.focus()
+    else {
+      const dom = unrefElement(el as HTMLElement | ComponentPublicInstance)
+      if (dom instanceof HTMLElement) focusQuietly(dom, { preventScroll: true })
+    }
   },
   { flush: 'post' },
 )
@@ -198,12 +202,14 @@ watch(
   <WebGpuGate v-if="gpu === 'blocked'" @retry="retry" @about="openAbout" />
   <MotionConfig v-else reduced-motion="user">
     <CrtOverlay :key="attempt" :paranoia="paranoia" :off="crtOff" @ready="gpu = 'ok'" @fail="gpu = 'blocked'" />
+    <!-- Région live présente dès le montage, vide puis remplie (sinon elle n’est pas annoncée) ; visuellement absente hors de l’attente. -->
     <p
-      v-if="gpu === 'checking'"
-      class="fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none"
       role="status"
+      :class="
+        gpu === 'checking' ? 'fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none' : 'sr-only'
+      "
     >
-      Connexion aux ondes…
+      {{ gpu === 'checking' ? connecting : '' }}
     </p>
     <template v-if="gpu === 'ok'">
       <BgPlace :key="place.id" :place="place.id" :variant="placeVariant.params" :sharp="crtOff" />
@@ -283,6 +289,8 @@ watch(
             <section
               ref="readingEl"
               tabindex="-1"
+              role="group"
+              aria-label="Lecture"
               class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
             >
               <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
