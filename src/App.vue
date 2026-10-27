@@ -203,7 +203,7 @@ const onPick = async (paquet: Paquet) => {
   await ensureTarot()
   if (phase.value !== 'cut' || closing.value) return
   pickedPaquet.value = paquet
-  prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng, paquet)
+  prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng, paquet, progress.visits === 0)
   progress.remember(prophecy.value.arcane.numero, level.value, prophecy.value.arcane.nom)
   cardSettled.value = false
   phase.value = 'reading'
@@ -250,6 +250,11 @@ const focusSoon = (find: () => HTMLElement | null | undefined) => {
 const onFlipped = () => {
   collection.record(prophecy.value.arcane.nom)
   cardSettled.value = true
+  // Première lecture de la session : une bulle discrète annonce que la suite existe (pas sur écran étroit : elle couvrirait la carte).
+  if (progress.visits === 0 && !narrow.value) {
+    const b = nextTitled(prophecies, 'bulle1', safeStorage(), rng)
+    if (b) session.notify(`${b.title}|${b.text}`)
+  }
   void nextTick(() => focusQuietly(closeBtn.value, { preventScroll: true }))
 }
 // A phase unmounting drops focus to <body>: send it to the door button of the next door.
