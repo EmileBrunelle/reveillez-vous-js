@@ -309,7 +309,7 @@ export const prophecies: Grammar = {
   // Niveau 1 : une seule bulle, juste après la toute première lecture de la session (visites = 0) ; elle annonce la suite.
   bulle1: [
     'Visite enregistrée|Une première visite. La porte vous attend.',
-    'Barre des tâches|Votre passage a été noté. La porte vous attend.',
+    'Barre des tâches|Votre passage a été noté. Revenez : la suite vous connaît déjà.',
     'Niveau de vigilance : 1|Je vous regarde, avec bienveillance. Pour l’instant.',
   ],
   bulle2: [
