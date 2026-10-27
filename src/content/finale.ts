@@ -22,7 +22,7 @@ export const CREDITS = [
   'Technologies : Vue, TypeScript, Vite, UnoCSS, motion-v, WebGPU (vgpu), Web Audio',
   'Icônes : game-icons.net, CC BY 3.0',
   'Polices : VT323, IM Fell English, Cinzel (SIL OFL)',
-  'Écrit avec l’aide de Claude Code (IA), voir le README',
+  'Écrit avec l’aide de Claude Code (IA) : détails dans le README du code source, github.com/EmileBrunelle/reveillez-vous-js',
   'Merci d’avoir ouvert la porte.',
 ] as const
 
