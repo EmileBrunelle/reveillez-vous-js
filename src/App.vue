@@ -26,6 +26,7 @@ import { finaleActive } from './engine/finaleFlow'
 import { WAKE_LABEL } from './content/finale'
 import { activityFor, loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadSound, loadTarotCard, prefetch } from './lazy'
 import { focusQuietly } from './composables/focusQuietly'
+import { createFocusOnce } from './composables/focusOnce'
 
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
 // La carte du tirage est chargée avant la fin de la coupe (jamais de substitut) : on ne la rend qu’une fois le chunk là.
@@ -247,9 +248,8 @@ const approach = () => {
 }
 
 // Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
-const focusOverlay = (el: unknown) => {
-  if (el instanceof HTMLElement) focusQuietly(el)
-}
+// Ref fonction rappelée à chaque rendu : createFocusOnce ne focalise qu’une fois par élément (une réapparition de l’overlay = nouvel élément).
+const focusOverlay = createFocusOnce()
 const closeBtn = ref<HTMLButtonElement>()
 const readingEl = ref<HTMLElement>()
 const focusSoon = (find: () => HTMLElement | null | undefined) => {
