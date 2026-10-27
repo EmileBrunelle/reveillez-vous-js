@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
-import { onClickOutside, useEventListener, useIntervalFn, useTimeoutFn } from '@vueuse/core'
+import { onClickOutside, useEventListener, useIntervalFn, useNow, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
 import { REPO_URL } from '../content/finale'
@@ -99,10 +99,10 @@ watch(
   { immediate: true },
 )
 
-const nowMs = ref(Date.now())
-useIntervalFn(() => (nowMs.value = Date.now()), 15000)
+// Horloge : la version installée de VueUse n’a pas d’option `interval` pour `useNow`, on lui donne un ordonnanceur à 15 s.
+const now = useNow({ scheduler: (cb) => useIntervalFn(cb, 15000) })
 const pad = (n: number) => String(n).padStart(2, '0')
-const hhmm = () => `${pad(new Date(nowMs.value).getHours())}:${pad(new Date(nowMs.value).getMinutes())}`
+const hhmm = () => `${pad(now.value.getHours())}:${pad(now.value.getMinutes())}`
 
 const item =
   'flex items-center gap-2 w-full min-h-[max(2.5rem,44px)] px-3 text-[0.9rem] text-black no-underline text-left cursor-pointer border-0 bg-transparent [font:inherit] hover:bg-[#000080] hover:text-white focus:bg-[#000080] focus:text-white focus:outline-none sm:min-h-8'
@@ -212,7 +212,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         <IconFullscreenExit v-if="isFullscreen" class="w-4 h-4" />
         <IconFullscreen v-else class="w-4 h-4" />
       </button>
-      <time class="self-center px-1 tabular-nums" :datetime="new Date(nowMs).toISOString()">{{ hhmm() }}</time>
+      <time class="self-center px-1 tabular-nums" :datetime="now.toISOString()">{{ hhmm() }}</time>
     </div>
   </div>
 </template>
