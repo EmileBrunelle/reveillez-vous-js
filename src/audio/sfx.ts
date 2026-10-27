@@ -204,6 +204,26 @@ export const cardFlip = () => {
   o.stop(t + 0.32)
 }
 
+/** Card lands after the flip: a short, dull paper thud (low-passed noise, no tone). */
+export const cardThud = () => {
+  const c = ac()
+  if (!c || muted.value) return
+  const t = c.currentTime
+  const src = c.createBufferSource()
+  src.buffer = noiseBuffer(c, 0.14)
+  const f = c.createBiquadFilter()
+  f.type = 'lowpass'
+  f.Q.value = 0.8
+  f.frequency.setValueAtTime(700, t)
+  f.frequency.exponentialRampToValueAtTime(180, t + 0.12)
+  const g = c.createGain()
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.linearRampToValueAtTime(0.4, t + 0.008)
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.13)
+  src.connect(f).connect(g).connect(c.destination)
+  src.start(t)
+}
+
 const beep = (c: AudioContext, at: number, from: number, to: number, dur: number, gain: number) => {
   const o = c.createOscillator()
   o.type = 'square'
