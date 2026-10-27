@@ -211,4 +211,8 @@ describe('versets (livre + référence)', () => {
         for (const w of BANNED) expect(v).not.toMatch(bannedRe(w))
       }
   })
+  it('contient la blague du Café Campus (niveaux 1 et 2)', () => {
+    const all = [...(prophecies.niveau1 as string[]), ...(prophecies.niveau2 as string[])]
+    expect(all.filter((t) => t.includes('Café Campus')).length).toBeGreaterThanOrEqual(3)
+  })
 })
