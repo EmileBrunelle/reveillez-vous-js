@@ -1,5 +1,5 @@
 import { watch } from 'vue'
-import { ac, muted } from './sfx'
+import { ac, finaleOut, muted } from './sfx'
 import { ambienceDucked } from './ambience'
 
 // Sons de la finale, synthétisés (Web Audio). Un seul bus `master` par finale : muet, « passer » et
@@ -34,7 +34,7 @@ export const startFinaleAudio = (enabled = true): FinaleAudio => {
   if (!c) return noop
   const master = c.createGain()
   master.gain.value = muted.value ? 0 : FINALE_LEVEL
-  master.connect(c.destination)
+  master.connect(finaleOut(c))
   const sources: AudioScheduledSourceNode[] = []
   let padGain: GainNode | null = null
   const padOscs: OscillatorNode[] = []

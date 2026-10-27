@@ -24,7 +24,7 @@ import { LAST_ACTIVITY_KEY, PLAYED_ACTIVITIES_KEY, parseActivityId, parsePlayed,
 import { hymn, unlock } from './audio/sfx'
 import { finaleActive } from './engine/finaleFlow'
 import { WAKE_LABEL } from './content/finale'
-import { activityFor, loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadTarotCard, prefetch } from './lazy'
+import { activityFor, loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadSound, loadTarotCard, prefetch } from './lazy'
 import { focusQuietly } from './composables/focusQuietly'
 
 // Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
@@ -41,6 +41,7 @@ const ensureTarot = async () => {
 const About = defineAsyncComponent(loadAbout)
 const ResetConfirm = defineAsyncComponent(loadReset)
 const CollectionWindow = defineAsyncComponent(loadCollection)
+const SoundWindow = defineAsyncComponent(loadSound)
 const DeckCut = defineAsyncComponent(loadDeckCut)
 const Finale = defineAsyncComponent(loadFinale)
 // La scène de la porte s’affiche après « Approchez-vous » : on garde ce bouton tant que son chunk n’est pas là (pas de substitut, donc pas de saut).
@@ -86,6 +87,12 @@ watch(aboutOpen, (o) => {
 })
 
 const progress = useProgressStore()
+const soundOpen = ref(false)
+const soundWanted = ref(false) // monté (donc chargé) à la première ouverture seulement
+const openSound = () => {
+  soundWanted.value = true
+  soundOpen.value = true
+}
 const collection = useCollectionStore()
 const collectionOpen = ref(false)
 const collectionWanted = ref(false) // monté (donc chargé) à la première ouverture seulement
@@ -426,8 +433,9 @@ const onFinaleRestart = () => {
     </template>
   </MotionConfig>
   <FakeErrors v-if="gpu === 'ok' && phase === 'reading' && cardSettled" :key="sceneKey" :level="level" />
-  <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @collection="openCollection" @reset="resetOpen = true" @reset-level="resetLevel" />
+  <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @collection="openCollection" @sound="openSound" @reset="resetOpen = true" @reset-level="resetLevel" />
   <About v-if="aboutWanted" v-model="aboutOpen" />
   <CollectionWindow v-if="collectionWanted" v-model="collectionOpen" />
+  <SoundWindow v-if="soundWanted" v-model="soundOpen" />
   <ResetConfirm v-if="resetWanted" v-model="resetOpen" @confirm="forgetAll" />
 </template>

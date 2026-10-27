@@ -1,7 +1,7 @@
 import { effectScope, ref, watch } from 'vue'
 import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
 import type { PlaceId } from '../effects/places/types'
-import { ac, muted, noiseBuffer } from './sfx'
+import { ac, ambienceOut, muted, noiseBuffer } from './sfx'
 import { BASS_PARTIALS, PAD_DEPTH, PAD_VOICES, RARE_BOOST, nextRareDelay, padGain, pickRareKind, subGain, type RareKind } from './paranoiaAudio'
 
 /** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. */
@@ -394,7 +394,7 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
 
   const master = c.createGain()
   master.gain.value = 0
-  master.connect(c.destination)
+  master.connect(ambienceOut(c))
 
   const level = () => targetLevel({ muted: muted.value, hidden, stopped, ducked: ambienceDucked.value })
   const ramp = (tc: number) => {
