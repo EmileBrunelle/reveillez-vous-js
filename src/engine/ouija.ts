@@ -41,3 +41,12 @@ export const pickDriftAt = (level: number, wordLength: number, rng: Rng): number
 
 /** La dérive part quand le compte de lettres validées atteint `driftAt`, et seulement si elle n’a pas déjà eu lieu. */
 export const shouldDrift = (driftAt: number, validated: number, used: boolean) => !used && driftAt >= 0 && validated === driftAt
+
+/** Débord de la goutte autour de son point d’ancrage (px) : la forme s’étend de 20 à gauche et à droite, 34 au-dessus, 18 en dessous. */
+export const DROP_EXTENT = { left: 20, right: 20, top: 34, bottom: 18 } as const
+
+/** Ramène le point d’ancrage de la goutte pour que toute sa forme reste dans la scène (`width` × `height`), quelle que soit la cible. */
+export const clampDrop = (x: number, y: number, width: number, height: number, extent = DROP_EXTENT) => ({
+  x: Math.min(Math.max(x, extent.left), Math.max(extent.left, width - extent.right)),
+  y: Math.min(Math.max(y, extent.top), Math.max(extent.top, height - extent.bottom)),
+})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DWELL_MS, advanceDwell, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../src/engine/ouija'
+import { DROP_EXTENT, DWELL_MS, advanceDwell, clampDrop, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../src/engine/ouija'
 import { mulberry32 } from '../../src/engine/rng'
 
 describe('ouija', () => {
@@ -48,5 +48,35 @@ describe('ouija', () => {
     expect(shouldDrift(2, 2, true)).toBe(false)
     expect(shouldDrift(2, 1, false)).toBe(false)
     expect(shouldDrift(-1, 0, false)).toBe(false)
+  })
+  it('clampDrop garde toute la goutte dans la scène, pour chaque cible (lettres, OUI, NON, AU REVOIR en bas)', () => {
+    const { left, right, top, bottom } = DROP_EXTENT
+    for (const [w, h] of [
+      [384, 600],
+      [384, 677],
+      [1280, 497],
+      [1280, 737],
+    ]) {
+      // Cibles : coins, centre, et AU REVOIR / OUI / NON placés à ras du bord bas ou au-delà.
+      const targets = [
+        [0, 0],
+        [w / 2, h],
+        [w / 2, h + 40],
+        [w + 50, h / 2],
+        [-30, -30],
+        [w / 2 - 80, h - 10],
+        [w / 2, h / 2],
+      ]
+      for (const [x, y] of targets) {
+        const c = clampDrop(x, y, w, h)
+        expect(c.x - left).toBeGreaterThanOrEqual(0)
+        expect(c.x + right).toBeLessThanOrEqual(w)
+        expect(c.y - top).toBeGreaterThanOrEqual(0)
+        expect(c.y + bottom).toBeLessThanOrEqual(h)
+      }
+    }
+  })
+  it('clampDrop ne bouge pas une cible déjà dans les bornes', () => {
+    expect(clampDrop(100, 200, 384, 600)).toEqual({ x: 100, y: 200 })
   })
 })

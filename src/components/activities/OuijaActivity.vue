@@ -5,7 +5,7 @@ import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { OUIJA_SHOWN, OUIJA_WORDS } from '../../content/ouija'
-import { OUIJA_BYE, OUIJA_NO, OUIJA_ROWS, OUIJA_YES, advanceDwell, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../engine/ouija'
+import { OUIJA_BYE, OUIJA_NO, OUIJA_ROWS, OUIJA_YES, advanceDwell, clampDrop, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../engine/ouija'
 import { orSecure, type Rng } from '../../engine/rng'
 import IconGoutte from '~icons/rvj/goutte'
 
@@ -146,8 +146,8 @@ useRafFn(({ delta }) => {
   }
   const goal = override ? centerOf(override) : null
   // À la fin, la goutte s’arrête à gauche d’AU REVOIR pour que le texte reste lisible.
-  const tx = goal ? (override === els[OUIJA_BYE] ? goal.left - 26 : goal.x) : target.x
-  const ty = goal ? goal.y : target.y
+  // Toujours ramenée dans la scène (overflow hidden) : la goutte ne doit jamais être rognée, quelle que soit sa cible.
+  const { x: tx, y: ty } = clampDrop(goal ? (override === els[OUIJA_BYE] ? goal.left - 26 : goal.x) : target.x, goal ? goal.y : target.y, s.clientWidth, s.clientHeight)
   if (reduced.value) {
     pos.x = tx
     pos.y = ty
@@ -162,7 +162,9 @@ useRafFn(({ delta }) => {
     pos.x += pos.vx * dt * 0.06
     pos.y += pos.vy * dt * 0.06
   }
-  if (dropEl.value) dropEl.value.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
+  // Le ressort peut dépasser un peu la cible : on borne aussi la position affichée.
+  const at = clampDrop(pos.x, pos.y, s.clientWidth, s.clientHeight)
+  if (dropEl.value) dropEl.value.style.transform = `translate3d(${at.x}px, ${at.y}px, 0)`
   // Survol de la lettre attendue (les autres sont ignorées) ; en pause pendant la dérive.
   const letter = expected.value
   const el = letter && !override && !isFinished() ? els[letter] : null
@@ -211,9 +213,12 @@ useRafFn(({ delta }) => {
 
 <style scoped>
 .ouija {
+  container-type: size; /* la planche se dimensionne sur la hauteur disponible (cqh) pour ne jamais être rognée */
   background: radial-gradient(ellipse at 50% 40%, rgb(60 30 14 / 0.55), transparent 70%), #08050a;
 }
 .board {
+  /* Taille d’une case : celle de base, réduite quand la scène est basse (fenêtre courte) pour que la planche, AU REVOIR compris, tienne entière. */
+  --cell: clamp(1.75rem, calc((100cqh - 14rem) / 6.4), 2.5rem);
   border: 3px solid #d9b55a;
   border-radius: 14px;
   background: repeating-linear-gradient(92deg, rgb(255 255 255 / 0.025) 0 2px, transparent 2px 9px), linear-gradient(180deg, #3a2112, #26140a 60%, #1d0f07);
@@ -236,13 +241,13 @@ useRafFn(({ delta }) => {
   outline-offset: 2px;
 }
 .letter {
-  width: 2.5rem;
-  height: 2.5rem;
-  font-size: 1.4rem;
+  width: var(--cell);
+  height: var(--cell);
+  font-size: calc(var(--cell) * 0.56);
   font-weight: 700;
 }
 .answer {
-  min-height: 2.75rem;
+  min-height: calc(var(--cell) * 1.1);
   padding: 0 0.5rem;
   font-size: 1.1rem;
   font-weight: 700;
@@ -267,10 +272,11 @@ useRafFn(({ delta }) => {
   box-shadow: inset 0 0 0 2px rgb(217 181 90 / 0.45);
 }
 @media (min-width: 640px) {
+  .board {
+    --cell: clamp(1.75rem, calc((100cqh - 15rem) / 6.4), 3.25rem);
+  }
   .letter {
-    width: 3.25rem;
-    height: 3.25rem;
-    font-size: 1.7rem;
+    font-size: calc(var(--cell) * 0.52);
   }
 }
 .drop {
