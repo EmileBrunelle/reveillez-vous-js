@@ -4,7 +4,7 @@ import { effectScope } from 'vue'
 
 const tarot = vi.hoisted(() => ({ load: vi.fn<() => Promise<unknown>>() }))
 vi.mock('../../src/audio/sfx', () => ({ hymn: vi.fn(), unlock: vi.fn() }))
-vi.mock('../../src/lazy', () => ({ loadTarotCard: () => tarot.load(), activityFor: () => null, prefetch: vi.fn() }))
+vi.mock('../../src/lazy', () => ({ loadTarotCard: () => tarot.load(), activityFor: () => null, loadFinale: () => Promise.resolve({}), prefetch: vi.fn() }))
 
 import { useProgressStore } from '../../src/stores/progress'
 import { useGameFlow } from '../../src/composables/useGameFlow'
@@ -68,6 +68,18 @@ describe('useGameFlow : focusTarget', () => {
     await vi.advanceTimersByTimeAsync(3000)
     await p
     expect(flow.focusTarget.value).toBe('close')
+    scope.stop()
+  })
+
+  it('deux tirages simultanés (double clic, « Passer ») n’en font qu’un', async () => {
+    const { flow, scope } = make()
+    flow.onDone()
+    if (flow.phase.value === 'activity') flow.onActivityDone()
+    const first = flow.onPick('nuit')
+    const second = flow.onPick('feu')
+    await Promise.all([first, second])
+    expect(flow.pickedPaquet.value).toBe('nuit')
+    expect(useProgressStore().memory.lastArcane).not.toBeNull()
     scope.stop()
   })
 

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useHaptics } from '../composables/haptics'
 import { computed, onMounted, onUnmounted, ref, useId, watch, useTemplateRef } from 'vue'
-import { animate } from 'motion-v'
+import { useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from '../composables/useReducedMotion'
+import { useMotionScope } from '../composables/useMotionScope'
+import { focusQuietly } from '../composables/focusQuietly'
 import type { SceneVariant } from '../content/scenes'
 import { creak, knock, scheduleKnocks, slam, unlock, type KnockHandle } from '../audio/sfx'
 import { knockIntensity } from '../engine/knock'
@@ -23,11 +25,12 @@ const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impac
 // Visite de rappel : un seul toucher ouvre la porte (rituel déjà réussi plus tôt dans la session). Fixé au montage.
 const quickMode = quick === true
 const reduced = useReducedMotion()
-const keyboard = useKeyboardModality()
+const keyboardMode = useKeyboardModality()
 // Le haptique n’est pas du mouvement : pas bloqué par « mouvement réduit ». Les gardes (onglet caché, vibrate absent, limiteur) vivent dans haptics.ts.
 const { pulse: haptic } = useHaptics()
 
 const stage = useTemplateRef<HTMLElement>('stage')
+const hit = useTemplateRef<HTMLButtonElement>('hit')
 const leaf = useTemplateRef<HTMLElement>('leaf')
 const glow = useTemplateRef<HTMLElement>('glow')
 const spill = useTemplateRef<HTMLElement>('spill')
@@ -43,27 +46,18 @@ type State = 'idle' | 'opening' | 'gone'
 let state: State = 'idle'
 const isGone = () => state === 'gone'
 let knocks: KnockHandle | null = null
-let timers: number[] = []
-let running: { stop: () => void }[] = []
 let dustAt = 0
 const DUST = 10
 const OPEN_DEG = 72
 
-const go = (el: Element | NodeListOf<Element> | undefined | null, kf: Record<string, unknown>, opt: Record<string, unknown> = {}) => {
-  if (!el) return Promise.resolve()
-  const c = animate(el, kf as never, opt as never)
-  running.push(c)
-  return Promise.resolve(c).catch(() => undefined)
-}
-const snap = (el: Element | NodeListOf<Element> | undefined | null, kf: Record<string, unknown>) => go(el, kf, { duration: 0 })
-const wait = (ms: number) => new Promise<void>((r) => timers.push(window.setTimeout(r, ms)))
+// Animations Motion et attentes de la scène : arrêtées par `halt()` ou à la destruction (voir useMotionScope).
+const { go, snap, wait, halt: haltMotion } = useMotionScope()
+// Silence du joueur pendant la répétition : au bout de 1,2 s, le rythme est jugé.
+const silence = useTimeoutFn(() => evaluate(), 1200, { immediate: false })
 const halt = () => {
   knocks?.cancel()
-  clearTimeout(silence)
-  timers.forEach(clearTimeout)
-  timers = []
-  running.forEach((r) => r.stop())
-  running = []
+  silence.stop()
+  haltMotion()
 }
 
 const dust = (n: number) => {
@@ -119,8 +113,8 @@ const playerKnock = (e: MouseEvent, fromPointer = false) => {
   knock(intensity())
   jitter(intensity())
   const r = stage.value?.getBoundingClientRect()
-  const keyboard = !fromPointer && (e.detail === 0 || (e.clientX === 0 && e.clientY === 0))
-  if (keyboard && r) sparks.value?.emit(r.left + r.width / 2, r.top + r.height / 2)
+  const fromKeyboard = !fromPointer && (e.detail === 0 || (e.clientX === 0 && e.clientY === 0))
+  if (fromKeyboard && r) sparks.value?.emit(r.left + r.width / 2, r.top + r.height / 2)
   else sparks.value?.emit(e.clientX, e.clientY)
 }
 
@@ -144,9 +138,9 @@ const said = ref(quickMode ? line : '(Cognez à la porte)')
 const verdictText = ref('')
 // Invite sans geste depuis ~3 s : on souffle que la porte se touche (respiration lente + ligne d’aide).
 const nudge = ref(false)
-let nudgeTimer = 0
+const nudgeTimer = useTimeoutFn(() => (nudge.value = true), 3000, { immediate: false })
 const stopNudge = () => {
-  clearTimeout(nudgeTimer)
+  nudgeTimer.stop()
   nudge.value = false
 }
 const hint = computed(() => {
@@ -162,7 +156,6 @@ const lit = ref(0)
 const filled = ref(0)
 let fails = 0
 let taps: number[] = []
-let silence = 0
 let started = false
 let firstListen = true
 let retryIntro = ''
@@ -206,7 +199,7 @@ const seerHit = (i: number, force: number) => {
 }
 
 const evaluate = () => {
-  clearTimeout(silence)
+  silence.stop()
   if (phase.value !== 'repeat') return
   phase.value = 'busy'
   const v = judge(pattern.value, taps)
@@ -242,22 +235,21 @@ const onDoor = (e: MouseEvent, fromPointer = false) => {
   if (phase.value === 'invite') {
     stopNudge()
     playerKnock(e, fromPointer)
-    if (quickMode) {
-      // Un seul coup, la porte réagit tout de suite (secousse + étincelles), puis elle s’ouvre.
+    // Une seule suite par visite : des touchers rapprochés ne programment pas une deuxième ouverture (qui couperait l’animation, voir open).
+    if (!started) {
       started = true
-      announce.value = 'La porte s’ouvre.'
-      void wait(450).then(open)
-    } else if (!started) {
-      started = true
-      void wait(800).then(startListen)
+      if (quickMode) {
+        // Un seul coup, la porte réagit tout de suite (secousse + étincelles), puis elle s’ouvre.
+        announce.value = 'La porte s’ouvre.'
+        void wait(450).then(open)
+      } else void wait(800).then(startListen)
     }
   } else if (phase.value === 'repeat') {
     taps.push(performance.now())
     filled.value = Math.min(taps.length, pattern.value.length + 1)
     playerKnock(e, fromPointer)
-    clearTimeout(silence)
     if (taps.length > pattern.value.length + 1) evaluate()
-    else silence = window.setTimeout(evaluate, 1200)
+    else silence.start() // redémarre le délai à chaque coup
   }
 }
 const onDoorKeydown = (e: KeyboardEvent) => {
@@ -282,12 +274,9 @@ const onDoorMousedown = (e: MouseEvent) => {
 onMounted(() => {
   if (closing) return void slamShut()
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
-  nudgeTimer = window.setTimeout(() => (nudge.value = true), 3000)
+  nudgeTimer.start()
 })
-onUnmounted(() => {
-  clearTimeout(nudgeTimer)
-  halt()
-})
+onUnmounted(halt)
 
 const open = async () => {
   if (state === 'opening') return finish()
@@ -354,6 +343,9 @@ const closed = () => {
   emit('closed')
 }
 
+// Focus donné par App après un changement d’écran (sans anneau si la dernière entrée n’était pas au clavier).
+defineExpose({ focus: () => focusQuietly(hit.value, { preventScroll: true }) })
+
 const onSceneClick = (e: MouseEvent) => {
   if ((e.target as HTMLElement).closest('button')) return
   if (closing) closed()
@@ -398,12 +390,13 @@ const onSceneClick = (e: MouseEvent) => {
       <div ref="strip" class="absolute left-[8%] right-[8%] -bottom-px h-[2px] opacity-0 bg-[#e8a850] shadow-[0_0_8px_2px_rgb(232_168_80/0.4)] pointer-events-none" aria-hidden="true" />
       <button
         v-if="!closing"
+        ref="hit"
         class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] outline-none"
         type="button"
-        aria-label="Ouvrir la porte"
+        aria-label="Cogner à la porte"
         :aria-describedby="saidId"
         :data-phase="phase"
-        :data-kbd="keyboard"
+        :data-kbd="keyboardMode"
         @click="onDoorClick"
         @pointerdown="onDoorPointerdown"
         @keydown="onDoorKeydown"

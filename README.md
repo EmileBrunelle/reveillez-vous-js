@@ -6,7 +6,7 @@ Une personne voyante frappe un rythme derrière une porte ; vous le répétez, l
 
 ## Comment jouer
 
-1. Ouvrez la page : une porte apparaît. Activez-la (clic, toucher, ou Tab puis Entrée au clavier) : c’est le bouton « Ouvrir la porte ».
+1. Ouvrez la page : une porte apparaît. Activez-la (clic, toucher, ou Tab puis Entrée au clavier) : c’est le bouton « Cogner à la porte ».
 2. **La personne voyante cogne un rythme** : écoutez-le (ou suivez les points, les sous-titres et la vibration sur appareil compatible).
 3. **Reproduisez-le** en cogneant sur la porte (clic, toucher, ou Entrée ou Espace au clavier). Après trois échecs, la porte s’ouvre quand même.
 4. **Dès le niveau 2, une petite activité** précède la carte ; elle s’achève d’elle-même après 20 s, ou avec le bouton pour la passer. Au fil des niveaux : attraper des feux follets, allumer des chandelles à l’allumette, épeler un mot à la planche Ouija, frapper aux fenêtres d’une maison dans l’ordre où elles s’allument, essuyer une boule de cristal.

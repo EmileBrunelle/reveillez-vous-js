@@ -1,5 +1,5 @@
-import { onScopeDispose, watch } from 'vue'
-import { useDocumentVisibility, useEventListener } from '@vueuse/core'
+import { watch } from 'vue'
+import { useDocumentVisibility, useEventListener, useRafFn } from '@vueuse/core'
 
 // iOS 13+ exige un geste utilisateur pour activer deviceorientation. Ailleurs : no-op.
 // Ne jamais appeler hors d’un geste ; un refus est ignoré en silence.
@@ -42,7 +42,7 @@ type Options = {
 }
 
 // Inclinaison via gyroscope/accéléromètre : la référence (baseline) est prise au premier événement valide,
-// l’écran en paysage échange les axes, un rAF lisse (lerp), pause quand l’onglet est caché.
+// l’écran en paysage échange les axes, une boucle rAF (useRafFn) lisse (lerp), pause quand l’onglet est caché.
 export const useDeviceTilt = ({ enabled, apply }: Options) => {
   const visibility = useDocumentVisibility()
   let base: (Point & { angle: number }) | null = null
@@ -52,14 +52,17 @@ export const useDeviceTilt = ({ enabled, apply }: Options) => {
   let ty = 0
   let cx = 0
   let cy = 0
-  let raf = 0
 
-  const step = () => {
-    cx += (tx - cx) * 0.15
-    cy += (ty - cy) * 0.15
-    apply(cx, cy)
-    raf = Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002 ? requestAnimationFrame(step) : 0
-  }
+  // Boucle de lissage : tourne tant que la valeur n’a pas rejoint la cible, puis se met en pause (relancée par `resume`).
+  const { pause, resume } = useRafFn(
+    () => {
+      cx += (tx - cx) * 0.15
+      cy += (ty - cy) * 0.15
+      apply(cx, cy)
+      if (Math.abs(tx - cx) <= 0.002 && Math.abs(ty - cy) <= 0.002) pause()
+    },
+    { immediate: false },
+  )
 
   useEventListener(window, 'deviceorientation', (e: DeviceOrientationEvent) => {
     if (e.beta == null || e.gamma == null || visibility.value === 'hidden' || !enabled()) return
@@ -78,7 +81,7 @@ export const useDeviceTilt = ({ enabled, apply }: Options) => {
     base = { ...r.base, angle }
     tx = clamp(r.dx / RANGE)
     ty = clamp(r.dy / RANGE)
-    if (!raf) raf = requestAnimationFrame(step)
+    resume()
   })
 
   // Rotation d’écran : transitoire instable, on oublie la référence et on ignore ~500 ms.
@@ -87,7 +90,7 @@ export const useDeviceTilt = ({ enabled, apply }: Options) => {
     ignoreUntil = performance.now() + SETTLE_MS
     tx = 0
     ty = 0
-    if (!raf) raf = requestAnimationFrame(step)
+    resume()
   }
   if (typeof screen !== 'undefined' && screen.orientation) useEventListener(screen.orientation, 'change', onRotate)
   else useEventListener(window, 'orientationchange', onRotate)
@@ -96,6 +99,4 @@ export const useDeviceTilt = ({ enabled, apply }: Options) => {
   watch(visibility, (v) => {
     if (v === 'hidden') base = null
   })
-
-  onScopeDispose(() => cancelAnimationFrame(raf))
 }

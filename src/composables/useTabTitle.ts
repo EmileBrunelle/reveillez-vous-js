@@ -1,5 +1,5 @@
 import { watch, type Ref } from 'vue'
-import { useDocumentVisibility } from '@vueuse/core'
+import { useDocumentVisibility, useTitle } from '@vueuse/core'
 import { prophecies } from '../content/prophecies'
 import { nextTabTitle } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
@@ -11,8 +11,8 @@ export const BASE_TITLE = 'Réveillez-vous.js'
 export const useTabTitle = (level: Ref<number>) => {
   const rng = secureRng()
   const visibility = useDocumentVisibility()
-  watch(visibility, (v, old) => {
-    if (v === 'hidden' && old !== 'hidden') document.title = nextTabTitle(prophecies, level.value, safeStorage(), rng, BASE_TITLE)
-    else if (v === 'visible') document.title = BASE_TITLE
+  const title = useTitle(BASE_TITLE)
+  watch(visibility, (v) => {
+    title.value = v === 'hidden' ? nextTabTitle(prophecies, level.value, safeStorage(), rng, BASE_TITLE) : BASE_TITLE
   })
 }

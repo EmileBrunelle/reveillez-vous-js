@@ -11,24 +11,25 @@
 // - `leave(count)` fait claquer la porte (`closing`) ; la porte suivante est tirée à `onClosed`.
 // - `resetLevel` (« Recommencer à zéro ») peut survenir depuis n’importe quelle phase.
 // - Les bulles de la barre des tâches appartiennent à la porte (voir useBubbles).
-import { computed, defineAsyncComponent, ref, shallowRef, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useMediaQuery } from '@vueuse/core'
+import { promiseTimeout, useMediaQuery } from '@vueuse/core'
 import { doors, pickDoor, pickPlaceVariant, placeForLevel, places } from '../content/scenes'
 import { prophecies } from '../content/prophecies'
 import { nextClockLine } from '../engine/horloge'
 import { nextDoorLine, nextProphecy, nextReturnLine, nextTitled, type Prophecy, EMPTY_ARCANE } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
-import type { Paquet } from '../engine/paquets'
+import { PAQUETS, type Paquet } from '../engine/paquets'
 import { LAST_ACTIVITY_KEY, PLAYED_ACTIVITIES_KEY, parseActivityId, parsePlayed, pickActivity, type ActivityId } from '../engine/activityPick'
 import { finaleActive } from '../engine/finaleFlow'
 import { hymn, unlock } from '../audio/sfx'
-import { activityFor, loadTarotCard, prefetch } from '../lazy'
+import { activityFor, loadFinale, loadTarotCard, prefetch } from '../lazy'
 import { useProgressStore } from '../stores/progress'
 import { useSessionStore } from '../stores/session'
 import { useCollectionStore } from '../stores/collection'
 import { safeSessionStorage, safeStorage } from './safeStorage'
 import { useBubbles } from './useBubbles'
+import { lazyScene } from './lazyScene'
 
 type Phase = 'door' | 'activity' | 'cut' | 'reading' | 'finale'
 const FALLBACK_LINE = 'Toc toc toc… Avez-vous un moment pour parler de votre avenir ?'
@@ -40,7 +41,7 @@ export type FocusTarget = 'door' | 'activity' | 'deck' | 'reading' | 'close' | '
 
 const TAROT_TIMEOUT_MS = 3000
 // « Jamais de substitut » : la carte est chargée avant la lecture. Sans le chunk (échec ou délai), la lecture de secours en texte prend le relais.
-const tarotReady = () => Promise.race([loadTarotCard().then(() => true), new Promise<false>((r) => setTimeout(() => r(false), TAROT_TIMEOUT_MS))]).catch(() => false)
+const tarotReady = () => Promise.race([loadTarotCard().then(() => true), promiseTimeout(TAROT_TIMEOUT_MS).then(() => false)]).catch(() => false)
 
 export const useGameFlow = () => {
   const rng = secureRng()
@@ -77,7 +78,7 @@ export const useGameFlow = () => {
   }
   const Activity = computed(() => {
     const loader = activityFor(activityId.value)
-    return loader ? defineAsyncComponent(loader) : null
+    return loader ? lazyScene(loader, () => onActivityDone()) : null // chunk introuvable : « Passer » enchaîne sur la coupe
   })
 
   // « Recommencer à zéro » : on repart tout de suite au niveau 1, sans compter la visite en cours.
@@ -93,17 +94,18 @@ export const useGameFlow = () => {
     } else leave(false)
   }
 
-  const enterDoor = () => {
-    place.value = placeForLevel(level.value)
-    door.value = pickDoor(place.value.id, rng)
-    placeVariant.value = pickPlaceVariant(place.value, variantSeen ? placeVariant.value.id : null, rng)
-    variantSeen = true
-    crtOff.value = false
+  // Réplique de la porte : salutation de retour après une finale, sinon ligne du niveau, parfois remplacée par l’heure locale.
+  const pickDoorLine = () => {
     const greet = progress.memory.finished && level.value === 1 && !returnGreeted
     returnGreeted = true
-    doorLine.value = greet ? nextReturnLine(safeStorage(), rng, FALLBACK_LINE) : nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
+    if (greet) return nextReturnLine(safeStorage(), rng, FALLBACK_LINE)
+    const line = nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
     // La voyante remarque parfois l’heure locale (une fois par session ; pas au niveau 5, dont les répliques sont en capitales).
-    if (!greet && level.value < 5) doorLine.value = nextClockLine(new Date(), rng, safeSessionStorage()) ?? doorLine.value
+    return level.value < 5 ? (nextClockLine(new Date(), rng, safeSessionStorage()) ?? line) : line
+  }
+
+  // Activité de la visite (null au niveau 1) : tirée, mémorisée pour la session, puis préchargée.
+  const pickActivityForVisit = () => {
     const played = parsePlayed(safeSessionStorage().getItem(PLAYED_ACTIVITIES_KEY))
     activityId.value = pickActivity(progress.visits, activityId.value, safeStorage(), rng, played)
     if (activityId.value) {
@@ -112,6 +114,17 @@ export const useGameFlow = () => {
     } else forgetActivities()
     const loadActivity = activityFor(activityId.value)
     if (loadActivity) prefetch(loadActivity) // on réchauffe celle qui sera vraiment jouée
+  }
+
+  const enterDoor = () => {
+    place.value = placeForLevel(level.value)
+    door.value = pickDoor(place.value.id, rng)
+    placeVariant.value = pickPlaceVariant(place.value, variantSeen ? placeVariant.value.id : null, rng)
+    variantSeen = true
+    crtOff.value = false
+    doorLine.value = pickDoorLine()
+    pickActivityForVisit()
+    if (level.value >= 4) prefetch(loadFinale) // le niveau 5 se termine par la finale : on la réchauffe dès le niveau 4
     phase.value = 'door'
     listening.value = false
     closing.value = false
@@ -136,9 +149,11 @@ export const useGameFlow = () => {
     focusTarget.value = 'deck'
   }
   // La prophétie est tirée ici, une fois par visite : l’arcane vient du paquet choisi.
+  let picking = false // un tirage en cours : un second clic (paquet, « Passer ») n’en tire pas un deuxième pendant l’attente du chunk
   const onPick = async (paquet: Paquet) => {
-    if (phase.value !== 'cut' || closing.value) return // « Recommencer à zéro » pendant le vol : on ne rouvre pas une lecture
-    const tarot = await tarotReady()
+    if (picking || phase.value !== 'cut' || closing.value) return // « Recommencer à zéro » pendant le vol : on ne rouvre pas une lecture
+    picking = true
+    const tarot = await tarotReady().finally(() => (picking = false))
     if (phase.value !== 'cut' || closing.value) return
     pickedPaquet.value = paquet
     tarotOk.value = tarot
@@ -164,7 +179,6 @@ export const useGameFlow = () => {
     sceneKey.value++
     phase.value = 'door'
   }
-  const restart = () => leave(true)
 
   const narrow = useMediaQuery('(max-width: 900px)')
   const onFlipped = () => {
@@ -188,7 +202,7 @@ export const useGameFlow = () => {
   }
   // Niveau 5 : « Fermer la porte » passe par la finale, puis reprend le chemin habituel.
   const onClose = () => {
-    if (level.value < 5) return restart()
+    if (level.value < 5) return leave(true)
     phase.value = 'finale'
     focusTarget.value = 'finale'
   }
@@ -200,6 +214,8 @@ export const useGameFlow = () => {
     place.value = places.find((p) => p.id === 'nuages') ?? place.value
     placeVariant.value = place.value.variants.find((v) => v.id === 'aube') ?? placeVariant.value
   }
+  // Coupe introuvable (chunk absent) : « Passer » tire un paquet au hasard et la lecture suit.
+  const skipDeck = () => void onPick(PAQUETS[Math.floor(rng() * PAQUETS.length)] ?? 'nuit')
   // « Recommencer » : visites et sacs à zéro, finale marquée, retour à la porte du niveau 1.
   const onFinaleRestart = () => {
     if (!finaleActive(phase.value)) return // double clic pendant la sortie : un seul « Recommencer »
@@ -230,6 +246,7 @@ export const useGameFlow = () => {
     Activity,
     activityId,
     startBubble,
+    skipDeck,
     resetLevel,
     onDone,
     onActivityDone,

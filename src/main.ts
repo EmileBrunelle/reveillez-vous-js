@@ -7,5 +7,8 @@ import 'virtual:uno.css'
 import './styles.css'
 import App from './App.vue'
 import { createAppLocale } from './locale'
+import { purgeLegacyVisits } from './migrations'
+
+purgeLegacyVisits()
 
 createApp(App).use(createPinia()).use(createAppLocale()).mount('#app')
