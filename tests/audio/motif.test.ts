@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import { muted } from '../../src/audio/sfx'
 import { HYMN_HZ, FLIP_BLIP_HZ } from '../../src/audio/sfx'
 import { PAD_HZ } from '../../src/audio/finale'
@@ -47,6 +48,7 @@ const noteHz = (oscs: Osc[]) => oscs.filter((x) => x.type === 'sine' && !x.isLfo
 
 describe('motif', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     muted.value = false
     motifBusyUntil.value = 0
   })

@@ -1,41 +1,16 @@
-import { reactive, ref } from 'vue'
-import { safeStorage } from '../composables/safeStorage'
+import { customRef, effectScope, watch, type EffectScope } from 'vue'
+import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '../stores/audio'
 import { playMotif } from './motif'
 
-export const muted = ref(false)
+/** Sourdine : miroir du store, sans cache (résolu à chaque lecture, jamais à l’import : pinia doit être actif). */
+export const muted = customRef<boolean>(() => ({
+  get: () => useAudioStore().muted,
+  set: (v) => {
+    useAudioStore().muted = v
+  },
+}))
 
-// Volumes par catégorie (0 à 1), persistés sous `rvj-audio`. Chaque catégorie a un GainNode branché sur le bus
-// « général », lui-même branché sur la destination : tout son passe par le bus de sa catégorie.
-export const AUDIO_KEY = 'rvj-audio'
-export const VOLUME_KEYS = ['general', 'ambiance', 'effets', 'finale'] as const
-export type VolumeKey = (typeof VOLUME_KEYS)[number]
-export type Volumes = Record<VolumeKey, number>
-export const DEFAULT_VOLUMES: Readonly<Volumes> = { general: 1, ambiance: 1, effets: 1, finale: 1 }
-
-const validVolume = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1
-
-/** Lit le JSON stocké ; chaque valeur invalide ou absente retombe sur 1 sans toucher aux autres. */
-export const parseVolumes = (raw: string | null): Volumes => {
-  const out: Volumes = { ...DEFAULT_VOLUMES }
-  if (!raw) return out
-  try {
-    const data: unknown = JSON.parse(raw)
-    if (data && typeof data === 'object') for (const k of VOLUME_KEYS) if (validVolume((data as Record<string, unknown>)[k])) out[k] = (data as Record<string, number>)[k]
-  } catch {
-    /* JSON illisible : valeurs par défaut */
-  }
-  return out
-}
-
-const readVolumes = (): Volumes => {
-  try {
-    return parseVolumes(safeStorage().getItem(AUDIO_KEY))
-  } catch {
-    return { ...DEFAULT_VOLUMES }
-  }
-}
-
-export const volumes = reactive<Volumes>(readVolumes())
+const volumeOf = (k: VolumeKey) => useAudioStore().volumes[k]
 
 type Buses = Record<VolumeKey, GainNode>
 const buses = new WeakMap<AudioContext, Buses>()
@@ -50,7 +25,7 @@ const bus = (c: AudioContext, key: VolumeKey): GainNode => {
   let b = buses.get(c)
   if (!b) {
     const general = c.createGain()
-    general.gain.value = volumes.general
+    general.gain.value = volumeOf('general')
     // limiteur doux en sortie : seuil -6 dB, ratio élevé, attaque courte, relâche ~150 ms (aucun écrêtage à la somme des bus)
     const limiter = c.createDynamicsCompressor()
     limiter.threshold.value = -6
@@ -66,7 +41,7 @@ const bus = (c: AudioContext, key: VolumeKey): GainNode => {
     for (const k of VOLUME_KEYS) {
       if (k === 'general') continue
       const g = c.createGain()
-      g.gain.value = volumes[k]
+      g.gain.value = volumeOf(k)
       g.connect(general)
       b[k] = g
     }
@@ -81,18 +56,27 @@ export const effetsOut = (c: AudioContext) => bus(c, 'effets')
 /** Sortie des sons de la finale. */
 export const finaleOut = (c: AudioContext) => bus(c, 'finale')
 
-/** Règle un volume (borné à 0–1, valeur invalide ignorée), l’applique au bus et le persiste. */
-export const setVolume = (key: VolumeKey, v: number) => {
-  if (!validVolume(v)) return
-  volumes[key] = v
-  if (ctx && ctx.state !== 'closed') rampTo(ctx, bus(ctx, key), v)
-  try {
-    safeStorage().setItem(AUDIO_KEY, JSON.stringify({ ...volumes }))
-  } catch {
-    /* stockage indisponible : le volume vaut pour la session */
-  }
+// Les changements de volume du store (curseurs, remise à zéro) se répercutent sur les bus du contexte courant.
+// Portée détachée : les watchers survivent au composant qui a déclenché le premier `ac()` (onMounted, etc.).
+let volumeScope: EffectScope | null = null
+let watchedStore: ReturnType<typeof useAudioStore> | null = null
+const watchVolumes = () => {
+  const store = useAudioStore()
+  if (volumeScope && watchedStore === store) return
+  volumeScope?.stop()
+  watchedStore = store
+  volumeScope = effectScope(true)
+  volumeScope.run(() => {
+    for (const k of VOLUME_KEYS)
+      watch(
+        () => store.volumes[k],
+        (v) => {
+          if (ctx && ctx.state !== 'closed') rampTo(ctx, bus(ctx, k), v)
+        },
+        { flush: 'sync' },
+      )
+  })
 }
-export const resetVolumes = () => VOLUME_KEYS.forEach((k) => setVolume(k, DEFAULT_VOLUMES[k]))
 
 let ctx: AudioContext | null = null
 export const ac = (): AudioContext | null => {
@@ -104,6 +88,7 @@ export const ac = (): AudioContext | null => {
     // bus (et limiteur) créés d’emblée : le DynamicsCompressor de Chrome atténue ses premières ms à froid, autant qu’il chauffe à vide
     bus(ctx, 'general')
   }
+  watchVolumes()
   return ctx
 }
 

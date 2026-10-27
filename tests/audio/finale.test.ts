@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import { muted } from '../../src/audio/sfx'
 import { ambienceDucked } from '../../src/audio/ambience'
 import { startFinaleAudio } from '../../src/audio/finale'
@@ -30,6 +31,7 @@ class FakeCtx {
 
 describe('startFinaleAudio', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.useFakeTimers()
     Object.assign(stats, { oscStarted: 0, oscStopped: 0, disconnected: 0 })
     muted.value = false

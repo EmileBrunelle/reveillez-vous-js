@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { AUDIO_KEY, DEFAULT_VOLUMES, VOLUME_KEYS, ac, ambienceOut, effetsOut, finaleOut, parseVolumes, resetVolumes, setVolume, volumes } from '../../src/audio/sfx'
+import { ac, ambienceOut, effetsOut, finaleOut } from '../../src/audio/sfx'
+import { AUDIO_KEY, DEFAULT_VOLUMES, VOLUME_KEYS, parseVolumes, useAudioStore } from '../../src/stores/audio'
+import { createPinia, setActivePinia } from 'pinia'
+import { effectScope } from 'vue'
 import { safeStorage } from '../../src/composables/safeStorage'
 
 interface FakeGain {
@@ -34,7 +37,17 @@ class FakeCtx {
 const asCtx = (c: FakeCtx) => c as unknown as AudioContext
 const asGain = (g: GainNode) => g as unknown as FakeGain
 
-beforeEach(() => resetVolumes())
+let store: ReturnType<typeof useAudioStore>
+const setVolume = (...a: Parameters<typeof store.setVolume>) => store.setVolume(...a)
+const memStorage = () => {
+  const m = new Map<string, string>()
+  return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }
+}
+beforeEach(() => {
+  vi.stubGlobal('localStorage', memStorage())
+  setActivePinia(createPinia())
+  store = useAudioStore()
+})
 afterEach(() => vi.unstubAllGlobals())
 
 describe('parseVolumes', () => {
@@ -56,18 +69,18 @@ describe('parseVolumes', () => {
 describe('setVolume', () => {
   it('persiste dans rvj-audio et se relit', () => {
     setVolume('effets', 0.3)
-    expect(volumes.effets).toBe(0.3)
+    expect(store.volumes.effets).toBe(0.3)
     expect(parseVolumes(safeStorage().getItem(AUDIO_KEY)).effets).toBe(0.3)
   })
   it('ignore une valeur invalide', () => {
     setVolume('ambiance', 0.4)
     for (const bad of [NaN, Infinity, -0.1, 1.1]) setVolume('ambiance', bad)
-    expect(volumes.ambiance).toBe(0.4)
+    expect(store.volumes.ambiance).toBe(0.4)
   })
   it('resetVolumes remet tout à 1', () => {
     VOLUME_KEYS.forEach((k) => setVolume(k, 0.2))
-    resetVolumes()
-    expect({ ...volumes }).toEqual(DEFAULT_VOLUMES)
+    store.resetVolumes()
+    expect({ ...store.volumes }).toEqual(DEFAULT_VOLUMES)
   })
 })
 
@@ -101,5 +114,15 @@ describe('bus par catégorie', () => {
     setVolume('effets', 0.5)
     expect(e.gain.setTargetAtTime).toHaveBeenCalledWith(0.5, 1, expect.any(Number))
     expect(a.gain.setTargetAtTime).not.toHaveBeenCalled()
+  })
+  it('les bus suivent le store même si le premier ac() vient d’un composant démonté', () => {
+    vi.stubGlobal('window', { AudioContext: FakeCtx })
+    const scope = effectScope()
+    let c!: AudioContext
+    scope.run(() => (c = ac() as AudioContext)) // comme un onMounted de composant
+    const e = asGain(effetsOut(c))
+    scope.stop() // démontage
+    setVolume('effets', 0.4)
+    expect(e.gain.setTargetAtTime).toHaveBeenCalledWith(0.4, 1, expect.any(Number))
   })
 })

@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { muted } from '../../src/audio/sfx'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import {
   EVENT_BOOST,
@@ -141,6 +142,7 @@ class FakeCtx {
 
 describe('startAmbience (contexte factice)', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.useFakeTimers()
     vi.stubGlobal('window', { AudioContext: FakeCtx })
     Object.assign(stats, { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, looped: 0, removed: [], times: [] })
@@ -305,6 +307,8 @@ describe('fondus de startAmbience (contexte factice)', () => {
     })
     // contexte déjà partagé par les tests précédents : on repart d’un contexte neuf via un module propre
     vi.resetModules()
+    const { createPinia: newPinia, setActivePinia: setPinia } = await import('pinia')
+    setPinia(newPinia())
     const sfx = await import('../../src/audio/sfx')
     const amb = await import('../../src/audio/ambience')
     const stop = amb.startAmbience('rue')

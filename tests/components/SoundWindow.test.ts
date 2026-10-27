@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSSRApp, h } from 'vue'
+import { createPinia } from 'pinia'
 import { renderToString } from 'vue/server-renderer'
 import SoundWindow from '../../src/components/SoundWindow.vue'
 
-const render = async () => renderToString(createSSRApp({ render: () => h(SoundWindow, { modelValue: false }) }))
+const render = async () => renderToString(createSSRApp({ render: () => h(SoundWindow, { modelValue: false }) }).use(createPinia()))
 
 // Pas de DOM dans l’environnement de test (node) : un EventTarget suffit.
 beforeEach(() => vi.stubGlobal('document', new EventTarget()))

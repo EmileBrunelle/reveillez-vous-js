@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { focusQuietly } from '../composables/focusQuietly'
-import { previewEffects, resetVolumes, setVolume, volumes, type VolumeKey } from '../audio/sfx'
+import { previewEffects } from '../audio/sfx'
+import { useAudioStore, type VolumeKey } from '../stores/audio'
 
 // Parent v-model = « veut ouvert ». <dialog> natif : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
@@ -15,8 +16,9 @@ const sliders: { key: VolumeKey; label: string }[] = [
   { key: 'effets', label: 'Effets' },
   { key: 'finale', label: 'Finale' },
 ]
-const percent = (key: VolumeKey) => Math.round(volumes[key] * 100)
-const onInput = (key: VolumeKey, e: Event) => setVolume(key, Number((e.target as HTMLInputElement).value) / 100)
+const audio = useAudioStore()
+const percent = (key: VolumeKey) => Math.round(audio.volumes[key] * 100)
+const onInput = (key: VolumeKey, e: Event) => audio.setVolume(key, Number((e.target as HTMLInputElement).value) / 100)
 // « change » part au relâchement du curseur (souris, toucher, ou une touche du clavier) : un aperçu pour les effets seulement.
 const onChange = (key: VolumeKey) => key === 'effets' && previewEffects()
 
@@ -78,7 +80,7 @@ const btn = `win-btn select-none touch-manipulation [font:inherit] border-0 min-
           />
         </div>
         <div class="flex justify-end gap-2 pt-1">
-          <button :class="btn" type="button" @click="resetVolumes">Valeurs par défaut</button>
+          <button :class="btn" type="button" @click="audio.resetVolumes">Valeurs par défaut</button>
           <button ref="closeBtn" :class="btn" type="button" @click="dlg?.close()">Fermer</button>
         </div>
       </div>

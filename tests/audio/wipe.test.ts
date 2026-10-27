@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import { FREQ_MAX, FREQ_MIN, GAIN_MAX, SPEED_MAX, SQUEAK_MAX, startWipeSound, wipeParams } from '../../src/audio/wipe'
 
 describe('wipeParams', () => {
@@ -67,6 +68,7 @@ class FakeCtx {
 
 describe('startWipeSound', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.useFakeTimers()
     Object.assign(stats, { started: 0, stopped: 0, disconnected: 0, targets: [] })
     vi.stubGlobal('window', { AudioContext: FakeCtx })
