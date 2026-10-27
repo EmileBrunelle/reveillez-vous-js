@@ -276,7 +276,8 @@ onMounted(() => {
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
   nudgeTimer.start()
 })
-onUnmounted(halt)
+// Exception : annule l’horloge audio des coups (Web Audio, hors VueUse) ; animations et minuteries s’arrêtent seules avec le scope.
+onUnmounted(() => knocks?.cancel())
 
 const open = async () => {
   if (state === 'opening') return finish()

@@ -37,6 +37,7 @@ export const useFitBody = ({ root, panel, body, sources }: Options) => {
     lastH = h
     const cs = getComputedStyle(panelNode)
     const room = panelNode.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+    // Exception : mesure synchrone (chaque essai exige un offsetHeight juste après l’écriture), impossible à passer par un état réactif.
     const fits = (px: number) => {
       bodyNode.style.fontSize = `${px}px`
       return bodyNode.offsetHeight <= room + 0.5 && panelNode.scrollHeight <= panelNode.clientHeight + 1

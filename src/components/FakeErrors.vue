@@ -50,6 +50,7 @@ const avoidBoxes = (): Box[] => {
 let safeInsets: { t: number; r: number; l: number } | null = null
 const safe = () => {
   if (safeInsets) return safeInsets
+  // Exception : sonde éphémère, mesure ponctuelle de variables CSS résolues (env()) qu’aucun état Vue ne porte ; retirée aussitôt.
   const probe = document.createElement('div')
   probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--safe-t) var(--safe-r) 0 var(--safe-l)'
   document.body.appendChild(probe)

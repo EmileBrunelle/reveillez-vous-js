@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useParallax } from '@vueuse/core'
+import { nextFrame } from '../../composables/nextFrame'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useProgressStore } from '../../stores/progress'
 import { startAmbience } from '../../audio/ambience'
@@ -48,7 +49,7 @@ onMounted(async () => {
   stopMusic = startMusic(() => progress.level)
   try {
     const [{ createRaymarch }, cfg] = await Promise.all([import('../../effects/raymarch'), placeLoaders[place]()])
-    await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
+    await nextFrame() // canvas is laid out
     if (gone) return
     const s = await createRaymarch(canvas.value!, {
       shader: cfg.shader,
@@ -66,6 +67,7 @@ onMounted(async () => {
     failed.value = true
   }
 })
+// Exception : libère le GPU et les sons (WebGPU et Web Audio, hors VueUse) ; `gone` interrompt l’init asynchrone en cours.
 onUnmounted(() => {
   gone = true
   scene?.stop()

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
-import { animate } from 'motion-v'
+import { onMounted, ref, useTemplateRef } from 'vue'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useDeferredText } from '../../composables/useDeferredText'
+import { useMotionScope } from '../../composables/useMotionScope'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useHaptics } from '../../composables/haptics'
 import { knock } from '../../audio/sfx'
@@ -33,7 +33,8 @@ const hint = ref<number | null>(null)
 const house = useTemplateRef<HTMLElement>('house')
 const missed = ref(false)
 let playIdx = 0
-let shake: { stop: () => void } | undefined
+// Secousse Motion : arrêtée à la destruction par useMotionScope.
+const { go: shakeHouse, halt: haltShake } = useMotionScope()
 
 const { start: unlight } = useTimeoutFn(() => (lit.value = null), LIT_MS, { immediate: false })
 const { start: unflash } = useTimeoutFn(() => (lit.value = null), 450, { immediate: false })
@@ -82,7 +83,6 @@ const startPlay = () => {
 const { start: replayLater } = useTimeoutFn(startPlay, 700, { immediate: false })
 const { start: introLater } = useTimeoutFn(startPlay, 700, { immediate: false })
 onMounted(introLater)
-onUnmounted(() => shake?.stop())
 
 const hit = (i: number) => {
   if (phase.value !== 'input' || outcome.value !== 'play') return
@@ -94,8 +94,8 @@ const hit = (i: number) => {
     lit.value = null
     hint.value = null
     if (house.value && !reduced.value) {
-      shake?.stop()
-      shake = animate(house.value, { x: [-12, 0] }, { type: 'spring', stiffness: 700, damping: 7 })
+      haltShake()
+      void shakeHouse(house.value, { x: [-12, 0] }, { type: 'spring', stiffness: 700, damping: 7 })
     }
     replayLater()
     return

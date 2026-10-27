@@ -2,6 +2,7 @@
 import { nextTick, ref, watch, useTemplateRef } from 'vue'
 import { Dialog } from '@vuetify/v0'
 import { animate } from 'motion-v'
+import { promiseTimeout } from '@vueuse/core'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { finishAnimations, type Stoppable } from '../composables/finishAnimations'
 import { aboutClose, aboutOpen } from '../audio/sfx'
@@ -64,7 +65,7 @@ const playOpen = async () => {
     void run(title.value, { clipPath: ['inset(0 100% 0 0)', 'inset(0 0% 0 0)'] }, { duration: 0.28, delay: 0.14, ease: typed })
     void run(body.value, { opacity: [0, 1] }, { duration: 0.2, delay: 0.3, ease: 'easeOut' })
     await run(win.value, { clipPath: [DOT, LINE, FULL], opacity: [0, 1, 1], transform: ['scale(0.9)', 'scale(1)', 'scale(1)'] }, { duration: 0.42, times: [0, 0.4, 1], ease: 'easeOut' })
-    await new Promise((r) => setTimeout(r, 90))
+    await promiseTimeout(90)
   }
   rest()
   busy = false

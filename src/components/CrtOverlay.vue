@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { promiseTimeout } from '@vueuse/core'
+import { nextFrame } from '../composables/nextFrame'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import type { GpuLoop } from '../effects/gpuLoop'
 import { hasWebGpuAdapter } from '../effects/webgpu'
@@ -17,14 +19,10 @@ const knockRipple = { age: 10, amp: 0 }
 let gone = false
 const lost = ref(false)
 const TIMEOUT_MS = 5000
-const timeout = <T,>(p: Promise<T>, label: string): Promise<T> =>
-  new Promise<T>((resolve, reject) => {
-    const t = window.setTimeout(() => reject(new Error(`${label} timed out`)), TIMEOUT_MS)
-    p.then(resolve, reject).finally(() => window.clearTimeout(t))
-  })
+const timeout = <T,>(p: Promise<T>, label: string): Promise<T> => Promise.race([p, promiseTimeout(TIMEOUT_MS, true, `${label} timed out`) as Promise<never>])
 
 onMounted(async () => {
-  // No WebGPU (or a hung adapter request): the gate. Anything after that is decoration and never blocks.
+  // Pas de WebGPU (ou demande d’adaptateur bloquée) : l’écran-barrière. Tout ce qui suit est décoratif et ne bloque jamais.
   let ok = false
   try {
     ok = await timeout(hasWebGpuAdapter(), 'requestAdapter')
@@ -35,7 +33,7 @@ onMounted(async () => {
   if (!ok) return emit('fail')
   const start = (async () => {
     const { startCrt } = await import('../effects/crt')
-    await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
+    await nextFrame() // canevas mis en page
     return startCrt(canvas.value!, {
       motion: () => !reducedMotion.value,
       paranoia: () => paranoia,
@@ -56,7 +54,7 @@ onMounted(async () => {
     if (gone) return s.stop()
     crt = s
   } catch (e) {
-    console.warn('CRT overlay disabled:', e)
+    console.warn('Surcouche CRT désactivée :', e)
     lost.value = true
     void start.then(
       (s) => s.stop(),
@@ -65,6 +63,7 @@ onMounted(async () => {
   }
   if (!gone) emit('ready')
 })
+// Exception : libère le périphérique GPU (ressource WebGPU, hors VueUse) ; `gone` interrompt l’init asynchrone en cours.
 onUnmounted(() => {
   gone = true
   crt?.stop()

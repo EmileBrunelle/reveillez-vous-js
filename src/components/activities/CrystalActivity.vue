@@ -6,6 +6,7 @@ import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { startWipeSound, type WipeSound } from '../../audio/wipe'
+import { nextFrame } from '../../composables/nextFrame'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import type { GpuLoop } from '../../effects/gpuLoop'
 import { KEY_STEP, WIN_RATIO, clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
@@ -145,7 +146,7 @@ let gone = false
 onMounted(async () => {
   try {
     const { createCrystal } = await import('../../effects/crystal')
-    await new Promise((r) => requestAnimationFrame(r)) // canevas mis en page
+    await nextFrame() // canevas mis en page
     if (gone || !canvas.value) return
     const s = await createCrystal(canvas.value, {
       motion: () => !reducedMotion.value,
@@ -162,6 +163,7 @@ onMounted(async () => {
     failed.value = true
   }
 })
+// Exception : libère le GPU et la capture du pointeur (WebGPU et API pointeur, hors VueUse) ; `gone` interrompt l’init asynchrone en cours.
 onUnmounted(() => {
   gone = true
   last = null

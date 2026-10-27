@@ -27,6 +27,7 @@ const left = ref(Math.round(timeLeft(elapsedAtMount, duration.value) * 100))
 const { pause: pauseTick } = useIntervalFn(() => (left.value = Math.round(timeLeft(Date.now() - startedAt, duration.value) * 100)), 500)
 // Jingle en cours : coupé au démontage et si le son passe en muet pendant la lecture.
 let stopStinger: () => void = () => {}
+// Exception : coupe un jingle Web Audio (ressource audio, hors VueUse).
 onUnmounted(() => stopStinger())
 watch(muted, (m) => m && stopStinger())
 
