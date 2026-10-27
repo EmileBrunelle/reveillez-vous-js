@@ -9,8 +9,8 @@ export interface GpuLoopOptions<S> {
   render: (frame: Frame, state: S, clock: Clock) => void
   /** Libère ce que `setup` a créé (effets). Le périphérique est libéré ensuite ; les erreurs des deux sont ignorées. */
   teardown?: (state: S) => void
-  /** Plafond d’images par seconde, appliqué par `frameLoop` de vgpu (30 par défaut). */
-  fps?: number
+  /** Plafond d’images par seconde, appliqué par `frameLoop` de vgpu (30 par défaut) ; un changement relance la boucle. */
+  fps?: MaybeRefOrGetter<number>
   /** Pause supplémentaire (ex. CRT éteint) ; l’onglet caché met déjà la boucle en pause. */
   paused?: MaybeRefOrGetter<boolean>
   /** Périphérique perdu (ou trame en échec) hors arrêt volontaire : la boucle est déjà arrêtée. */
@@ -33,6 +33,7 @@ export interface GpuLoop {
  */
 export const startGpuLoop = async <S>(opts: GpuLoopOptions<S>): Promise<GpuLoop> => {
   const { setup, render, teardown, fps = 30, paused, onLost } = opts
+  const fpsNow = () => toValue(fps)
   const gpu = await init()
   const scope = effectScope(true)
   let stopped = false
@@ -57,8 +58,10 @@ export const startGpuLoop = async <S>(opts: GpuLoopOptions<S>): Promise<GpuLoop>
     loop = null
   }
   // Perte du périphérique ou trame en échec : on arrête la boucle, la libération reste à `stop`.
+  let lostFired = false
   const lose = () => {
-    if (stopped) return
+    if (stopped || lostFired) return // une trame en échec puis `gpu.lost` ne préviennent qu’une fois
+    lostFired = true
     halt()
     onLost?.()
   }
@@ -69,22 +72,21 @@ export const startGpuLoop = async <S>(opts: GpuLoopOptions<S>): Promise<GpuLoop>
         try {
           render(f, state, time)
         } catch (e) {
-          console.warn('Trame GPU en échec, boucle arrêtée :', e)
+          console.error('Trame GPU en échec, boucle arrêtée :', e)
           lose()
         }
       },
-      { fps },
+      { fps: fpsNow() },
     )
 
   scope.run(() => {
     const visibility = useDocumentVisibility()
+    // Une seule boucle vivante : tout changement (pause, reprise, cadence) arrête l’ancienne avant d’en lancer une.
     watch(
-      () => visibility.value === 'hidden' || !!toValue(paused),
-      (pause) => {
-        if (pause) {
-          loop?.stop()
-          loop = null
-        } else loop ??= start()
+      [() => visibility.value === 'hidden' || !!toValue(paused), fpsNow],
+      ([pause]) => {
+        loop?.stop()
+        loop = pause ? null : start()
       },
       { immediate: true },
     )

@@ -1,6 +1,7 @@
 import { useResizeObserver } from '@vueuse/core'
 import { effect, surface } from 'vgpu'
 import { startGpuLoop, type GpuLoop } from './gpuLoop'
+import { raymarchStaticKey } from './frameSkip'
 import { paramsKey } from './paramsKey'
 import { placeDpr } from './resolution'
 
@@ -40,10 +41,13 @@ export interface RaymarchOptions {
   onLost?: () => void
 }
 
+/** Cadence de la boucle en mouvement réduit : juste de quoi repérer un redimensionnement ou un changement de niveau. */
+const STATIC_FPS = 4
+
 /**
- * Lance un fond raymarché générique sur `canvas` (30 i/s). Lève si quoi que ce soit échoue ; renvoie `stop()`,
- * à appeler au démontage. `motion()` faux = mouvement réduit : une image statique (redessinée au redimensionnement
- * ou au changement de niveau seulement).
+ * Lance un fond raymarché générique sur `canvas`. Lève si quoi que ce soit échoue ; renvoie `stop()`, à appeler au démontage.
+ * Animé : 30 i/s. `motion()` faux = mouvement réduit : la boucle tourne à `STATIC_FPS` et ne redessine que si la clé de
+ * l’image statique change (taille, paranoïa, paramètres de la variante) ; sinon elle ne fait que recalculer cette clé.
  */
 export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions): Promise<GpuLoop> => {
   const { motion, paranoia, parallax } = opts
@@ -53,6 +57,8 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
   }
   return startGpuLoop({
     paused: opts.paused,
+    // Mouvement réduit : cadence basse, la boucle ne fait que comparer la clé de l’image statique.
+    fps: () => (motion() ? 30 : STATIC_FPS),
     onLost: opts.onLost,
     setup: (gpu) => {
       // Taille CSS mise en cache et tenue à jour par l’observateur : aucune lecture de mise en page par trame.
@@ -65,12 +71,13 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
       const anim = { p: paranoia(), drift: 0, px: 0, py: 0 }
       const surf = surface(gpu, canvas, { dpr: dprFor(), clearColor: [0, 0, 0, 1] })
       const fx = effect(gpu, opts.shader, { set: { params: params(anim, 0) } })
-      return Object.assign(anim, { gpu, lastKey: '', dprFor, surf, fx })
+      return { anim, gpu, dprFor, surf, fx, lastKey: '' }
     },
     teardown: (s) => s.fx.dispose(),
     render: (frame, s, time) => {
+      const a = s.anim
       const dt = Math.min(time.deltaTime, 0.1)
-      s.p += (paranoia() - s.p) * (1 - Math.pow(0.97, dt * 60))
+      a.p += (paranoia() - a.p) * (1 - Math.pow(0.97, dt * 60))
       // CRT éteint/rallumé : la surface est recréée à la nouvelle résolution (l’écran est noir à ce moment-là, en finale).
       const want = s.dprFor()
       if (Math.abs(want - s.surf.dpr) > 1e-6) {
@@ -80,17 +87,17 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
       if (motion()) {
         const par = parallax()
         const k = 1 - Math.exp(-dt / 0.35) // constante de temps ~0,35 s, indépendante du débit
-        s.px += (par.x - s.px) * k
-        s.py += (par.y - s.py) * k
-        s.drift += dt
+        a.px += (par.x - a.px) * k
+        a.py += (par.y - a.py) * k
+        a.drift += dt
       } else {
         // Image statique : la clé (construite seulement ici) inclut les paramètres de la variante, hors `time` ;
-        // changer de variante sans remontage redessine.
-        const key = `${canvas.width}x${canvas.height}|${s.p.toFixed(3)}|${paramsKey(params(s, 0))}`
+        // on ne redessine que si elle diffère de la dernière image dessinée.
+        const key = raymarchStaticKey(canvas.width, canvas.height, a.p, paramsKey(params(a, 0)))
         if (key === s.lastKey) return
         s.lastKey = key
       }
-      s.fx.set({ params: params(s, time.time) })
+      s.fx.set({ params: params(a, time.time) })
       frame.pass(s.surf, s.fx)
     },
   })

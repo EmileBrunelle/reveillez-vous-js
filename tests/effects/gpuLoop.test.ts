@@ -62,7 +62,7 @@ describe('startGpuLoop', () => {
 
   it('traite une trame en échec comme une perte : boucle arrêtée, onLost appelé', async () => {
     const onLost = vi.fn()
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     await startGpuLoop({
       setup: () => ({}),
       render: () => {
@@ -73,6 +73,52 @@ describe('startGpuLoop', () => {
     expect(() => loops[0]!.cb({})).not.toThrow()
     expect(onLost).toHaveBeenCalledTimes(1)
     expect(loops[0]!.stop).toHaveBeenCalled()
+    // Le bogue de rendu reste visible dans la console, avec l’erreur d’origine.
+    expect(error).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ message: 'boom' }))
+  })
+
+  it('double perte (trame en échec puis gpu.lost) : onLost une seule fois', async () => {
+    const onLost = vi.fn()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    await startGpuLoop({
+      setup: () => ({}),
+      render: () => {
+        throw new Error('boom')
+      },
+      onLost,
+    })
+    loops[0]!.cb({})
+    loseDevice()
+    await flush()
+    expect(onLost).toHaveBeenCalledTimes(1)
+  })
+
+  it('bascule rapide caché/visible : jamais plus d’une boucle vivante', async () => {
+    await startGpuLoop({ setup: () => ({}), render: () => {} })
+    for (let i = 0; i < 5; i++) {
+      visibility.current.value = 'hidden'
+      await flush()
+      expect(live()).toHaveLength(0)
+      visibility.current.value = 'visible'
+      await flush()
+      expect(live()).toHaveLength(1)
+    }
+    // Plusieurs bascules dans le même tick : une seule boucle au bout.
+    visibility.current.value = 'hidden'
+    visibility.current.value = 'visible'
+    visibility.current.value = 'hidden'
+    visibility.current.value = 'visible'
+    await flush()
+    expect(live()).toHaveLength(1)
+  })
+
+  it('un changement de cadence relance la boucle à la nouvelle cadence', async () => {
+    const fps = ref(30)
+    await startGpuLoop({ setup: () => ({}), render: () => {}, fps })
+    fps.value = 4
+    await flush()
+    expect(live()).toHaveLength(1)
+    expect(live()[0]!.fps).toBe(4)
   })
 
   it('stop est idempotent et ne lève pas même si teardown et dispose lèvent', async () => {

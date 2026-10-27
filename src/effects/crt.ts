@@ -1,5 +1,6 @@
 import { effect, surface } from 'vgpu'
 import crtShader from './crt.wgsl'
+import { crtStaticKey } from './frameSkip'
 import { startGpuLoop, type GpuLoop } from './gpuLoop'
 
 /** Doit correspondre à PERIOD dans crt.wgsl : tous les termes pilotés par le temps se répètent exactement sur ce nombre de secondes. */
@@ -41,7 +42,7 @@ export const startCrt = (canvas: HTMLCanvasElement, opts: CrtOptions): Promise<G
       const animated = opts.motion()
       // Mouvement réduit : tout terme temporel du shader est nul, rien ne change hors taille et paranoïa.
       if (!animated) {
-        const key = `${canvas.width}x${canvas.height}|${params.paranoia.toFixed(3)}`
+        const key = crtStaticKey(canvas.width, canvas.height, params.paranoia)
         if (key === s.lastKey) return
         s.lastKey = key
       }
