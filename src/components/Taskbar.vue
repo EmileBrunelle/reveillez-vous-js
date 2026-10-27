@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
-import { onClickOutside, useFullscreen, useIntervalFn, useTimeoutFn } from '@vueuse/core'
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { onClickOutside, useEventListener, useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
 import { loadAbout, loadCollection, loadReset, prefetch } from '../lazy'
@@ -34,10 +34,18 @@ const toggle = async () => {
     focusQuietly(items()[0])
   }
 }
-// Plein écran sur la page entière ; absent (isSupported faux, p. ex. Safari iPhone) : ni icône ni entrée de menu.
-const { isSupported: canFullscreen, isFullscreen, toggle: toggleFullscreen } = useFullscreen(typeof document === 'undefined' ? undefined : document.documentElement)
+// Plein écran sur la page entière ; API absente (p. ex. Safari iPhone) : ni icône ni entrée de menu.
+// État lu sur document.fullscreenElement : useFullscreen de VueUse se fie à webkitIsFullScreen dans Chromium, qui peut se dire actif sans élément plein écran.
+const canFullscreen = ref(false)
+const isFullscreen = ref(false)
+const syncFullscreen = () => (isFullscreen.value = !!document.fullscreenElement)
+onMounted(() => {
+  canFullscreen.value = document.fullscreenEnabled === true
+  syncFullscreen()
+})
+useEventListener(() => globalThis.document, 'fullscreenchange', syncFullscreen)
 const fullscreenLabel = computed(() => (isFullscreen.value ? 'Quitter le plein écran' : 'Passer en plein écran'))
-const switchFullscreen = () => void toggleFullscreen().catch(() => {})
+const switchFullscreen = () => void (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {})
 const chooseFullscreen = () => {
   close(true)
   switchFullscreen()

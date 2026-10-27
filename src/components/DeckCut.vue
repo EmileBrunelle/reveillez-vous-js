@@ -332,7 +332,7 @@ const choose = (i: number) => {
       aria-hidden="true"
     >
       <li v-for="i in cards" :key="i" class="deck__line flex items-start gap-[2cqw]" :class="{ 'deck__line--on': hot === i, 'deck__line--dim': hot !== null && hot !== i }">
-        <TarotEmblem class="shrink-0 size-[5.5cqw] [color:#b9821a]" :symbole="EMBLEMS[paquets[i]]" />
+        <span class="block shrink-0 size-[5.5cqw] [color:#b9821a]" aria-hidden="true"><TarotEmblem :symbole="EMBLEMS[paquets[i]]" /></span>
         <span
           ><b class="font-normal uppercase">{{ PAQUET_NOMS[paquets[i]] }}</b> : {{ PAQUET_PRESAGES[paquets[i]] }}</span
         >
