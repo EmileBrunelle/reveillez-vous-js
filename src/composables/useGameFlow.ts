@@ -11,7 +11,7 @@
 // - `leave(count)` fait claquer la porte (`closing`) ; la porte suivante est tirée à `onClosed`.
 // - `resetLevel` (« Recommencer à zéro ») peut survenir depuis n’importe quelle phase.
 // - Les bulles de la barre des tâches appartiennent à la porte (voir useBubbles).
-import { computed, defineAsyncComponent, nextTick, ref, shallowRef, watch, type Ref } from 'vue'
+import { computed, defineAsyncComponent, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useMediaQuery } from '@vueuse/core'
 import { doors, pickDoor, pickPlaceVariant, placeForLevel, places } from '../content/scenes'
@@ -28,20 +28,21 @@ import { useProgressStore } from '../stores/progress'
 import { useSessionStore } from '../stores/session'
 import { useCollectionStore } from '../stores/collection'
 import { safeSessionStorage, safeStorage } from './safeStorage'
-import { focusQuietly } from './focusQuietly'
 import { useBubbles } from './useBubbles'
 
 type Phase = 'door' | 'activity' | 'cut' | 'reading' | 'finale'
 const FALLBACK_LINE = 'Toc toc toc… Avez-vous un moment pour parler de votre avenir ?'
 
-interface GameFlowDeps {
-  ensureTarot: () => Promise<void>
-  tarotFailed: Ref<boolean>
-  closeBtn: Readonly<Ref<HTMLButtonElement | null | undefined>>
-  readingEl: Readonly<Ref<HTMLElement | null | undefined>>
-}
+// Où le focus doit atterrir après un changement d’écran (App.vue le traduit en élément, puis remet la valeur à null) :
+// 'door' le bouton de la porte, 'activity' le conteneur de l’activité, 'deck' le paquet à couper, 'reading' la section de lecture,
+// 'close' « Fermer la porte » (lecture de secours ou carte retournée), 'finale' le conteneur de la finale.
+export type FocusTarget = 'door' | 'activity' | 'deck' | 'reading' | 'close' | 'finale' | null
 
-export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: GameFlowDeps) => {
+const TAROT_TIMEOUT_MS = 3000
+// « Jamais de substitut » : la carte est chargée avant la lecture. Sans le chunk (échec ou délai), la lecture de secours en texte prend le relais.
+const tarotReady = () => Promise.race([loadTarotCard().then(() => true), new Promise<false>((r) => setTimeout(() => r(false), TAROT_TIMEOUT_MS))]).catch(() => false)
+
+export const useGameFlow = () => {
   const rng = secureRng()
   const progress = useProgressStore()
   const { level } = storeToRefs(progress)
@@ -49,6 +50,7 @@ export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: G
   const collection = useCollectionStore()
   const { startBubble, stopBubble, clearBubbles } = useBubbles(rng)
 
+  const focusTarget = ref<FocusTarget>(null)
   const listening = ref(false)
   const phase = ref<Phase>('door')
   const closing = ref(false)
@@ -123,17 +125,19 @@ export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: G
   const onDone = () => {
     prefetch(loadTarotCard)
     phase.value = activityId.value ? 'activity' : 'cut'
+    focusTarget.value = activityId.value ? 'activity' : 'deck'
     listening.value = false
   }
   const onActivityDone = () => {
     // Un `done` tardif (activité en sortie après « Recommencer à zéro » ou « Fermer la porte ») ne doit rien relancer.
     if (phase.value !== 'activity' || closing.value) return
     phase.value = 'cut'
+    focusTarget.value = 'deck'
   }
   // La prophétie est tirée ici, une fois par visite : l’arcane vient du paquet choisi.
   const onPick = async (paquet: Paquet) => {
     if (phase.value !== 'cut' || closing.value) return // « Recommencer à zéro » pendant le vol : on ne rouvre pas une lecture
-    await ensureTarot()
+    const tarot = await tarotReady()
     if (phase.value !== 'cut' || closing.value) return
     pickedPaquet.value = paquet
     prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng, paquet, progress.visits === 0)
@@ -141,7 +145,7 @@ export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: G
     cardSettled.value = false
     phase.value = 'reading'
     hymn()
-    void nextTick(() => focusQuietly(tarotFailed.value ? closeBtn.value : readingEl.value, { preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
+    focusTarget.value = tarot ? 'reading' : 'close' // la coupe disparaît : le focus reste sur la lecture (ou « Fermer la porte » si la carte n’a pas pu se charger)
   }
   if (devPhase === 'finale') phase.value = 'finale'
   if (devPhase === 'deck' || devPhase === 'card') {
@@ -169,7 +173,7 @@ export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: G
       const b = nextTitled(prophecies, 'bulle1', safeStorage(), rng)
       if (b) session.notify(`${b.title}|${b.text}`)
     }
-    void nextTick(() => focusQuietly(closeBtn.value, { preventScroll: true }))
+    focusTarget.value = 'close'
   }
   // Une bulle appartient à la porte : dès qu’on la quitte, la bulle en attente est annulée ; l’affichée est retirée sur écran étroit (elle couvrirait la carte).
   watch(phase, (p) => {
@@ -181,7 +185,11 @@ export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: G
     enterDoor()
   }
   // Niveau 5 : « Fermer la porte » passe par la finale, puis reprend le chemin habituel.
-  const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
+  const onClose = () => {
+    if (level.value < 5) return restart()
+    phase.value = 'finale'
+    focusTarget.value = 'finale'
+  }
   // L’écran est noir : le CRT s’éteint et le lieu passe à l’aube sans qu’on le voie.
   const onCollapsed = () => {
     if (!finaleActive(phase.value)) return // Finale encore montée pendant sa sortie : un collapsed tardif ne touche plus la porte
@@ -204,6 +212,7 @@ export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: G
   return {
     rng,
     phase,
+    focusTarget,
     closing,
     listening,
     sceneKey,
@@ -216,6 +225,7 @@ export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: G
     prophecy,
     cardSettled,
     Activity,
+    activityId,
     startBubble,
     resetLevel,
     onDone,

@@ -1,19 +1,19 @@
 // Chunks chargés à la demande (hors du premier écran) : la carte du tirage, la scène de la porte
 // et les fenêtres/écrans secondaires. Les préchargements partent dès que possible (voir `prefetch`).
-import { defineAsyncComponent, markRaw, ref, shallowRef, type Component } from 'vue'
+import { defineAsyncComponent, h, markRaw, shallowRef, type Component } from 'vue'
+import TarotFallback from '../components/TarotFallback.vue'
 import { loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadSound, loadTarotCard, prefetch } from '../lazy'
 
-export const useLazyScenes = () => {
-  // La carte du tirage est chargée avant la fin de la coupe (jamais de substitut) : on ne la rend qu’une fois le chunk là.
-  const TarotCard = shallowRef<Component | null>(null)
-  const tarotFailed = ref(false) // le chunk n’a pas pu se charger : lecture de secours en texte, le jeu ne reste jamais bloqué
-  const loadTarotOnce = () => loadTarotCard().then((m) => void (TarotCard.value = markRaw(m.default)))
-  const timeout = (ms: number) => new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
-  // Pas de retour anticipé : si le chunk arrive après un échec, tarotFailed doit retomber, sinon la lecture de secours (testée avant TarotCard dans le gabarit) resterait jusqu’à la fin de la session.
-  const ensureTarot = async () => {
-    for (let n = 0; n < 2 && !TarotCard.value; n++) await Promise.race([loadTarotOnce(), timeout(3000)]).catch(() => undefined)
-    tarotFailed.value = !TarotCard.value
-  }
+export const useLazyScenes = (reading: () => { title: string; body: string; verse: string }) => {
+  // La carte du tirage est chargée avant la lecture (voir onPick : jamais de substitut) ; si le chunk échoue, defineAsyncComponent
+  // réessaie deux fois puis affiche la lecture de secours. errorComponent ne reçoit pas les props du parent : on lui rend le texte tiré.
+  const TarotFallbackBound = () => h(TarotFallback, reading())
+  const TarotCard = defineAsyncComponent({
+    loader: loadTarotCard,
+    timeout: 3000,
+    errorComponent: TarotFallbackBound,
+    onError: (_err, retry, fail, attempts) => (attempts <= 2 ? retry() : fail()),
+  })
 
   const About = defineAsyncComponent(loadAbout)
   const ResetConfirm = defineAsyncComponent(loadReset)
@@ -37,5 +37,5 @@ export const useLazyScenes = () => {
       },
     ))
 
-  return { TarotCard, tarotFailed, ensureTarot, DoorScene, ensureDoor, About, ResetConfirm, CollectionWindow, SoundWindow, DeckCut, Finale }
+  return { TarotCard, DoorScene, ensureDoor, About, ResetConfirm, CollectionWindow, SoundWindow, DeckCut, Finale }
 }
