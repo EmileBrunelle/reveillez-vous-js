@@ -5,8 +5,10 @@ import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { OUIJA_SHOWN, OUIJA_WORDS } from '../../content/ouija'
-import { OUIJA_BYE, OUIJA_NO, OUIJA_ROWS, OUIJA_YES, advanceDwell, clampDrop, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../engine/ouija'
+import { DROP_EXTENT, OUIJA_BYE, OUIJA_NO, OUIJA_ROWS, OUIJA_YES, advanceDwell, clampDrop, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../engine/ouija'
+import { approach, liftFromSpeed, tiltFromVelocity, tremorOffset, wanderOffset } from '../../engine/ouijaMotion'
 import { orSecure, type Rng } from '../../engine/rng'
+import { ouijaFarewell, ouijaTick } from '../../audio/ouija'
 import IconGoutte from '~icons/rvj/goutte'
 
 const props = defineProps<{ level: number; rng?: Rng }>()
@@ -27,6 +29,8 @@ let driftUsed = false
 const index = ref(0)
 let dwell = 0
 const farewell = ref(false)
+// Case de mot qui vient d’être complétée (le « pop » ne joue qu’une fois, à l’ajout de la classe).
+const popSeg = ref(-1)
 const status = ref(`Épelez le mot ${shown}.`)
 const reduced = useReducedMotion()
 
@@ -39,6 +43,7 @@ const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'), {
     farewell.value = true
     override = els[OUIJA_BYE] ?? null
     driftStop()
+    ouijaFarewell()
     status.value = `${shown} : la planche vous dit au revoir.`
   },
 })
@@ -60,6 +65,12 @@ const pos = { x: 0, y: 0, vx: 0, vy: 0 }
 let placed = false
 // Case que la goutte rejoint d’elle-même (dérive vers NON, puis AU REVOIR) ; sinon elle suit le pointeur.
 let override: HTMLElement | null = null
+// Lettre dont l’anneau --dwell est (peut-être) rempli : on la ramène à 0 même quand le survol est suspendu (dérive).
+let dwellEl: HTMLElement | null = null
+// Distance entre le bord gauche d’AU REVOIR et le point d’ancrage de la goutte : son débord à droite + un petit jeu.
+const BYE_GAP = DROP_EXTENT.right + 6
+// Mouvement vivant : état lissé écrit dans le même transform (un seul maître).
+const motion = { clock: 0, tilt: 0, lift: 1, resist: 0 }
 
 const centerOf = (el: HTMLElement) => {
   const s = stage.value?.getBoundingClientRect()
@@ -77,13 +88,23 @@ const { start: driftLater, stop: driftStop } = useTimeoutFn(
   { immediate: false },
 )
 
+// Lettre qui vient d’être validée : classe `pop` retirée après l’animation (la même lettre peut revenir dans le mot).
+const popLetter = ref('')
+const { start: popClear } = useTimeoutFn(() => (popLetter.value = ''), 340, { immediate: false })
+
 const validate = (letter: string) => {
   if (isFinished() || override) return
   const next = pressLetter(word, index.value, letter)
   if (next === index.value) return
   index.value = next
   dwell = 0
-  els[letter]?.style.removeProperty('--dwell')
+  const key = els[letter]
+  key?.style.removeProperty('--dwell')
+  dwellEl = null
+  popLetter.value = reduced.value ? '' : letter
+  popClear()
+  popSeg.value = reduced.value ? -1 : segments.findIndex((sg) => sg.end === next)
+  ouijaTick()
   status.value = `Lettre ${letter}. ${next} sur ${word.length}.`
   if (next >= word.length) {
     farewell.value = true
@@ -147,7 +168,7 @@ useRafFn(({ delta }) => {
   const goal = override ? centerOf(override) : null
   // À la fin, la goutte s’arrête à gauche d’AU REVOIR pour que le texte reste lisible.
   // Toujours ramenée dans la scène (overflow hidden) : la goutte ne doit jamais être rognée, quelle que soit sa cible.
-  const { x: tx, y: ty } = clampDrop(goal ? (override === els[OUIJA_BYE] ? goal.left - 26 : goal.x) : target.x, goal ? goal.y : target.y, s.clientWidth, s.clientHeight)
+  const { x: tx, y: ty } = clampDrop(goal ? (override === els[OUIJA_BYE] ? goal.left - BYE_GAP : goal.x) : target.x, goal ? goal.y : target.y, s.clientWidth, s.clientHeight)
   if (reduced.value) {
     pos.x = tx
     pos.y = ty
@@ -164,7 +185,31 @@ useRafFn(({ delta }) => {
   }
   // Le ressort peut dépasser un peu la cible : on borne aussi la position affichée.
   const at = clampDrop(pos.x, pos.y, s.clientWidth, s.clientHeight)
-  if (dropEl.value) dropEl.value.style.transform = `translate3d(${at.x}px, ${at.y}px, 0)`
+  motion.clock += dt
+  const drifting = !!override && override === els[OUIJA_NO]
+  let rx = at.x
+  let ry = at.y
+  if (reduced.value) {
+    motion.tilt = 0
+    motion.lift = 1
+    motion.resist = 0
+  } else {
+    // Vitesse (px par image à 60 Hz) tirée du ressort : inclinaison dans le sens du mouvement, léger lift, retour doux au repos.
+    const vx = pos.vx * 0.06 * (1000 / 60)
+    const vy = pos.vy * 0.06 * (1000 / 60)
+    motion.resist = approach(motion.resist, drifting ? 1 : 0, dt, 350)
+    motion.tilt = approach(motion.tilt, tiltFromVelocity(vx, motion.resist), dt, 90)
+    motion.lift = approach(motion.lift, liftFromSpeed(vx, vy), dt, 120)
+    // « Autres mains » : vagabondage lent ajouté au rendu seulement (le test de survol garde pos), tremblement pendant la dérive résistée.
+    const w = wanderOffset(motion.clock, props.level)
+    const t = tremorOffset(motion.clock, motion.resist)
+    rx += w.x + t.x
+    ry += w.y + t.y
+  }
+  const d = dropEl.value
+  if (d) {
+    d.style.transform = `translate3d(${rx}px, ${ry}px, 0) rotate(${motion.tilt.toFixed(2)}deg) scale(${motion.lift.toFixed(4)})`
+  }
   // Survol de la lettre attendue (les autres sont ignorées) ; en pause pendant la dérive.
   const letter = expected.value
   const el = letter && !override && !isFinished() ? els[letter] : null
@@ -172,8 +217,14 @@ useRafFn(({ delta }) => {
   const over = !!c && pos.x >= c.left - 4 && pos.x <= c.right + 4 && pos.y >= c.top - 4 && pos.y <= c.bottom + 4
   const p = advanceDwell(dwell, over, dt)
   // Anneau de survol : variable CSS écrite directement sur la lettre (pas de rendu Vue à chaque image).
-  if (p !== dwell && el) el.style.setProperty('--dwell', String(p))
+  // Pendant la dérive, `el` est nul : l’anneau restant retombe sur la dernière lettre survolée au lieu de rester figé.
+  if (el) dwellEl = el
+  const ringEl = el ?? dwellEl
+  if (p !== dwell && ringEl) ringEl.style.setProperty('--dwell', String(p))
   dwell = p
+  if (!el && p === 0) dwellEl = null
+  // Chaleur de la goutte : proportionnelle à la progression du survol.
+  d?.style.setProperty('--warm', p.toFixed(3))
   if (p >= 1 && letter) validate(letter)
 })
 </script>
@@ -188,7 +239,7 @@ useRafFn(({ delta }) => {
         :key="i"
         aria-hidden="true"
         class="inline-block min-w-[1.1em] border-0 border-b-[3px] border-solid pb-1"
-        :class="seg.end <= index ? 'border-[#d9b55a]' : seg.start <= index ? 'border-[#e8d9b0] opacity-80' : 'border-[#d9b55a]/25 opacity-40'"
+        :class="[seg.end <= index ? 'border-[#d9b55a]' : seg.start <= index ? 'border-[#e8d9b0] opacity-80' : 'border-[#d9b55a]/25 opacity-40', { pop: popSeg === i }]"
         >{{ seg.ch }}</span
       >
     </p>
@@ -198,7 +249,16 @@ useRafFn(({ delta }) => {
         <button :ref="setEl(OUIJA_NO)" type="button" class="key answer" :aria-label="OUIJA_NO" tabindex="-1">{{ OUIJA_NO }}</button>
       </div>
       <div v-for="row in OUIJA_ROWS" :key="row" class="flex gap-1 sm:gap-1.5">
-        <button v-for="l in row" :key="l" :ref="setEl(l)" type="button" class="key letter" :class="{ next: expected === l, 'no-motion': reduced }" :aria-label="`Lettre ${l}`" @click="validate(l)">
+        <button
+          v-for="l in row"
+          :key="l"
+          :ref="setEl(l)"
+          type="button"
+          class="key letter"
+          :class="{ next: expected === l, pop: popLetter === l, 'no-motion': reduced }"
+          :aria-label="`Lettre ${l}`"
+          @click="validate(l)"
+        >
           {{ l }}
         </button>
       </div>
@@ -288,7 +348,25 @@ useRafFn(({ delta }) => {
   top: -34px;
   width: 40px;
   height: 52px;
-  filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.55));
+  /* --warm (0–1) écrite dans le rAF : la lentille se réchauffe pendant le survol. */
+  filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.55)) drop-shadow(0 0 calc(var(--warm, 0) * 10px) rgb(255 190 90 / calc(var(--warm, 0) * 0.85))) brightness(calc(1 + var(--warm, 0) * 0.25));
+}
+/* Validation : un seul pop (≈ 1,2 → 1, léger dépassement de ressort) et une lueur chaude qui retombe, sans clignotement. */
+.pop {
+  animation: pop 300ms cubic-bezier(0.34, 1.4, 0.64, 1) 1;
+}
+@keyframes pop {
+  0% {
+    transform: scale(1.2);
+    text-shadow: 0 0 14px rgb(255 200 100 / 0.95);
+  }
+  60% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 0 rgb(255 200 100 / 0);
+  }
 }
 .no-motion {
   transition-duration: 0s;
