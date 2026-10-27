@@ -1,8 +1,7 @@
-import { clock, effect, frameLoop, init, surface } from 'vgpu'
+import { effect, surface } from 'vgpu'
+import { startGpuLoop, type GpuLoop } from './gpuLoop'
 import crystalShader from './crystal.wgsl'
 import { RING_SIZE } from './crystalMath'
-
-const FPS_CAP = 30
 
 export interface CrystalOptions {
   /** Faux = mouvement réduit : pas de tourbillon, la brume ne revient pas. */
@@ -14,82 +13,67 @@ export interface CrystalOptions {
   /** 0..1 : dissipation finale. */
   done: () => number
   seed: number
+  /** Pause supplémentaire ; l’onglet caché met déjà la boucle en pause. */
+  paused?: () => boolean
   onLost?: () => void
 }
 
-/** Les coups récents deviennent les champs vec4f `p0`..`p7`, la grille les champs `g0`..`g3` (4 rangées chacun). */
-const pointFields = (flat: number[], grid: number[]): Record<string, number[]> => {
-  const out: Record<string, number[]> = {}
-  for (let i = 0; i < 4; i++) out[`g${i}`] = [grid[i * 4] ?? 0, grid[i * 4 + 1] ?? 0, grid[i * 4 + 2] ?? 0, grid[i * 4 + 3] ?? 0]
-  for (let i = 0; i < RING_SIZE; i++) out[`p${i}`] = [flat[i * 4] ?? 0, flat[i * 4 + 1] ?? 0, flat[i * 4 + 2] ?? 0, flat[i * 4 + 3] ?? 0]
-  return out
+/** Tampons réutilisés : les coups récents deviennent les champs vec4f `p0`..`p7`, la grille les champs `g0`..`g3` (4 rangées chacun). */
+const makeParams = (seed: number) => {
+  const params: Record<string, number | number[]> = { time: 0, motion: 0, done: 0, seed }
+  for (let i = 0; i < 4; i++) params[`g${i}`] = [0, 0, 0, 0]
+  for (let i = 0; i < RING_SIZE; i++) params[`p${i}`] = [0, 0, 0, 0]
+  return params
+}
+
+/** Copie `src` (par paquets de 4, 0 si absent) dans les vec4 `${prefix}${i}` ; renvoie vrai si une valeur a changé. */
+const copyVec4 = (params: Record<string, number | number[]>, prefix: string, count: number, src: number[]): boolean => {
+  let changed = false
+  for (let i = 0; i < count; i++) {
+    const v = params[`${prefix}${i}`] as number[]
+    for (let j = 0; j < 4; j++) {
+      const n = src[i * 4 + j] ?? 0
+      if (v[j] !== n) {
+        v[j] = n
+        changed = true
+      }
+    }
+  }
+  return changed
 }
 
 /**
- * Lance la boule de cristal sur `canvas` (carré, DPR plafonné à 1,5). Lève si quoi que ce soit échoue ; renvoie pause/arrêt.
- * `stop` libère l’effet et le périphérique ; `onLost` est appelé si le périphérique est perdu hors arrêt volontaire.
+ * Lance la boule de cristal sur `canvas` (carré, DPR plafonné à 1,5, 30 i/s). Lève si quoi que ce soit échoue ;
+ * renvoie `stop()`, qui libère l’effet et le périphérique. `onLost` est appelé si le périphérique est perdu hors arrêt volontaire.
+ * Mouvement réduit : on ne redessine que si les coups, la grille, la dissipation ou la taille changent.
  */
-export const createCrystal = async (canvas: HTMLCanvasElement, opts: CrystalOptions): Promise<{ setPaused(paused: boolean): void; stop(): void }> => {
-  const gpu = await init()
-  let stopped = false
-  let loop: { stop(): void } | null = null
-  void gpu.lost.then(() => {
-    if (stopped) return
-    try {
-      loop?.stop()
-    } catch {
-      /* périphérique déjà perdu */
-    }
-    loop = null
-    opts.onLost?.()
+export const createCrystal = (canvas: HTMLCanvasElement, opts: CrystalOptions): Promise<GpuLoop> =>
+  startGpuLoop({
+    paused: opts.paused,
+    onLost: opts.onLost,
+    setup: (gpu) => {
+      const params = makeParams(opts.seed)
+      const surf = surface(gpu, canvas, { dpr: [1, 1.5], clearColor: [0, 0, 0, 0] })
+      const fx = effect(gpu, crystalShader, { set: { params } })
+      return { params, surf, fx, drawn: false, size: '' }
+    },
+    teardown: (s) => s.fx.dispose(),
+    render: (frame, s, time) => {
+      const { params } = s
+      const animated = opts.motion()
+      const done = opts.done()
+      const size = `${canvas.width}x${canvas.height}`
+      let changed = !s.drawn || size !== s.size || done !== params.done || (animated ? 1 : 0) !== params.motion
+      changed = copyVec4(params, 'p', RING_SIZE, opts.points()) || changed
+      changed = copyVec4(params, 'g', 4, opts.grid()) || changed
+      // En mouvement le temps change à chaque image ; sinon on saute l’image quand rien n’a bougé.
+      if (!animated && !changed) return
+      s.drawn = true
+      s.size = size
+      params.time = animated ? time.time % 600 : 0
+      params.motion = animated ? 1 : 0
+      params.done = done
+      s.fx.set({ params })
+      frame.pass(s.surf, s.fx)
+    },
   })
-  const params = (t: number) => ({ time: opts.motion() ? t % 600 : 0, motion: opts.motion() ? 1 : 0, done: opts.done(), seed: opts.seed, ...pointFields(opts.points(), opts.grid()) })
-  let surf: ReturnType<typeof surface>
-  let fx: ReturnType<typeof effect>
-  let time: ReturnType<typeof clock>
-  try {
-    surf = surface(gpu, canvas, { dpr: [1, 1.5], clearColor: [0, 0, 0, 0] })
-    fx = effect(gpu, crystalShader, { set: { params: params(0) } })
-    time = clock(gpu)
-  } catch (e) {
-    gpu.dispose()
-    throw e
-  }
-  let lastDraw = -1
-  const run = () =>
-    frameLoop(gpu, (frame) => {
-      if (performance.now() - lastDraw < 1000 / FPS_CAP - 4) return
-      lastDraw = performance.now()
-      fx.set({ params: params(time.time) })
-      frame.pass(surf, fx)
-    })
-  loop = run()
-  return {
-    setPaused(paused: boolean) {
-      if (paused) {
-        loop?.stop()
-        loop = null
-      } else loop ??= run()
-    },
-    stop() {
-      stopped = true
-      // Périphérique déjà perdu ou détruit : on ne veut pas qu’un dispose lève pendant le démontage.
-      try {
-        loop?.stop()
-      } catch {
-        /* rien */
-      }
-      loop = null
-      try {
-        fx.dispose()
-      } catch {
-        /* rien */
-      }
-      try {
-        gpu.dispose()
-      } catch {
-        /* rien */
-      }
-    },
-  }
-}

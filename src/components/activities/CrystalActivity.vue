@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
-import { useDocumentVisibility } from '@vueuse/core'
+import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useDeferredText } from '../../composables/useDeferredText'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -8,6 +7,7 @@ import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { startWipeSound, type WipeSound } from '../../audio/wipe'
 import { useReducedMotion } from '../../composables/useReducedMotion'
+import type { GpuLoop } from '../../effects/gpuLoop'
 import { clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
 
 // Niveau 5 : essuyer la boule de cristal. Brume WebGPU (canvas carré) ; si le GPU échoue, brume CSS qui s’efface quand même.
@@ -20,7 +20,6 @@ const KEY_STEP = 0.14
 const ball = useTemplateRef<HTMLElement>('ball')
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const failed = ref(false)
-const visibility = useDocumentVisibility()
 
 const now = () => performance.now() / 1000
 const ring = createWipeRing()
@@ -141,9 +140,8 @@ const fallbackStyle = computed(() => {
 })
 
 // WebGPU : import dynamique + périphérique ; chaque await revérifie que le composant est encore monté.
-let scene: { setPaused(paused: boolean): void; stop(): void } | null = null
+let scene: GpuLoop | null = null
 let gone = false
-watch(visibility, (v) => scene?.setPaused(v === 'hidden'))
 onMounted(async () => {
   try {
     const { createCrystal } = await import('../../effects/crystal')
@@ -159,7 +157,6 @@ onMounted(async () => {
     })
     if (gone) return s.stop()
     scene = s
-    if (visibility.value === 'hidden') s.setPaused(true)
   } catch (e) {
     console.warn('Crystal ball: CSS fallback:', e)
     failed.value = true
