@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { arcaneIndex, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '../../src/stores/progress'
+import { arcaneIndex, FINALE_KEY, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '../../src/stores/progress'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
 
 const m = new Map<string, string>()
@@ -133,5 +133,34 @@ describe('progress store', () => {
 
   it('arcaneIndex parses roman numerals', () => {
     expect(['0', 'I', 'IV', 'IX', 'XVI', 'XVIII', 'XXI', 'XIII bis', 'XIII ½', 'LXVI', '?'].map(arcaneIndex)).toEqual([0, 1, 4, 9, 16, 18, 21, 13, 13, 66, null])
+  })
+
+  it('finale vue : un rechargement remet les visites à zéro et efface la marque', () => {
+    ss.set(VISITS_KEY, '20')
+    const s = fresh()
+    s.markFinaleSeen()
+    expect(s.level).toBe(5)
+    expect(ss.get(FINALE_KEY)).toBe('1')
+    const again = fresh()
+    expect(again.visits).toBe(0)
+    expect(again.level).toBe(1)
+    expect(ss.get(FINALE_KEY)).not.toBe('1')
+    expect(again.memory.finished).toBe(true)
+  })
+
+  it('sans marque, le rechargement ne change rien', () => {
+    ss.set(VISITS_KEY, '20')
+    fresh()
+    const again = fresh()
+    expect(again.visits).toBe(20)
+    expect(again.memory.finished).toBe(false)
+  })
+
+  it('reset efface la marque de finale', () => {
+    const s = fresh()
+    s.markFinaleSeen()
+    s.reset()
+    expect(ss.get(FINALE_KEY)).not.toBe('1')
+    expect(fresh().visits).toBe(0)
   })
 })
