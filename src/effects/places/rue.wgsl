@@ -339,9 +339,9 @@ fn box_hit(ro: vec3f, rd: vec3f, lo: vec3f, hi: vec3f) -> vec4f {
     let pa = params.paranoia;
     let breath = 1.0 + 0.05 * sin(params.drift * 0.5);
     let warm = vec3f(1.0, 0.68, 0.32);
-    let fogK = (0.085 + 0.04 * pa) * breath * (1.0 - 0.5 * isSnow);
+    let fogK = (0.18 + 0.07 * pa) * breath * (1.0 - 0.5 * isSnow);
     col += warm * ld_scatter(ro, rd, tv, LAMP, fogK);
-    col += warm * ld_motes(ro, rd, tv, LAMP, params.drift, 0.8 + 0.2 * pa, PIX) * (1.4 + 0.6 * pa) * breath * (1.0 - 0.4 * isSnow);
+    col += warm * ld_motes(ro, rd, tv, LAMP, params.drift, 0.95 + 0.05 * pa, PIX) * (3.2 + 1.2 * pa) * breath * (1.0 - 0.4 * isSnow);
     let hz = ld_haze(ro, rd, tv, params.drift);
     col += vec3f(0.12, 0.17, 0.30) * hz * (0.10 + 0.07 * pa) * (1.0 - 0.6 * isSnow) * (0.6 + 0.4 * smoothstep(-0.3, 0.9, dot(rd, MOON)));
   }
