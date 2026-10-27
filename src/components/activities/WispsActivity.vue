@@ -2,6 +2,8 @@
 import { computed, ref, shallowRef } from 'vue'
 import { useElementSize, usePreferredReducedMotion, useRafFn, useEventListener, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
+import ActivityHud from './ActivityHud.vue'
+import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { secureRng, type Rng } from '../../engine/rng'
 import { aimPoint, TOUCH_GRACE_MS } from '../../composables/touchAim'
@@ -12,7 +14,7 @@ const props = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
-const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'))
+const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), { durationMs: durationOf('wisps') })
 const rng: Rng = secureRng()
 
 const TOTAL = 3
@@ -83,7 +85,7 @@ const catchIt = () => {
 
 const { pause } = useRafFn(({ delta }) => {
   if (isFinished()) {
-    settled.value = true
+    settled.value = outcome.value === 'win'
     pause()
     return
   }
@@ -163,7 +165,9 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
 
 <template>
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
-    <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-200/90" aria-live="polite">Suivez les trois feux follets ({{ caught }}/{{ TOTAL }}).</p>
+    <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-200/90" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
+      Suivez les trois feux follets ({{ caught }}/{{ TOTAL }}).
+    </p>
     <p class="sr-only" role="status" aria-live="polite">{{ settled ? 'Les feux follets se sont laissé apprivoiser.' : '' }}</p>
     <span v-if="guide" class="wisp-guide pointer-events-none absolute left-0 top-0 rounded-full" :style="{ transform: `translate3d(${guide.x - 14}px, ${guide.y - 14}px, 0)` }" aria-hidden="true" />
     <template v-if="visible">
@@ -180,6 +184,7 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
         <span class="wisp-orb block rounded-full" :class="{ 'wisp-bloom': blooming }" :style="{ '--p': progress }" />
       </span>
     </template>
+    <ActivityHud activity="wisps" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

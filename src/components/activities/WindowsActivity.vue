@@ -3,6 +3,8 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { animate } from 'motion-v'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
+import ActivityHud from './ActivityHud.vue'
+import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useHaptics } from '../../composables/haptics'
@@ -14,7 +16,16 @@ import { checkStep, hintFor, makeSequence, startInput } from '../../engine/windo
 const props = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
-const { finish, canSkip } = useActivityDone(() => emit('done'))
+const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
+  durationMs: durationOf('windows'),
+  // Fin : les fenêtres se verrouillent (plus de frappe pendant l’issue) ; seule la réussite affiche la fin réussie.
+  onFinish: (o) => {
+    stopTicks()
+    lit.value = null
+    hint.value = null
+    phase.value = o === 'win' ? 'won' : 'play'
+  },
+})
 const reduced = useReducedMotion()
 
 // Fenêtre allumée ~700 ms, intervalle de 350 ms ; fondus CSS de 350 ms (variation de luminance bien sous 3 Hz).
@@ -30,7 +41,10 @@ const hint = ref<number | null>(null)
 const house = ref<HTMLElement>()
 const missed = ref(false)
 // Annonce vocale (région aria-live) des phases du jeu.
-const status = computed(() => (phase.value === 'won' ? 'Bravo, c’est réussi.' : phase.value === 'input' ? 'À vous.' : missed.value ? 'Ce n’était pas celle-là. On recommence.' : 'Regardez bien…'))
+// À l’échec (temps écoulé), rien : le HUD annonce déjà l’issue.
+const status = computed(() =>
+  outcome.value === 'fail' ? '' : phase.value === 'won' ? 'Bravo, c’est réussi.' : phase.value === 'input' ? 'À vous.' : missed.value ? 'Ce n’était pas celle-là. On recommence.' : 'Regardez bien…',
+)
 let playIdx = 0
 let shake: { stop: () => void } | undefined
 
@@ -53,6 +67,7 @@ const { pause: stopTicks, resume: resumeTicks } = useIntervalFn(
   { immediate: false, immediateCallback: true },
 )
 const startPlay = () => {
+  if (outcome.value !== 'play') return
   phase.value = 'play'
   hint.value = null
   lit.value = null
@@ -65,7 +80,7 @@ onMounted(introLater)
 onUnmounted(() => shake?.stop())
 
 const hit = (i: number) => {
-  if (phase.value !== 'input') return
+  if (phase.value !== 'input' || outcome.value !== 'play') return
   const { state, result } = checkStep(seq, input.value, i)
   input.value = state
   if (result === 'wrong') {
@@ -95,7 +110,7 @@ const hit = (i: number) => {
 <template>
   <div class="size-full flex flex-col items-center justify-center gap-4 px-4 pb-2 select-none">
     <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>
-    <p class="font-ui text-xl text-center text-amber-100/90 max-w-[22ch]">Frappez aux fenêtres dans l’ordre où elles s’allument</p>
+    <p class="font-ui text-xl text-center text-amber-100/90 max-w-[22ch]" :class="{ invisible: outcome !== 'play' }">Frappez aux fenêtres dans l’ordre où elles s’allument</p>
     <div ref="house" class="relative w-[min(78vw,300px)]">
       <div class="h-[70px] bg-[#0b0a10] [clip-path:polygon(50%_0,100%_100%,0_100%)]" aria-hidden="true" />
       <div class="grid grid-cols-2 gap-4 p-4 bg-[#0b0a10]">
@@ -111,6 +126,7 @@ const hit = (i: number) => {
         />
       </div>
     </div>
+    <ActivityHud activity="windows" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

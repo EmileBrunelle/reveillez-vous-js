@@ -2,6 +2,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
+import ActivityHud from './ActivityHud.vue'
+import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { startWipeSound, type WipeSound } from '../../audio/wipe'
 import { useReducedMotion } from '../../composables/useReducedMotion'
@@ -28,11 +30,14 @@ const cleared = ref(false)
 const clearedAt = ref(0)
 // Réussite (joueur ou minuterie) : `onFinish` règle la dissipation ; en mouvement réduit la brume disparaît d’un coup.
 const reducedMotion = useReducedMotion()
-const { finish, canSkip } = useActivityDone(() => emit('done'), {
-  onFinish: () => {
-    cleared.value = true
+const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
+  durationMs: durationOf('crystal'),
+  // Expiration (échec) : on arrête le frottement, la brume reste.
+  onFinish: (o) => {
     wipe?.stop()
     wipe = null
+    if (o === 'fail') return
+    cleared.value = true
     clearedAt.value = now()
   },
 })
@@ -42,7 +47,7 @@ let last: { x: number; y: number } | null = null
 let wipe: WipeSound | null = null
 let prevPt: { x: number; y: number } | null = null
 const rub = (p: { x: number; y: number }) => {
-  if (cleared.value) return
+  if (cleared.value || outcome.value !== 'play') return
   wipe ??= startWipeSound()
   wipe.move(prevPt ? Math.hypot(p.x - prevPt.x, p.y - prevPt.y) : 0)
   prevPt = p
@@ -175,7 +180,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col items-center justify-center gap-4 font-ui select-none">
+  <div class="relative w-full h-full flex flex-col items-center justify-center gap-4 font-ui select-none">
     <div
       ref="ball"
       class="ball relative rounded-full touch-none cursor-grab focus-visible:outline-2 focus-visible:outline-offset-4"
@@ -202,9 +207,10 @@ onUnmounted(() => {
         aria-hidden="true"
       />
     </div>
-    <p class="text-xl text-center px-4" aria-live="polite">
+    <p class="text-xl text-center px-4" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ cleared ? 'La brume se dissipe…' : 'Essuyez la boule de cristal' }}
     </p>
+    <ActivityHud activity="crystal" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

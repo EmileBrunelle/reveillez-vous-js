@@ -2,6 +2,8 @@
 import { computed, reactive, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
+import ActivityHud from './ActivityHud.vue'
+import { durationOf } from '../../engine/activityTiming'
 import { useHaptics } from '../../composables/haptics'
 import { TOUCH_GRACE_MS } from '../../composables/touchAim'
 import { useActivityDone } from '../../composables/useActivityDone'
@@ -17,18 +19,19 @@ const rng = orSecure(props.rng)
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
-const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'), {
-  delayMs: 600,
+const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), {
+  durationMs: durationOf('candles'),
   // Fin par n’importe quel chemin (dont les 20 s) : la chandelle soufflée se rallume, rien ne reste sombre.
-  onFinish: () => {
+  // Expiration (échec) : rien ne se rallume, les chandelles restent comme elles sont.
+  onFinish: (o) => {
     const i = snuffed.value
-    if (i >= 0) {
+    if (o === 'win' && i >= 0) {
       lit[i] = true
       hold[i] = 1
       snuffed.value = -1
     }
     relightStop()
-    over.value = true
+    over.value = o === 'win'
   },
 })
 const reduced = useReducedMotion()
@@ -95,7 +98,7 @@ const { start: relightLater, stop: relightStop } = useTimeoutFn(
 )
 
 const light = (i: number) => {
-  if (lit[i]) return
+  if (lit[i] || outcome.value !== 'play') return
   lit[i] = true
   pulse(20)
   hold[i] = 1
@@ -186,7 +189,7 @@ useRafFn(({ delta }) => {
     <!-- La pièce sombre et sa chaleur couvrent toute la fenêtre (fixed, hors de la colonne de 36 rem) : rien n’est rogné, aucun rectangle visible. -->
     <div class="fixed inset-0 -z-1 pointer-events-none bg-[#07050a]" aria-hidden="true" />
     <div class="warm fixed inset-0 -z-1 pointer-events-none" :class="{ 'no-motion': reduced }" :style="{ opacity: litCount / COUNT }" aria-hidden="true" />
-    <p class="relative m-0 text-[1.4rem] text-[#e8d9b0]" aria-live="polite">
+    <p class="relative m-0 text-[1.4rem] text-[#e8d9b0]" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ over ? 'La pièce se réchauffe…' : snuffed >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles' }}
     </p>
     <div class="relative flex items-end gap-8 sm:gap-14">
@@ -217,6 +220,7 @@ useRafFn(({ delta }) => {
       <span class="match-flame" :class="{ 'no-motion': reduced }" />
       <span class="match-stick" />
     </span>
+    <ActivityHud activity="candles" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
