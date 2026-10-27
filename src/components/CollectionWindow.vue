@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
+import { nextTick, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { useCollectionStore } from '../stores/collection'
@@ -9,6 +9,7 @@ import { focusQuietly } from '../composables/focusQuietly'
 
 // Parent v-model = « veut ouvert ». <dialog> natif : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
+const titleId = useId()
 const dlg = useTemplateRef<HTMLDialogElement>('dlg')
 const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
 const collection = useCollectionStore()
@@ -59,12 +60,12 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
   <dialog
     ref="dlg"
     class="mt-2 mb-[calc(var(--taskbar-h)+0.5rem)] mx-auto p-0 w-[34rem] sm:w-[52rem] max-w-[calc(100vw-1rem-var(--safe-l)-var(--safe-r))] max-h-[calc(100dvh-var(--taskbar-h)-var(--safe-t)-1rem)] top-[var(--safe-t)] right-[var(--safe-r)] left-[var(--safe-l)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
-    aria-labelledby="collection-title"
+    :aria-labelledby="titleId"
     @close="onClose"
   >
     <div class="win-window flex flex-col max-h-[calc(100dvh-var(--taskbar-h)-var(--safe-t)-1rem)]">
       <div class="flex items-center justify-between gap-2 bg-[#000080] text-white py-[2px] px-2 select-none">
-        <h2 id="collection-title" class="m-0 text-[1rem] font-bold">Collection</h2>
+        <h2 :id="titleId" class="m-0 text-[1rem] font-bold">Collection</h2>
         <button
           class="win-btn border-0 min-w-6 h-6 p-0 [font:inherit] font-bold leading-none focus-visible:[outline:2px_dotted_#000] focus-visible:outline-offset-[-4px]"
           type="button"
@@ -77,6 +78,8 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
       <p class="m-0 px-3 pt-3 pb-2" role="status">{{ collection.count }} / {{ collection.total }} arcanes révélés</p>
       <ul
         role="list"
+        tabindex="0"
+        :aria-labelledby="titleId"
         class="list-none m-0 mx-3 mb-3 p-2 grid gap-2 grid-cols-[repeat(auto-fill,minmax(3.75rem,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] auto-rows-max content-start min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#2a1450] shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]"
       >
         <li

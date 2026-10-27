@@ -42,8 +42,18 @@ const house = useTemplateRef<HTMLElement>('house')
 const missed = ref(false)
 // Annonce vocale (région aria-live) des phases du jeu.
 // À l’échec (temps écoulé), rien : le HUD annonce déjà l’issue.
+// Ordre complet annoncé au tour du joueur : « fenêtres 4, 5, 3 ».
+const turnOrder = `fenêtres ${seq.map((n) => n + 1).join(', ')}`
 const status = computed(() =>
-  outcome.value === 'fail' ? '' : phase.value === 'won' ? 'Bravo, c’est réussi.' : phase.value === 'input' ? 'À vous.' : missed.value ? 'Ce n’était pas celle-là. On recommence.' : 'Regardez bien…',
+  outcome.value === 'fail'
+    ? ''
+    : phase.value === 'won'
+      ? 'Bravo, c’est réussi.'
+      : phase.value === 'input'
+        ? `À vous : ${turnOrder}.`
+        : missed.value
+          ? 'Ce n’était pas celle-là. On recommence.'
+          : 'Regardez bien…',
 )
 let playIdx = 0
 let shake: { stop: () => void } | undefined

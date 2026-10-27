@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import IconEye from '~icons/rvj/oeil'
 
 defineProps<{ level: number }>()
 const emit = defineEmits<{ reset: [] }>()
+const hintId = useId()
 const flash = ref(false)
 const { start } = useTimeoutFn(() => (flash.value = false), 1500, { immediate: false })
 
@@ -51,7 +52,7 @@ const onKeyup = (e: KeyboardEvent) => {
     type="button"
     class="relative m-0 p-0 border-0 bg-transparent [color:inherit] [font-family:inherit] leading-[inherit] text-[0.75rem] tracking-[0.05em] cursor-pointer select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] before:content-[''] before:absolute before:-inset-[2px]"
     :class="{ 'vigil--reset': flash }"
-    aria-describedby="vigil-hint"
+    :aria-describedby="hintId"
     :title="`Niveau de vigilance : ${level} sur 5 (triple-clic, appui long ou Entrée maintenue pour recommencer à zéro)`"
     @click="onClick"
     @contextmenu.prevent
@@ -63,7 +64,7 @@ const onKeyup = (e: KeyboardEvent) => {
     @keyup="onKeyup"
     @blur="release"
   >
-    <span id="vigil-hint" class="sr-only">Triple-clic, appui long ou Entrée maintenue 600 millisecondes pour recommencer à zéro.</span>
+    <span :id="hintId" class="sr-only" aria-hidden="true">Triple-clic, appui long ou Entrée maintenue 600 millisecondes pour recommencer à zéro.</span>
     <span v-if="flash" role="status">Vigilance réinitialisée</span>
     <span v-else class="inline-flex items-center gap-1" role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">
       <IconEye class="w-4 h-4 flex-none" />

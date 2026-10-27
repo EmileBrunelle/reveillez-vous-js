@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, useTemplateRef } from 'vue'
 import { useElementSize, usePreferredReducedMotion, useRafFn, useEventListener, useTimeoutFn } from '@vueuse/core'
+import { useDeferredText } from '../../composables/useDeferredText'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'
@@ -160,14 +161,24 @@ useEventListener(stage, 'pointerdown', (e: PointerEvent) => {
   if (!hidden.value && isNear(pointer, pos.value, tuning.value.radius)) catchIt()
 })
 
+const prompt = useDeferredText(() => `Touchez ou cliquez sur les trois feux follets (${caught.value}/${TOTAL}).`)
 const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
 </script>
 
 <template>
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
-    <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-200/90" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
-      Touchez ou cliquez sur les trois feux follets ({{ caught }}/{{ TOTAL }}).
+    <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
+      {{ prompt }}<span v-if="prompt" class="sr-only"> Au clavier, activez le bouton “Attraper le feu follet”.</span>
     </p>
+    <!-- Chemin clavier : visible seulement au focus ; Entrée ou Espace attrape le feu follet quand il est là. -->
+    <button
+      v-if="outcome === 'play'"
+      type="button"
+      class="font-ui sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:bottom-16 focus-visible:left-1/2 focus-visible:-translate-x-1/2 focus-visible:px-4 focus-visible:py-1 focus-visible:text-xl focus-visible:text-emerald-100 focus-visible:bg-black/70 focus-visible:border-2 focus-visible:border-solid focus-visible:border-emerald-200 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-white"
+      @click="!hidden && catchIt()"
+    >
+      Attraper le feu follet
+    </button>
     <p class="sr-only" role="status" aria-live="polite">{{ settled ? 'Les feux follets se sont laissé apprivoiser.' : '' }}</p>
     <span v-if="guide" class="wisp-guide pointer-events-none absolute left-0 top-0 rounded-full" :style="{ transform: `translate3d(${guide.x - 14}px, ${guide.y - 14}px, 0)` }" aria-hidden="true" />
     <template v-if="visible">

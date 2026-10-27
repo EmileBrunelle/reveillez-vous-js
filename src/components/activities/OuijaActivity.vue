@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useRovingFocus } from '@vuetify/v0'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf, outcomeMsOf } from '../../engine/activityTiming'
@@ -170,6 +171,11 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
   }
 })
 
+// Tabulation « itinérante » (v0 useRovingFocus, mode grille de 7 colonnes) : un seul arrêt pour la planche, flèches, Début et Fin entre les lettres.
+// OUI, NON et AU REVOIR restent hors du parcours : ils ne réagissent à rien (décor de la planche).
+const LETTERS = OUIJA_ROWS.flatMap((r) => [...r])
+const board = useTemplateRef<HTMLElement>('board')
+const { isTabbable, focus: focusLetter } = useRovingFocus(() => LETTERS.map((l) => ({ id: l, el: () => els[l] })), { target: board, columns: OUIJA_ROWS[0].length })
 const expected = computed(() => nextLetter(word, index.value))
 
 useRafFn(({ delta }) => {
@@ -259,7 +265,7 @@ useRafFn(({ delta }) => {
         >{{ seg.ch }}</span
       >
     </p>
-    <div class="board relative flex flex-col items-center gap-1.5 sm:gap-2 px-2 py-3 sm:px-6 sm:py-5" role="group" aria-label="Planche Ouija">
+    <div ref="board" class="board relative flex flex-col items-center gap-1.5 sm:gap-2 px-2 py-3 sm:px-6 sm:py-5" role="group" aria-label="Planche Ouija">
       <div class="flex gap-10 sm:gap-16">
         <button :ref="setEl(OUIJA_YES)" type="button" class="key answer" :aria-label="OUIJA_YES" tabindex="-1">{{ OUIJA_YES }}</button>
         <button :ref="setEl(OUIJA_NO)" type="button" class="key answer" :aria-label="OUIJA_NO" tabindex="-1">{{ OUIJA_NO }}</button>
@@ -273,12 +279,16 @@ useRafFn(({ delta }) => {
           class="key letter"
           :class="{ next: expected === l, pop: popLetter === l, 'no-motion': reduced }"
           :aria-label="`Lettre ${l}`"
+          :tabindex="isTabbable(l) ? 0 : -1"
+          @focus="focusLetter(l)"
           @click="validate(l)"
         >
           {{ l }}
         </button>
       </div>
-      <button :ref="setEl(OUIJA_BYE)" type="button" class="key answer bye" :class="{ lit: farewell, 'no-motion': reduced }" :aria-label="OUIJA_BYE" tabindex="-1">{{ OUIJA_BYE }}</button>
+      <button :ref="setEl(OUIJA_BYE)" type="button" class="key answer bye" :class="{ lit: farewell, 'no-motion': reduced }" :aria-label="OUIJA_BYE" tabindex="-1">
+        {{ OUIJA_BYE }}
+      </button>
     </div>
     <span ref="dropEl" class="drop absolute left-0 top-0 pointer-events-none" aria-hidden="true">
       <IconGoutte class="drop-shape" />
