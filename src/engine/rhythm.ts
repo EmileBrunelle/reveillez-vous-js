@@ -58,7 +58,7 @@ export const toOffsets = (gaps: Gap[], level: number): number[] => {
  */
 export const classifyGaps = (gaps: number[]): Gap[] => {
   // Deux groupes (courts / longs) : on coupe au plus grand saut de ratio entre pauses triées.
-  // Plus robuste qu'un repère sur la seule plus petite pause, qu'un coup trop rapide fausserait.
+  // Plus robuste qu’un repère sur la seule plus petite pause, qu’un coup trop rapide fausserait.
   const sorted = [...gaps].sort((a, b) => a - b)
   let cut = 0
   let jump = 1
