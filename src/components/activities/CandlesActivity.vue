@@ -2,6 +2,8 @@
 import { computed, reactive, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
+import ActivityHud from './ActivityHud.vue'
+import { durationOf } from '../../engine/activityTiming'
 import { useHaptics } from '../../composables/haptics'
 import { TOUCH_GRACE_MS } from '../../composables/touchAim'
 import { useActivityDone } from '../../composables/useActivityDone'
@@ -17,8 +19,8 @@ const rng = orSecure(props.rng)
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
-const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'), {
-  delayMs: 600,
+const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), {
+  durationMs: durationOf('candles'),
   // Fin par n’importe quel chemin (dont les 20 s) : la chandelle soufflée se rallume, rien ne reste sombre.
   onFinish: () => {
     const i = snuffed.value
@@ -217,6 +219,7 @@ useRafFn(({ delta }) => {
       <span class="match-flame" :class="{ 'no-motion': reduced }" />
       <span class="match-stick" />
     </span>
+    <ActivityHud activity="candles" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

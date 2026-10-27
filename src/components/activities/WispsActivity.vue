@@ -2,6 +2,8 @@
 import { computed, ref, shallowRef } from 'vue'
 import { useElementSize, usePreferredReducedMotion, useRafFn, useEventListener, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
+import ActivityHud from './ActivityHud.vue'
+import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { secureRng, type Rng } from '../../engine/rng'
 import { aimPoint, TOUCH_GRACE_MS } from '../../composables/touchAim'
@@ -12,7 +14,7 @@ const props = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
-const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'))
+const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), { durationMs: durationOf('wisps') })
 const rng: Rng = secureRng()
 
 const TOTAL = 3
@@ -180,6 +182,7 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
         <span class="wisp-orb block rounded-full" :class="{ 'wisp-bloom': blooming }" :style="{ '--p': progress }" />
       </span>
     </template>
+    <ActivityHud activity="wisps" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

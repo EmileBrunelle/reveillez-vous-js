@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
+import ActivityHud from './ActivityHud.vue'
+import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { OUIJA_SHOWN, OUIJA_WORDS } from '../../content/ouija'
@@ -37,8 +39,8 @@ const popSeg = ref(-1)
 const status = ref(`Épelez le mot ${shown}.`)
 const reduced = useReducedMotion()
 
-const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'), {
-  delayMs: 1300,
+const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), {
+  durationMs: durationOf('ouija'),
   // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
   onFinish: () => {
     index.value = word.length
@@ -273,6 +275,7 @@ useRafFn(({ delta }) => {
     <span ref="dropEl" class="drop absolute left-0 top-0 pointer-events-none" aria-hidden="true">
       <IconGoutte class="drop-shape" />
     </span>
+    <ActivityHud activity="ouija" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
