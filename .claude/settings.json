@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_response.filePath // .tool_input.file_path // empty'); case \"$f\" in \"$CLAUDE_PROJECT_DIR\"/src/*.ts|\"$CLAUDE_PROJECT_DIR\"/src/*.vue|\"$CLAUDE_PROJECT_DIR\"/tests/*.ts) cd \"$CLAUDE_PROJECT_DIR\" && npx --no-install eslint --fix \"$f\" && npx --no-install prettier --write --log-level warn \"$f\";; esac 2>/dev/null || true",
+            "timeout": 60,
+            "statusMessage": "ESLint --fix + Prettier"
+          }
+        ]
+      }
+    ]
+  }
+}
