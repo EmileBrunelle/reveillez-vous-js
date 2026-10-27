@@ -188,8 +188,8 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
 
 // Braises : quelques points chauds par citrouille, montée lente avec balancement, s’éteignent en haut.
 // Cycle de 14 s par braise, vacillement < 0,4 Hz, phases aléatoires : la luminance totale reste stable. Figées si drift = 0.
-fn ember(ro: vec3f, rd: vec3f, c: vec3f, sc: f32, k: f32, tEnd: f32) -> f32 {
-  var g = 0.0;
+fn ember(ro: vec3f, rd: vec3f, c: vec3f, sc: f32, k: f32, tEnd: f32) -> vec3f {
+  var g = vec3f(0.0);
   let nE = 2.5 + 3.5 * params.paranoia;
   for (var n = 0; n < 6; n++) {
     if (f32(n) > nE) { break; }
@@ -201,9 +201,12 @@ fn ember(ro: vec3f, rd: vec3f, c: vec3f, sc: f32, k: f32, tEnd: f32) -> f32 {
     let al = dot(oc, rd);
     if (al > 0.5 && al < tEnd) {
       let dv = oc - rd * al;
-      let r = 0.022 + 0.006 * al;
+      let r = 0.034 + 0.008 * al;
       let tw = 0.8 + 0.2 * sin(params.drift * 2.2 + sd * 5.0);
-      g += exp(-dot(dv, dv) / (r * r)) * smoothstep(0.0, 0.08, age) * (1.0 - age) * (1.0 - age) * tw * 4.5;
+      // Orange vif en bas, rouge profond en haut ; cœur plus net que le halo.
+      let hot = mix(vec3f(1.0, 0.50, 0.12), vec3f(0.85, 0.12, 0.03), smoothstep(0.1, 0.9, age));
+      let q = dot(dv, dv) / (r * r);
+      g += hot * (exp(-q) + 0.6 * exp(-q * 0.25)) * smoothstep(0.0, 0.08, age) * (1.0 - age) * tw * 5.0;
     }
   }
   return g;
@@ -285,7 +288,7 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
   // --- Jack-o'-lanterns (nearest ellipsoid hit) + halos.
   var tL = 1.0e9;
   var halo = 0.0;
-  var embers = 0.0;
+  var embers = vec3f(0.0);
   var hitC = vec3f(0.0);
   var hitK = 0.0;
   var hitS = 0.0;
@@ -303,7 +306,9 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
           let dv = oc0 - rd * tc;
           let d2 = dot(dv, dv);
           halo += exp(-d2 * 3.0 / (sc * sc)) * flick(k) / (1.0 + tc * 0.12) * sc;
-          if (params.glow > 0.0 && al < 28.0) { embers += ember(ro, rd, c, sc, k, tEnd); }
+          // Cull : les braises montent de ~1,5 m et ondulent de ~0,3 m ; au-delà, un rayon ne peut pas les toucher.
+          let er = 0.28 * sc + 2.4;
+          if (params.glow > 0.0 && al < 28.0 && d2 < er * er) { embers += ember(ro, rd, c, sc, k, tEnd); }
           if (d2 < 0.2 * sc * sc && al < tEnd) {
             let rad = vec3f(0.40, 0.35, 0.40) * sc;
             let o = (ro - c) / rad;
@@ -321,7 +326,7 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
     }
   }
   col += warm * halo * 0.22 * params.glow;
-  col += vec3f(1.0, 0.45, 0.10) * embers * params.glow;
+  col += embers * params.glow;
   if (tL < 1.0e8) {
     let sc = p_scale(hitK);
     let rad = vec3f(0.40, 0.35, 0.40) * sc;

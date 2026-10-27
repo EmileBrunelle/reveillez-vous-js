@@ -195,7 +195,7 @@ fn moon_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
     let cell = floor(pc);
     let h = vec3f(h31(cell + f32(s) * 17.0), h31(cell.yzx + 5.3), h31(cell.zxy + 9.1));
     if (h.x < 0.72) { continue; }
-    let m = (cell + 0.2 + 0.6 * h.yzx) / sc - off;
+    let m = (cell + 0.3 + 0.4 * h.yzx) / sc - off;
     let oc = m - ro;
     let al = dot(oc, rd);
     if (al < 0.5 || al > tEnd) { continue; }
