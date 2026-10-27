@@ -4,18 +4,18 @@ import { useElementSize, usePreferredReducedMotion, useRafFn, useEventListener, 
 import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { secureRng, type Rng } from '../../engine/rng'
-import { isNear, nextWaypoint, stepCatch, stepSpring, type Vec } from '../../engine/wisps'
+import { isNear, nextWaypoint, stepCatch, stepWisp, wispTuning, type Vec } from '../../engine/wisps'
 
-defineProps<{ level: number }>()
+const props = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 
 const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'))
 const rng: Rng = secureRng()
 
 const TOTAL = 3
-const HIT_RADIUS = 56 // px : généreux pour le tactile (≥ 48)
 const stage = ref<HTMLElement | null>(null)
 const { width, height } = useElementSize(stage)
+const tuning = computed(() => wispTuning(props.level, width.value, height.value)) // rayon ≥ 72 px : généreux pour le tactile
 const reduced = usePreferredReducedMotion()
 const isReduced = computed(() => reduced.value === 'reduce')
 
@@ -103,23 +103,17 @@ const { pause } = useRafFn(({ delta }) => {
         hopWait = 0.4
       }
     }
-    progress.value = stepCatch(progress.value, !!pointer && !hidden.value && isNear(pointer, pos.value, HIT_RADIUS), dt)
+    progress.value = stepCatch(progress.value, !!pointer && !hidden.value && isNear(pointer, pos.value, tuning.value.radius), dt, tuning.value.hold, tuning.value.decay)
     if (progress.value >= 1) catchIt()
     return
   }
-  untilHop -= dt
-  if (untilHop <= 0) {
-    target = nextWaypoint(rng, width.value, height.value, pos.value)
-    untilHop = 0.9 + rng() * 0.8
-  }
-  const k = 14
-  const c = 5
-  const sx = stepSpring(pos.value.x, vel.x, target.x, dt, k, c)
-  const sy = stepSpring(pos.value.y, vel.y, target.y, dt, k, c)
-  vel = { x: sx.vel, y: sy.vel }
-  pos.value = { x: sx.pos, y: sy.pos }
+  const next = stepWisp({ pos: pos.value, vel, target, untilHop }, pointer, dt, rng, width.value, height.value, tuning.value)
+  vel = next.vel
+  target = next.target
+  untilHop = next.untilHop
+  pos.value = next.pos
   trail.value = [pos.value, ...trail.value].slice(0, 12)
-  progress.value = stepCatch(progress.value, !!pointer && isNear(pointer, pos.value, HIT_RADIUS), dt)
+  progress.value = stepCatch(progress.value, !!pointer && isNear(pointer, pos.value, tuning.value.radius), dt, tuning.value.hold, tuning.value.decay)
   if (progress.value >= 1) catchIt()
 })
 
@@ -135,7 +129,7 @@ useEventListener(stage, 'pointerup', (e: PointerEvent) => {
 })
 useEventListener(stage, 'pointerdown', (e: PointerEvent) => {
   pointer = local(e)
-  if (isNear(pointer, pos.value, HIT_RADIUS)) catchIt()
+  if (!hidden.value && isNear(pointer, pos.value, tuning.value.radius)) catchIt()
 })
 
 const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
