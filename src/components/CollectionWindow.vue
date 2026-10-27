@@ -4,6 +4,7 @@ import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { useCollectionStore } from '../stores/collection'
 import TarotEmblem from './TarotEmblem.vue'
+import { cardCollect } from '../audio/cards'
 import { focusQuietly } from '../composables/focusQuietly'
 
 // Parent v-model = « veut ouvert ». <dialog> natif : Échap, piège à focus et arrière-plan inerte sont gratuits.
@@ -28,6 +29,7 @@ const sync = async (o: boolean) => {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     highlight.value = collection.fresh
     d.showModal()
+    cardCollect(highlight.value !== null)
     await nextTick()
     focusQuietly(closeBtn.value)
     const el = highlight.value ? cells[highlight.value] : undefined
