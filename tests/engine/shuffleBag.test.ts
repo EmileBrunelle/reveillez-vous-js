@@ -50,4 +50,56 @@ describe('shuffleBag', () => {
     store.setItem(BAGS_KEY, '{not json')
     expect(drawPersisted(store, 'porte2', 4, mulberry32(1))).toBeLessThan(4)
   })
+
+  describe('allowed', () => {
+    const isPerm = (b: Bag, n: number) => [...b.order].sort((a, c) => a - c).join() === Array.from({ length: n }, (_, i) => i).join()
+
+    it('picks an allowed index, keeps a valid permutation and advances pos by 1', () => {
+      for (let seed = 1; seed <= 40; seed++) {
+        const rng = mulberry32(seed)
+        const start = draw(undefined, 8, rng).bag
+        const r = draw(start, 8, rng, (i) => i === 2 || i === 5)
+        expect([2, 5]).toContain(r.index)
+        expect(isPerm(r.bag, 8)).toBe(true)
+        expect(r.bag.pos).toBe(start.pos + 1)
+        expect(r.bag.order[start.pos]).toBe(r.index)
+      }
+    })
+
+    it('keeps the no-repeat-within-round guarantee for later unfiltered draws', () => {
+      for (let seed = 1; seed <= 40; seed++) {
+        const rng = mulberry32(seed)
+        let r = draw(undefined, 6, rng, (i) => i === 3)
+        const seen = [r.index]
+        for (let k = 1; k < 6; k++) {
+          r = draw(r.bag, 6, rng)
+          seen.push(r.index)
+        }
+        expect(new Set(seen).size).toBe(6)
+      }
+    })
+
+    it('starts a new round when no allowed index remains in the bag', () => {
+      const rng = mulberry32(7)
+      let r = draw(undefined, 4, rng, (i) => i === 1)
+      expect(r.index).toBe(1)
+      r = draw(r.bag, 4, rng, (i) => i === 1)
+      expect(r.index).toBe(1)
+      expect(r.bag.pos).toBe(1)
+      expect(isPerm(r.bag, 4)).toBe(true)
+    })
+
+    it('ignores the filter when no index is allowed at all', () => {
+      const r = draw(undefined, 5, mulberry32(2), () => false)
+      expect(r.index).toBeGreaterThanOrEqual(0)
+      expect(r.index).toBeLessThan(5)
+      expect(isPerm(r.bag, 5)).toBe(true)
+      expect(r.bag.pos).toBe(1)
+    })
+
+    it('works through drawPersisted', () => {
+      const store = memStore()
+      for (let k = 0; k < 5; k++) expect([0, 4]).toContain(drawPersisted(store, 'x', 5, mulberry32(k + 1), (i) => i === 0 || i === 4))
+    })
+  })
 })

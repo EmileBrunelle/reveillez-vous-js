@@ -53,20 +53,20 @@ export const SECHE_CHANCE = 0.125
 /** Prophéties sèches d’un niveau : table `seche<N>`. */
 export const secheFor = (grammar: Grammar, level: number) => strings(grammar, `seche${level}`)
 
-/** Prophéties de la toute première lecture d’une session : table `premiere1`. */
+/** Prophéties permises pour la toute première lecture d’une session : table `premiere1`, sous-ensemble de `niveau1`. */
 export const premiereFor = (grammar: Grammar) => strings(grammar, 'premiere1')
 
 /** Draw the next prophecy of `level` (arcane taken from the chosen `paquet`) through the persisted shuffle bag, and expand it. Environ 1 lecture sur 8 (SECHE_CHANCE) vient plutôt de la table `seche<N>`, avec son propre sac. */
 export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng: Rng, paquet?: Paquet, premiere = false): Prophecy => {
-  // Toute première lecture de la session : table dédiée `premiere1` (voyance pure, sans clin d’œil complotiste), pas de prophétie sèche.
-  const firsts = premiere && level === 1 ? premiereFor(grammar) : []
-  const templates = firsts.length > 0 ? firsts : templatesFor(grammar, level)
+  const templates = templatesFor(grammar, level)
   if (templates.length === 0) return { question: '', body: '', verse: '', arcane: EMPTY_ARCANE }
+  // Toute première lecture de la session : on tire dans le sac `niveau1` lui-même, restreint aux gabarits de `premiere1`
+  // (voyance pure, sans clin d’œil complotiste), pour qu’ils ne reviennent pas à la visite suivante. Pas de prophétie sèche.
+  const firsts = premiere && level === 1 ? premiereFor(grammar) : []
   const seches = firsts.length > 0 ? [] : secheFor(grammar, level)
   let tpl: string
-  if (firsts.length > 0) tpl = firsts[drawPersisted(store, 'premiere1', firsts.length, rng)]
-  else if (seches.length > 0 && rng() < SECHE_CHANCE) tpl = seches[drawPersisted(store, `seche${level}`, seches.length, rng)]
-  else tpl = templates[drawPersisted(store, `niveau${level}`, templates.length, rng)]
+  if (seches.length > 0 && rng() < SECHE_CHANCE) tpl = seches[drawPersisted(store, `seche${level}`, seches.length, rng)]
+  else tpl = templates[drawPersisted(store, `niveau${level}`, templates.length, rng, firsts.length > 0 ? (i) => firsts.includes(templates[i]) : undefined)]
   // Verset = livre + référence : le livre passe par un sac persisté (pas de répétition avant d’avoir tout vu,
   // donc jamais deux fois le même verset de suite), la référence est tirée au hasard.
   // Repli : ancienne table `verset` (chaînes complètes) si les deux nouvelles tables manquent.
