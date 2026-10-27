@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
-import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { nextTick, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue'
+import { useActiveElement, useEventListener, useMediaQuery, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { prophecies } from '../content/prophecies'
 import { nextFakeError, type ErrorIcon } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
@@ -33,7 +33,7 @@ const ICON: Record<ErrorIcon, { glyph: string; cls: string }> = {
   question: { glyph: '?', cls: 'rounded-full bg-[#0000a8] text-white' },
 }
 let nextId = 1
-const desktop = () => window.matchMedia('(min-width: 641px)').matches
+const desktop = useMediaQuery('(min-width: 641px)')
 
 const boxOf = (el: Element): Box => {
   const r = el.getBoundingClientRect()
@@ -45,15 +45,18 @@ const avoidBoxes = (): Box[] => {
   boxes.push({ left: window.innerWidth - 20 * 16, top: window.innerHeight - 10 * 16, right: window.innerWidth, bottom: window.innerHeight })
   return boxes
 }
-// Zone sûre (encoche, coins arrondis) : les fausses fenêtres ne s’y glissent jamais.
-const safe = (): { t: number; r: number; l: number } => {
+// Zone sûre (encoche, coins arrondis) : les fausses fenêtres ne s’y glissent jamais. Mesurée une seule fois, à la première utilisation
+// (une sonde éphémère lit les variables --safe-*, fixes pour la durée de la visite).
+let safeInsets: { t: number; r: number; l: number } | null = null
+const safe = () => {
+  if (safeInsets) return safeInsets
   const probe = document.createElement('div')
   probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--safe-t) var(--safe-r) 0 var(--safe-l)'
   document.body.appendChild(probe)
   const cs = getComputedStyle(probe)
-  const v = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, l: parseFloat(cs.paddingLeft) || 0 }
+  safeInsets = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, l: parseFloat(cs.paddingLeft) || 0 }
   probe.remove()
-  return v
+  return safeInsets
 }
 const area = (): Box => {
   const s = safe()
@@ -62,7 +65,7 @@ const area = (): Box => {
 const boxOfWin = (w: Win): Box => ({ left: w.x, top: w.y, right: w.x + WIDTH, bottom: w.y + HEIGHT })
 
 const spawn = () => {
-  if (!desktop()) return
+  if (!desktop.value) return
   const line = nextFakeError(prophecies, level, safeStorage(), rng, seen)
   if (!line) return
   const slot = pickFreeSlot(area(), WIDTH, HEIGHT, [...avoidBoxes(), ...wins.value.map(boxOfWin)], rng)
@@ -71,11 +74,26 @@ const spawn = () => {
     settle.start() // la carte ou la colonne a pu bouger depuis la mesure : on revérifie peu après
   }
 }
-const close = (id: number) => (wins.value = wins.value.filter((w) => w.id !== id))
+// Retour du focus : le dernier élément focalisé hors des fausses fenêtres (ex. « Fermer la porte ») le récupère à la fermeture, sinon la fenêtre suivante ;
+// sans cela, le bouton retiré du DOM laisse le focus tomber sur <body>.
+const rootEl = useTemplateRef<HTMLElement>('rootEl')
+const active = useActiveElement()
+let lastOutside: HTMLElement | null = null
+watch(active, (el) => {
+  if (el instanceof HTMLElement && el !== document.body && !rootEl.value?.contains(el)) lastOutside = el
+})
+const close = async (id: number) => {
+  const hadFocus = !!rootEl.value?.contains(active.value ?? null)
+  wins.value = wins.value.filter((w) => w.id !== id)
+  if (!hadFocus) return
+  await nextTick()
+  const target = rootEl.value?.querySelector<HTMLElement>('.fake-error button') ?? (lastOutside?.isConnected ? lastOutside : null)
+  target?.focus()
+}
 
 // Une fenêtre qui se retrouve sur quelque chose (redimensionnement, carte qui change) disparaît.
 const recheck = () => {
-  if (!desktop()) {
+  if (!desktop.value) {
     wins.value = []
     return
   }
@@ -100,11 +118,10 @@ onMounted(() => {
   mainEl.value = document.querySelector<HTMLElement>('main')
   timers.forEach((t) => t.start())
 })
-onBeforeUnmount(() => timers.forEach((t) => t.stop()))
 </script>
 
 <template>
-  <div class="fake-errors fixed inset-0 z-[15] pointer-events-none">
+  <div ref="rootEl" class="fake-errors fixed inset-0 z-[15] pointer-events-none">
     <div
       v-for="w in wins"
       :key="w.id"
@@ -113,9 +130,9 @@ onBeforeUnmount(() => timers.forEach((t) => t.stop()))
       role="group"
       :aria-label="`Fausse erreur : ${w.title}`"
     >
-      <div class="flex items-center justify-between gap-2 px-[3px] h-[22px] text-white font-bold bg-gradient-to-r from-[#000080] to-[#1084d0]">
+      <div class="flex items-center justify-between gap-2 px-[3px] min-h-6 text-white font-bold bg-gradient-to-r from-[#000080] to-[#1084d0]">
         <span class="truncate">{{ w.title }}</span>
-        <button class="win-btn grid place-items-center w-[18px] h-[16px] p-0 leading-none border-0 text-[0.8rem]" type="button" aria-label="Fermer la fausse erreur" @click="close(w.id)">×</button>
+        <button class="win-btn grid place-items-center min-w-6 min-h-6 p-0 leading-none border-0 text-[1rem]" type="button" aria-label="Fermer la fausse erreur" @click="close(w.id)">×</button>
       </div>
       <div class="flex items-start gap-3 px-3 pt-4 pb-3">
         <span class="flex-none grid place-items-center w-8 h-8 font-bold text-[1.2rem] leading-none" :class="ICON[w.icon].cls" aria-hidden="true">{{ ICON[w.icon].glyph }}</span>

@@ -9,7 +9,7 @@ const hintId = useId()
 const flash = ref(false)
 const { start } = useTimeoutFn(() => (flash.value = false), 1500, { immediate: false })
 
-// Hidden gesture, même flux dans tous les cas : triple-clic/triple-tap (`detail` compté par le navigateur),
+// Geste caché, même flux dans tous les cas : triple-clic/triple-tap (`detail` compté par le navigateur),
 // appui long (600 ms) au doigt ou à la souris, ou Entrée maintenue 600 ms au clavier.
 const HOLD_MS = 600
 const reset = () => {
@@ -65,7 +65,9 @@ const onKeyup = (e: KeyboardEvent) => {
     @blur="release"
   >
     <span :id="hintId" class="sr-only" aria-hidden="true">Triple-clic, appui long ou Entrée maintenue 600 millisecondes pour recommencer à zéro.</span>
-    <span v-if="flash" role="status">Vigilance réinitialisée</span>
+    <!-- Région live persistante (montée vide, texte changé ensuite) : un rôle status inséré déjà plein serait muet. -->
+    <span class="sr-only" role="status">{{ flash ? 'Vigilance réinitialisée' : '' }}</span>
+    <span v-if="flash" aria-hidden="true">Vigilance réinitialisée</span>
     <span v-else class="inline-flex items-center gap-1" role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">
       <IconEye class="w-4 h-4 flex-none" />
       <span class="font-bold tabular-nums" aria-hidden="true">{{ level }}</span>

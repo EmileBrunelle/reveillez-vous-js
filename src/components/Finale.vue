@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, onWatcherCleanup, type Directive, useTemplateRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Directive, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
@@ -42,10 +42,12 @@ const vRise: Directive<HTMLElement, { d?: number; y?: number; letter?: boolean; 
   },
 }
 // Le titre apparaît lettre par lettre : mots insécables, chaque lettre sur son ressort (retard cumulé par ligne).
+// Les lignes sont des constantes : on découpe une fois à l’initialisation, pas à chaque rendu.
 const letters = (l: string) => {
   let n = 0
   return l.split(' ').map((w) => [...w].map((ch) => ({ ch, d: n++ * 0.045 })))
 }
+const titleLetters = Object.fromEntries(FINALE_TITLE.map((l) => [l, letters(l)]))
 // Retards du générique (s) : le titre, une ligne toutes les 0,2 s, une pause avant le remerciement (qui arrive en dernier), puis le compteur et « Recommencer ».
 const CREDIT_STEP = 0.2
 const creditDelay = (i: number) => i * CREDIT_STEP
@@ -53,6 +55,7 @@ const thanksDelay = (CREDITS_BODY.length + 2) * CREDIT_STEP + 0.3
 // En mouvement réduit : pas d’animation, tout le texte et le générique sont là d’un coup.
 // Mouvement réduit : la région live (role=status) est montée vide, puis remplie, pour que le texte soit annoncé.
 const liveReady = ref(false)
+const { start: readyLater } = useTimeoutFn(() => (liveReady.value = true), 150, { immediate: false })
 const showText = computed(() => (reduced.value ? liveReady.value : step.value === 'text'))
 const shown = computed(() => (reduced.value ? lines : lines.slice(0, count.value)))
 const showCredits = computed(() => reduced.value || step.value === 'credits')
@@ -119,14 +122,12 @@ const doFocus = () => {
   focusQuietly(restartBtn.value, { preventScroll: true })
   restartBtn.value?.scrollIntoView({ block: 'nearest', behavior: reduced.value ? 'auto' : 'smooth' })
 }
-const { start: focusLater, stop: focusStop } = useTimeoutFn(doFocus, 700, { immediate: false })
+// Délai : 700 ms (ressorts en cours), 150 ms après un saut, 500 ms en mouvement réduit.
+const { start: focusLater, stop: focusStop } = useTimeoutFn(doFocus, () => (reduced.value ? 500 : skipped.value ? 150 : 700), { immediate: false })
 watch(restartBtn, (el) => {
   if (!el) return
   focusStop()
-  if (reduced.value || skipped.value) {
-    const t = setTimeout(doFocus, reduced.value ? 500 : 150)
-    onWatcherCleanup(() => clearTimeout(t))
-  } else focusLater()
+  focusLater()
 })
 
 // Un seul changement spatial, jamais de scintillement : barres noires qui se ferment (1,1 s), une ligne, puis le noir ; l’aube remonte en 4 s.
@@ -164,7 +165,7 @@ const { start, stop } = useTimeoutFn(
 const { start: fadeLater } = useTimeoutFn(() => audio.fadePad(), 5000, { immediate: false })
 onMounted(() => {
   if (reduced.value) {
-    void nextTick(() => setTimeout(() => (liveReady.value = true), 150))
+    void nextTick(readyLater)
     emit('collapsed')
     audio.dawn()
     audio.bell()
@@ -239,7 +240,7 @@ const lineClass = (i: number) =>
               <template v-for="(l, i) in shown" :key="l">
                 <p v-if="i < FINALE_TITLE.length" class="m-0" :class="lineClass(i)">
                   <span class="sr-only">{{ l }}</span>
-                  <template v-for="(w, wi) in letters(l)" :key="wi">
+                  <template v-for="(w, wi) in titleLetters[l]" :key="wi">
                     <span class="inline-block whitespace-nowrap" aria-hidden="true"
                       ><span v-for="(c, ci) in w" :key="ci" v-rise="{ d: c.d, y: 10, letter: true }" class="inline-block">{{ c.ch }}</span></span
                     >{{ ' ' }}
@@ -258,9 +259,9 @@ const lineClass = (i: number) =>
               <p v-for="(c, ci) in CREDITS_BODY" :key="c" v-rise="{ d: creditDelay(ci + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
               <p v-rise="{ d: creditDelay(CREDITS_BODY.length + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">
                 {{ README_PREFIX
-                }}<a class="linklike focus-visible:[outline-color:#fff]" :href="`${REPO_URL}#readme`" target="_blank" rel="noopener noreferrer" aria-label="README sur GitHub (nouvel onglet)">{{
-                  README_LABEL
-                }}</a>
+                }}<a class="linklike focus-visible:[outline-color:#fff]" :href="`${REPO_URL}#readme`" target="_blank" rel="noopener noreferrer"
+                  >{{ README_LABEL }}<span class="sr-only"> (nouvel onglet)</span></a
+                >
               </p>
               <p v-rise="{ d: thanksDelay }" class="m-0 font-card text-[1.05rem] leading-snug">{{ CREDITS_THANKS }}</p>
               <p v-rise="{ d: thanksDelay + CREDIT_STEP }" class="m-0 font-card text-[1.05rem] leading-snug">Arcanes révélés : {{ collection.count }} sur {{ collection.total }}</p>

@@ -10,6 +10,8 @@ export const PAQUET_PRESAGES: Record<Paquet, string> = {
   feu: 'Coups du sort, éclats et tours qui tombent.',
   brume: 'Spectres du quotidien et petits mystères.',
 }
+// Symbole de l’emblème de chaque paquet (dos de carte et légende de la coupe).
+export const EMBLEMS: Record<Paquet, string> = { nuit: 'moon', feu: 'flame', brume: 'ghost' }
 export const isPaquet = (v: unknown): v is Paquet => v === 'nuit' || v === 'feu' || v === 'brume'
 
 /** Ordre des trois paquets dans l’éventail, mélangé à chaque visite (Fisher-Yates avec le Rng injecté). */
