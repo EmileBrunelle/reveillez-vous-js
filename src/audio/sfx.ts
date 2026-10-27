@@ -1,5 +1,5 @@
 import { customRef, effectScope, watch, type EffectScope } from 'vue'
-import { useDocumentVisibility, useEventListener } from '@vueuse/core'
+import { useDocumentVisibility, useEventListener, useRafFn } from '@vueuse/core'
 import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '../stores/audio'
 import { startNoise } from './noise'
 import { playMotif } from './motif'
@@ -195,18 +195,17 @@ export const scheduleKnocks = (offsets: number[], intensity: number, onHit: (i: 
   if (live && !muted.value) times.forEach((t) => sources.push(...knockAt(ctx!, t, intensity)))
   const latency = live ? (ctx!.outputLatency || 0) + ctx!.baseLatency : 0
   let i = 0
-  let raf = 0
-  const tick = () => {
+  // Boucle rAF (VueUse) : se met en pause d’elle-même après le dernier coup ; `cancel()` la coupe aussi.
+  const { pause } = useRafFn(() => {
     const n = now()
     while (i < times.length && n >= times[i] + latency) onHit(i++, intensity)
-    if (i < times.length) raf = requestAnimationFrame(tick)
-  }
-  raf = requestAnimationFrame(tick)
+    if (i >= times.length) pause()
+  })
   return {
     times,
     now,
     cancel() {
-      cancelAnimationFrame(raf)
+      pause()
       i = times.length
       sources.forEach((s) => {
         try {

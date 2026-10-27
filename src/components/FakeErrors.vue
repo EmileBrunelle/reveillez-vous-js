@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue'
-import { useActiveElement, useEventListener, useMediaQuery, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { onMounted, ref, useTemplateRef } from 'vue'
+import { useEventListener, useMediaQuery, useTimeoutFn } from '@vueuse/core'
 import { prophecies } from '../content/prophecies'
 import { nextFakeError, type ErrorIcon } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
 import { intersects, pickFreeSlot, type Box } from '../engine/freeZones'
+import { useFocusReturn } from '../composables/useFocusReturn'
+import { useFreeZones } from '../composables/useFreeZones'
 import { safeStorage } from '../composables/safeStorage'
 
 // Fausses fenêtres d’erreur Windows 98, purement décoratives (niveau 3+, bureau seulement). Elles n’apparaissent que dans les zones libres,
@@ -34,36 +36,8 @@ const ICON: Record<ErrorIcon, { glyph: string; cls: string }> = {
 }
 let nextId = 1
 const desktop = useMediaQuery('(min-width: 641px)')
+const { avoidBoxes, area } = useFreeZones(() => recheck())
 
-const boxOf = (el: Element): Box => {
-  const r = el.getBoundingClientRect()
-  return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
-}
-// Tout ce qui est interactif ou porte la scène, plus l’emplacement de la bulle (au-dessus de la zone de notification).
-const avoidBoxes = (): Box[] => {
-  const boxes = Array.from(document.querySelectorAll('main button, main a, main [role="button"], .tarot, .door-hit, .taskbar')).map(boxOf)
-  boxes.push({ left: window.innerWidth - 20 * 16, top: window.innerHeight - 10 * 16, right: window.innerWidth, bottom: window.innerHeight })
-  return boxes
-}
-// Zone sûre (encoche, coins arrondis) : les fausses fenêtres ne s’y glissent jamais. Mesurée une seule fois, à la première utilisation
-// (une sonde éphémère lit les variables --safe-*) ; le cache est invalidé à chaque rotation de l’écran (l’encoche change de côté).
-let safeInsets: { t: number; r: number; l: number } | null = null
-const safe = () => {
-  if (safeInsets) return safeInsets
-  const probe = document.createElement('div')
-  probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--safe-t) var(--safe-r) 0 var(--safe-l)'
-  document.body.appendChild(probe)
-  const cs = getComputedStyle(probe)
-  safeInsets = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, l: parseFloat(cs.paddingLeft) || 0 }
-  probe.remove()
-  return safeInsets
-}
-const portrait = useMediaQuery('(orientation: portrait)')
-watch(portrait, () => (safeInsets = null))
-const area = (): Box => {
-  const s = safe()
-  return { left: s.l, top: s.t, right: window.innerWidth - s.r, bottom: document.querySelector('.taskbar')?.getBoundingClientRect().top ?? window.innerHeight }
-}
 const boxOfWin = (w: Win): Box => ({ left: w.x, top: w.y, right: w.x + WIDTH, bottom: w.y + HEIGHT })
 
 const spawn = () => {
@@ -76,22 +50,10 @@ const spawn = () => {
     settle.start() // la carte ou la colonne a pu bouger depuis la mesure : on revérifie peu après
   }
 }
-// Retour du focus : le dernier élément focalisé hors des fausses fenêtres (ex. « Fermer la porte ») le récupère à la fermeture, sinon la fenêtre suivante ;
-// sans cela, le bouton retiré du DOM laisse le focus tomber sur <body>.
+// Retour du focus à la fermeture d’une fenêtre (voir useFocusReturn).
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
-const active = useActiveElement()
-let lastOutside: HTMLElement | null = null
-watch(active, (el) => {
-  if (el instanceof HTMLElement && el !== document.body && !rootEl.value?.contains(el)) lastOutside = el
-})
-const close = async (id: number) => {
-  const hadFocus = !!rootEl.value?.contains(active.value ?? null)
-  wins.value = wins.value.filter((w) => w.id !== id)
-  if (!hadFocus) return
-  await nextTick()
-  const target = rootEl.value?.querySelector<HTMLElement>('.fake-error button') ?? (lastOutside?.isConnected ? lastOutside : null)
-  target?.focus()
-}
+const closeWith = useFocusReturn(rootEl, '.fake-error button')
+const close = (id: number) => closeWith(() => (wins.value = wins.value.filter((w) => w.id !== id)))
 
 // Une fenêtre qui se retrouve sur quelque chose (redimensionnement, carte qui change) disparaît.
 const recheck = () => {
@@ -108,18 +70,9 @@ const recheck = () => {
 }
 useEventListener(window, 'resize', recheck)
 const settle = useTimeoutFn(recheck, 700, { immediate: false })
-// La carte et la colonne changent de taille (retournement, polices, orientation) : on revérifie à chaque changement.
-const tarotEl = shallowRef<HTMLElement | null>(null)
-const mainEl = shallowRef<HTMLElement | null>(null)
-useResizeObserver([tarotEl, mainEl], recheck)
-
 const count = level >= 5 ? 3 : level === 4 ? 1 + Math.floor(rng() * 2) : 1
 const timers = Array.from({ length: level >= 3 ? count : 0 }, (_, i) => useTimeoutFn(spawn, 3500 + i * 2500, { immediate: false }))
-onMounted(() => {
-  tarotEl.value = document.querySelector<HTMLElement>('.tarot')
-  mainEl.value = document.querySelector<HTMLElement>('main')
-  timers.forEach((t) => t.start())
-})
+onMounted(() => timers.forEach((t) => t.start()))
 </script>
 
 <template>

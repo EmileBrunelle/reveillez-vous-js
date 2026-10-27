@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
+import { Motion, useMotionValue } from 'motion-v'
 import { useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
@@ -9,6 +10,7 @@ import { cardDeal } from '../audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '../audio/cards'
 import { EMBLEMS, PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '../engine/paquets'
 import type { Rng } from '../engine/rng'
+import { nextFrameOr } from '../composables/nextFrame'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { focusQuietly } from '../composables/focusQuietly'
 
@@ -24,9 +26,6 @@ const paquets = shufflePaquets(rng)
 const deckEl = useTemplateRef<HTMLElement>('deckEl')
 const focusSink = useTemplateRef<HTMLElement>('focusSink') // cible de focus muette après le choix (voir choose)
 defineExpose({ focus: () => focusQuietly(deckEl.value, { preventScroll: true }) }) // appelé par App.vue (focusTarget 'deck')
-const slotEls = ref<HTMLElement[]>([])
-const tiltEls = ref<HTMLElement[]>([])
-const glowEls = ref<HTMLElement[]>([])
 const chosen = ref<number | null>(null)
 const promptId = useId()
 const hot = ref<number | null>(null)
@@ -51,13 +50,26 @@ interface Spr {
 const spr = (c = 0): Spr => ({ c, v: 0, t: c })
 const CH = ['x', 'y', 'r', 's', 'tx', 'ty', 'o'] as const
 type Ch = (typeof CH)[number]
+// Valeurs que Motion écrit sur le bouton (x, y, rotate, scale, opacity), sur l’inclinaison (rotateX/Y) et sur la lueur (glow) : plus aucun el.style à la main.
+const cardValues = () => ({
+  x: useMotionValue(0),
+  y: useMotionValue(0),
+  rotate: useMotionValue(0),
+  scale: useMotionValue(FAN_SCALE),
+  opacity: useMotionValue(0),
+  rotateX: useMotionValue(0),
+  rotateY: useMotionValue(0),
+  perspective: useMotionValue(0),
+  glow: useMotionValue(0),
+})
 interface Card extends Record<Ch, Spr> {
+  mv: ReturnType<typeof cardValues>
   startAt: number
   swayPhase: number
   k: number // raideur de la position/échelle/rotation
   zeta: number // amortissement (< 1 : léger dépassement)
 }
-const state: Card[] = cards.map((i) => ({ x: spr(), y: spr(), r: spr(), s: spr(FAN_SCALE), tx: spr(), ty: spr(), o: spr(), startAt: 0, swayPhase: i * 2.1, k: 190, zeta: 0.55 }))
+const state: Card[] = cards.map((i) => ({ mv: cardValues(), x: spr(), y: spr(), r: spr(), s: spr(FAN_SCALE), tx: spr(), ty: spr(), o: spr(), startAt: 0, swayPhase: i * 2.1, k: 190, zeta: 0.55 }))
 const dampOf = (k: number, zeta: number) => 2 * zeta * Math.sqrt(k)
 const step = (p: Spr, k: number, d: number, dt: number) => {
   p.v += (k * (p.t - p.c) - d * p.v) * dt
@@ -136,16 +148,18 @@ let finished = false
 const apply = () => {
   cards.forEach((i) => {
     const c = state[i]
-    const slot = slotEls.value[i]
-    const tilt = tiltEls.value[i]
-    if (!slot || !tilt) return
-    slot.style.transform = `translate3d(${c.x.c.toFixed(2)}px, ${c.y.c.toFixed(2)}px, 0) rotate(${c.r.c.toFixed(3)}deg) scale(${c.s.c.toFixed(4)})`
-    slot.style.opacity = String(clamp(c.o.c, 0, 1))
-    tilt.style.transform = `perspective(${(W * 1.3).toFixed(0)}px) rotateX(${c.tx.c.toFixed(2)}deg) rotateY(${c.ty.c.toFixed(2)}deg)`
-    const g = glowEls.value[i]
-    if (g && chosen.value === i) {
+    const { mv } = c
+    mv.x.set(c.x.c)
+    mv.y.set(c.y.c)
+    mv.rotate.set(c.r.c)
+    mv.scale.set(c.s.c)
+    mv.opacity.set(clamp(c.o.c, 0, 1))
+    mv.perspective.set(W * 1.3)
+    mv.rotateX.set(c.tx.c)
+    mv.rotateY.set(c.ty.c)
+    if (chosen.value === i) {
       const prog = clamp((c.s.c - startS) / (FINAL_S - startS), 0, 1)
-      g.style.opacity = String(Math.sin(Math.PI * prog))
+      mv.glow.set(Math.sin(Math.PI * prog))
     }
   })
 }
@@ -160,9 +174,12 @@ const finish = () => {
     c[ch].v = 0
   })
   c.o.c = 1
-  glowEls.value[chosen.value]?.style.setProperty('opacity', '0')
+  c.mv.glow.set(0)
   apply()
-  emit('pick', paquets[chosen.value])
+  // Motion écrit les valeurs à la prochaine image, et `emit('pick')` démonte la coupe au flush : on attend une image (bornée, l’onglet masqué suspend rAF)
+  // pour que l’état final soit peint avant que TarotCard prenne le relais pixel pour pixel.
+  const picked = paquets[chosen.value]
+  void nextFrameOr(120).then(() => emit('pick', picked))
 }
 
 const tick = (now: number) => {
@@ -460,12 +477,12 @@ const choose = (i: number) => {
         {{ TOUCH_HINT }}
       </p>
     </div>
-    <button
+    <Motion
       v-for="i in cards"
       :key="i"
-      :ref="(el) => (slotEls[i] = el as HTMLElement)"
+      as="button"
       type="button"
-      style="opacity: 0"
+      :style="{ x: state[i].mv.x, y: state[i].mv.y, rotate: state[i].mv.rotate, scale: state[i].mv.scale, opacity: state[i].mv.opacity }"
       class="deck__card absolute top-1/2 left-1/2 p-0 m-0 border-0 [background:none] cursor-pointer rounded-[4cqw] will-change-transform focus-visible:[outline:0.9cqw_solid_#f3e3b3] focus-visible:outline-offset-[1.2cqw]"
       :class="[zClass(i), { 'pointer-events-none': !ready }]"
       :aria-label="`${PAQUET_NOMS[paquets[i]]} : ${PAQUET_PRESAGES[paquets[i]]}`"
@@ -477,9 +494,11 @@ const choose = (i: number) => {
       @focus="onFocus(i, $event)"
       @blur="onLeave(i)"
     >
-      <span :ref="(el) => (glowEls[i] = el as HTMLElement)" class="deck__glow absolute inset-0 rounded-[4cqw] opacity-0 pointer-events-none" aria-hidden="true" />
-      <span :ref="(el) => (tiltEls[i] = el as HTMLElement)" class="block relative"><TarotCardBack fill :paquet="paquets[i]" /></span>
-    </button>
+      <Motion as="span" :style="{ opacity: state[i].mv.glow }" class="deck__glow absolute inset-0 rounded-[4cqw] pointer-events-none" aria-hidden="true" />
+      <Motion as="span" :style="{ transformPerspective: state[i].mv.perspective, rotateX: state[i].mv.rotateX, rotateY: state[i].mv.rotateY }" class="block relative">
+        <TarotCardBack fill :paquet="paquets[i]" />
+      </Motion>
+    </Motion>
   </div>
 </template>
 

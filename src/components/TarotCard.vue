@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
-import { animate } from 'motion-v'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import TarotEmblem from './TarotEmblem.vue'
 import TarotCardBack from './TarotCardBack.vue'
 import { emblemMask } from './emblemMask'
@@ -11,6 +10,7 @@ import { useReducedMotion } from '../composables/useReducedMotion'
 import { createLanding } from '../composables/cardLanding'
 import { useCardGlitch } from '../composables/useCardGlitch'
 import { useCardTilt } from '../composables/useCardTilt'
+import { useMotionScope } from '../composables/useMotionScope'
 import { useFitBody } from '../composables/useFitBody'
 import { useSessionStore } from '../stores/session'
 
@@ -71,17 +71,9 @@ useCardGlitch({ root, level: () => level, faceUp, reduced })
 // Les quatre coins dorés (losanges posés sur les angles du cadre).
 const CORNERS = ['top-[-1.5cqw] left-[-1.5cqw]', 'top-[-1.5cqw] right-[-1.5cqw]', 'bottom-[-1.5cqw] left-[-1.5cqw]', 'bottom-[-1.5cqw] right-[-1.5cqw]']
 
+// Animations Motion et pauses annulables : useMotionScope les arrête toutes à `halt()` et à la destruction du composant.
+const { go, snap, wait, halt } = useMotionScope()
 let skipped = false
-let running: { stop: () => void }[] = []
-let timer = 0
-const go = (el: Element | null | undefined, kf: Record<string, unknown>, opt: Record<string, unknown> = {}) => {
-  if (!el) return Promise.resolve()
-  const c = animate(el, kf as never, opt as never)
-  running.push(c)
-  return Promise.resolve(c).catch(() => undefined)
-}
-const snap = (el: Element | null | undefined, kf: Record<string, unknown>) => go(el, kf, { duration: 0 })
-const wait = (ms: number) => new Promise<void>((r) => (timer = window.setTimeout(r, ms)))
 
 // Face visible, sans animation.
 const rest = () => {
@@ -104,10 +96,8 @@ const flip = async () => {
   const lift = go(dealEl.value, { scale: [1, 1.14, 0.97, 1.04, 1], rotateZ: [0, -3, 2, -1, 0] }, { duration: 0.6, ease: 'easeOut' })
   const turn = go(flipEl.value, { rotateY: 180 }, { type: 'spring', stiffness: 120, damping: 9.5 })
   await wait(180)
-  if (skipped) return
   faceUp.value = true
   await Promise.all([lift, turn])
-  if (skipped) return
   settled.value = true
   landing.land()
   emit('flipped')
@@ -117,7 +107,6 @@ const flip = async () => {
 const deal = async () => {
   settled.value = true
   await wait(150)
-  if (skipped) return
   await flip()
 }
 
@@ -125,9 +114,8 @@ const deal = async () => {
 const skip = () => {
   if (skipped) return
   skipped = true
-  window.clearTimeout(timer)
-  running.forEach((r) => r.stop())
-  running = []
+  // `halt()` laisse en suspens les attentes et animations interrompues : la chaîne de `deal`/`flip` s’arrête là, sans drapeau à tester.
+  halt()
   rest()
 }
 // Un glissement n’est pas un tap : pas de skip à la fin du geste.
@@ -137,11 +125,6 @@ const onCardClick = () => {
 }
 
 onMounted(() => void deal())
-onUnmounted(() => {
-  skipped = true
-  window.clearTimeout(timer)
-  running.forEach((r) => r.stop())
-})
 </script>
 
 <template>

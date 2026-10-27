@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch, useTemplateRef, type ComponentPublicInstance } from 'vue'
-import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
+import { computed, ref, watch, useTemplateRef, type ComponentPublicInstance } from 'vue'
+import { AnimatePresence, Motion, MotionConfig } from 'motion-v'
 import { storeToRefs } from 'pinia'
 import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
@@ -12,17 +12,16 @@ import { useProgressStore } from './stores/progress'
 import { useCollectionStore } from './stores/collection'
 import { isQuickKnock } from './engine/paranoia'
 import { useTabTitle } from './composables/useTabTitle'
-import { useReducedMotion } from './composables/useReducedMotion'
-import { requestOrientationPermission } from './composables/useTilt'
-import { unrefElement, useTimeoutFn } from '@vueuse/core'
-import { unlock } from './audio/sfx'
 import { WAKE_LABEL } from './content/finale'
 import { ACTIVITY_PROMPTS } from './content/activityPrompts'
-import { focusQuietly } from './composables/focusQuietly'
 import { createFocusOnce } from './composables/focusOnce'
 import { useLazyScenes } from './composables/useLazyScenes'
 import { useGameFlow } from './composables/useGameFlow'
 import { useDeferredText } from './composables/useDeferredText'
+import { useLazyWindow } from './composables/useLazyWindow'
+import { useFocusTarget } from './composables/useFocusTarget'
+import { useShake } from './composables/useShake'
+import { useApproach } from './composables/useApproach'
 
 // Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
 // Ref fonction rappelée à chaque rendu : createFocusOnce ne focalise qu’une fois par élément (une réapparition de l’overlay = nouvel élément).
@@ -80,33 +79,14 @@ const retry = () => {
   attempt.value++
 }
 
-const aboutOpen = ref(false)
-let opener: HTMLElement | null = null
-const aboutWanted = ref(false) // monté (donc chargé) à la première ouverture seulement
-const resetWanted = ref(false)
-const openAbout = () => {
-  aboutWanted.value = true
-  opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
-  aboutOpen.value = true
-}
-watch(aboutOpen, (o) => {
-  if (!o) nextTick(() => focusQuietly(opener))
-})
+// Fenêtres chargées à la première ouverture (voir useLazyWindow) ; seule « À propos » rend le focus à son déclencheur (les autres le font via useDialogFocus).
+const { open: aboutOpen, wanted: aboutWanted, show: openAbout } = useLazyWindow({ restoreFocus: true })
+const { open: soundOpen, wanted: soundWanted, show: openSound } = useLazyWindow()
+const { open: collectionOpen, wanted: collectionWanted, show: openCollection } = useLazyWindow()
+const { open: resetOpen, wanted: resetWanted } = useLazyWindow()
 
 const progress = useProgressStore()
-const soundOpen = ref(false)
-const soundWanted = ref(false) // monté (donc chargé) à la première ouverture seulement
-const openSound = () => {
-  soundWanted.value = true
-  soundOpen.value = true
-}
 const collection = useCollectionStore()
-const collectionOpen = ref(false)
-const collectionWanted = ref(false) // monté (donc chargé) à la première ouverture seulement
-const openCollection = () => {
-  collectionWanted.value = true
-  collectionOpen.value = true
-}
 // Remise à zéro complète (« Oublier ») : en plus du niveau, la collection est effacée.
 const forgetAll = () => {
   collection.clear()
@@ -115,77 +95,20 @@ const forgetAll = () => {
 const { level, paranoia } = storeToRefs(progress)
 useTabTitle(level)
 
-const resetOpen = ref(false)
-watch(resetOpen, (o) => o && (resetWanted.value = true))
-
 const activityLabel = computed(() => (activityId.value ? ACTIVITY_PROMPTS[activityId.value].verb : 'Activité'))
-const reduced = useReducedMotion()
 const mainEl = useTemplateRef<HTMLElement>('mainEl')
-const shake = (amp: number) => {
-  if (reduced.value || !mainEl.value) return
-  const a = 10 * amp
-  animate(mainEl.value, { x: [0, -a, a * 0.8, -a * 0.5, a * 0.3, 0], y: [0, a * 0.4, -a * 0.5, a * 0.2, 0] }, { duration: 0.35 })
-}
-
-// Les navigateurs gardent l’AudioContext suspendu avant un geste de la personne ; sans geste, les premiers coups seraient muets.
-const awaiting = ref(!navigator.userActivation?.hasBeenActive)
-const { start: startAwaitEnd } = useTimeoutFn(() => (awaiting.value = false), 120, { immediate: false })
-const approach = () => {
-  unlock()
-  requestOrientationPermission()
-  // On laisse un instant au contexte pour passer à « running » : scheduleKnocks le verra actif.
-  ensureDoor().then(startAwaitEnd, () => undefined)
-}
+const shake = useShake(mainEl)
+const { awaiting, approach } = useApproach(() => ensureDoor())
 
 // Un écran qui se démonte laisse le focus sur <body> : useGameFlow nomme où il doit atterrir (focusTarget), ce watcher unique le traduit en élément.
 // Pas de sondage : AnimatePresence (mode wait) ne monte l’écran suivant qu’après la sortie du précédent, et sa ref passe alors de null à l’élément,
 // ce qui relance le watcher. Changer de cible entre-temps annule l’attente (targetEl repart de la nouvelle cible).
-type Focusable = HTMLElement | ComponentPublicInstance | { focus: () => void }
-const targetEl = computed<Focusable | null>(() => {
-  switch (focusTarget.value) {
-    case 'door':
-      return doorScene.value
-    case 'activity':
-      return activityEl.value
-    case 'deck':
-      return deckEl.value
-    case 'reading':
-      return readingEl.value ?? null
-    case 'close':
-      return closeBtn.value ?? null
-    case 'finale':
-      return finaleEl.value
-    default:
-      return null
-  }
+useFocusTarget({
+  target: focusTarget,
+  refs: { door: doorScene, activity: activityEl, deck: deckEl, reading: readingEl, close: closeBtn, finale: finaleEl },
+  area: mainEl,
+  guarded: { target: 'close', from: readingEl },
 })
-// Garde anti-vol : on ne déplace pas un focus que la personne a posé ailleurs (barre des tâches, fenêtre, élément déjà dans le nouvel écran).
-// Déplacement permis depuis <body> (l’écran précédent est démonté) ou depuis l’écran précédent, donc dans <main> ; vers « Fermer la porte »
-// (carte retournée), seulement depuis la section de lecture elle-même : quelqu’un qui lit la carte au lecteur d’écran n’est pas dérangé.
-const mayMoveFocus = (t: NonNullable<typeof focusTarget.value>, el: Focusable) => {
-  const a = document.activeElement
-  if (!a || a === document.body) return true
-  if (t === 'close') return a === readingEl.value
-  const dom = unrefElement(el as HTMLElement | ComponentPublicInstance)
-  if (dom instanceof Element && dom !== a && dom.contains(a)) return false
-  return !!mainEl.value?.contains(a)
-}
-watch(
-  targetEl,
-  (el) => {
-    const t = focusTarget.value
-    if (!t || !el) return
-    focusTarget.value = null
-    if (!mayMoveFocus(t, el)) return
-    // La porte, DeckCut et Finale exposent `focus()` (ils savent quoi focaliser) ; les autres cibles sont des éléments (ou des composants dont on prend l’élément racine).
-    if (!(el instanceof HTMLElement) && 'focus' in el && typeof el.focus === 'function') el.focus()
-    else {
-      const dom = unrefElement(el as HTMLElement | ComponentPublicInstance)
-      if (dom instanceof HTMLElement) focusQuietly(dom, { preventScroll: true })
-    }
-  },
-  { flush: 'post' },
-)
 watch(
   () => [phase.value, closing.value, awaiting.value, gpu.value, DoorScene.value] as const,
   ([p, c, a, g, d]) => {

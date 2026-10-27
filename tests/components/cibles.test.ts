@@ -10,7 +10,8 @@ describe('cibles et noms accessibles', () => {
     const bouton = src.match(/<button[^>]*aria-label="Fermer la fausse erreur"/s)?.[0] ?? ''
     expect(bouton).toContain('min-w-6')
     expect(bouton).toContain('min-h-6')
-    expect(src).toContain('lastOutside') // élément à qui le focus revient
+    expect(src).toContain('useFocusReturn') // le focus revient à l’élément extérieur (logique dans useFocusReturn)
+    expect(readFileSync(new URL('../../src/composables/useFocusReturn.ts', import.meta.url), 'utf8')).toContain('lastOutside')
   })
 
   it('Finale : le lien du README garde son texte visible comme nom (WCAG 2.5.3), « nouvel onglet » en sr-only', () => {

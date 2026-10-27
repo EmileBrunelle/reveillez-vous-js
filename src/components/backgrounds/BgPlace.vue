@@ -1,26 +1,22 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { useTemplateRef } from 'vue'
 import { useParallax } from '@vueuse/core'
+import { useGpuEffect } from '../../composables/useGpuEffect'
+import { usePlaceAudio } from '../../composables/usePlaceAudio'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useProgressStore } from '../../stores/progress'
-import { startAmbience } from '../../audio/ambience'
-import { startMusic } from '../../audio/music'
-import type { GpuLoop } from '../../effects/gpuLoop'
 import { placeLoaders, type PlaceId } from '../../effects/places'
 
 const { place, variant = undefined, sharp } = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
 
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
-const failed = ref(false)
-let scene: GpuLoop | null = null
-let gone = false
 const reducedMotion = useReducedMotion()
-// The paranoia level (0..1) comes straight from the progress store, read each frame by the shader params.
+// Le niveau de paranoïa (0..1) vient directement du store de progression, lu à chaque image par les paramètres du shader.
 const root = useTemplateRef<HTMLElement>('root')
 const { tilt, roll, source } = useParallax(root)
-// Mouse: tilt/roll are already in [-0.5, 0.5] around the centre -> x2 gives [-1, 1].
-// Phone: tilt/roll are absolute angles/90 (a phone held at a reading angle is far from 0), so we subtract a slow
-// baseline (tau ~4 s, like useTilt) and saturate at ~±15 deg: only gestures count, the scene recentres when still.
+// Souris : tilt/roll sont déjà dans [-0.5, 0.5] autour du centre, donc x2 donne [-1, 1].
+// Téléphone : tilt/roll sont des angles absolus/90 (un téléphone tenu en lecture est loin de 0) : on soustrait une
+// base lente (tau ~4 s, comme useTilt) et on sature à ~±15 deg : seuls les gestes comptent, la scène se recentre à l’arrêt.
 const TAU = 4
 const RANGE = 15 / 90
 let base = { x: 0, y: 0 }
@@ -32,7 +28,7 @@ const parallax = () => {
   const y = roll.value
   if (source.value === 'mouse') return { x: clamp1(x * 2), y: clamp1(y * 2) }
   const now = performance.now()
-  if (lastSource !== 'deviceOrientation' || now - lastT > 1000) base = { x, y } // first reading (or resumed): no jump
+  if (lastSource !== 'deviceOrientation' || now - lastT > 1000) base = { x, y } // première lecture (ou reprise) : pas de saut
   const k = 1 - Math.exp(-Math.min((now - lastT) / 1000, 1) / TAU)
   lastSource = 'deviceOrientation'
   lastT = now
@@ -41,37 +37,26 @@ const parallax = () => {
 }
 const progress = useProgressStore()
 const paranoia = () => progress.paranoia
-let stopAmbience = () => {}
-let stopMusic = () => {}
-onMounted(async () => {
-  stopAmbience = startAmbience(place, () => progress.level)
-  stopMusic = startMusic(() => progress.level)
-  try {
+usePlaceAudio(
+  () => place,
+  () => progress.level,
+)
+const { lost: failed } = useGpuEffect(
+  canvas,
+  async (el, onLost) => {
     const [{ createRaymarch }, cfg] = await Promise.all([import('../../effects/raymarch'), placeLoaders[place]()])
-    await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
-    if (gone) return
-    const s = await createRaymarch(canvas.value!, {
+    return createRaymarch(el, {
       shader: cfg.shader,
       params: (st) => cfg.params({ ...st, variant }),
       motion: () => !reducedMotion.value,
       sharp: () => sharp ?? false,
       paranoia,
       parallax,
-      onLost: () => (failed.value = true),
+      onLost,
     })
-    if (gone) return s.stop()
-    scene = s
-  } catch (e) {
-    console.warn('Place background disabled:', e)
-    failed.value = true
-  }
-})
-onUnmounted(() => {
-  gone = true
-  scene?.stop()
-  stopAmbience()
-  stopMusic()
-})
+  },
+  { warning: 'Décor de lieu désactivé :' },
+)
 </script>
 
 <template>
@@ -81,7 +66,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Fallback when the pipeline fails: plain dark night gradient. */
+/* Secours si le pipeline échoue : simple dégradé de nuit sombre. */
 .place {
   background: radial-gradient(ellipse at 70% 20%, #2a3350 0, transparent 30%), linear-gradient(#070a14, #141c26 70%, #05070b);
 }

@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Directive, useTemplateRef } from 'vue'
-import { animate } from 'motion-v'
-import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { computed, nextTick, onScopeDispose, onMounted, ref, watch, useTemplateRef } from 'vue'
+import { Motion } from 'motion-v'
+import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { CREDITS_BODY, CREDITS_THANKS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, README_LABEL, README_PREFIX, REPO_URL, RESTART_LABEL } from '../content/finale'
+import { useRiseDirective, useTextLeave } from '../composables/useFinaleRise'
+import { useFinaleBox } from '../composables/useFinaleBox'
+import { useKeptAnimations } from '../composables/useKeptAnimations'
 import { focusQuietly } from '../composables/focusQuietly'
 import { BELL_DELAY, startFinaleAudio } from '../audio/finale'
-import { finishAnimations, type Stoppable } from '../composables/finishAnimations'
 
 // Finale du niveau 5 : la télé s’éteint en une ligne, l’aube se lève, le texte arrive ligne par ligne, puis le générique.
 // `collapsed` : l’écran est noir (l’app coupe le CRT et passe le lieu en aube sans qu’on le voie). `restart` : « Recommencer ».
@@ -16,6 +18,7 @@ const reduced = useReducedMotion()
 const collection = useCollectionStore()
 // Le mouvement réduit ne coupe pas le son : sans séquence, on garde seulement la nappe d’aube et la cloche (voir onMounted).
 const audio = startFinaleAudio()
+onScopeDispose(() => audio.stop()) // coupe le son en fondu à la destruction (`stop` est idempotent : « passer » l’a peut-être déjà appelé)
 
 type Step = 'pre' | 'collapse' | 'black' | 'rise' | 'text' | 'credits'
 const step = ref<Step>('pre')
@@ -24,23 +27,8 @@ const count = ref(0)
 const skipped = ref(false)
 // Un seul maître par transform : motion-v (ressort) pose opacité et y, plus aucune animation CSS sur ces lignes.
 // Statique d’emblée en mouvement réduit ou après un saut ; sinon chaque élément monte sur un ressort doux, après `d` secondes.
-let running: Stoppable[] = []
-const vRise: Directive<HTMLElement, { d?: number; y?: number; letter?: boolean; soft?: boolean }> = {
-  beforeMount(el) {
-    if (!reduced.value && !skipped.value) el.style.opacity = '0'
-  },
-  mounted(el, { value }) {
-    if (reduced.value || skipped.value) return
-    const y = value.y ?? 16
-    const spring = value.letter ? { stiffness: 240, damping: 15 } : value.soft ? { stiffness: 36, damping: 13 } : { stiffness: 80, damping: 17 }
-    const a = animate(el, { opacity: [0, 1], ...(y ? { y: [y, 0] } : {}) } as never, { type: 'spring', ...spring, delay: value.d ?? 0 } as never)
-    running.push(a)
-    void Promise.resolve(a).then(
-      () => (running = running.filter((r) => r !== a)),
-      () => undefined,
-    )
-  },
-}
+const { keep, finish: finishRunning, pending } = useKeptAnimations()
+const vRise = useRiseDirective({ reduced, skipped }, keep)
 // Le titre apparaît lettre par lettre : mots insécables, chaque lettre sur son ressort (retard cumulé par ligne).
 // Les lignes sont des constantes : on découpe une fois à l’initialisation, pas à chaque rendu.
 const letters = (l: string) => {
@@ -64,54 +52,11 @@ const creditsAnnounce = computed(() => (showCredits.value && (!reduced.value || 
 const showBox = computed(() => showText.value || showCredits.value)
 // Un seul conteneur pour le texte puis le générique : il entre sur un ressort (échelle + opacité) et sa hauteur suit le contenu au ressort,
 // au lieu d’apparaître d’un coup plus grand. Mouvement réduit : simple fondu, hauteur posée directement.
-const box = useTemplateRef<HTMLElement>('box')
+// Un seul conteneur pour le texte puis le générique (entrée et hauteur au ressort : voir useFinaleBox).
 const inner = useTemplateRef<HTMLElement>('inner')
-let boxIn = false
-let heightAnim: Stoppable | undefined
-const keep = (a: Stoppable) => {
-  running.push(a)
-  void Promise.resolve(a).then(
-    () => (running = running.filter((r) => r !== a)),
-    () => undefined,
-  )
-}
-useResizeObserver(inner, () => {
-  const el = box.value
-  const h = inner.value?.offsetHeight
-  if (!el || !h) return
-  if (!boxIn) {
-    boxIn = true
-    el.style.height = `${h}px`
-    if (skipped.value) return void (el.style.opacity = '1')
-    keep(
-      animate(
-        el,
-        { opacity: [0, 1], ...(reduced.value ? {} : { scale: [0.94, 1], y: [14, 0] }) } as never,
-        reduced.value ? ({ duration: 0.6, ease: 'easeOut' } as never) : ({ type: 'spring', stiffness: 70, damping: 16 } as never),
-      ),
-    )
-    return
-  }
-  if (reduced.value || skipped.value) return void (el.style.height = `${h}px`)
-  heightAnim?.stop?.()
-  heightAnim = animate(el, { height: h } as never, { type: 'spring', stiffness: 90, damping: 20 } as never)
-  keep(heightAnim)
-})
+const boxStyle = useFinaleBox(inner, { reduced, skipped }, keep)
 // Le texte s’efface avant que le générique ne prenne sa place (la hauteur du conteneur se règle pendant ce temps).
-let leaving: (() => void) | undefined
-const leaveText = (el: Element, done: () => void) => {
-  if (reduced.value || skipped.value) return done()
-  const a = animate(el as HTMLElement, { opacity: 0 } as never, { duration: 0.45, ease: 'easeIn' } as never)
-  const end = () => {
-    leaving = undefined
-    done()
-  }
-  leaving = () => {
-    finishAnimations([a])
-    end()
-  }
-  void Promise.resolve(a).then(end, end)
-}
+const { leaveText, finishLeaving } = useTextLeave({ reduced, skipped })
 // Le focus arrive sur le conteneur nommé « Finale » dès l’entrée (App.vue, via focusTarget), puis sur « Recommencer » quand il apparaît.
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
 defineExpose({ focus: () => focusQuietly(rootEl.value, { preventScroll: true }) })
@@ -179,18 +124,13 @@ const skip = () => {
   if (step.value === 'credits') {
     skipped.value = true
     // Générique déjà là : un clic ailleurs mène seulement les ressorts restants à leur fin (le lien, lui, n’y touche jamais).
-    leaving?.() // fondu du texte en cours : le générique apparaît tout de suite
-    if (running.length) {
-      skipped.value = true
-      finishAnimations(running)
-      running = []
-    }
+    finishLeaving() // fondu du texte en cours : le générique apparaît tout de suite
+    if (pending()) finishRunning()
     return
   }
   stop()
   skipped.value = true
-  finishAnimations(running) // mène les ressorts à leur fin (stop() seul les figerait à mi-course)
-  running = []
+  finishRunning() // mène les ressorts à leur fin (stop() seul les figerait à mi-course)
   audio.stop(false) // coupe nappe et cloche en fondu, sans oscillateur orphelin ; le générique reste silencieux comme en fin normale
   if (step.value === 'pre' || step.value === 'collapse') emit('collapsed') // l’aube doit quand même se mettre en place
   count.value = lines.length
@@ -200,12 +140,6 @@ const skip = () => {
 const onButton = (e: Event) => e.target instanceof Element && !!e.target.closest('button, a, [role="menuitem"]')
 useEventListener(document, 'click', (e) => onButton(e) || skip())
 useEventListener(document, 'keydown', (e) => (e.key === ' ' || e.key === 'Enter') && !onButton(e) && skip())
-onBeforeUnmount(() => {
-  stop()
-  finishAnimations(running)
-  running = []
-  audio.stop()
-})
 const barsClosed = computed(() => step.value !== 'pre')
 const lineOut = computed(() => ['black', 'rise', 'text', 'credits'].includes(step.value))
 const veilLifted = computed(() => ['rise', 'text', 'credits'].includes(step.value))
@@ -231,7 +165,7 @@ const lineClass = (i: number) =>
   >
     <!-- Région live persistante, vide jusqu’au générique : un rôle status inséré déjà plein serait muet. -->
     <p class="sr-only" role="status">{{ creditsAnnounce }}</p>
-    <div v-if="showBox" ref="box" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" style="height: 0; opacity: 0">
+    <Motion v-if="showBox" as="div" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" :style="boxStyle">
       <div ref="inner" class="grid gap-3 justify-items-center px-4 py-5">
         <Transition :css="false" mode="out-in" @leave="leaveText">
           <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center">
@@ -270,6 +204,6 @@ const lineClass = (i: number) =>
           </div>
         </Transition>
       </div>
-    </div>
+    </Motion>
   </section>
 </template>
