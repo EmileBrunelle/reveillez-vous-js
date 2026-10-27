@@ -10,13 +10,14 @@ import { approach, liftFromSpeed, tiltFromVelocity, tremorOffset, wanderOffset }
 import { orSecure, type Rng } from '../../engine/rng'
 import { ouijaFarewell, ouijaTick } from '../../audio/ouija'
 import { aimPoint } from '../../composables/touchAim'
-import { pulse } from '../../composables/haptics'
+import { useHaptics } from '../../composables/haptics'
 import IconGoutte from '~icons/rvj/goutte'
 
 const props = defineProps<{ level: number; rng?: Rng }>()
 // Pas de défaut de prop : Vue prendrait la fabrique secureRng comme valeur.
 const rng = orSecure(props.rng)
 const emit = defineEmits<{ done: [] }>()
+const { pulse } = useHaptics()
 
 const word = pickWord(OUIJA_WORDS, rng)
 const shown = OUIJA_SHOWN[word]
