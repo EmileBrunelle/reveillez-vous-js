@@ -32,10 +32,13 @@ export const stingerDuration = (o: Outcome): number => Math.max(...STINGERS[o].m
 
 const PEAK = 0.09
 
-/** Joue le jingle sur le bus des effets (donc le bus général et son limiteur). Muet : rien ne démarre, renvoie 0 ; sinon la durée (s). */
-export const playStinger = (o: Outcome, delay = 0): number => {
+const NOOP = () => {}
+
+/** Joue le jingle sur le bus des effets (donc le bus général et son limiteur). Renvoie une fonction d’arrêt (fondu de 30 ms, sans clic) ; muet : rien ne démarre et l’arrêt ne fait rien. */
+export const playStinger = (o: Outcome, delay = 0): (() => void) => {
   const c = ac()
-  if (!c || muted.value) return 0
+  if (!c || muted.value) return NOOP
+  const stops: (() => void)[] = []
   const t0 = c.currentTime + delay
   const out = effetsOut(c)
   for (const n of STINGERS[o]) {
@@ -56,6 +59,12 @@ export const playStinger = (o: Outcome, delay = 0): number => {
     osc.connect(lp).connect(g).connect(out)
     osc.start(s)
     osc.stop(e + 0.06)
+    stops.push(() => {
+      const t = c.currentTime
+      g.gain.cancelScheduledValues(t)
+      g.gain.setTargetAtTime(0, t, 0.01)
+      osc.stop(t + 0.04)
+    })
   }
-  return stingerDuration(o)
+  return () => stops.forEach((f) => f())
 }

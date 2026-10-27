@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
-import { durationOf } from '../../engine/activityTiming'
+import { durationOf, outcomeMsOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { OUIJA_SHOWN, OUIJA_WORDS } from '../../content/ouija'
@@ -41,6 +41,7 @@ const reduced = useReducedMotion()
 
 const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('ouija'),
+  delayMs: outcomeMsOf('ouija'),
   // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
   // Expiration (échec) : le mot reste incomplet, pas d’au revoir.
   onFinish: (o) => {

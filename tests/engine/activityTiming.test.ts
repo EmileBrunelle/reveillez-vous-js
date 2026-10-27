@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '../../src/content/activityPrompts'
-import { MAX_ACTIVITY_MS, OUTCOME_MS, durationOf, outcomeAt, timeLeft } from '../../src/engine/activityTiming'
+import { stingerDuration } from '../../src/audio/stinger'
+import { MAX_ACTIVITY_MS, OUTCOME_MS, durationOf, outcomeAt, outcomeMsOf, timeLeft } from '../../src/engine/activityTiming'
 
 const ids = Object.keys(ACTIVITY_PROMPTS) as TimedActivity[]
 
@@ -14,6 +15,12 @@ describe('activityTiming', () => {
 
   it('le jingle de réussite d’Ouija attend la fin du son « au revoir » (1,4 s)', () => {
     expect(ACTIVITY_PROMPTS.ouija.winStingerDelay).toBeGreaterThanOrEqual(1.4)
+  })
+
+  it('le jingle d’Ouija joue en entier avant la fin de l’issue', () => {
+    const end = ACTIVITY_PROMPTS.ouija.winStingerDelay! + stingerDuration('win') + 0.1
+    expect(end).toBeLessThanOrEqual(outcomeMsOf('ouija') / 1000)
+    expect(outcomeMsOf('windows')).toBe(OUTCOME_MS)
   })
 
   it('l’issue d’affichage dure environ 1 s', () => {

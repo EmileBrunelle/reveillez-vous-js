@@ -4,10 +4,19 @@ const h = vi.hoisted(() => ({
   out: { id: 'effets' } as object,
   muted: { value: false },
   edges: [] as [unknown, unknown][],
+  cancels: [] as number[],
+  targets: [] as [number, number][],
   oscs: [] as { type: string; hz: number; start: number; stop: number }[],
 }))
 
-const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} })
+const param = () => ({
+  value: 0,
+  setValueAtTime() {},
+  linearRampToValueAtTime() {},
+  exponentialRampToValueAtTime() {},
+  cancelScheduledValues: () => void h.cancels.push(1),
+  setTargetAtTime: (v: number, _t: number, tc: number) => void h.targets.push([v, tc]),
+})
 const node = () => {
   const n: Record<string, unknown> = { gain: param(), frequency: param(), type: '' }
   n.connect = (to: unknown) => (h.edges.push([n, to]), to)
@@ -40,6 +49,8 @@ describe('stingers d’activité', () => {
     h.muted.value = false
     h.edges.length = 0
     h.oscs.length = 0
+    h.cancels.length = 0
+    h.targets.length = 0
   })
 
   it('durent environ 1 s', () => {
@@ -67,7 +78,7 @@ describe('stingers d’activité', () => {
   })
 
   it('joue une voix par note, sur le bus des effets', () => {
-    expect(playStinger('win')).toBeCloseTo(stingerDuration('win'))
+    playStinger('win')
     expect(h.oscs).toHaveLength(STINGERS.win.length)
     expect(h.oscs.map((o) => o.hz)).toEqual(STINGERS.win.map((n) => n.hz))
     expect(h.oscs[0].start).toBe(2)
@@ -81,7 +92,23 @@ describe('stingers d’activité', () => {
 
   it('muet : rien ne démarre', () => {
     h.muted.value = true
-    expect(playStinger('fail')).toBe(0)
+    const stop = playStinger('fail')
     expect(h.oscs).toHaveLength(0)
+    expect(() => stop()).not.toThrow()
+  })
+
+  it('l’arrêt coupe chaque voix avec un fondu de 30 ms, sans clic', () => {
+    const stop = playStinger('win')
+    const before = h.oscs.map((o) => o.stop)
+    stop()
+    expect(h.cancels).toHaveLength(STINGERS.win.length)
+    expect(h.targets).toHaveLength(STINGERS.win.length)
+    for (const [v, tc] of h.targets) {
+      expect(v).toBe(0)
+      expect(tc * 3).toBeCloseTo(0.03)
+    }
+    // chaque oscillateur est arrêté peu après l’instant courant (2 s), donc avant sa fin prévue
+    h.oscs.forEach((o, i) => expect(o.stop).toBeLessThan(before[i]))
+    h.oscs.forEach((o) => expect(o.stop).toBeLessThanOrEqual(2.05))
   })
 })

@@ -41,16 +41,9 @@ const hint = ref<number | null>(null)
 const house = ref<HTMLElement>()
 const missed = ref(false)
 // Annonce vocale (région aria-live) des phases du jeu.
+// À l’échec (temps écoulé), rien : le HUD annonce déjà l’issue.
 const status = computed(() =>
-  phase.value === 'won'
-    ? outcome.value === 'fail'
-      ? 'Le temps est écoulé. La partie continue.'
-      : 'Bravo, c’est réussi.'
-    : phase.value === 'input'
-      ? 'À vous.'
-      : missed.value
-        ? 'Ce n’était pas celle-là. On recommence.'
-        : 'Regardez bien…',
+  outcome.value === 'fail' ? '' : phase.value === 'won' ? 'Bravo, c’est réussi.' : phase.value === 'input' ? 'À vous.' : missed.value ? 'Ce n’était pas celle-là. On recommence.' : 'Regardez bien…',
 )
 let playIdx = 0
 let shake: { stop: () => void } | undefined

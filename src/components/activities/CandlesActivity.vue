@@ -98,7 +98,7 @@ const { start: relightLater, stop: relightStop } = useTimeoutFn(
 )
 
 const light = (i: number) => {
-  if (lit[i]) return
+  if (lit[i] || outcome.value !== 'play') return
   lit[i] = true
   pulse(20)
   hold[i] = 1

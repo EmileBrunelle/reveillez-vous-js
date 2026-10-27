@@ -9,6 +9,7 @@ import { useReducedMotion } from '../../composables/useReducedMotion'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '../../content/activityPrompts'
 import { durationOf, timeLeft, type Phase } from '../../engine/activityTiming'
 import { playStinger } from '../../audio/stinger'
+import { muted } from '../../audio/sfx'
 
 const props = defineProps<{ activity: TimedActivity; outcome: Phase; startedAt: number }>()
 const prompt = computed(() => ACTIVITY_PROMPTS[props.activity])
@@ -20,7 +21,13 @@ const left = ref(100)
 const { pause } = useRafFn(() => {
   left.value = timeLeft(Date.now() - props.startedAt, duration.value) * 100
 })
-onUnmounted(pause)
+// Jingle en cours : coupé au démontage et si le son passe en muet pendant la lecture.
+let stopStinger: () => void = () => {}
+onUnmounted(() => {
+  pause()
+  stopStinger()
+})
+watch(muted, (m) => m && stopStinger())
 
 const rootEl = ref<HTMLElement>()
 const verbEl = ref<HTMLElement>()
@@ -50,7 +57,7 @@ watch(
   async (o) => {
     if (o === 'play') return
     pause()
-    playStinger(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
+    stopStinger = playStinger(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
     await nextTick()
     if (resultEl.value && !reduced.value) animate(resultEl.value, { scale: [0.3, 1], rotate: o === 'win' ? [-6, 0] : [4, 0] }, { type: 'spring', stiffness: 480, damping: 9 })
   },

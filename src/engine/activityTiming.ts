@@ -14,5 +14,8 @@ export const durationOf = (id: TimedActivity): number => Math.min(MAX_ACTIVITY_M
 /** Issue : réussite seulement si la réussite survient avant la fin du temps imparti ; sinon échec. */
 export const outcomeAt = (elapsedMs: number, durationMs: number, won: boolean): Outcome => (won && elapsedMs < durationMs ? 'win' : 'fail')
 
+/** Durée d’affichage de l’issue d’une activité (ms). */
+export const outcomeMsOf = (id: TimedActivity): number => ACTIVITY_PROMPTS[id].outcomeMs ?? OUTCOME_MS
+
 /** Part de temps restante, de 1 (début) à 0 (fin). */
 export const timeLeft = (elapsedMs: number, durationMs: number): number => (durationMs <= 0 ? 0 : Math.min(1, Math.max(0, 1 - elapsedMs / durationMs)))
