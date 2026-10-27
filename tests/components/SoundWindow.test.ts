@@ -27,8 +27,7 @@ describe('SoundWindow', () => {
     for (const label of ['Volume général', 'Ambiance', 'Effets', 'Finale']) expect(html).toContain(`>${label}</label>`)
     expect(html).toContain('100 %')
     expect(html).toContain('Valeurs par défaut')
-    const titleId = html.match(/aria-labelledby="([^"]+)"/)?.[1]
-    expect(titleId).toBeTruthy()
-    expect(html).toContain(`id="${titleId}"`)
+    // Le nom du dialogue (aria-labelledby) est posé par v0 au montage : voir tests/components/dialogs.test.ts.
+    expect(html).toMatch(/<h2 id="[^"]+-title"[^>]*>(?:<!--.*?-->)*Son/)
   })
 })

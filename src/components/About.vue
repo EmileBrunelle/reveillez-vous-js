@@ -7,8 +7,8 @@ import { finishAnimations, type Stoppable } from '../composables/finishAnimation
 import { aboutClose, aboutOpen } from '../audio/sfx'
 import { REPO_URL } from '../content/finale'
 
-// Parent v-model = "wants open". `shown` is what the native dialog actually sees, so the close animation
-// can play before the dialog really closes. Pure DOM + motion: no dependency on WebGPU.
+// v-model du parent = « veut ouvert ». `shown` est ce que le dialogue natif voit vraiment : l’animation de
+// fermeture peut ainsi jouer avant la fermeture réelle. DOM et motion seulement : aucune dépendance à WebGPU.
 const open = defineModel<boolean>({ default: false })
 const shown = ref(false)
 const reduced = useReducedMotion()
@@ -38,7 +38,7 @@ const rest = () => {
   set(title.value, { clipPath: 'none' })
   set(body.value, { opacity: '1' })
 }
-// The CRT world dims and recedes while the window is up.
+// Le monde CRT s’assombrit et recule tant que la fenêtre est ouverte.
 const zoomWorld = (on: boolean) => {
   const app = document.querySelector<HTMLElement>('.app')
   if (!app || reduced.value) return
@@ -106,12 +106,12 @@ const closeNow = async () => {
   await playClose()
   closingNow = false
 }
-// Escape: keep the native dialog open until the close animation ends.
+// Échap : le dialogue natif reste ouvert jusqu’à la fin de l’animation de fermeture.
 const onCancel = (e: Event) => {
   e.preventDefault()
   request(false)
 }
-// A click during the open animation skips it.
+// Un clic pendant l’animation d’ouverture la saute.
 // `stop()` laisse la fenêtre figée à mi-course (ligne bleue, corps à opacité 0) : on mène plutôt les animations à leur fin, puis on pose l’état de repos.
 const skip = () => {
   if (busy && !closingNow) {
@@ -135,7 +135,6 @@ const skip = () => {
           <Dialog.Title class="m-0 text-[1rem] font-bold"><span ref="title" class="inline-block whitespace-nowrap">À propos</span></Dialog.Title>
           <Dialog.Close
             class="select-none touch-manipulation [-webkit-tap-highlight-color:transparent] [font:inherit] cursor-pointer text-black border-2 border-solid border-black focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px] bg-[#aaaaaa] py-0 px-[0.6rem]"
-            aria-label="Fermer"
             >X</Dialog.Close
           >
         </div>
@@ -166,7 +165,6 @@ const skip = () => {
             (CC BY 3.0). Polices : VT323, IM Fell English et Cinzel (SIL OFL 1.1).
           </p>
           <Dialog.Close
-            aria-label="Fermer"
             class="select-none touch-manipulation [-webkit-tap-highlight-color:transparent] [font:inherit] cursor-pointer text-black border-2 border-solid border-black focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px] bg-[#ffff55] py-[0.4rem] px-4"
             >Fermer</Dialog.Close
           >

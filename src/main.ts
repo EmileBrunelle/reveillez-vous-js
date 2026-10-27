@@ -6,5 +6,6 @@ import '@fontsource/cinzel/latin-700.css'
 import 'virtual:uno.css'
 import './styles.css'
 import App from './App.vue'
+import { createAppLocale } from './locale'
 
-createApp(App).use(createPinia()).mount('#app')
+createApp(App).use(createPinia()).use(createAppLocale()).mount('#app')
