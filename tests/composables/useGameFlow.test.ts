@@ -71,6 +71,18 @@ describe('useGameFlow : focusTarget', () => {
     scope.stop()
   })
 
+  it('deux tirages simultanés (double clic, « Passer ») n’en font qu’un', async () => {
+    const { flow, scope } = make()
+    flow.onDone()
+    if (flow.phase.value === 'activity') flow.onActivityDone()
+    const first = flow.onPick('nuit')
+    const second = flow.onPick('feu')
+    await Promise.all([first, second])
+    expect(flow.pickedPaquet.value).toBe('nuit')
+    expect(useProgressStore().memory.lastArcane).not.toBeNull()
+    scope.stop()
+  })
+
   it('niveau 5 : « Fermer la porte » mène à la finale, qui reçoit le focus', async () => {
     const { flow, scope } = make(7)
     flow.onDone()

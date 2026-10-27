@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { safeSessionStorage, safeStorage } from '../../src/composables/safeStorage'
+import { resetSafeStorageCache, safeSessionStorage, safeStorage } from '../../src/composables/safeStorage'
 
 describe('safeStorage', () => {
   afterEach(() => {
@@ -42,7 +42,9 @@ describe('safeStorage', () => {
     const m = new Map<string, string>()
     const real = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }
     Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: real })
-    expect(safeStorage()).toBe(real)
+    safeStorage().setItem('k', 'v')
+    expect(m.get('k')).toBe('v')
+    expect(safeStorage().getItem('k')).toBe('v')
   })
 
   it('session variant falls back to its own memory when sessionStorage throws', () => {
@@ -62,7 +64,8 @@ describe('safeStorage', () => {
     const m = new Map<string, string>()
     const real = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }
     Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: real })
-    expect(safeSessionStorage()).toBe(real)
+    safeSessionStorage().setItem('k', 'v')
+    expect(m.get('k')).toBe('v')
   })
 
   it('ne sonde le stockage qu’une fois (clé sonde écrite puis supprimée une seule fois)', () => {
@@ -73,5 +76,39 @@ describe('safeStorage', () => {
     safeStorage()
     safeStorage()
     expect(calls).toEqual({ set: 1, remove: 1 })
+  })
+
+  it('quota plein après la sonde : l’écriture bascule vers la Map au lieu de lever', () => {
+    let full = false
+    const m = new Map<string, string>()
+    const real = {
+      getItem: (k: string) => m.get(k) ?? null,
+      removeItem: (k: string) => void m.delete(k),
+      setItem: (k: string, v: string) => {
+        if (full) throw new DOMException('quota', 'QuotaExceededError')
+        m.set(k, v)
+      },
+    }
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: real })
+    const s = safeStorage() // la sonde réussit : le verdict est « utilisable »
+    s.setItem('avant', '1')
+    full = true
+    expect(() => s.setItem('apres', '2')).not.toThrow()
+    expect(s.getItem('apres')).toBe('2')
+    expect(s.getItem('avant')).toBe('1')
+    s.removeItem('apres')
+    expect(s.getItem('apres')).toBeNull()
+  })
+
+  it('resetSafeStorageCache vide aussi les Maps de repli', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get: () => {
+        throw new DOMException('denied', 'SecurityError')
+      },
+    })
+    safeStorage().setItem('k', 'v')
+    resetSafeStorageCache()
+    expect(safeStorage().getItem('k')).toBeNull()
   })
 })

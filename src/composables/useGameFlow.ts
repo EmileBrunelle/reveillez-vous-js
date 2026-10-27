@@ -13,7 +13,7 @@
 // - Les bulles de la barre des tâches appartiennent à la porte (voir useBubbles).
 import { computed, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useMediaQuery } from '@vueuse/core'
+import { promiseTimeout, useMediaQuery } from '@vueuse/core'
 import { doors, pickDoor, pickPlaceVariant, placeForLevel, places } from '../content/scenes'
 import { prophecies } from '../content/prophecies'
 import { nextClockLine } from '../engine/horloge'
@@ -41,15 +41,7 @@ export type FocusTarget = 'door' | 'activity' | 'deck' | 'reading' | 'close' | '
 
 const TAROT_TIMEOUT_MS = 3000
 // « Jamais de substitut » : la carte est chargée avant la lecture. Sans le chunk (échec ou délai), la lecture de secours en texte prend le relais.
-const tarotReady = () =>
-  new Promise<boolean>((resolve) => {
-    const timer = setTimeout(() => resolve(false), TAROT_TIMEOUT_MS) // annulée dès que le chunk répond (pas de minuteur orphelin)
-    const settle = (ok: boolean) => (clearTimeout(timer), resolve(ok))
-    loadTarotCard().then(
-      () => settle(true),
-      () => settle(false),
-    )
-  })
+const tarotReady = () => Promise.race([loadTarotCard().then(() => true), promiseTimeout(TAROT_TIMEOUT_MS).then(() => false)]).catch(() => false)
 
 export const useGameFlow = () => {
   const rng = secureRng()
@@ -157,9 +149,11 @@ export const useGameFlow = () => {
     focusTarget.value = 'deck'
   }
   // La prophétie est tirée ici, une fois par visite : l’arcane vient du paquet choisi.
+  let picking = false // un tirage en cours : un second clic (paquet, « Passer ») n’en tire pas un deuxième pendant l’attente du chunk
   const onPick = async (paquet: Paquet) => {
-    if (phase.value !== 'cut' || closing.value) return // « Recommencer à zéro » pendant le vol : on ne rouvre pas une lecture
-    const tarot = await tarotReady()
+    if (picking || phase.value !== 'cut' || closing.value) return // « Recommencer à zéro » pendant le vol : on ne rouvre pas une lecture
+    picking = true
+    const tarot = await tarotReady().finally(() => (picking = false))
     if (phase.value !== 'cut' || closing.value) return
     pickedPaquet.value = paquet
     tarotOk.value = tarot
