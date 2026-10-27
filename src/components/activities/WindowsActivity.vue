@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
@@ -38,7 +38,7 @@ const phase = ref<'intro' | 'play' | 'input' | 'won'>('intro')
 const lit = ref<number | null>(null)
 const input = ref(startInput())
 const hint = ref<number | null>(null)
-const house = ref<HTMLElement>()
+const house = useTemplateRef<HTMLElement>('house')
 const missed = ref(false)
 // Annonce vocale (région aria-live) des phases du jeu.
 // À l’échec (temps écoulé), rien : le HUD annonce déjà l’issue.

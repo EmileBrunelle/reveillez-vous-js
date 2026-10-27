@@ -37,8 +37,8 @@ const FALLBACK_LINE = 'Toc toc toc… Avez-vous un moment pour parler de votre a
 interface GameFlowDeps {
   ensureTarot: () => Promise<void>
   tarotFailed: Ref<boolean>
-  closeBtn: Ref<HTMLButtonElement | undefined>
-  readingEl: Ref<HTMLElement | undefined>
+  closeBtn: Readonly<Ref<HTMLButtonElement | null | undefined>>
+  readingEl: Readonly<Ref<HTMLElement | null | undefined>>
 }
 
 export const useGameFlow = ({ ensureTarot, tarotFailed, closeBtn, readingEl }: GameFlowDeps) => {

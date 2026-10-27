@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -16,8 +16,8 @@ const WIN_RATIO = 0.7
 const SPACING = 0.14
 const KEY_STEP = 0.14
 
-const ball = ref<HTMLElement | null>(null)
-const canvas = ref<HTMLCanvasElement | null>(null)
+const ball = useTemplateRef<HTMLElement>('ball')
+const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const failed = ref(false)
 const visibility = useDocumentVisibility()
 

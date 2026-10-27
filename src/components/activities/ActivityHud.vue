@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Invite commune des activités chronométrées : un verbe géant qui surgit au ressort puis se range en bas à gauche, une barre de temps
 // qui se vide en continu (aucune variation de luminance : seule la largeur change) et l’issue (réussite ou échec) affichée environ 1 s.
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { Progress } from '@vuetify/v0'
 import { useRafFn, useTimeoutFn } from '@vueuse/core'
@@ -29,9 +29,9 @@ onUnmounted(() => {
 })
 watch(muted, (m) => m && stopStinger())
 
-const rootEl = ref<HTMLElement>()
-const verbEl = ref<HTMLElement>()
-const resultEl = ref<HTMLElement>()
+const rootEl = useTemplateRef<HTMLElement>('rootEl')
+const verbEl = useTemplateRef<HTMLElement>('verbEl')
+const resultEl = useTemplateRef<HTMLElement>('resultEl')
 const SCALE_DOCKED = 0.34
 // Rangement : le verbe géant, centré, se réduit puis se pose en bas à gauche, au-dessus de la barre. Un seul maître du transform : animate.
 const dock = () => {

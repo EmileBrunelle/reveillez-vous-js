@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 
 const SIZE = 24
 const reduced = useReducedMotion()
-const root = ref<HTMLElement>()
+const root = useTemplateRef<HTMLElement>('root')
 let next = 0
 const live: { stop: () => void }[] = []
 

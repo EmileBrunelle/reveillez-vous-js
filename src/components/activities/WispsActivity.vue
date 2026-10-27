@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef, useTemplateRef } from 'vue'
 import { useElementSize, usePreferredReducedMotion, useRafFn, useEventListener, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -18,7 +18,7 @@ const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() =
 const rng: Rng = secureRng()
 
 const TOTAL = 3
-const stage = ref<HTMLElement | null>(null)
+const stage = useTemplateRef<HTMLElement>('stage')
 const { width, height } = useElementSize(stage)
 const tuning = computed(() => wispTuning(props.level, width.value, height.value)) // rayon ≥ 72 px : généreux pour le tactile
 const reduced = usePreferredReducedMotion()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
@@ -21,7 +21,7 @@ const emit = defineEmits<{ pick: [paquet: Paquet] }>()
 const reduced = useReducedMotion()
 
 const paquets = shufflePaquets(props.rng)
-const deckEl = ref<HTMLElement>()
+const deckEl = useTemplateRef<HTMLElement>('deckEl')
 const slotEls = ref<HTMLElement[]>([])
 const tiltEls = ref<HTMLElement[]>([])
 const glowEls = ref<HTMLElement[]>([])

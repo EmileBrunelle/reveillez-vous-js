@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, ref, watch, useTemplateRef } from 'vue'
 import { Dialog } from '@vuetify/v0'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
@@ -12,14 +12,14 @@ import { REPO_URL } from '../content/finale'
 const open = defineModel<boolean>({ default: false })
 const shown = ref(false)
 const reduced = useReducedMotion()
-const win = ref<HTMLElement>()
-const bar = ref<HTMLElement>()
-const title = ref<HTMLElement>()
-const body = ref<HTMLElement>()
+const win = useTemplateRef<HTMLElement>('win')
+const bar = useTemplateRef<HTMLElement>('bar')
+const title = useTemplateRef<HTMLElement>('title')
+const body = useTemplateRef<HTMLElement>('body')
 
 let running: Stoppable[] = []
 let busy = false
-const run = (el: Element | undefined, kf: Record<string, unknown>, opt: Record<string, unknown>) => {
+const run = (el: Element | null | undefined, kf: Record<string, unknown>, opt: Record<string, unknown>) => {
   if (!el) return Promise.resolve()
   const c = animate(el, kf as never, opt as never)
   running.push(c)
@@ -29,7 +29,7 @@ const stopAll = () => {
   running.forEach((r) => r.stop())
   running = []
 }
-const set = (el: Element | undefined, kf: Record<string, string | number>) => {
+const set = (el: Element | null | undefined, kf: Record<string, string | number>) => {
   if (el) Object.assign((el as HTMLElement).style, kf)
 }
 const rest = () => {

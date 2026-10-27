@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, watch, useTemplateRef } from 'vue'
 import { focusQuietly } from '../composables/focusQuietly'
 import { previewEffects } from '../audio/sfx'
 import { useAudioStore, type VolumeKey } from '../stores/audio'
 
 // Parent v-model = « veut ouvert ». <dialog> natif : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
-const dlg = ref<HTMLDialogElement>()
-const closeBtn = ref<HTMLButtonElement>()
+const dlg = useTemplateRef<HTMLDialogElement>('dlg')
+const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
 let opener: HTMLElement | null = null
 
 const sliders: { key: VolumeKey; label: string }[] = [

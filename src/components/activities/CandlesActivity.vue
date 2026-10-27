@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, useTemplateRef } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -39,9 +39,9 @@ const reduced = useReducedMotion()
 const keyboard = useKeyboardModality()
 
 const COUNT = 3
-const stage = ref<HTMLElement>()
+const stage = useTemplateRef<HTMLElement>('stage')
 const candleEls: (HTMLElement | null)[] = []
-const matchEl = ref<HTMLElement>()
+const matchEl = useTemplateRef<HTMLElement>('matchEl')
 const lit = reactive<boolean[]>(Array(COUNT).fill(false))
 const hold = reactive<number[]>(Array(COUNT).fill(0))
 const litCount = computed(() => lit.filter(Boolean).length)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, ref, watch, useTemplateRef } from 'vue'
 import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
 import { storeToRefs } from 'pinia'
 import CrtOverlay from './components/CrtOverlay.vue'
@@ -27,8 +27,8 @@ const { tarotFailed, ensureTarot, TarotCard, DoorScene, ensureDoor, About, Reset
 // Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
 // Ref fonction rappelée à chaque rendu : createFocusOnce ne focalise qu’une fois par élément (une réapparition de l’overlay = nouvel élément).
 const focusOverlay = createFocusOnce()
-const closeBtn = ref<HTMLButtonElement>()
-const readingEl = ref<HTMLElement>()
+const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
+const readingEl = useTemplateRef<HTMLElement>('readingEl')
 
 // Phases d’une visite (porte -> activité -> coupe -> lecture -> finale) : voir useGameFlow.
 const {
@@ -107,7 +107,7 @@ const resetOpen = ref(false)
 watch(resetOpen, (o) => o && (resetWanted.value = true))
 
 const reduced = useReducedMotion()
-const mainEl = ref<HTMLElement>()
+const mainEl = useTemplateRef<HTMLElement>('mainEl')
 const shake = (amp: number) => {
   if (reduced.value || !mainEl.value) return
   const a = 10 * amp

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -61,8 +61,8 @@ const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() =
   },
 })
 
-const stage = ref<HTMLElement>()
-const dropEl = ref<HTMLElement>()
+const stage = useTemplateRef<HTMLElement>('stage')
+const dropEl = useTemplateRef<HTMLElement>('dropEl')
 const els: Record<string, HTMLElement | null> = {}
 // Fonctions de ref mémorisées : une seule par case, pour que le rendu n’en recrée pas à chaque passe.
 const setters = new Map<string, (el: unknown) => void>()

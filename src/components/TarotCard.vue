@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useEventListener, useResizeObserver } from '@vueuse/core'
 import TarotEmblem from './TarotEmblem.vue'
@@ -24,7 +24,7 @@ const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: st
 const emit = defineEmits<{ dealt: []; flipped: [] }>()
 const reduced = useReducedMotion()
 const session = useSessionStore()
-const shimmerEl = ref<HTMLElement>()
+const shimmerEl = useTemplateRef<HTMLElement>('shimmerEl')
 // Pose de la carte, une seule fois par retournement : bruit sourd (toujours), ondulation CRT et reflet (jamais en mouvement réduit).
 // Le reflet anime son propre élément (`.tarot__shimmer`) : ni `deal`, ni `tilt`, ni `flip` ne sont touchés, donc aucun transform partagé avec useTilt.
 const landing = createLanding({
@@ -44,10 +44,10 @@ const landing = createLanding({
   },
 })
 
-const root = ref<HTMLElement>()
-const dealEl = ref<HTMLElement>()
-const tiltEl = ref<HTMLElement>()
-const flipEl = ref<HTMLElement>()
+const root = useTemplateRef<HTMLElement>('root')
+const dealEl = useTemplateRef<HTMLElement>('dealEl')
+const tiltEl = useTemplateRef<HTMLElement>('tiltEl')
+const flipEl = useTemplateRef<HTMLElement>('flipEl')
 
 // Face-up flag drives aria and the tilt; `faceUp` lags `faceDown` until the flip lands.
 const faceUp = ref(false)
@@ -59,8 +59,8 @@ const titleSize = computed(() => {
   const n = props.title.length
   return n < 40 ? 5.4 : n < 70 ? 4.6 : 3.9
 })
-const panelEl = ref<HTMLElement>()
-const bodyEl = ref<HTMLElement>()
+const panelEl = useTemplateRef<HTMLElement>('panelEl')
+const bodyEl = useTemplateRef<HTMLElement>('bodyEl')
 // Largest font size (px) in [MIN_PX, max] for which the body fits the panel without scrolling.
 // Uses layout sizes (offset/client/scroll*), which ignore the deal/flip/tilt transforms.
 // max = min(9% of card width, max(34px × max(1, width/576), 7.5% of card width)): le second terme laisse grandir les cartes très larges; floor = 11px (a longest level-5 prophecy must fit a 360x640 phone).
@@ -121,13 +121,13 @@ watch(
 let skipped = false
 let running: { stop: () => void }[] = []
 let timer = 0
-const go = (el: Element | undefined, kf: Record<string, unknown>, opt: Record<string, unknown> = {}) => {
+const go = (el: Element | null | undefined, kf: Record<string, unknown>, opt: Record<string, unknown> = {}) => {
   if (!el) return Promise.resolve()
   const c = animate(el, kf as never, opt as never)
   running.push(c)
   return Promise.resolve(c).catch(() => undefined)
 }
-const snap = (el: Element | undefined, kf: Record<string, unknown>) => go(el, kf, { duration: 0 })
+const snap = (el: Element | null | undefined, kf: Record<string, unknown>) => go(el, kf, { duration: 0 })
 const wait = (ms: number) => new Promise<void>((r) => (timer = window.setTimeout(r, ms)))
 
 const rest = (down: boolean) => {

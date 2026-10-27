@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { useDocumentVisibility, useParallax } from '@vueuse/core'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useProgressStore } from '../../stores/progress'
@@ -9,7 +9,7 @@ import { placeLoaders, type PlaceId } from '../../effects/places'
 
 const props = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
 
-const canvas = ref<HTMLCanvasElement | null>(null)
+const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const failed = ref(false)
 let scene: { setPaused(paused: boolean): void; stop(): void } | null = null
 let gone = false
@@ -17,7 +17,7 @@ const reducedMotion = useReducedMotion()
 const visibility = useDocumentVisibility()
 watch(visibility, (v) => scene?.setPaused(v === 'hidden'))
 // The paranoia level (0..1) comes straight from the progress store, read each frame by the shader params.
-const root = ref<HTMLElement | null>(null)
+const root = useTemplateRef<HTMLElement>('root')
 const { tilt, roll, source } = useParallax(root)
 // Mouse: tilt/roll are already in [-0.5, 0.5] around the centre -> x2 gives [-1, 1].
 // Phone: tilt/roll are absolute angles/90 (a phone held at a reading angle is far from 0), so we subtract a slow

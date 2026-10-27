@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { useCollectionStore } from '../stores/collection'
@@ -9,8 +9,8 @@ import { focusQuietly } from '../composables/focusQuietly'
 
 // Parent v-model = « veut ouvert ». <dialog> natif : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
-const dlg = ref<HTMLDialogElement>()
-const closeBtn = ref<HTMLButtonElement>()
+const dlg = useTemplateRef<HTMLDialogElement>('dlg')
+const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
 const collection = useCollectionStore()
 const reduced = useReducedMotion()
 let opener: HTMLElement | null = null

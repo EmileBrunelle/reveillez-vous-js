@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { hasWebGpuAdapter } from '../effects/webgpu'
@@ -9,7 +9,7 @@ const props = defineProps<{ paranoia: number; off?: boolean }>()
 const emit = defineEmits<{ ready: []; fail: [] }>()
 
 const session = useSessionStore()
-const canvas = ref<HTMLCanvasElement | null>(null)
+const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 let crt: { setPaused(paused: boolean): void; stop(): void } | null = null
 const reducedMotion = useReducedMotion()
 const visibility = useDocumentVisibility()

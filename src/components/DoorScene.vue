@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useHaptics } from '../composables/haptics'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import type { SceneVariant } from '../content/scenes'
@@ -27,16 +27,16 @@ const keyboard = useKeyboardModality()
 // Le haptique n’est pas du mouvement : pas bloqué par « mouvement réduit ». Les gardes (onglet caché, vibrate absent, limiteur) vivent dans haptics.ts.
 const { pulse: haptic } = useHaptics()
 
-const stage = ref<HTMLElement>()
-const leaf = ref<HTMLElement>()
-const glow = ref<HTMLElement>()
-const spill = ref<HTMLElement>()
-const seer = ref<HTMLElement>()
-const dustLayer = ref<HTMLElement>()
-const strip = ref<HTMLElement>()
-const ui = ref<HTMLElement>()
-const sparks = ref<InstanceType<typeof SparkPool>>()
-const captionLayer = ref<HTMLElement>()
+const stage = useTemplateRef<HTMLElement>('stage')
+const leaf = useTemplateRef<HTMLElement>('leaf')
+const glow = useTemplateRef<HTMLElement>('glow')
+const spill = useTemplateRef<HTMLElement>('spill')
+const seer = useTemplateRef<HTMLElement>('seer')
+const dustLayer = useTemplateRef<HTMLElement>('dustLayer')
+const strip = useTemplateRef<HTMLElement>('strip')
+const ui = useTemplateRef<HTMLElement>('ui')
+const sparks = useTemplateRef<InstanceType<typeof SparkPool>>('sparks')
+const captionLayer = useTemplateRef<HTMLElement>('captionLayer')
 const CAPTIONS = 4
 
 type State = 'idle' | 'opening' | 'gone'

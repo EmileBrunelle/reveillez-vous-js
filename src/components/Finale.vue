@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Directive } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Directive, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
@@ -59,8 +59,8 @@ const showCredits = computed(() => reduced.value || step.value === 'credits')
 const showBox = computed(() => showText.value || showCredits.value)
 // Un seul conteneur pour le texte puis le générique : il entre sur un ressort (échelle + opacité) et sa hauteur suit le contenu au ressort,
 // au lieu d’apparaître d’un coup plus grand. Mouvement réduit : simple fondu, hauteur posée directement.
-const box = ref<HTMLElement>()
-const inner = ref<HTMLElement>()
+const box = useTemplateRef<HTMLElement>('box')
+const inner = useTemplateRef<HTMLElement>('inner')
 let boxIn = false
 let heightAnim: Stoppable | undefined
 const keep = (a: Stoppable) => {
@@ -107,7 +107,7 @@ const leaveText = (el: Element, done: () => void) => {
   }
   void Promise.resolve(a).then(end, end)
 }
-const restartBtn = ref<HTMLButtonElement>()
+const restartBtn = useTemplateRef<HTMLButtonElement>('restartBtn')
 // Le générique peut dépasser (téléphone) : « Recommencer » est ramené dans la section défilante, en douceur sauf mouvement réduit.
 // Le bouton n’existe qu’une fois le générique monté (après le fondu du texte) : on agit à son montage, une fois la hauteur du conteneur posée.
 const doFocus = () => {

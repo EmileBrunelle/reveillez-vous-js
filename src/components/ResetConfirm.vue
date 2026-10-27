@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, watch, useTemplateRef } from 'vue'
 import { focusQuietly } from '../composables/focusQuietly'
 
 // Parent v-model = "wants open". Native <dialog>: Esc, focus trap and inert background come for free.
 const open = defineModel<boolean>({ default: false })
 const emit = defineEmits<{ confirm: [] }>()
-const dlg = ref<HTMLDialogElement>()
-const cancelBtn = ref<HTMLButtonElement>()
+const dlg = useTemplateRef<HTMLDialogElement>('dlg')
+const cancelBtn = useTemplateRef<HTMLButtonElement>('cancelBtn')
 let opener: HTMLElement | null = null
 
 const sync = async (o: boolean) => {
