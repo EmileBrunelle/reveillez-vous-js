@@ -73,6 +73,6 @@
 
 - Real GPU (CRT and shaders render, Intel Iris Xe via Vulkan): Playwright headless Chromium with `--enable-unsafe-webgpu --enable-features=Vulkan,WebGPU --ignore-gpu-blocklist --enable-gpu`, and NO swiftshader flag. Phone proxy (Galaxy S26+): viewport 384×832 (384×740 with toolbars), deviceScaleFactor 3, isMobile, hasTouch. Install Playwright in the scratchpad, not in the project.
 - With `--use-webgpu-adapter=swiftshader` the app still reaches the card, but the CRT pipeline fails to compile (expected).
-- Open the door via aria-label « Ouvrir la porte » (the door itself is the button).
+- Open the door via aria-label « Cogner à la porte » (the door itself is the button).
 - Phone tests need HTTPS (insecure context has no WebGPU).
 - Never `pkill`/`killall` browsers.
