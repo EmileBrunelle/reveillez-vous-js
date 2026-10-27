@@ -373,7 +373,7 @@ const choose = (i: number) => {
       </p>
       <!-- Légende unique sous l’éventail : une ligne par paquet, dans l’ordre des cartes ; la ligne de la carte survolée ou ciblée au clavier passe en pleine opacité. -->
       <ul
-        class="deck__legend absolute inset-x-[4cqw] bottom-[4cqw] m-0 p-0 list-none flex flex-col gap-[1.2cqw] font-ui text-[4.4cqw] leading-[1.1] text-left [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
+        class="deck__legend absolute inset-x-[4cqw] bottom-[4cqw] m-0 p-0 list-none flex flex-col gap-[1.2cqw] font-ui text-[4.4cqw] leading-[1.1] text-left [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000,0_0_1.5cqw_#000]"
         :class="{ 'deck__legend--gone': chosen !== null }"
         aria-hidden="true"
       >
@@ -432,14 +432,29 @@ const choose = (i: number) => {
 .deck__line {
   transition: opacity 0.15s ease-out;
 }
-.deck__line {
-  opacity: 0.85;
-}
 .deck__line--on {
-  opacity: 1;
+  color: #fff3c8;
 }
+/* Paquets non ciblés : un ton plus sourd (et non une opacité basse, qui laisse passer la brume du décor) ; le voile du .deck__legend garantit le contraste. */
 .deck__line--dim {
-  opacity: 0.45;
+  color: #c2b189;
+}
+.deck__line--dim > span:first-child {
+  opacity: 0.6;
+}
+/* Voile décoratif : fond sombre estompé derrière la légende, hors flux (aucun effet sur la mise en page), pour que le texte reste lisible sur la brume ou la neige. */
+.deck__legend {
+  isolation: isolate;
+}
+.deck__legend::before {
+  content: '';
+  position: absolute;
+  inset: -5cqw;
+  z-index: -1;
+  border-radius: 6cqw;
+  background: rgb(10 5 14 / 0.82);
+  filter: blur(2.5cqw);
+  pointer-events: none;
 }
 .deck__legend--gone {
   opacity: 0;
@@ -472,7 +487,7 @@ const choose = (i: number) => {
   }
   .deck .deck__prompt,
   .deck .deck__legend {
-    position: static;
+    position: relative; /* le voile de la légende s’y ancre ; inset auto = aucun décalage */
     inset: auto;
     text-align: left;
   }
