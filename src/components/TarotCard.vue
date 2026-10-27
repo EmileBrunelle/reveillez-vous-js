@@ -5,12 +5,14 @@ import { useEventListener, useResizeObserver } from '@vueuse/core'
 import TarotEmblem from './TarotEmblem.vue'
 import TarotCardBack from './TarotCardBack.vue'
 import { emblemMask } from './emblemMask'
-import { cardDeal, cardFlip } from '../audio/sfx'
+import { cardDeal, cardFlip, cardThud } from '../audio/sfx'
 import type { Arcane } from '../engine/prophecy'
 import type { Paquet } from '../engine/paquets'
 import { secureRng } from '../engine/rng'
 import { useDeviceTilt } from '../composables/useTilt'
 import { useReducedMotion } from '../composables/useReducedMotion'
+import { createLanding } from '../composables/cardLanding'
+import { useSessionStore } from '../stores/session'
 
 const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number; handoff?: boolean; paquet?: Paquet }>(), {
   faceDown: false,
@@ -20,6 +22,26 @@ const props = withDefaults(defineProps<{ arcane: Arcane; title: string; body: st
 })
 const emit = defineEmits<{ dealt: []; flipped: [] }>()
 const reduced = useReducedMotion()
+const session = useSessionStore()
+const shimmerEl = ref<HTMLElement>()
+// Pose de la carte, une seule fois par retournement : bruit sourd (toujours), ondulation CRT et reflet (jamais en mouvement réduit).
+// Le reflet anime son propre élément (`.tarot__shimmer`) : ni `deal`, ni `tilt`, ni `flip` ne sont touchés, donc aucun transform partagé avec useTilt.
+const landing = createLanding({
+  reduced: () => reduced.value,
+  thud: cardThud,
+  ripple: (amp) => session.pulse(amp),
+  shimmer: () => {
+    shimmerEl.value?.animate(
+      [
+        { transform: 'translateX(-130%)', opacity: 0 },
+        { opacity: 1, offset: 0.25 },
+        { opacity: 1, offset: 0.7 },
+        { transform: 'translateX(130%)', opacity: 0 },
+      ],
+      { duration: 750, easing: 'ease-in-out' },
+    )
+  },
+})
 
 const root = ref<HTMLElement>()
 const dealEl = ref<HTMLElement>()
@@ -115,19 +137,22 @@ const rest = (down: boolean) => {
 const flip = async (toFaceUp: boolean) => {
   if (reduced.value) {
     rest(!toFaceUp)
+    if (toFaceUp) landing.land()
     emit('flipped')
     return
   }
   settled.value = false
+  landing.arm()
   cardFlip()
   const lift = go(dealEl.value, { scale: [1, 1.14, 0.97, 1.04, 1], rotateZ: [0, -3, 2, -1, 0] }, { duration: 0.6, ease: 'easeOut' })
-  const turn = go(flipEl.value, { rotateY: toFaceUp ? 180 : 0 }, { type: 'spring', stiffness: 110, damping: 13 })
+  const turn = go(flipEl.value, { rotateY: toFaceUp ? 180 : 0 }, { type: 'spring', stiffness: 120, damping: 9.5 })
   await wait(180)
   if (skipped) return
   faceUp.value = toFaceUp
   await Promise.all([lift, turn])
   if (skipped) return
   settled.value = true
+  if (toFaceUp) landing.land()
   emit('flipped')
 }
 
@@ -141,6 +166,7 @@ const deal = async () => {
     if (skipped) return
     if (reduced.value) {
       rest(false)
+      landing.land()
       emit('flipped')
       return
     }
@@ -154,7 +180,10 @@ const deal = async () => {
     await go(dealEl.value, { opacity: [0, 1] }, { duration: 0.25 })
     settled.value = true
     emit('dealt')
-    if (!props.faceDown) emit('flipped')
+    if (!props.faceDown) {
+      landing.land()
+      emit('flipped')
+    }
     return
   }
   const o = { x: -40, y: -260, scale: 0.4, rot: -18 }
@@ -321,6 +350,7 @@ onUnmounted(() => {
                 </div>
               </div>
               <div class="tarot__glare absolute inset-0 pointer-events-none [opacity:var(--glare,0)] [transition:opacity_0.2s]" />
+              <div ref="shimmerEl" class="tarot__shimmer absolute inset-0 pointer-events-none opacity-0" />
             </div>
             <!-- Dos : le même visuel que les cartes de DeckCut (TarotCardBack). -->
             <div class="tarot__face tarot__back absolute inset-0" :class="{ 'tarot__face--up': faceUp }" :aria-hidden="faceUp">
@@ -372,6 +402,11 @@ onUnmounted(() => {
 }
 .tarot__glare {
   background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.3), rgb(255 255 255 / 0) 55%);
+}
+/* Reflet unique à la pose : une bande diagonale douce, animée en JS (WAAPI) sur son propre élément, une seule fois, jamais en mouvement réduit. */
+.tarot__shimmer {
+  background: linear-gradient(115deg, transparent 35%, rgb(255 250 225 / 0.35) 50%, transparent 65%);
+  will-change: transform, opacity;
 }
 /* Teinte du paquet choisi : l’encre et le papier (discrets) et la teinte du reflet ; le cadre doré reste doré. */
 .tarot--feu {
