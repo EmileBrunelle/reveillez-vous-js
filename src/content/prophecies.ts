@@ -44,6 +44,8 @@ export const prophecies: Grammar = {
     '{question1}|Votre téléphone contient 4 000 photos du même chat. Ce soir, vous en prendrez une 4 001ᵉ. Les cartes la trouvent très réussie.|{verset}',
     '{question1}|Ce week-end, au hockey bottine, on vous collera encore dans les buts. Les cartes l’ont vu venir. Elles ont aussi vu la rondelle.|{verset}',
     '{question1}|Les cartes voient votre fin de session : 76 tasses de café. Elles voient aussi la 77ᵉ. Elles vous déconseillent la 78ᵉ.|{verset}',
+    '{question1}|Les astres vous voient entrer au Café Campus pour prendre un café. Vous en ressortirez à 3 h du matin, sans avoir vu une seule tasse.|{verset}',
+    '{question1}|Dans la boule de cristal, une tasse fumante apparaît dans votre avenir. Ce ne sera pas au Café Campus. Il y a des limites à la voyance.|{verset}',
   ],
 
   // ---- Première lecture de la session (visites = 0) : pure voyance/Halloween, jamais de clin d’œil complotiste -------
@@ -74,6 +76,7 @@ export const prophecies: Grammar = {
     '{question2}|Une malédiction pèse sur vous : le chili du Tim, avec le p’tit pain et les deux beurres. Vous y retournerez demain. Les cartes ne peuvent rien pour vous.|{verset}',
     '{question2}|Votre carte est le Magicien du Québec. Dès que quelque chose arrive dans votre vie, vous lancez un sort. Le sort s’appelle “Tabarnouche”. Il est très efficace.|{verset}',
     '{question2}|En entrevue, on vous demandera d’expliquer le trou de trois ans dans votre CV. Répondez : “J’étais en consultation de voyance.” C’est la vérité.|{verset}',
+    '{question2}|Le Café Campus n’a jamais servi de café. Les cartes le savent et se demandent ce qu’on y sert vraiment, et pourquoi vous y retournez jeudi.|{verset}',
     '{question2}|Une personne en visite vous demandera où est « le vrai Québec ». Vous pointerez au loin. Cette personne aura tort. Vous aussi.|{verset}',
     '{question2}|Ce temps des fêtes, vous recevrez une bouteille de whisky à l’érable. Vous l’offrirez à une autre personne l’an prochain. Les cartes ont vu son voyage : elle circule depuis 2014.|{verset}',
   ],
