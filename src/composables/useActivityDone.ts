@@ -38,7 +38,8 @@ export const useActivityDone = (
   }
   // Cible résolue à l’appel (pas de `document` en SSR ni dans les tests node).
   const doc = () => globalThis.document
-  useEventListener(doc, 'pointerdown', poke, { passive: true })
+  // pointermove compte aussi : certaines activités se jouent au survol (suivre les feux follets), sans aucun clic.
+  useEventListener(doc, ['pointerdown', 'pointermove'], poke, { passive: true })
   useEventListener(doc, 'keydown', poke)
   return { finish, canSkip, isFinished: () => finished }
 }

@@ -89,7 +89,7 @@ describe('useActivityDone', () => {
     const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100, autoMs: 60_000 }))!
     for (let t = 0; t < 3; t++) {
       vi.advanceTimersByTime(SKIP_REVEAL_MS - 1000)
-      document.dispatchEvent(new Event(t % 2 ? 'keydown' : 'pointerdown'))
+      document.dispatchEvent(new Event(['pointerdown', 'keydown', 'pointermove'][t]))
     }
     expect(api.canSkip.value).toBe(false)
     vi.advanceTimersByTime(SKIP_REVEAL_MS)
