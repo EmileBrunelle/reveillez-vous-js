@@ -48,6 +48,7 @@ export const prophecies: Grammar = {
     '{question1}|Dans la boule de cristal, une tasse fumante apparaît dans votre avenir. Ce ne sera pas au Café Campus. Il y a des limites à la voyance.|{verset}',
     '{question1}|Les cartes voient du bleu dans votre avenir. Pas le ciel : des bleuets du Lac-Saint-Jean, sur vos doigts, jusqu’à la fin d’août.|{verset}',
     '{question1}|Une toune sur Thetford Mines jouera dans votre auto. Vous monterez le volume en pensant qu’elle aurait sa place dans GTA 6. Les cartes sont d’accord : votre route vers l’amiante et la gloire est tracée.|{verset}',
+    '{question1}|Au Biodôme, un capybara vous fixera longuement, d’un calme absolu. Il sait quelque chose sur votre semaine. Il a décidé que ce n’était pas grave.|{verset}',
     '{question1}|Les cartes voient une trottinette électrique dans votre avenir. Le Ministère l’a réservée aux maths fortes ; vous la recevrez quand même, par erreur, un mardi pluvieux.|{verset}',
     '{question1}|Un Roméo vous attend dans le stationnement du Pacini, comme dans une soirée d’élimination d’Occupation Double. Les cartes ne disent pas s’il vous remettra une rose ou un pain à l’ail.|{verset}',
     '{question1}|Votre semaine ressemblera à une partie du Canadien : deux périodes pleines d’espoir, puis une troisième dont les cartes préfèrent ne rien dire. Ça se décidera en tirs de barrage.|{verset}',
