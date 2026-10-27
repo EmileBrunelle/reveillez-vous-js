@@ -12,8 +12,9 @@ export const advanceHold = (progress: number, touching: boolean, dtMs: number, h
 // Flamme à portée de la mèche (distance contre un rayon).
 export const isNearWick = (fx: number, fy: number, wx: number, wy: number, radius: number) => (fx - wx) ** 2 + (fy - wy) ** 2 <= radius ** 2
 
-// Chandelle à éteindre une seule fois (niveau 3) : tirée au hasard parmi les allumées, -1 s’il n’y en a pas.
-export const pickSnuffed = (lit: boolean[], rng: Rng) => {
-  const idx = lit.flatMap((on, i) => (on ? [i] : []))
+// Chandelle à éteindre une seule fois (niveau 3) : tirée au hasard parmi les allumées non protégées
+// (survolée, focalisée ou tenue au doigt), -1 s’il n’y en a pas.
+export const pickSnuffed = (lit: boolean[], rng: Rng, excluded: ReadonlySet<number> = new Set()) => {
+  const idx = lit.flatMap((on, i) => (on && !excluded.has(i) ? [i] : []))
   return idx.length ? idx[Math.floor(rng() * idx.length)] : -1
 }
