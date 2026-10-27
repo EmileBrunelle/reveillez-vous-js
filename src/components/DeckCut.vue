@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
@@ -26,6 +26,7 @@ const slotEls = ref<HTMLElement[]>([])
 const tiltEls = ref<HTMLElement[]>([])
 const glowEls = ref<HTMLElement[]>([])
 const chosen = ref<number | null>(null)
+const promptId = useId()
 const hot = ref<number | null>(null)
 // Rang d’empilement fixe : passer d’un coup devant une carte qui la recouvre encore donne l’impression de la traverser.
 // Au survol, la carte se soulève et ses voisines se tassent ; la carte choisie ne passe devant qu’à l’envol, une fois les autres écartées.
@@ -421,12 +422,12 @@ const choose = (i: number) => {
 
 <template>
   <!-- La section et la rangée « Fermer la porte » sont dans App.vue (communes à la coupe et à la lecture). -->
-  <div ref="deckEl" tabindex="-1" class="deck relative outline-none aspect-[7/12]" role="group" aria-labelledby="deck-prompt">
+  <div ref="deckEl" tabindex="-1" class="deck relative outline-none aspect-[7/12]" role="group" :aria-labelledby="promptId">
     <p class="absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ status }}</p>
     <!-- Invite et légende : sans effet de mise en page sauf sur grand écran haut, où elles forment une colonne à droite de l’éventail. -->
     <div class="deck__side">
       <p
-        id="deck-prompt"
+        :id="promptId"
         class="deck__prompt absolute inset-x-0 top-[12cqw] m-0 font-ui text-[7cqw] leading-[1.1] [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
         :class="{ 'deck__prompt--on': ready && chosen === null }"
       >

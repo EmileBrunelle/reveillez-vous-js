@@ -359,7 +359,9 @@ onUnmounted(() => {
 
 <template>
   <div ref="root" class="tarot relative aspect-[7/12]" :class="[`tarot--l${level}`, `tarot--${paquet}`, { 'touch-none': settled && !reduced }]" @click="onCardClick" @pointerdown="onTouchDown">
-    <div class="tarot__sr absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ faceUp ? `${title} ${body} ${verse}` : '' }}</div>
+    <div class="tarot__sr absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">
+      {{ faceUp ? `Carte retournée : ${arcane.nom}.` : '' }}
+    </div>
     <div class="tarot__stage absolute inset-0 [perspective:1100px]">
       <div ref="dealEl" class="tarot__deal absolute inset-0 [transform-style:preserve-3d]">
         <div ref="tiltEl" class="tarot__tilt absolute inset-0 [transform-style:preserve-3d]">

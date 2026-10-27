@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useHaptics } from '../composables/haptics'
-import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import type { SceneVariant } from '../content/scenes'
@@ -136,6 +136,9 @@ const caption = (i: number) => {
 
 type Phase = 'invite' | 'listen' | 'repeat' | 'busy'
 const phase = ref<Phase>('invite')
+const saidId = useId()
+// Nom du bouton selon la phase : « Ouvrir » seulement tant que la porte n’a pas encore répondu.
+const doorName = computed(() => (phase.value === 'listen' ? 'Écouter la porte' : phase.value === 'repeat' ? 'Frapper à la porte' : 'Ouvrir la porte'))
 const texts = (key: string) => (Array.isArray(prophecies[key]) ? (prophecies[key] as unknown[]).filter((t): t is string => typeof t === 'string') : [])
 const ghosts = computed(() => ['(Cognez à la porte)', line, ...texts(`rate${level}`), ...texts('entrez')])
 watch(phase, (p) => emit('listening', p === 'listen'))
@@ -399,8 +402,8 @@ const onSceneClick = (e: MouseEvent) => {
         v-if="!closing"
         class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] outline-none"
         type="button"
-        aria-label="Ouvrir la porte"
-        :aria-describedby="phase === 'invite' ? 'door-said' : undefined"
+        :aria-label="doorName"
+        :aria-describedby="phase === 'invite' || phase === 'repeat' ? saidId : undefined"
         :data-phase="phase"
         :data-kbd="keyboard"
         @click="onDoorClick"
@@ -418,7 +421,7 @@ const onSceneClick = (e: MouseEvent) => {
     <div v-if="!closing" ref="ui" class="scene scene--ui content-start gap-3 grid-rows-[auto_1.25rem_2.5rem]">
       <!-- Phrase + fantômes invisibles (toutes les phrases possibles de la visite) dans la même cellule : la hauteur réservée est celle de la plus longue, la scène ne bouge pas entre les phases. -->
       <div class="grid grid-cols-[minmax(0,1fr)] justify-items-center w-full">
-        <p id="door-said" class="lead max-w-full [text-wrap:balance] [overflow-wrap:anywhere] max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1]">{{ said }}</p>
+        <p :id="saidId" class="lead max-w-full [text-wrap:balance] [overflow-wrap:anywhere] max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1]">{{ said }}</p>
         <span
           v-for="(g, i) in ghosts"
           :key="i"
