@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
+
+// `useIdle` de VueUse écoute `window` et ne démarre que si `window` et `document` existent à l’import : l’environnement de test est node.
+// Un EventTarget fait office de `window` (les événements s’y envoient directement).
+const win = vi.hoisted(() => {
+  const target = new EventTarget()
+  Object.assign(target, { document: { hidden: false, createElement: () => ({}) } })
+  Object.assign(globalThis, { window: target, document: (target as unknown as { document: object }).document })
+  return target
+})
 import { AUTO_SUCCESS_MS, POKE_THROTTLE_MS, SKIP_REVEAL_MS, useActivityDone } from '../../src/composables/useActivityDone'
 
 describe('useActivityDone', () => {
@@ -82,23 +91,20 @@ describe('useActivityDone', () => {
   })
 
   it('qui joue ne voit pas « Passer » : chaque interaction repousse son apparition', () => {
-    // Pas de DOM (node) : un EventTarget suffit pour les écouteurs.
-    vi.stubGlobal('document', new EventTarget())
     const scope = effectScope()
     // Réussite automatique repoussée : on simule plus de 20 s de jeu.
     const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100, autoMs: 60_000 }))!
     for (let t = 0; t < 3; t++) {
       vi.advanceTimersByTime(SKIP_REVEAL_MS - 1000)
-      document.dispatchEvent(new Event(['pointerdown', 'keydown', 'pointermove'][t]))
+      win.dispatchEvent(new Event(['pointerdown', 'keydown', 'pointermove'][t]))
     }
     expect(api.canSkip.value).toBe(false)
     vi.advanceTimersByTime(SKIP_REVEAL_MS)
     expect(api.canSkip.value).toBe(true)
     // Affiché, il reste malgré une nouvelle interaction.
-    document.dispatchEvent(new Event('pointerdown'))
+    win.dispatchEvent(new Event('pointerdown'))
     expect(api.canSkip.value).toBe(true)
     scope.stop()
-    vi.unstubAllGlobals()
   })
 
   it('une réussite avant 12 s ne révèle jamais « Passer »', () => {
@@ -111,12 +117,11 @@ describe('useActivityDone', () => {
   })
 
   it('une rafale de pointermove repousse « Passer » sans l’avancer : jamais avant 12 s, au plus 250 ms après', () => {
-    vi.stubGlobal('document', new EventTarget())
     const scope = effectScope()
     const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100, autoMs: 120_000 }))!
     // 5 s de pointermove à 60 Hz.
     for (let i = 0; i < 300; i++) {
-      document.dispatchEvent(new Event('pointermove'))
+      win.dispatchEvent(new Event('pointermove'))
       vi.advanceTimersByTime(16)
     }
     expect(api.canSkip.value).toBe(false)
@@ -126,6 +131,5 @@ describe('useActivityDone', () => {
     vi.advanceTimersByTime(100 + POKE_THROTTLE_MS)
     expect(api.canSkip.value).toBe(true)
     scope.stop()
-    vi.unstubAllGlobals()
   })
 })

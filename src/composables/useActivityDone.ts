@@ -1,5 +1,5 @@
-import { useEventListener, useThrottleFn, useTimeoutFn } from '@vueuse/core'
-import { ref } from 'vue'
+import { throttleFilter, useIdle, useTimeoutFn } from '@vueuse/core'
+import { ref, watch } from 'vue'
 import { OUTCOME_MS, type Outcome, type Phase } from '../engine/activityTiming'
 
 // Délai de réussite automatique : une activité se réussit toujours, même sans y toucher.
@@ -35,7 +35,7 @@ export const useActivityDone = (
     finished = true
     outcome.value = result
     auto.stop()
-    reveal.stop()
+    stopIdle()
     canSkip.value = false
     onFinish?.(result)
     emitLater()
@@ -44,21 +44,22 @@ export const useActivityDone = (
   // Démarrage explicite : `immediate` de VueUse ne démarre que si `window` existe (rien dans les tests).
   const auto = useTimeoutFn(timed ? () => settle('fail') : finish, durationMs ?? autoMs, { immediate: false })
   auto.start()
-  const reveal = useTimeoutFn(() => (canSkip.value = !finished), revealAt, { immediate: false })
-  reveal.start()
-  // « Passer » dépanne qui reste bloqué : toute interaction repousse son apparition (qui joue ne le voit jamais, la réussite automatique arrive avant).
-  // Une fois affiché, il reste : il ne doit pas fuir sous le doigt de qui veut l’atteindre.
-  // `pointermove` tire des dizaines d’événements par seconde : le réarmement de la minuterie est limité (au plus un tous les 250 ms, et le dernier événement d’une rafale réarme quand même après la fenêtre, jamais avant),
-  // ce qui retarde l’apparition de « Passer » de 250 ms au plus.
-  const poke = useThrottleFn(() => {
-    if (finished || canSkip.value) return
-    reveal.stop()
-    reveal.start()
-  }, POKE_THROTTLE_MS)
-  // Cible résolue à l’appel (pas de `document` en SSR ni dans les tests node).
-  const doc = () => globalThis.document
-  // pointermove compte aussi : certaines activités se jouent au survol (suivre les feux follets), sans aucun clic.
-  useEventListener(doc, ['pointerdown', 'pointermove'], poke, { passive: true })
-  useEventListener(doc, 'keydown', poke)
+  // « Passer » dépanne qui reste bloqué : après `revealAt` sans interaction, il apparaît (qui joue ne le voit jamais, la réussite automatique arrive avant).
+  // `pointermove` compte aussi : certaines activités se jouent au survol (suivre les feux follets), sans aucun clic.
+  // Il tire des dizaines d’événements par seconde : le filtre limite les réarmements (au plus un tous les 250 ms, et le dernier événement d’une rafale réarme quand même après la fenêtre, jamais avant),
+  // ce qui retarde l’apparition de « Passer » de 250 ms au plus. `idle` repasse à faux à la reprise d’activité : le verrou le garde affiché,
+  // il ne doit pas fuir sous le doigt de qui veut l’atteindre. Pas de `window` (SSR, tests node) : aucune minuterie, jamais d’aide.
+  const { idle, stop: stopIdle } = useIdle(revealAt, {
+    events: ['pointerdown', 'pointermove', 'keydown'],
+    eventFilter: throttleFilter(POKE_THROTTLE_MS),
+    listenForVisibilityChange: false,
+  })
+  watch(
+    idle,
+    (isIdle) => {
+      if (isIdle && !finished) canSkip.value = true
+    },
+    { flush: 'sync' },
+  )
   return { finish, canSkip, outcome, startedAt, isFinished: () => finished }
 }
