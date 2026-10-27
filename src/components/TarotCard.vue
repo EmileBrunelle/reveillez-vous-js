@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
-import { useEventListener, useResizeObserver } from '@vueuse/core'
+import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotEmblem from './TarotEmblem.vue'
 import TarotCardBack from './TarotCardBack.vue'
 import { emblemMask } from './emblemMask'
@@ -74,6 +74,9 @@ const REF_W = 576 // largeur de carte de référence : au-delà, le plafond de p
 let lastW = 0
 let lastH = 0
 let fitRaf = 0
+// Résultat de l’ajustement, lié au gabarit (:style sur le corps, :data-emblem sur la racine) : un re-rendu ne peut ni réinitialiser la police ni l’emblème.
+const bodyPx = ref(0)
+const emblem = ref<'' | 'small' | 'none'>('')
 // Coalesces every trigger into one rAF; unless forced (content/fonts changed), skips when the card size is unchanged.
 const scheduleFit = (force = false) => {
   if (force) lastW = lastH = 0
@@ -98,14 +101,20 @@ const fitBody = () => {
     bodyNode.style.fontSize = `${px}px`
     return bodyNode.offsetHeight <= room + 0.5 && panel.scrollHeight <= panel.clientHeight + 1
   }
+  // Règle : on MESURE en impératif (chaque essai exige un offsetHeight synchrone), puis on COMMIT le résultat dans l’état (bodyPx, emblem).
+  // Le DOM contient déjà la valeur finale à la sortie : le patch de Vue est un no-op, mais un re-rendu ultérieur la conserve.
+  const commit = (emb: '' | 'small' | 'none', px: number) => {
+    bodyPx.value = px
+    emblem.value = emb
+  }
   // Try the full emblem, then a half-size one, then none: the font never drops below MIN_PX.
-  for (const emb of ['', 'small', 'none']) {
+  for (const emb of ['', 'small', 'none'] as const) {
     const el = root.value!
     if (emb) el.dataset.emblem = emb
     else delete el.dataset.emblem
     let lo = MIN_PX
     let hi = Math.max(lo, Math.min(w * 0.09, Math.max(MAX_PX * Math.max(1, w / REF_W), w * WIDE_RATIO)))
-    if (fits(hi)) return
+    if (fits(hi)) return commit(emb, hi)
     if (emb !== 'none' && !fits(lo)) continue
     for (let i = 0; i < 10; i++) {
       const mid = (lo + hi) / 2
@@ -113,7 +122,7 @@ const fitBody = () => {
       else hi = mid
     }
     bodyNode.style.fontSize = `${lo}px`
-    return
+    return commit(emb, lo)
   }
 }
 watch(
@@ -259,6 +268,24 @@ let raf = 0
 let finePointer = false // une souris/stylet a bougé : le pointeur l’emporte sur le gyroscope
 const touchDrag = createTapDrag()
 const fingerDown = ref(false) // le doigt est le seul maître de l’inclinaison pendant le contact
+// Variables CSS d’inclinaison : écrites en impératif, une fois par image (pointeur/gyroscope), pour ne pas re-rendre le composant à 60 Hz.
+// Seul point d’écriture : setTilt / restTilt.
+const setTilt = ({ rx, ry, gx, gy, glare }: { rx: number; ry: number; gx: number; gy: number; glare: number }) => {
+  const s = tiltEl.value?.style
+  if (!s) return
+  s.setProperty('--ry', `${ry}deg`)
+  s.setProperty('--rx', `${rx}deg`)
+  s.setProperty('--gx', `${gx}%`)
+  s.setProperty('--gy', `${gy}%`)
+  s.setProperty('--glare', `${glare}`)
+}
+const restTilt = () => {
+  const s = tiltEl.value?.style
+  if (!s) return
+  s.setProperty('--ry', '0deg')
+  s.setProperty('--rx', '0deg')
+  s.setProperty('--glare', '0')
+}
 const onMove = (e: PointerEvent) => {
   const touch = e.pointerType === 'touch'
   if (!touch) finePointer = true
@@ -268,30 +295,14 @@ const onMove = (e: PointerEvent) => {
   const dx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / r.width))
   const dy = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / r.height))
   cancelAnimationFrame(raf)
-  raf = requestAnimationFrame(() => {
-    const s = tiltEl.value?.style
-    if (!s) return
-    s.setProperty('--ry', `${dx * MAX_TILT}deg`)
-    s.setProperty('--rx', `${-dy * MAX_TILT}deg`)
-    s.setProperty('--gx', `${50 + dx * 60}%`)
-    s.setProperty('--gy', `${50 + dy * 60}%`)
-    s.setProperty('--glare', '1')
-  })
+  raf = requestAnimationFrame(() => setTilt({ rx: -dy * MAX_TILT, ry: dx * MAX_TILT, gx: 50 + dx * 60, gy: 50 + dy * 60, glare: 1 }))
 }
 // Gyroscope (mobile) : mêmes variables CSS que le pointeur ; la carte reste « fixe » dans le monde (sens inverse du téléphone).
 // Plus ample que le pointeur : à 8°, sur un téléphone, ça ne se voyait presque pas.
 const GYRO_TILT = 20
 useDeviceTilt({
   enabled: () => !reduced.value && !finePointer && settled.value && !fingerDown.value,
-  apply: (nx, ny) => {
-    const s = tiltEl.value?.style
-    if (!s) return
-    s.setProperty('--ry', `${-nx * GYRO_TILT}deg`)
-    s.setProperty('--rx', `${ny * GYRO_TILT}deg`)
-    s.setProperty('--gx', `${50 - nx * 60}%`)
-    s.setProperty('--gy', `${50 - ny * 60}%`)
-    s.setProperty('--glare', '1')
-  },
+  apply: (nx, ny) => setTilt({ rx: ny * GYRO_TILT, ry: -nx * GYRO_TILT, gx: 50 - nx * 60, gy: 50 - ny * 60, glare: 1 }),
 })
 const onTouchDown = (e: PointerEvent) => {
   if (e.pointerType !== 'touch') return
@@ -305,21 +316,19 @@ const onTouchDown = (e: PointerEvent) => {
   }
 }
 // Relâché : retour au repos sur ressort doux (transition plus longue posée le temps du retour).
-let releaseTimer = 0
+const releasing = ref(false)
+const { start: startRelease, stop: stopRelease } = useTimeoutFn(() => (releasing.value = false), 650, { immediate: false })
 const onTouchUp = (e: PointerEvent) => {
   if (e.pointerType !== 'touch') return
   touchDrag.end()
   if (!fingerDown.value) return
   fingerDown.value = false
-  const el = tiltEl.value
   cancelAnimationFrame(raf)
-  if (!el) return
-  el.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
-  el.style.setProperty('--ry', '0deg')
-  el.style.setProperty('--rx', '0deg')
-  el.style.setProperty('--glare', '0')
-  window.clearTimeout(releaseTimer)
-  releaseTimer = window.setTimeout(() => el.style.removeProperty('transition'), 650)
+  if (!tiltEl.value) return
+  releasing.value = true
+  restTilt()
+  stopRelease()
+  startRelease()
 }
 // Un glissement n’est pas un tap : pas de skip à la fin du geste.
 const onCardClick = () => {
@@ -328,11 +337,7 @@ const onCardClick = () => {
 }
 const onLeave = () => {
   cancelAnimationFrame(raf)
-  const s = tiltEl.value?.style
-  if (!s) return
-  s.setProperty('--ry', '0deg')
-  s.setProperty('--rx', '0deg')
-  s.setProperty('--glare', '0')
+  restTilt()
 }
 
 useEventListener(window, 'pointermove', onMove)
@@ -352,17 +357,23 @@ onUnmounted(() => {
   window.clearTimeout(timer)
   glitchTimers.forEach(clearTimeout)
   cancelAnimationFrame(raf)
-  window.clearTimeout(releaseTimer)
   running.forEach((r) => r.stop())
 })
 </script>
 
 <template>
-  <div ref="root" class="tarot relative aspect-[7/12]" :class="[`tarot--l${level}`, `tarot--${paquet}`, { 'touch-none': settled && !reduced }]" @click="onCardClick" @pointerdown="onTouchDown">
+  <div
+    ref="root"
+    class="tarot relative aspect-[7/12]"
+    :data-emblem="emblem || undefined"
+    :class="[`tarot--l${level}`, `tarot--${paquet}`, { 'touch-none': settled && !reduced }]"
+    @click="onCardClick"
+    @pointerdown="onTouchDown"
+  >
     <div class="tarot__sr absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ faceUp ? `${title} ${body} ${verse}` : '' }}</div>
     <div class="tarot__stage absolute inset-0 [perspective:1100px]">
       <div ref="dealEl" class="tarot__deal absolute inset-0 [transform-style:preserve-3d]">
-        <div ref="tiltEl" class="tarot__tilt absolute inset-0 [transform-style:preserve-3d]">
+        <div ref="tiltEl" class="tarot__tilt absolute inset-0 [transform-style:preserve-3d]" :class="{ 'tarot__tilt--releasing': releasing }">
           <div ref="flipEl" class="tarot__flip absolute inset-0 [transform-style:preserve-3d]">
             <div
               class="tarot__face tarot__front absolute inset-0 overflow-hidden rounded-[4cqw] shadow-[1.5cqw_1.5cqw_0_#000] [border:1.2cqw_solid_var(--tarot-ink)] [background:var(--tarot-paper)] [color:var(--tarot-ink)] text-left"
@@ -386,7 +397,9 @@ onUnmounted(() => {
                   ref="panelEl"
                   class="tarot__panel [flex:1_1_0] min-h-0 w-full overflow-hidden flex [background:rgb(255_249_228/0.6)] [border:0.5cqw_solid_var(--tarot-gold)] [padding:2cqw_2.4cqw]"
                 >
-                  <p ref="bodyEl" class="tarot__body [margin:auto_0] text-[16px] leading-[1.3] [color:#170a2b] [overflow-wrap:anywhere]">{{ body }}</p>
+                  <p ref="bodyEl" :style="bodyPx ? { fontSize: `${bodyPx}px` } : undefined" class="tarot__body [margin:auto_0] text-[16px] leading-[1.3] [color:#170a2b] [overflow-wrap:anywhere]">
+                    {{ body }}
+                  </p>
                 </div>
                 <p class="tarot__verse m-0 text-[3.8cqw] italic text-right self-stretch">— {{ verse }}</p>
                 <div
@@ -426,6 +439,10 @@ onUnmounted(() => {
   transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
   transition: transform 0.12s ease-out;
   --glare: 0;
+}
+.tarot__tilt--releasing {
+  /* Relâché : retour au repos sur ressort doux, le temps du retour (650 ms). */
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .tarot__face {
   backface-visibility: hidden;
