@@ -3,6 +3,7 @@ import { nextTick, ref, watch } from 'vue'
 import { Dialog } from '@vuetify/v0'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
+import { finishAnimations, type Stoppable } from '../composables/finishAnimations'
 import { aboutClose, aboutOpen } from '../audio/sfx'
 import { REPO_URL } from '../content/finale'
 
@@ -16,7 +17,7 @@ const bar = ref<HTMLElement>()
 const title = ref<HTMLElement>()
 const body = ref<HTMLElement>()
 
-let running: { stop: () => void }[] = []
+let running: Stoppable[] = []
 let busy = false
 const run = (el: Element | undefined, kf: Record<string, unknown>, opt: Record<string, unknown>) => {
   if (!el) return Promise.resolve()
@@ -111,9 +112,11 @@ const onCancel = (e: Event) => {
   request(false)
 }
 // A click during the open animation skips it.
+// `stop()` laisse la fenêtre figée à mi-course (ligne bleue, corps à opacité 0) : on mène plutôt les animations à leur fin, puis on pose l’état de repos.
 const skip = () => {
   if (busy && !closingNow) {
-    stopAll()
+    finishAnimations(running)
+    running = []
     rest()
     busy = false
   }
