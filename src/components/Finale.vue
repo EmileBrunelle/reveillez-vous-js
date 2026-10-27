@@ -12,8 +12,8 @@ import { startFinaleAudio } from '../audio/finale'
 const emit = defineEmits<{ collapsed: []; restart: [] }>()
 const reduced = useReducedMotion()
 const collection = useCollectionStore()
-// Sons : rien en mouvement réduit (tout est affiché d’un coup, sans séquence).
-const audio = startFinaleAudio(!reduced.value)
+// Le mouvement réduit ne coupe pas le son : sans séquence, on garde seulement la nappe d’aube et la cloche (voir onMounted).
+const audio = startFinaleAudio()
 
 type Step = 'pre' | 'collapse' | 'black' | 'rise' | 'text' | 'credits'
 const step = ref<Step>('pre')
@@ -64,10 +64,14 @@ const { start, stop } = useTimeoutFn(
   delay,
   { immediate: false },
 )
+const { start: fadeLater } = useTimeoutFn(() => audio.fadePad(), 5000, { immediate: false })
 onMounted(() => {
   if (reduced.value) {
     emit('collapsed')
     focusRestart()
+    audio.dawn()
+    audio.bell()
+    fadeLater()
   } else start()
 })
 // Passer la séquence : tout le reste (texte, générique, « Recommencer ») apparaît d’un coup.
