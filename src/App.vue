@@ -185,7 +185,7 @@ const enterDoor = () => {
 }
 enterDoor()
 
-// Dev seulement (exclu du build de prod) : ?phase=deck ou ?phase=card saute la porte et les activités, pour tester la mise en page.
+// Dev seulement (exclu du build de prod) : ?phase=deck, ?phase=card ou ?phase=finale saute la porte et les activités, pour tester la mise en page.
 const devPhase = import.meta.env.DEV ? new URLSearchParams(location.search).get('phase') : null
 
 // Une visite : la porte s’ouvre -> activité (niveau 2+) -> coupe du paquet -> lecture. La prophétie est tirée une fois, à l’ouverture.
@@ -221,6 +221,7 @@ const onPick = async (paquet: Paquet) => {
   hymn()
   void nextTick(() => focusQuietly(tarotFailed.value ? closeBtn.value : readingEl.value, { preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
 }
+if (devPhase === 'finale') phase.value = 'finale'
 if (devPhase === 'deck' || devPhase === 'card') {
   phase.value = 'cut'
   if (devPhase === 'card') void onPick('nuit')
