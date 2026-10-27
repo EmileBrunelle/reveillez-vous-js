@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { onMounted, ref, watch } from 'vue'
+import { useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
 import { FAN, FAN_SCALE } from './deckFan'
@@ -60,7 +60,11 @@ const step = (p: Spr, k: number, d: number, dt: number) => {
   p.c += p.v * dt
 }
 // Boîte étroite (téléphone en paysage) : les cartes latérales s’écartent davantage pour garder une bande cliquable d’au moins ~44 px.
-const fx = (i: number) => FAN[i].x * (W < 260 ? 1.8 : 1)
+// Grand écran haut (voir la légende, posée à côté) : l’éventail grandit jusqu’à presque la hauteur de la boîte et s’étale davantage ; ses cartes dépassent la largeur de la boîte.
+// Mêmes seuils que la mise en page de .deck__side plus bas.
+const wide = useMediaQuery('(min-width: 1600px) and (min-height: 1300px)')
+const fanScale = () => (wide.value ? 0.8 : FAN_SCALE)
+const fx = (i: number) => FAN[i].x * (wide.value ? 1.5 : W < 260 ? 1.8 : 1)
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 
 let W = 0 // largeur de la boîte de la carte (px)
@@ -68,6 +72,7 @@ useResizeObserver(deckEl, () => {
   W = deckEl.value?.offsetWidth ?? 0
   if (reduced.value) layoutStatic()
 })
+watch(wide, () => reduced.value && layoutStatic())
 
 // Géométrie de l’emblème du dos (TarotCardBack : disque de 52 % de la largeur de la carte, centré) : sert à calculer de combien les voisines doivent s’écarter.
 const EMBLEM_R = 0.52 / 2 // rayon du disque, en fraction de la largeur de la carte
@@ -75,19 +80,21 @@ const HOT_LIFT = 0.07 // montée de la carte survolée (fraction de W)
 const HOT_SCALE = 1.04
 const CLEAR_MARGIN = 0.03 // marge au-delà du bord du disque (couvre aussi l’inclinaison des voisines)
 const EDGE = 0.47 // une carte ne dépasse jamais ±0,47 W du centre de la boîte (marge pour la rotation : pas de débordement du viewport)
+const EDGE_WIDE = 1 // grand écran : l’éventail déborde la boîte (large d’environ ±0,66 W au repos)
+const edge = () => (wide.value ? EDGE_WIDE : EDGE)
 // Écart horizontal (fraction de W) d’une voisine i quand la carte h est visée : la carte du milieu libère tout le disque de la carte latérale visée ;
 // l’autre carte latérale recule simplement. La carte visée, elle, ne bouge pas horizontalement : le pointeur ne peut pas lui échapper (pas de va-et-vient).
 const neighbourShift = (i: number, h: number) => {
   const dir = Math.sign(i - h)
-  const half = FAN_SCALE / 2
+  const half = fanScale() / 2
   const center = fx(i) / 100
   let shift = 0.06
   if (i === 1 && h !== 1) {
     const midNear = center - dir * half // bord de la carte du milieu tourné vers la carte visée
-    const embNear = fx(h) / 100 + dir * EMBLEM_R * FAN_SCALE * HOT_SCALE // bord du disque tourné vers la carte du milieu
+    const embNear = fx(h) / 100 + dir * EMBLEM_R * fanScale() * HOT_SCALE // bord du disque tourné vers la carte du milieu
     shift = Math.max(shift, dir * (embNear - midNear) + CLEAR_MARGIN)
   }
-  const target = clamp(center + dir * shift, -(EDGE - half), EDGE - half)
+  const target = clamp(center + dir * shift, -(edge() - half), edge() - half)
   return target - center
 }
 
@@ -101,10 +108,10 @@ const restOf = (i: number, h: number | null) => {
     x: (fx(i) / 100) * W + sep,
     y: (f.y / 100) * W + (me ? -HOT_LIFT * W : 0),
     r: me ? f.rot * 0.35 : f.rot + away * 2,
-    s: me ? FAN_SCALE * HOT_SCALE : FAN_SCALE,
+    s: me ? fanScale() * HOT_SCALE : fanScale(),
   }
 }
-const stackOf = (i: number) => ({ x: (i - 1) * 0.006 * W, y: 0.05 * W - i * 0.006 * W, r: (i - 1) * 2, s: FAN_SCALE * 0.92 })
+const stackOf = (i: number) => ({ x: (i - 1) * 0.006 * W, y: 0.05 * W - i * 0.006 * W, r: (i - 1) * 2, s: fanScale() * 0.92 })
 
 // Pointeur : décalage normalisé (−1..1) par rapport au centre de la carte survolée.
 let nx = 0
@@ -117,7 +124,7 @@ let phase: Phase = 'deal'
 let pickAt = 0
 let lastTs = 0
 const FINAL_S = 1 // l’élément a la largeur de la boîte : échelle 1 = la carte du tirage
-let startS = FAN_SCALE
+let startS = fanScale()
 const OTHERS_DELAY = 90 // anticipation de la carte choisie (ms) avant la fuite des autres
 const FLY_DELAY = 400 // l’envol de la carte choisie attend que les autres se soient écartées et fondues : elle ne croise jamais une autre carte
 let finished = false
@@ -251,7 +258,7 @@ const layoutStatic = () => {
     c.x.c = c.x.t = restOf(i, chosen.value === null ? hot.value : null).x
     c.y.c = c.y.t = (f.y / 100) * W
     c.r.c = c.r.t = 0
-    c.s.c = c.s.t = FAN_SCALE
+    c.s.c = c.s.t = fanScale()
     c.o.c = c.o.t = chosen.value === null || chosen.value === i ? 1 : 0
     if (chosen.value === i) {
       c.x.c = c.y.c = 0
@@ -320,7 +327,7 @@ const onMove = (i: number, e: PointerEvent) => {
   if (hot.value !== i || e.pointerType === 'touch' || reduced.value || !deckEl.value) return
   const r = deckEl.value.getBoundingClientRect()
   const f = FAN[i]
-  const cardW = FAN_SCALE * r.width
+  const cardW = fanScale() * r.width
   const cx = r.left + r.width / 2 + (fx(i) / 100) * r.width
   const cy = r.top + r.height / 2 + (f.y / 100) * r.width - HOT_LIFT * r.width
   nx = clamp((e.clientX - cx) / (cardW / 2), -1, 1)
@@ -355,26 +362,29 @@ const choose = (i: number) => {
   <!-- La section et la rangée « Fermer la porte » sont dans App.vue (communes à la coupe et à la lecture). -->
   <div ref="deckEl" tabindex="-1" class="deck relative outline-none aspect-[7/12]" role="group" aria-labelledby="deck-prompt">
     <p class="absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ chosen !== null ? 'Carte choisie.' : '' }}</p>
-    <p
-      id="deck-prompt"
-      class="deck__prompt absolute inset-x-0 top-[12cqw] m-0 font-ui text-[7cqw] leading-[1.1] [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
-      :class="{ 'deck__prompt--on': ready && chosen === null }"
-    >
-      Choisissez une carte.
-    </p>
-    <!-- Légende unique sous l’éventail : une ligne par paquet, dans l’ordre des cartes ; la ligne de la carte survolée ou ciblée au clavier passe en pleine opacité. -->
-    <ul
-      class="deck__legend absolute inset-x-[4cqw] bottom-[4cqw] m-0 p-0 list-none flex flex-col gap-[1.2cqw] font-ui text-[4.4cqw] leading-[1.1] text-left [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
-      :class="{ 'deck__legend--gone': chosen !== null }"
-      aria-hidden="true"
-    >
-      <li v-for="i in cards" :key="i" class="deck__line flex items-start gap-[2cqw]" :class="{ 'deck__line--on': hot === i, 'deck__line--dim': hot !== null && hot !== i }">
-        <span class="block shrink-0 size-[5.5cqw] [color:#b9821a]" aria-hidden="true"><TarotEmblem :symbole="EMBLEMS[paquets[i]]" /></span>
-        <span
-          ><b class="font-normal uppercase">{{ PAQUET_NOMS[paquets[i]] }}</b> : {{ PAQUET_PRESAGES[paquets[i]] }}</span
-        >
-      </li>
-    </ul>
+    <!-- Invite et légende : sans effet de mise en page sauf sur grand écran haut, où elles forment une colonne à droite de l’éventail. -->
+    <div class="deck__side">
+      <p
+        id="deck-prompt"
+        class="deck__prompt absolute inset-x-0 top-[12cqw] m-0 font-ui text-[7cqw] leading-[1.1] [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
+        :class="{ 'deck__prompt--on': ready && chosen === null }"
+      >
+        Choisissez une carte.
+      </p>
+      <!-- Légende unique sous l’éventail : une ligne par paquet, dans l’ordre des cartes ; la ligne de la carte survolée ou ciblée au clavier passe en pleine opacité. -->
+      <ul
+        class="deck__legend absolute inset-x-[4cqw] bottom-[4cqw] m-0 p-0 list-none flex flex-col gap-[1.2cqw] font-ui text-[4.4cqw] leading-[1.1] text-left [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
+        :class="{ 'deck__legend--gone': chosen !== null }"
+        aria-hidden="true"
+      >
+        <li v-for="i in cards" :key="i" class="deck__line flex items-start gap-[2cqw]" :class="{ 'deck__line--on': hot === i, 'deck__line--dim': hot !== null && hot !== i }">
+          <span class="block shrink-0 size-[5.5cqw] [color:#b9821a]" aria-hidden="true"><TarotEmblem :symbole="EMBLEMS[paquets[i]]" /></span>
+          <span
+            ><b class="font-normal uppercase">{{ PAQUET_NOMS[paquets[i]] }}</b> : {{ PAQUET_PRESAGES[paquets[i]] }}</span
+          >
+        </li>
+      </ul>
+    </div>
     <button
       v-for="i in cards"
       :key="i"
@@ -440,6 +450,32 @@ const choose = (i: number) => {
 }
 .deck__card:disabled {
   cursor: default;
+}
+/* Grand écran haut : l’éventail prend toute la hauteur de la boîte, l’invite et la légende passent à sa droite, centrées verticalement (seuils = `wide` du script). */
+.deck__side {
+  display: contents;
+}
+@media (min-width: 1600px) and (min-height: 1300px) {
+  .deck .deck__side {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5cqw;
+    position: absolute;
+    top: 50%;
+    left: calc(50% + 86cqw);
+    translate: 0 -50%;
+    width: 66cqw;
+    text-align: left;
+  }
+  .deck .deck__prompt {
+    font-size: 4.8cqw;
+  }
+  .deck .deck__prompt,
+  .deck .deck__legend {
+    position: static;
+    inset: auto;
+    text-align: left;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .deck__prompt,
