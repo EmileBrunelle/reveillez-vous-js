@@ -58,11 +58,11 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
 <template>
   <dialog
     ref="dlg"
-    class="mt-2 mb-[calc(var(--taskbar-h)+0.5rem)] mx-auto p-0 w-[34rem] sm:w-[52rem] max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-var(--taskbar-h)-1rem)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
+    class="mt-2 mb-[calc(var(--taskbar-h)+0.5rem)] mx-auto p-0 w-[34rem] sm:w-[52rem] max-w-[calc(100vw-1rem-var(--safe-l)-var(--safe-r))] max-h-[calc(100dvh-var(--taskbar-h)-var(--safe-t)-1rem)] top-[var(--safe-t)] right-[var(--safe-r)] left-[var(--safe-l)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
     aria-labelledby="collection-title"
     @close="onClose"
   >
-    <div class="win-window flex flex-col max-h-[calc(100dvh-var(--taskbar-h)-1rem)]">
+    <div class="win-window flex flex-col max-h-[calc(100dvh-var(--taskbar-h)-var(--safe-t)-1rem)]">
       <div class="flex items-center justify-between gap-2 bg-[#000080] text-white py-[2px] px-2 select-none">
         <h2 id="collection-title" class="m-0 text-[1rem] font-bold">Collection</h2>
         <button

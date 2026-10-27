@@ -110,7 +110,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
 
 <template>
   <div
-    class="taskbar fixed bottom-0 inset-x-0 z-30 flex items-stretch justify-between gap-2 bg-[#c0c0c0] text-black text-[0.85rem] pt-[2px] px-[2px] pb-[max(2px,env(safe-area-inset-bottom))] box-border shadow-[inset_0_1px_#dfdfdf,inset_0_2px_#fff] select-none [-webkit-tap-highlight-color:transparent] touch-manipulation"
+    class="taskbar fixed bottom-0 inset-x-0 z-30 flex items-stretch justify-between gap-2 bg-[#c0c0c0] text-black text-[0.85rem] pt-[2px] pl-[max(2px,var(--safe-l))] pr-[max(2px,var(--safe-r))] pb-[max(2px,var(--safe-b))] box-border shadow-[inset_0_1px_#dfdfdf,inset_0_2px_#fff] select-none [-webkit-tap-highlight-color:transparent] touch-manipulation"
   >
     <div class="relative flex">
       <button
@@ -132,7 +132,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         v-show="open"
         id="start-menu"
         ref="menu"
-        class="absolute bottom-full left-0 mb-[2px] flex w-[min(17rem,calc(100vw-0.5rem))] bg-[#c0c0c0] p-[2px] shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#dfdfdf,inset_-2px_-2px_grey,inset_2px_2px_#fff]"
+        class="absolute bottom-full left-0 mb-[2px] flex w-[min(17rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] bg-[#c0c0c0] p-[2px] shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#dfdfdf,inset_-2px_-2px_grey,inset_2px_2px_#fff]"
         role="menu"
         aria-label="Menu Démarrer"
         @keydown="onMenuKey"
@@ -165,7 +165,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     <div
       v-if="balloon"
       :key="balloon.id"
-      class="balloon box-border absolute bottom-full right-1 mb-[10px] w-[min(18rem,calc(100vw-0.5rem))] max-sm:w-64 bg-[#ffffe1] text-black text-[0.85rem] border border-solid border-black p-[3px] shadow-[2px_2px_0_rgb(0_0_0/0.35)] motion-safe:animate-[balloon-in_0.2s_ease-out_both]"
+      class="balloon box-border absolute bottom-full right-[max(0.25rem,var(--safe-r))] mb-[10px] w-[min(18rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] max-sm:w-64 bg-[#ffffe1] text-black text-[0.85rem] border border-solid border-black p-[3px] shadow-[2px_2px_0_rgb(0_0_0/0.35)] motion-safe:animate-[balloon-in_0.2s_ease-out_both]"
       role="status"
       aria-live="polite"
     >

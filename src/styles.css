@@ -7,9 +7,20 @@
   size-adjust: 125%;
   src: url('../node_modules/@fontsource/vt323/files/vt323-latin-400-normal.woff2') format('woff2');
 }
+/* Zones sûres (encoche, poinçon, barre de gestes, coins arrondis ; viewport-fit=cover) : 0 sur ordinateur.
+   Décors et CRT restent bord à bord ; seul le contenu interactif ou textuel rentre dans la zone sûre. */
+:root {
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --pad-t: max(0.75rem, var(--safe-t));
+  --pad-x-l: max(1rem, var(--safe-l));
+  --pad-x-r: max(1rem, var(--safe-r));
+}
 /* Barre des tâches fixe : hauteur réservée en bas de l’écran (barre + zone de sécurité). */
 :root {
-  --taskbar-h: calc(2.5rem + 4px + env(safe-area-inset-bottom, 0px));
+  --taskbar-h: calc(2.5rem + 4px + var(--safe-b));
 }
 :root {
   --bg: #000080;
@@ -123,13 +134,13 @@ canvas {
   height: 100vh;
   height: 100dvh;
   min-height: 0;
-  padding: 0.75rem 1rem calc(0.75rem + var(--taskbar-h));
+  padding: var(--pad-t) var(--pad-x-r) calc(0.75rem + var(--taskbar-h)) var(--pad-x-l);
   overflow: hidden;
   align-items: stretch;
 }
 @media (orientation: landscape) and (max-height: 32.5rem) {
   .app--reading {
-    padding: 0.5rem 1rem calc(0.5rem + var(--taskbar-h));
+    padding: max(0.5rem, var(--safe-t)) var(--pad-x-r) calc(0.5rem + var(--taskbar-h)) var(--pad-x-l);
   }
 }
 html:has(.app--reading),

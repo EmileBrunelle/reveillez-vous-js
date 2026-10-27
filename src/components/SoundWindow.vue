@@ -48,11 +48,11 @@ const btn = `win-btn select-none touch-manipulation [font:inherit] border-0 min-
 <template>
   <dialog
     ref="dlg"
-    class="m-auto p-0 w-[24rem] max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-var(--taskbar-h)-1rem)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
+    class="m-auto p-0 w-[24rem] max-w-[calc(100vw-1rem-var(--safe-l)-var(--safe-r))] max-h-[calc(100dvh-var(--taskbar-h)-var(--safe-t)-1rem)] top-[var(--safe-t)] right-[var(--safe-r)] bottom-[var(--taskbar-h)] left-[var(--safe-l)] overflow-hidden bg-transparent border-0 text-black font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_0/0.55)]"
     aria-labelledby="sound-title"
     @close="onClose"
   >
-    <div class="win-window flex flex-col">
+    <div class="win-window flex flex-col max-h-[calc(100dvh-var(--taskbar-h)-var(--safe-t)-1rem)] overflow-y-auto">
       <div class="flex items-center justify-between gap-2 bg-[#000080] text-white py-[2px] px-2 select-none">
         <h2 id="sound-title" class="m-0 text-[1rem] font-bold">Son</h2>
         <button class="win-btn border-0 min-w-6 h-6 p-0 [font:inherit] font-bold leading-none" :class="focusRing" type="button" aria-label="Fermer" @click="dlg?.close()">×</button>

@@ -45,7 +45,20 @@ const avoidBoxes = (): Box[] => {
   boxes.push({ left: window.innerWidth - 20 * 16, top: window.innerHeight - 10 * 16, right: window.innerWidth, bottom: window.innerHeight })
   return boxes
 }
-const area = (): Box => ({ left: 0, top: 0, right: window.innerWidth, bottom: document.querySelector('.taskbar')?.getBoundingClientRect().top ?? window.innerHeight })
+// Zone sûre (encoche, coins arrondis) : les fausses fenêtres ne s’y glissent jamais.
+const safe = (): { t: number; r: number; l: number } => {
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--safe-t) var(--safe-r) 0 var(--safe-l)'
+  document.body.appendChild(probe)
+  const cs = getComputedStyle(probe)
+  const v = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, l: parseFloat(cs.paddingLeft) || 0 }
+  probe.remove()
+  return v
+}
+const area = (): Box => {
+  const s = safe()
+  return { left: s.l, top: s.t, right: window.innerWidth - s.r, bottom: document.querySelector('.taskbar')?.getBoundingClientRect().top ?? window.innerHeight }
+}
 const boxOfWin = (w: Win): Box => ({ left: w.x, top: w.y, right: w.x + WIDTH, bottom: w.y + HEIGHT })
 
 const spawn = () => {

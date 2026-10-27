@@ -6,7 +6,10 @@ defineEmits<{ retry: []; about: [] }>()
 </script>
 
 <template>
-  <main class="min-h-screen max-w-[40rem] mx-auto px-4 py-8 grid gap-4 content-center leading-[1.5] bg-[#000] text-fg select-none [-webkit-tap-highlight-color:transparent]" role="alert">
+  <main
+    class="min-h-screen max-w-[40rem] mx-auto pl-[max(1rem,var(--safe-l))] pr-[max(1rem,var(--safe-r))] pt-[max(2rem,calc(var(--safe-t)+1rem))] pb-[max(2rem,calc(var(--safe-b)+1rem))] grid gap-4 content-center leading-[1.5] bg-[#000] text-fg select-none [-webkit-tap-highlight-color:transparent]"
+    role="alert"
+  >
     <h1 class="m-0 text-accent uppercase text-[1.6rem]">Les ondes divines exigent WebGPU</h1>
     <p>Sans WebGPU, impossible de capter la transmission. Ce n’est pas négociable : le dépliant ne s’ouvrira pas tant que votre navigateur n’aura pas accès à votre carte graphique.</p>
     <button class="btn justify-self-start" type="button" @click="$emit('retry')">Réessayer</button>
