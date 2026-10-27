@@ -290,6 +290,7 @@ const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
 // L’écran est noir : le CRT s’éteint et le lieu passe à l’aube sans qu’on le voie.
 const onCollapsed = () => {
   if (!finaleActive(phase.value)) return // Finale encore montée pendant sa sortie : un collapsed tardif ne touche plus la porte
+  progress.markFinaleSeen() // point de non-retour : un rechargement repart au niveau 1
   crtOff.value = true
   place.value = places.find((p) => p.id === 'nuages') ?? place.value
   placeVariant.value = place.value.variants.find((v) => v.id === 'aube') ?? placeVariant.value

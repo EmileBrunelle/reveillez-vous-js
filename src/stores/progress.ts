@@ -8,6 +8,7 @@ import { safeSessionStorage, safeStorage } from '../composables/safeStorage'
 export const VISITS_KEY = 'rvj-visits'
 export const MEMORY_KEY = 'rvj-memory'
 export const KNOCKED_KEY = 'rvj-knocked'
+export const FINALE_KEY = 'rvj-finale'
 
 export interface Memory {
   lastArcane: number | null
@@ -63,6 +64,8 @@ export const useProgressStore = defineStore('progress', () => {
   const visits = useStorage(VISITS_KEY, 0, safeSessionStorage(), { ...opts, serializer: visitsSerializer })
   // Le rituel de cogner a été réussi au moins une fois dans la session : les visites suivantes n’exigent qu’un toucher.
   const knocked = useStorage(KNOCKED_KEY, false, safeSessionStorage(), { ...opts, serializer: knockedSerializer })
+  // La finale a passé le point de non-retour (écran noir) : un rechargement avant « Recommencer » ramène au niveau 1.
+  const finaleSeen = useStorage(FINALE_KEY, false, safeSessionStorage(), { ...opts, serializer: knockedSerializer })
   const memory = useStorage(MEMORY_KEY, defaultMemory(), safeStorage(), { ...opts, serializer: memorySerializer })
 
   const level = computed(() => paranoiaLevel(visits.value))
@@ -74,6 +77,7 @@ export const useProgressStore = defineStore('progress', () => {
   const reset = () => {
     visits.value = 0
     knocked.value = false
+    finaleSeen.value = false
   }
   /** Le rituel de cogner vient d’être réussi : la porte se contentera d’un toucher jusqu’à la réinitialisation. */
   const markKnocked = () => {
@@ -93,5 +97,12 @@ export const useProgressStore = defineStore('progress', () => {
     finish()
   }
 
-  return { visits, knocked, memory, level, paranoia, bump, reset, markKnocked, remember, finish, completeFinale }
+  /** Point de non-retour de la finale atteint : marque posée sans toucher au niveau (le badge, l’ambiance et le CRT restent). */
+  const markFinaleSeen = () => {
+    finaleSeen.value = true
+  }
+  // Rechargement après le point de non-retour : on finit ce que « Recommencer » aurait fait.
+  if (finaleSeen.value) completeFinale()
+
+  return { visits, finaleSeen, markFinaleSeen, knocked, memory, level, paranoia, bump, reset, markKnocked, remember, finish, completeFinale }
 })
