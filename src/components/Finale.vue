@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, type Directive } from 'vue'
 import { animate } from 'motion-v'
-import { useEventListener, useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { CREDITS_BODY, CREDITS_THANKS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, README_LABEL, README_PREFIX, REPO_URL, RESTART_LABEL } from '../content/finale'
@@ -25,14 +25,14 @@ const skipped = ref(false)
 // Un seul maître par transform : motion-v (ressort) pose opacité et y, plus aucune animation CSS sur ces lignes.
 // Statique d’emblée en mouvement réduit ou après un saut ; sinon chaque élément monte sur un ressort doux, après `d` secondes.
 let running: Stoppable[] = []
-const vRise: Directive<HTMLElement, { d?: number; y?: number; letter?: boolean }> = {
+const vRise: Directive<HTMLElement, { d?: number; y?: number; letter?: boolean; soft?: boolean }> = {
   beforeMount(el) {
     if (!reduced.value && !skipped.value) el.style.opacity = '0'
   },
   mounted(el, { value }) {
     if (reduced.value || skipped.value) return
     const y = value.y ?? 16
-    const spring = value.letter ? { stiffness: 240, damping: 15 } : { stiffness: 80, damping: 17 }
+    const spring = value.letter ? { stiffness: 240, damping: 15 } : value.soft ? { stiffness: 36, damping: 13 } : { stiffness: 80, damping: 17 }
     const a = animate(el, { opacity: [0, 1], ...(y ? { y: [y, 0] } : {}) } as never, { type: 'spring', ...spring, delay: value.d ?? 0 } as never)
     running.push(a)
     void Promise.resolve(a).then(
@@ -54,6 +54,48 @@ const thanksDelay = (CREDITS_BODY.length + 2) * CREDIT_STEP + 0.3
 const showText = computed(() => reduced.value || step.value === 'text')
 const shown = computed(() => (reduced.value ? lines : lines.slice(0, count.value)))
 const showCredits = computed(() => reduced.value || step.value === 'credits')
+const showBox = computed(() => showText.value || showCredits.value)
+// Un seul conteneur pour le texte puis le générique : il entre sur un ressort (échelle + opacité) et sa hauteur suit le contenu au ressort,
+// au lieu d’apparaître d’un coup plus grand. Mouvement réduit : simple fondu, hauteur posée directement.
+const box = ref<HTMLElement>()
+const inner = ref<HTMLElement>()
+let boxIn = false
+let heightAnim: Stoppable | undefined
+const keep = (a: Stoppable) => {
+  running.push(a)
+  void Promise.resolve(a).then(
+    () => (running = running.filter((r) => r !== a)),
+    () => undefined,
+  )
+}
+useResizeObserver(inner, () => {
+  const el = box.value
+  const h = inner.value?.offsetHeight
+  if (!el || !h) return
+  if (!boxIn) {
+    boxIn = true
+    el.style.height = `${h}px`
+    if (skipped.value) return void (el.style.opacity = '1')
+    keep(
+      animate(
+        el,
+        { opacity: [0, 1], ...(reduced.value ? {} : { scale: [0.94, 1], y: [14, 0] }) } as never,
+        reduced.value ? ({ duration: 0.6, ease: 'easeOut' } as never) : ({ type: 'spring', stiffness: 70, damping: 16 } as never),
+      ),
+    )
+    return
+  }
+  if (reduced.value || skipped.value) return void (el.style.height = `${h}px`)
+  heightAnim?.stop?.()
+  heightAnim = animate(el, { height: h } as never, { type: 'spring', stiffness: 90, damping: 20 } as never)
+  keep(heightAnim)
+})
+// Le texte s’efface avant que le générique ne prenne sa place (la hauteur du conteneur se règle pendant ce temps).
+const leaveText = (el: Element, done: () => void) => {
+  if (reduced.value || skipped.value) return done()
+  const a = animate(el as HTMLElement, { opacity: 0 } as never, { duration: 0.45, ease: 'easeIn' } as never)
+  void Promise.resolve(a).then(done, done)
+}
 const restartBtn = ref<HTMLButtonElement>()
 // Le générique peut dépasser (téléphone) : « Recommencer » est ramené dans la section défilante, en douceur sauf mouvement réduit.
 const focusRestart = () =>
@@ -141,7 +183,8 @@ onBeforeUnmount(() => {
 const barsClosed = computed(() => step.value !== 'pre')
 const lineOut = computed(() => ['black', 'rise', 'text', 'credits'].includes(step.value))
 const veilLifted = computed(() => ['rise', 'text', 'credits'].includes(step.value))
-const lineClass = (i: number) => (i < FINALE_TITLE.length ? 'font-title text-[1.7rem] tracking-[0.06em]' : i === lines.length - 1 ? 'font-title text-[2rem]' : 'font-card text-[1.2rem] leading-snug')
+const lineClass = (i: number) =>
+  i < FINALE_TITLE.length ? 'font-title text-[1.7rem] tracking-[0.06em]' : i === lines.length - 1 ? 'font-title text-[1.4rem] tracking-[0.12em]' : 'font-card text-[1.2rem] leading-snug'
 </script>
 
 <template>
@@ -158,30 +201,43 @@ const lineClass = (i: number) => (i < FINALE_TITLE.length ? 'font-title text-[1.
     class="w-full max-w-[34rem] max-h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
     aria-label="Finale"
   >
-    <div v-if="showText" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.58)]" role="status">
-      <template v-for="(l, i) in shown" :key="l">
-        <p v-if="i < FINALE_TITLE.length" class="m-0" :class="lineClass(i)" :aria-label="l">
-          <template v-for="(w, wi) in letters(l)" :key="wi">
-            <span class="inline-block whitespace-nowrap" aria-hidden="true"
-              ><span v-for="(c, ci) in w" :key="ci" v-rise="{ d: c.d, y: 10, letter: true }" class="inline-block">{{ c.ch }}</span></span
-            >{{ ' ' }}
-          </template>
-        </p>
-        <p v-else v-rise="{ d: i === lines.length - 1 ? BELL_DELAY : 0 }" class="m-0" :class="lineClass(i)">{{ l }}</p>
-      </template>
-    </div>
-    <div v-if="showCredits" v-rise="{ y: 0 }" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.62)]">
-      <h2 v-rise="{ d: creditDelay(0) }" class="font-title m-0 text-[1.6rem] tracking-[0.06em]">{{ CREDITS_TITLE }}</h2>
-      <p v-for="(c, ci) in CREDITS_BODY" :key="c" v-rise="{ d: creditDelay(ci + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
-      <p v-rise="{ d: creditDelay(CREDITS_BODY.length + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">
-        {{ README_PREFIX
-        }}<a class="linklike focus-visible:[outline-color:#fff]" :href="`${REPO_URL}#readme`" target="_blank" rel="noopener noreferrer" aria-label="README sur GitHub (nouvel onglet)">{{
-          README_LABEL
-        }}</a>
-      </p>
-      <p v-rise="{ d: thanksDelay }" class="m-0 font-card text-[1.05rem] leading-snug">{{ CREDITS_THANKS }}</p>
-      <p v-rise="{ d: thanksDelay + CREDIT_STEP }" class="m-0 font-card text-[1.05rem] leading-snug">Arcanes révélés : {{ collection.count }} sur {{ collection.total }}</p>
-      <button ref="restartBtn" v-rise="{ d: thanksDelay + 2 * CREDIT_STEP, y: 0 }" class="btn mt-2" type="button" @click="emit('restart')">{{ RESTART_LABEL }}</button>
+    <div v-if="showBox" ref="box" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" style="height: 0; opacity: 0">
+      <div ref="inner" class="grid gap-3 justify-items-center px-4 py-5">
+        <Transition :css="false" mode="out-in" @leave="leaveText">
+          <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center">
+            <div v-if="showText" class="grid gap-3 justify-items-center" role="status">
+              <template v-for="(l, i) in shown" :key="l">
+                <p v-if="i < FINALE_TITLE.length" class="m-0" :class="lineClass(i)" :aria-label="l">
+                  <template v-for="(w, wi) in letters(l)" :key="wi">
+                    <span class="inline-block whitespace-nowrap" aria-hidden="true"
+                      ><span v-for="(c, ci) in w" :key="ci" v-rise="{ d: c.d, y: 10, letter: true }" class="inline-block">{{ c.ch }}</span></span
+                    >{{ ' ' }}
+                  </template>
+                </p>
+                <template v-else-if="i === lines.length - 1">
+                  <!-- Le salut : une courte pause (filet) après le récit, puis « Bonjour. » à l’heure de la cloche, sur un ressort lent. -->
+                  <span v-rise="{ y: 0, d: BELL_DELAY - 0.1 }" class="mt-2 h-px w-10 bg-white/50" aria-hidden="true" />
+                  <p v-rise="{ d: BELL_DELAY, y: 6, soft: true }" class="m-0" :class="lineClass(i)">{{ l }}</p>
+                </template>
+                <p v-else v-rise="{}" class="m-0" :class="lineClass(i)">{{ l }}</p>
+              </template>
+            </div>
+            <div v-if="showCredits" class="grid gap-3 justify-items-center">
+              <h2 v-rise="{ d: creditDelay(0) }" class="font-title m-0 text-[1.6rem] tracking-[0.06em]">{{ CREDITS_TITLE }}</h2>
+              <p v-for="(c, ci) in CREDITS_BODY" :key="c" v-rise="{ d: creditDelay(ci + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
+              <p v-rise="{ d: creditDelay(CREDITS_BODY.length + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">
+                {{ README_PREFIX
+                }}<a class="linklike focus-visible:[outline-color:#fff]" :href="`${REPO_URL}#readme`" target="_blank" rel="noopener noreferrer" aria-label="README sur GitHub (nouvel onglet)">{{
+                  README_LABEL
+                }}</a>
+              </p>
+              <p v-rise="{ d: thanksDelay }" class="m-0 font-card text-[1.05rem] leading-snug">{{ CREDITS_THANKS }}</p>
+              <p v-rise="{ d: thanksDelay + CREDIT_STEP }" class="m-0 font-card text-[1.05rem] leading-snug">Arcanes révélés : {{ collection.count }} sur {{ collection.total }}</p>
+              <button ref="restartBtn" v-rise="{ d: thanksDelay + 2 * CREDIT_STEP, y: 0 }" class="btn mt-2" type="button" @click="emit('restart')">{{ RESTART_LABEL }}</button>
+            </div>
+          </div>
+        </Transition>
+      </div>
     </div>
   </section>
 </template>
