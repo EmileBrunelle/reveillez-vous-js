@@ -2,12 +2,10 @@ import { effectScope, ref, watch } from 'vue'
 import { useDocumentVisibility, useEventListener, useTimeoutFn } from '@vueuse/core'
 import type { PlaceId } from '../effects/places/types'
 import { ac, ambienceOut, effetsOut, muted } from './sfx'
-import { runLater } from './runLater'
 import { motifBusyUntil, motifWarning, playMotif } from './motif'
-import { EVENT_BOOST, RECIPES, beds, bedGain, createTracker, events, gainNode, osc, rareSounds, randomDelay, type Env } from './ambienceSynth'
+import { EVENT_BOOST, MASTER_GAIN, RECIPES, beds, bedGain, createTracker, events, gainNode, osc, rareSounds, randomDelay, type Env } from './ambienceSynth'
 import {
   BASS_PARTIALS,
-  MASTER_GAIN,
   PAD_DEPTH,
   PAD_VOICES,
   RARE_BOOST,
@@ -252,8 +250,8 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
     scope.stop() // minuteries, écouteur et observateurs
     lastStopAt = Date.now()
     ramp(FADE_OUT)
-    // les nœuds sont libérés une fois le fondu de sortie fini
-    runLater(() => {
+    // setTimeout simple : la libération doit survivre à `scope.stop()` (fondu de sortie), et il n’y a plus de portée pour la porter
+    setTimeout(() => {
       t.dispose()
       master.disconnect()
     }, STOP_AFTER_MS)

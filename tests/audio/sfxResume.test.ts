@@ -11,11 +11,11 @@ vi.mock('@vueuse/core', async (importOriginal) => {
   return {
     ...original,
     useDocumentVisibility: () => h.visibility,
-    useEventListener: (type: string, fn: () => void) => void h.listeners.set(type, fn),
+    useEventListener: (types: string | string[], fn: () => void) => void [types].flat().forEach((t) => h.listeners.set(t, fn)),
   }
 })
 
-import { ac } from '../../src/audio/sfx'
+import { ac, unlock } from '../../src/audio/sfx'
 
 class FakeCtx {
   state = 'running'
@@ -38,8 +38,28 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
+// Le module garde son état d’un test à l’autre (contexte, « geste déjà fait ») : l’ordre des tests compte, « avant tout geste » d’abord.
 describe('reprise du contexte audio', () => {
-  it('au retour de visibilité, un contexte interrompu est repris', async () => {
+  it('avant tout geste, le retour de visibilité ne reprend pas le contexte (avertissement d’autoplay)', async () => {
+    c.state = 'suspended'
+    h.visibility.value = 'hidden'
+    await nextTick()
+    h.visibility.value = 'visible'
+    await nextTick()
+    expect(c.resume).not.toHaveBeenCalled()
+  })
+  it('un geste (pointerup ou keydown) reprend un contexte suspendu', () => {
+    for (const type of ['pointerup', 'keydown']) {
+      c.state = 'suspended'
+      c.resume.mockClear()
+      h.listeners.get(type)?.()
+      expect(c.resume).toHaveBeenCalledTimes(1)
+    }
+    expect(h.listeners.has('pointerdown')).toBe(false)
+  })
+  it('après un geste, le retour de visibilité reprend un contexte interrompu', async () => {
+    unlock()
+    c.resume.mockClear()
     c.state = 'interrupted'
     h.visibility.value = 'hidden'
     await nextTick()
@@ -48,13 +68,17 @@ describe('reprise du contexte audio', () => {
     await nextTick()
     expect(c.resume).toHaveBeenCalledTimes(1)
   })
-  it('au prochain toucher, un contexte suspendu est repris', () => {
-    c.state = 'suspended'
-    h.listeners.get('pointerdown')?.()
-    expect(c.resume).toHaveBeenCalledTimes(1)
-  })
   it('un contexte qui tourne n’est pas repris', () => {
-    h.listeners.get('pointerdown')?.()
+    h.listeners.get('pointerup')?.()
+    expect(c.resume).not.toHaveBeenCalled()
+  })
+  it('un contexte fermé est ignoré', async () => {
+    c.state = 'closed'
+    h.listeners.get('keydown')?.()
+    h.visibility.value = 'hidden'
+    await nextTick()
+    h.visibility.value = 'visible'
+    await nextTick()
     expect(c.resume).not.toHaveBeenCalled()
   })
 })

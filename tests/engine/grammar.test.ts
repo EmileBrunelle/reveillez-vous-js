@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { expand, expandTemplate, type Grammar } from '../../src/../src/engine/grammar'
+import { expand, expandTemplate, isObjectTable, isStringTable, type Grammar } from '../../src/../src/engine/grammar'
 import { mulberry32 } from '../../src/../src/engine/rng'
 
 const g: Grammar = {
@@ -63,5 +63,30 @@ describe('grammar', () => {
     expect(() => expand(g, 'start', mulberry32(1))).toThrow(/nope/)
     expect(() => expand(g, 'f', mulberry32(1))).toThrow(/p\.b/)
     expect(() => expandTemplate(g, 'x {missing.field}', mulberry32(1))).toThrow(/missing/)
+  })
+})
+
+describe('gardes de table', () => {
+  it('table de chaînes : non vide, décidée par le premier élément', () => {
+    expect(isStringTable(['a', 'b'])).toBe(true)
+    expect(isObjectTable(['a', 'b'])).toBe(false)
+  })
+  it('table d’objets : non vide, décidée par le premier élément', () => {
+    expect(isObjectTable([{ a: '1' }])).toBe(true)
+    expect(isStringTable([{ a: '1' }])).toBe(false)
+  })
+  it('vide ou absente : ni l’une ni l’autre', () => {
+    for (const t of [[], undefined]) {
+      expect(isStringTable(t)).toBe(false)
+      expect(isObjectTable(t)).toBe(false)
+    }
+  })
+  it('table mixte : le premier élément décide ; un null n’est pas une entrée', () => {
+    expect(isStringTable(['a', { x: '1' }] as unknown as Grammar[string])).toBe(true)
+    expect(isObjectTable([{ x: '1' }, 'a'] as unknown as Grammar[string])).toBe(true)
+    expect(isObjectTable([null] as unknown as Grammar[string])).toBe(false)
+  })
+  it('expand rejette une table vide', () => {
+    expect(() => expand({ start: ['{v}'], v: [] }, 'start', mulberry32(1))).toThrow(/v/)
   })
 })

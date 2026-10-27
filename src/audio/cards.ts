@@ -1,4 +1,5 @@
-import { ac, effetsOut, muted, noiseBuffer } from './sfx'
+import { ac, effetsOut, muted } from './sfx'
+import { startNoise } from './noise'
 
 // Sons de papier des cartes (coupe, collection) : bruit filtré, enveloppes courtes, hauteur légèrement aléatoire.
 // Tous passent par le bus des effets et restent bien sous `cardThud` (crête 0,4, soit environ -20 dBFS, le plus fort des sons de ce fichier).
@@ -28,7 +29,6 @@ type PaperKind = 'bandpass' | 'highpass'
 const paper = (c: AudioContext, at: number, dur: number, freq: number, peak: number, kind: PaperKind = 'bandpass') => {
   const d = Math.min(ENV_MAX, Math.max(ENV_MIN, dur))
   const src = c.createBufferSource()
-  src.buffer = noiseBuffer(c, d)
   const f = c.createBiquadFilter()
   f.type = kind
   f.Q.value = kind === 'bandpass' ? 0.9 : 0.5
@@ -39,7 +39,7 @@ const paper = (c: AudioContext, at: number, dur: number, freq: number, peak: num
   g.gain.linearRampToValueAtTime(peak, at + d * 0.25)
   g.gain.exponentialRampToValueAtTime(0.001, at + d)
   src.connect(f).connect(g).connect(effetsOut(c))
-  src.start(at)
+  startNoise(c, src, at, d)
 }
 
 const ready = () => {
@@ -60,7 +60,6 @@ export const cardPick = () => {
   if (!c) return
   const t = c.currentTime
   const src = c.createBufferSource()
-  src.buffer = noiseBuffer(c, WHOOSH_DUR)
   const f = c.createBiquadFilter()
   f.type = 'bandpass'
   f.Q.value = 0.8
@@ -71,7 +70,7 @@ export const cardPick = () => {
   g.gain.linearRampToValueAtTime(PEAK.whoosh, t + 0.12)
   g.gain.exponentialRampToValueAtTime(0.001, t + WHOOSH_DUR)
   src.connect(f).connect(g).connect(effetsOut(c))
-  src.start(t)
+  startNoise(c, src, t, WHOOSH_DUR)
   paper(c, t + 0.1, 0.1, 3000, PEAK.slide)
   paper(c, t + 0.17, 0.1, 2400, PEAK.slide)
 }

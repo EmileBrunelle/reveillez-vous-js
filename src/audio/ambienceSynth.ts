@@ -5,6 +5,9 @@ import type { RareKind } from './paranoiaAudio'
 // Synthèse des ambiances : recettes par lieu, lits continus, événements ponctuels, sons rares, suivi des nœuds créés.
 // Le cycle de vie (fondus, minuteries, sourdine, visibilité) est dans `ambience.ts`.
 
+/** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. */
+export const MASTER_GAIN = 0.045
+
 /** Gain du bus des événements de lieu (+≈ 11 dB) : ils étaient ≈ -45 dBFS crête, inaudibles sous la voix d’un portable. */
 export const EVENT_BOOST = 3.6
 
@@ -88,8 +91,7 @@ const rnd = (a: number, b: number) => randomDelay(a, b)
 /** Gain du bus des lits : plein au niveau 1, ramené sous la nappe dès le niveau 2 (pas d’empilement qui masque les événements). */
 export const bedGain = (level: number) => (level <= 1 ? 0.9 : 0.55)
 
-/** Durée du tampon de bruit : couvre la plus longue houle (6 s) avec un décalage de départ ≤ NOISE_OFFSET_MAX. */
-export const NOISE_SECONDS = 9
+/** Décalage de départ maximal (s) dans le tampon de bruit partagé (`NOISE_SECONDS`, qui couvre la plus longue houle, 6 s). */
 export const NOISE_OFFSET_MAX = 1.5
 
 /** Garde la trace de tout ce qui est créé pour pouvoir tout arrêter et déconnecter. */
@@ -202,7 +204,7 @@ const hum = (e: Env) => {
 /** Souffle de bruit filtré étroit et bas : passe-bande `hz` / `q`, gain qui respire à `breathHz` (≤ 0,1 Hz), centre qui dérive de ± `sweep` Hz à `sweepHz`. */
 const noiseBand = (e: Env, o: { hz: number; q: number; gain: number; breathHz: number; depth: number; sweep?: number; sweepHz?: number }) => {
   const s = e.t.add(e.c.createBufferSource())
-  s.buffer = noiseBuffer(e.c, NOISE_SECONDS)
+  s.buffer = noiseBuffer(e.c)
   s.loop = true
   const bp = filt(e, 'bandpass', o.hz, o.q)
   const g = gainNode(e, o.gain)
@@ -243,7 +245,7 @@ const env = (g: GainNode, at: number, peak: number, attack: number, dur: number)
 const swell = (e: Env, type: BiquadFilterType, freq: number, q: number, peak: number, attack: number, dur: number, sweepTo = freq, delay = 0) => {
   const t0 = e.c.currentTime + 0.05 + delay
   const s = e.t.add(e.c.createBufferSource())
-  s.buffer = noiseBuffer(e.c, NOISE_SECONDS)
+  s.buffer = noiseBuffer(e.c)
   const f = filt(e, type, freq, q)
   f.frequency.setValueAtTime(freq, t0)
   f.frequency.linearRampToValueAtTime(sweepTo, t0 + dur)

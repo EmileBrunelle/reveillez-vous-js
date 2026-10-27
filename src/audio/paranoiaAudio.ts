@@ -1,7 +1,5 @@
 import type { ParanoiaLevel } from '../engine/paranoia'
-
-/** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. Source unique : `ambience.ts` le lit d’ici. */
-export const MASTER_GAIN = 0.045
+import { MASTER_GAIN } from './ambienceSynth'
 
 /** Fondamentale de la basse fantôme (Hz) : écouteurs seulement, les petits haut-parleurs ne la rendent pas. */
 export const SUB_HZ = 41

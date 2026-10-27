@@ -1,6 +1,5 @@
 import { phraseGain, type NoteEvent } from './musicPlan'
-import { noiseBuffer } from './noise'
-import { runLater } from './runLater'
+import { startNoise } from './noise'
 
 // Piano de feutre synthétisé, proche du micro et un peu usé (esprit C418) : partiels étirés par inharmonicité, décroissance à deux étages
 // par partiel (coup puis résonance), deux cordes légèrement désaccordées pour les trois premiers partiels (battement lent), marteau de
@@ -124,7 +123,7 @@ export const peakSources = (notes: readonly NoteEvent[]): number => {
 
 const roomCache = new WeakMap<BaseAudioContext, AudioBuffer>()
 
-/** Durée du bruit du marteau (s) : bref, partagé par le cache de `noiseBuffer`. */
+/** Durée du bruit du marteau (s) : un segment du tampon de bruit partagé. */
 const HAMMER_NOISE = 0.12
 
 /** Réponse impulsionnelle d’une petite salle : bruit à décroissance exponentielle, assombri (filtre à un pôle) au fil du temps. */
@@ -237,7 +236,6 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
     // marteau de feutre : bref bruit sourd, passe-bas bas
     {
       const s = c.createBufferSource()
-      s.buffer = noiseBuffer(c, HAMMER_NOISE)
       const hl = c.createBiquadFilter()
       hl.type = 'lowpass'
       hl.frequency.value = Math.min(n.hz * 2, 700)
@@ -247,7 +245,7 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
       hg.gain.linearRampToValueAtTime(0.5 * n.velocity, t + 0.004)
       hg.gain.exponentialRampToValueAtTime(0.0001, t + 0.045)
       s.connect(hl).connect(hg).connect(g)
-      s.start(t)
+      startNoise(c, s, t, HAMMER_NOISE)
       s.stop(t + 0.06)
       sources.push(s)
     }
@@ -262,7 +260,7 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
   }
   for (const s of sources) {
     s.onended = () => {
-      if (--remaining === 0) runLater(cleanup, (ROOM_SECONDS + 0.5) * 1000)
+      if (--remaining === 0) setTimeout(cleanup, (ROOM_SECONDS + 0.5) * 1000) // hors de toute portée : la phrase n’a pas de propriétaire à qui rattacher la minuterie
     }
   }
   let stopped = false

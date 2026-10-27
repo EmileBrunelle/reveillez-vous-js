@@ -1,10 +1,8 @@
 import { customRef, effectScope, watch, type EffectScope } from 'vue'
 import { useDocumentVisibility, useEventListener } from '@vueuse/core'
 import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '../stores/audio'
-import { noiseBuffer } from './noise'
+import { startNoise } from './noise'
 import { playMotif } from './motif'
-
-export { noiseBuffer }
 
 /** Sourdine : miroir du store, sans cache (résolu à chaque lecture, jamais à l’import : pinia doit être actif). */
 export const muted = customRef<boolean>(() => ({
@@ -64,9 +62,15 @@ export const finaleOut = (c: AudioContext) => bus(c, 'finale')
 const resumeIfStopped = () => {
   if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume()
 }
+/** Vrai dès qu’un geste a eu lieu : avant, reprendre le contexte au retour de l’onglet déclencherait l’avertissement d’autoplay. */
+let gestured = false
+const onGesture = () => {
+  gestured = true
+  resumeIfStopped()
+}
 
 // Les changements de volume du store (curseurs, remise à zéro) se répercutent sur les bus du contexte courant,
-// et le contexte est repris au retour de l’onglet et au prochain toucher (un contexte interrompu resterait muet).
+// et le contexte est repris au retour de l’onglet (après un premier geste) et au prochain geste (un contexte interrompu resterait muet).
 // Portée détachée : ces observateurs survivent au composant qui a déclenché le premier `ac()` (onMounted, etc.).
 let volumeScope: EffectScope | null = null
 let watchedStore: ReturnType<typeof useAudioStore> | null = null
@@ -79,9 +83,10 @@ const watchContext = () => {
   volumeScope.run(() => {
     const visibility = useDocumentVisibility()
     watch(visibility, (v) => {
-      if (v === 'visible') resumeIfStopped()
+      if (v === 'visible' && gestured) resumeIfStopped()
     })
-    useEventListener('pointerdown', resumeIfStopped, { passive: true })
+    // `pointerup` et `keydown` sont des gestes d’activation (Chrome tactile n’active pas l’audio sur `pointerdown`, et le clavier compte)
+    useEventListener(['pointerup', 'keydown'], onGesture, { passive: true })
     for (const k of VOLUME_KEYS)
       watch(
         () => store.volumes[k],
@@ -108,12 +113,12 @@ export const ac = (): AudioContext | null => {
 }
 
 export const unlock = () => {
+  gestured = true
   if (ac()) resumeIfStopped()
 }
 
 const burst = (c: AudioContext, at: number, dur: number, freq: number, gain: number) => {
   const src = c.createBufferSource()
-  src.buffer = noiseBuffer(c, dur)
   const f = c.createBiquadFilter()
   f.type = 'lowpass'
   f.frequency.value = freq
@@ -121,7 +126,7 @@ const burst = (c: AudioContext, at: number, dur: number, freq: number, gain: num
   g.gain.setValueAtTime(gain, at)
   g.gain.exponentialRampToValueAtTime(0.001, at + dur)
   src.connect(f).connect(g).connect(effetsOut(c))
-  src.start(at)
+  startNoise(c, src, at, dur)
   return [src]
 }
 
@@ -287,7 +292,6 @@ export const cardDeal = () => {
   if (!c || muted.value) return
   const t = c.currentTime
   const src = c.createBufferSource()
-  src.buffer = noiseBuffer(c, 0.25)
   const f = c.createBiquadFilter()
   f.type = 'bandpass'
   f.Q.value = 1.2
@@ -298,7 +302,7 @@ export const cardDeal = () => {
   g.gain.linearRampToValueAtTime(0.22, t + 0.06)
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.24)
   src.connect(f).connect(g).connect(effetsOut(c))
-  src.start(t)
+  startNoise(c, src, t, 0.25)
 }
 
 /** Card flips: a papery snap and a small bright blip on the landing. */
@@ -327,7 +331,6 @@ export const cardThud = () => {
   if (!c || muted.value) return
   const t = c.currentTime
   const src = c.createBufferSource()
-  src.buffer = noiseBuffer(c, 0.14)
   const f = c.createBiquadFilter()
   f.type = 'lowpass'
   f.Q.value = 0.8
@@ -338,7 +341,7 @@ export const cardThud = () => {
   g.gain.linearRampToValueAtTime(0.4, t + 0.008)
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.13)
   src.connect(f).connect(g).connect(effetsOut(c))
-  src.start(t)
+  startNoise(c, src, t, 0.14)
 }
 
 const beep = (c: AudioContext, at: number, from: number, to: number, dur: number, gain: number) => {

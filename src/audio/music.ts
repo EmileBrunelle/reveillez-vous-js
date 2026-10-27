@@ -1,11 +1,10 @@
 import { effectScope, watch } from 'vue'
-import { useDocumentVisibility, useIntervalFn } from '@vueuse/core'
+import { useDocumentVisibility, useIntervalFn, useTimeoutFn, type Pausable } from '@vueuse/core'
 import { orSecure, type Rng } from '../engine/rng'
 import { ambienceDucked, fadeParam } from './ambience'
 import { motifBusyUntil } from './motif'
 import { playPhrase, type PhraseHandle } from './pianoVoice'
 import { canStartPhrase, createSession, musicGap, phraseDuration, planPhrase, releaseBusy, resumeDelay, type MelodySession } from './musicPlan'
-import { runLater } from './runLater'
 import { ac, ambienceOut, muted } from './sfx'
 import { stingerBusyUntil } from './stinger'
 
@@ -89,6 +88,7 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
     nextAtMs = Date.now() + (dur + musicGap(rng)) * 1000
   }
 
+  let ticker: Pausable | undefined
   scope.run(() => {
     const visibility = useDocumentVisibility()
     watch(
@@ -105,15 +105,26 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
     // un jingle ou un leitmotif qui démarre coupe la phrase en cours (sauf l’occupation posée par ma propre phrase)
     watch(stingerBusyUntil, (v) => v > c.currentTime && endMine(FADE_QUICK))
     watch(motifBusyUntil, (v) => mine && v !== myBusy && v > c.currentTime && endMine(FADE_QUICK))
-    useIntervalFn(tick, TICK_MS)
+    ticker = useIntervalFn(tick, TICK_MS)
   })
 
   return () => {
     if (stopped) return
     stopped = true
-    scope.stop()
+    ticker?.pause()
     endMine(FADE_STOP)
     fadeParam(out.gain, c.currentTime, 0, FADE_STOP)
-    runLater(() => out.disconnect(), (FADE_STOP + 0.3) * 1000)
+    // la portée reste vivante jusqu’à la libération du bus : arrêter le propriétaire annulerait la minuterie
+    scope.run(() => {
+      const { start } = useTimeoutFn(
+        () => {
+          out.disconnect()
+          scope.stop()
+        },
+        (FADE_STOP + 0.3) * 1000,
+        { immediate: false },
+      )
+      start()
+    })
   }
 }

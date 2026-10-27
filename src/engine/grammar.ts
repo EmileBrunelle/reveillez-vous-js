@@ -4,10 +4,12 @@ export type StringTable = string[]
 export type ObjectTable = Record<string, string>[]
 export type Grammar = Record<string, StringTable | ObjectTable>
 
-/** Table de chaînes (éventuellement vide) : `{table}` en tire une au hasard. */
-export const isStringTable = (t: StringTable | ObjectTable | undefined): t is StringTable => Array.isArray(t) && t.every((x) => typeof x === 'string')
-/** Table d’entrées à champs appariés (non vide) : `{table.champ}`. */
-export const isObjectTable = (t: StringTable | ObjectTable | undefined): t is ObjectTable => Array.isArray(t) && t.length > 0 && t.every((x) => typeof x === 'object')
+// Les tables sont homogènes (vérifié par les tests de contenu) : seul le premier élément décide, ce qui garde ces gardes bon marché
+// (elles servent à chaque jeton). Une table vide n’est ni l’une ni l’autre ; `run` la rejette avant de les consulter.
+/** Table de chaînes non vide : `{table}` en tire une au hasard. */
+export const isStringTable = (t: StringTable | ObjectTable | undefined): t is StringTable => t !== undefined && t.length > 0 && typeof t[0] === 'string'
+/** Table d’entrées à champs appariés non vide : `{table.champ}`. */
+export const isObjectTable = (t: StringTable | ObjectTable | undefined): t is ObjectTable => t !== undefined && t.length > 0 && typeof t[0] === 'object' && t[0] !== null
 
 const MAX_DEPTH = 8
 const TOKEN = /\{([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?\}/g
