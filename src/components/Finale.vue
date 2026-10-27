@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, type Directive } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Directive } from 'vue'
 import { animate } from 'motion-v'
 import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
@@ -51,7 +51,9 @@ const CREDIT_STEP = 0.2
 const creditDelay = (i: number) => i * CREDIT_STEP
 const thanksDelay = (CREDITS_BODY.length + 2) * CREDIT_STEP + 0.3
 // En mouvement réduit : pas d’animation, tout le texte et le générique sont là d’un coup.
-const showText = computed(() => reduced.value || step.value === 'text')
+// Mouvement réduit : la région live (role=status) est montée vide, puis remplie, pour que le texte soit annoncé.
+const liveReady = ref(false)
+const showText = computed(() => (reduced.value ? liveReady.value : step.value === 'text'))
 const shown = computed(() => (reduced.value ? lines : lines.slice(0, count.value)))
 const showCredits = computed(() => reduced.value || step.value === 'credits')
 const showBox = computed(() => showText.value || showCredits.value)
@@ -91,18 +93,34 @@ useResizeObserver(inner, () => {
   keep(heightAnim)
 })
 // Le texte s’efface avant que le générique ne prenne sa place (la hauteur du conteneur se règle pendant ce temps).
+let leaving: (() => void) | undefined
 const leaveText = (el: Element, done: () => void) => {
   if (reduced.value || skipped.value) return done()
   const a = animate(el as HTMLElement, { opacity: 0 } as never, { duration: 0.45, ease: 'easeIn' } as never)
-  void Promise.resolve(a).then(done, done)
+  const end = () => {
+    leaving = undefined
+    done()
+  }
+  leaving = () => {
+    finishAnimations([a])
+    end()
+  }
+  void Promise.resolve(a).then(end, end)
 }
 const restartBtn = ref<HTMLButtonElement>()
 // Le générique peut dépasser (téléphone) : « Recommencer » est ramené dans la section défilante, en douceur sauf mouvement réduit.
-const focusRestart = () =>
-  void nextTick(() => {
-    focusQuietly(restartBtn.value, { preventScroll: true })
-    restartBtn.value?.scrollIntoView({ block: 'nearest', behavior: reduced.value ? 'auto' : 'smooth' })
-  })
+// Le bouton n’existe qu’une fois le générique monté (après le fondu du texte) : on agit à son montage, une fois la hauteur du conteneur posée.
+const doFocus = () => {
+  focusQuietly(restartBtn.value, { preventScroll: true })
+  restartBtn.value?.scrollIntoView({ block: 'nearest', behavior: reduced.value ? 'auto' : 'smooth' })
+}
+const { start: focusLater, stop: focusStop } = useTimeoutFn(doFocus, 700, { immediate: false })
+watch(restartBtn, (el) => {
+  if (!el) return
+  focusStop()
+  if (reduced.value || skipped.value) setTimeout(doFocus, reduced.value ? 500 : 150)
+  else focusLater()
+})
 
 // Un seul changement spatial, jamais de scintillement : barres noires qui se ferment (1,1 s), une ligne, puis le noir ; l’aube remonte en 4 s.
 const delay = ref(50)
@@ -125,7 +143,6 @@ const { start, stop } = useTimeoutFn(
       if (count.value >= lines.length) {
         step.value = 'credits'
         audio.fadePad()
-        focusRestart()
         return
       }
       count.value++
@@ -140,8 +157,8 @@ const { start, stop } = useTimeoutFn(
 const { start: fadeLater } = useTimeoutFn(() => audio.fadePad(), 5000, { immediate: false })
 onMounted(() => {
   if (reduced.value) {
+    void nextTick(() => setTimeout(() => (liveReady.value = true), 150))
     emit('collapsed')
-    focusRestart()
     audio.dawn()
     audio.bell()
     fadeLater()
@@ -152,7 +169,9 @@ const skip = () => {
   // En mouvement réduit tout est déjà affiché : rien à passer (et la nappe continue).
   if (reduced.value) return
   if (step.value === 'credits') {
+    skipped.value = true
     // Générique déjà là : un clic ailleurs mène seulement les ressorts restants à leur fin (le lien, lui, n’y touche jamais).
+    leaving?.() // fondu du texte en cours : le générique apparaît tout de suite
     if (running.length) {
       skipped.value = true
       finishAnimations(running)
@@ -168,7 +187,6 @@ const skip = () => {
   if (step.value === 'pre' || step.value === 'collapse') emit('collapsed') // l’aube doit quand même se mettre en place
   count.value = lines.length
   step.value = 'credits'
-  focusRestart()
 }
 // Clic ou toucher n’importe où, ou Espace/Entrée ; un bouton (« Recommencer », barre des tâches) garde son propre comportement.
 const onButton = (e: Event) => e.target instanceof Element && !!e.target.closest('button, a, [role="menuitem"]')
@@ -204,8 +222,8 @@ const lineClass = (i: number) =>
     <div v-if="showBox" ref="box" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" style="height: 0; opacity: 0">
       <div ref="inner" class="grid gap-3 justify-items-center px-4 py-5">
         <Transition :css="false" mode="out-in" @leave="leaveText">
-          <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center">
-            <div v-if="showText" class="grid gap-3 justify-items-center" role="status">
+          <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center" role="status">
+            <div v-if="showText" class="grid gap-3 justify-items-center">
               <template v-for="(l, i) in shown" :key="l">
                 <p v-if="i < FINALE_TITLE.length" class="m-0" :class="lineClass(i)" :aria-label="l">
                   <template v-for="(w, wi) in letters(l)" :key="wi">
