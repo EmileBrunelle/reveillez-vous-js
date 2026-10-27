@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useTemplateRef, type ComponentPublicInstance } from 'vue'
 import { AlertDialog } from '@vuetify/v0'
 import { useDialogFocus } from '../composables/useDialogFocus'
 
@@ -7,9 +6,8 @@ import { useDialogFocus } from '../composables/useDialogFocus'
 const open = defineModel<boolean>({ default: false })
 // Échap annule comme avant : AlertDialog l’ignore par défaut, d’où `close-on-escape` sur le contenu.
 const emit = defineEmits<{ confirm: [] }>()
-const cancelBtn = useTemplateRef<ComponentPublicInstance>('cancelBtn') // AlertDialog.Cancel : l’élément est `$el`
-// Focus initial sur « Annuler » (choix sûr), sans anneau à la souris ; restauré au déclencheur à la fermeture.
-const { restore } = useDialogFocus(open, () => cancelBtn.value?.$el)
+// AlertDialog focalise « Annuler » lui-même ; le composable mémorise le déclencheur et le restaure à la fermeture.
+const { restore } = useDialogFocus(open)
 
 const btn =
   'select-none touch-manipulation [font:inherit] cursor-pointer text-black border-2 border-solid border-black focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px] py-[0.4rem] px-4'

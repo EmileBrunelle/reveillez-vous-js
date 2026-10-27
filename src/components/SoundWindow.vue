@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useId, useTemplateRef, type ComponentPublicInstance } from 'vue'
+import { unrefElement } from '@vueuse/core'
 import { Dialog } from '@vuetify/v0'
 import { useDialogFocus } from '../composables/useDialogFocus'
 import { previewEffects } from '../audio/sfx'
@@ -7,9 +8,10 @@ import { useAudioStore, type VolumeKey } from '../stores/audio'
 
 // v-model du parent = « veut ouvert ». Dialog de v0 (<dialog> natif) : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
+// Clic sur le fond = fermeture : défaut de v0 (`closeOnClickOutside`), gardé exprès, comme À propos.
 const uid = useId()
-const closeBtn = useTemplateRef<ComponentPublicInstance>('closeBtn') // Dialog.Close : l’élément est `$el`
-const { restore } = useDialogFocus(open, () => closeBtn.value?.$el)
+const closeBtn = useTemplateRef<ComponentPublicInstance>('closeBtn') // Dialog.Close n’expose pas `element` (seul Atom le fait) : unrefElement donne l’élément
+const { restore } = useDialogFocus(open, () => unrefElement(closeBtn))
 
 const sliders: { key: VolumeKey; label: string }[] = [
   { key: 'general', label: 'Volume général' },

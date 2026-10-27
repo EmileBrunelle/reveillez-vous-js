@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, useId, watch, useTemplateRef, type ComponentPublicInstance } from 'vue'
+import { unrefElement } from '@vueuse/core'
 import { Dialog } from '@vuetify/v0'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
@@ -10,10 +11,11 @@ import { cardCollect } from '../audio/cards'
 
 // v-model du parent = « veut ouvert ». Dialog de v0 (<dialog> natif) : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
+// Clic sur le fond = fermeture : défaut de v0 (`closeOnClickOutside`), gardé exprès, comme À propos.
 const id = useId()
 const titleId = `${id}-title` // convention de Dialog.Root : `${id}-title`
-const closeBtn = useTemplateRef<ComponentPublicInstance>('closeBtn') // Dialog.Close : l’élément est `$el`
-const { restore } = useDialogFocus(open, () => closeBtn.value?.$el)
+const closeBtn = useTemplateRef<ComponentPublicInstance>('closeBtn') // Dialog.Close n’expose pas `element` (seul Atom le fait) : unrefElement donne l’élément
+const { restore } = useDialogFocus(open, () => unrefElement(closeBtn))
 const collection = useCollectionStore()
 const reduced = useReducedMotion()
 

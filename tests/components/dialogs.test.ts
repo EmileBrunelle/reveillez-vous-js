@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSSRApp, h, type Component } from 'vue'
 import { createPinia } from 'pinia'
+import { readFileSync } from 'node:fs'
+import { Dialog } from '@vuetify/v0'
 import { renderToString } from 'vue/server-renderer'
 import { createAppLocale } from '../../src/locale'
 import About from '../../src/components/About.vue'
@@ -66,5 +68,21 @@ describe('dialogues v0 : rôle et nom accessible', () => {
     expect(html.indexOf('Annuler')).toBeGreaterThan(-1)
     expect(html.indexOf('Annuler')).toBeLessThan(html.indexOf('Oublier</button>'))
     expect(html).toContain('reset-in') // animation d’ouverture conservée
+  })
+})
+
+describe('dialogues v0 : conventions dont dépendent nos composants', () => {
+  it('Dialog.Root id="x" donne un titre d’id « x-title » (CollectionWindow.vue construit cet id)', async () => {
+    const app = createSSRApp({
+      render: () => h(Dialog.Root, { id: 'x' }, () => h(Dialog.Content, null, () => h(Dialog.Title, null, () => 'T'))),
+    })
+    expect(await renderToString(app)).toContain('<h2 id="x-title"')
+  })
+  it('clic sur le fond : Dialog.Content le ferme par défaut et ni Son ni Collection ne le désactivent', () => {
+    const def = (Dialog.Content as unknown as { props: { closeOnClickOutside: { default: boolean } } }).props.closeOnClickOutside.default
+    expect(def).toBe(true)
+    for (const f of ['SoundWindow', 'CollectionWindow']) {
+      expect(readFileSync(`src/components/${f}.vue`, 'utf8')).not.toMatch(/close-on-click-outside|closeOnClickOutside="?false/)
+    }
   })
 })
