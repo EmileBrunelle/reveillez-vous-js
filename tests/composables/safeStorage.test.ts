@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { safeSessionStorage, safeStorage } from '../../src/../src/composables/safeStorage'
+import { safeSessionStorage, safeStorage } from '../../src/composables/safeStorage'
 
 describe('safeStorage', () => {
   afterEach(() => {
@@ -63,5 +63,15 @@ describe('safeStorage', () => {
     const real = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }
     Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: real })
     expect(safeSessionStorage()).toBe(real)
+  })
+
+  it('ne sonde le stockage qu’une fois (clé sonde écrite puis supprimée une seule fois)', () => {
+    const calls = { set: 0, remove: 0 }
+    const real = { getItem: () => null, setItem: () => void calls.set++, removeItem: () => void calls.remove++ }
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: real })
+    safeStorage()
+    safeStorage()
+    safeStorage()
+    expect(calls).toEqual({ set: 1, remove: 1 })
   })
 })

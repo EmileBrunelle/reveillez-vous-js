@@ -24,5 +24,5 @@ export default defineConfig({
     wgsl({ minify: true }),
   ],
   // Les worktrees des agents (.claude/worktrees) contiennent une copie des tests : on ne les exécute pas depuis l’arbre principal.
-  test: { exclude: [...configDefaults.exclude, '.claude/**'] },
+  test: { exclude: [...configDefaults.exclude, '.claude/**'], setupFiles: ['tests/setup.ts'] },
 })

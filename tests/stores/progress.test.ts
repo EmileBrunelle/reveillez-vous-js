@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { purgeLegacyVisits } from '../../src/migrations'
 import { arcaneIndex, FINALE_KEY, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '../../src/stores/progress'
 import { isQuickKnock } from '../../src/engine/paranoia'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
@@ -38,9 +39,10 @@ describe('progress store', () => {
     expect(m.has(VISITS_KEY)).toBe(false)
   })
 
-  it('migration: drops the old localStorage visits without importing them', () => {
+  it('migration : l’ancien compteur de visites (localStorage) est supprimé sans être importé', () => {
     m.set(VISITS_KEY, '20')
     m.set(MEMORY_KEY, JSON.stringify({ lastArcane: 3, lastNom: null, lastLevel: 2, finished: true }))
+    purgeLegacyVisits() // appelée au démarrage par main.ts
     const s = fresh()
     expect(m.has(VISITS_KEY)).toBe(false)
     expect(s.level).toBe(1)

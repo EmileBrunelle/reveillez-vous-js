@@ -59,8 +59,6 @@ const memorySerializer = {
 
 export const useProgressStore = defineStore('progress', () => {
   const opts = { flush: 'sync', writeDefaults: false, listenToStorageChanges: false } as const
-  // Migration : l’ancien compteur persistant (localStorage) est supprimé sans être importé, tout le monde repart au niveau 1.
-  safeStorage().removeItem(VISITS_KEY)
   const visits = useStorage(VISITS_KEY, 0, safeSessionStorage(), { ...opts, serializer: visitsSerializer })
   // Le rituel de cogner a été réussi au moins une fois dans la session : les visites suivantes n’exigent qu’un toucher.
   const knocked = useStorage(KNOCKED_KEY, false, safeSessionStorage(), { ...opts, serializer: knockedSerializer })

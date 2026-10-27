@@ -6,5 +6,8 @@ import '@fontsource/cinzel/latin-700.css'
 import 'virtual:uno.css'
 import './styles.css'
 import App from './App.vue'
+import { purgeLegacyVisits } from './migrations'
+
+purgeLegacyVisits()
 
 createApp(App).use(createPinia()).mount('#app')
