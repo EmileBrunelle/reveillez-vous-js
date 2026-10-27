@@ -1,14 +1,75 @@
 import type { ParanoiaLevel } from '../engine/paranoia'
 
-/** Gain du sous-bourdon (relatif au bus d’ambiance, déjà à ≈ -27 dBFS) par niveau de paranoïa 1..5 : absent au niveau 1, puis par paliers. */
-export const SUB_GAINS: Record<ParanoiaLevel, number> = { 1: 0, 2: 0.12, 3: 0.2, 4: 0.3, 5: 0.42 }
+/** Bus d’ambiance (copie de `MASTER_GAIN` d’ambience.ts, gardée ici pour que le calcul reste pur et sans cycle d’import). */
+const AMBIENCE_BUS = 0.045
 
-/** Fréquence du sous-bourdon (Hz) : sinus pur, aucun battement (une seule fondamentale + une octave). */
+/** Fondamentale de la basse fantôme (Hz) : écouteurs seulement, les petits haut-parleurs ne la rendent pas. */
 export const SUB_HZ = 41
+
+/**
+ * Basse fantôme : fondamentale + harmoniques 2 à 5 (82, 123, 164, 205 Hz) d’amplitude décroissante.
+ * Les petits haut-parleurs rendent les harmoniques et l’oreille reconstruit la fondamentale absente.
+ */
+export const BASS_PARTIALS: readonly (readonly [hz: number, amp: number])[] = [
+  [SUB_HZ, 1],
+  [SUB_HZ * 2, 0.8],
+  [SUB_HZ * 3, 0.6],
+  [SUB_HZ * 4, 0.45],
+  [SUB_HZ * 5, 0.3],
+]
+
+/**
+ * Nappe tonale sombre dans le médium (220–311 Hz) : seconde mineure (220 / 233,1), triton (311,1) et une voix
+ * désaccordée de 0,4 Hz (battement lent, < 1 Hz). Chaque voix enfle seule sur `period` secondes (≥ 9 s).
+ */
+export const PAD_VOICES: readonly { hz: number; amp: number; period: number }[] = [
+  { hz: 220, amp: 1, period: 11 },
+  { hz: 233.1, amp: 0.8, period: 14 },
+  { hz: 311.1, amp: 0.7, period: 9 },
+  { hz: 220.4, amp: 0.7, period: 12 },
+]
+/** Profondeur de l’enflure : le gain d’une voix oscille entre 1 - PAD_DEPTH et 1 + PAD_DEPTH fois sa valeur moyenne. */
+export const PAD_DEPTH = 0.4
+
+/** RMS (gain unitaire) de chaque couche : somme de sinus, (Σ a²/2)^½ ; la nappe est pondérée par la puissance moyenne de l’enflure. */
+export const BASS_UNIT_RMS = Math.sqrt(BASS_PARTIALS.reduce((a, [, amp]) => a + (amp * amp) / 2, 0))
+export const PAD_UNIT_RMS = Math.sqrt(PAD_VOICES.reduce((a, v) => a + (v.amp * v.amp) / 2, 0) * (1 + (PAD_DEPTH * PAD_DEPTH) / 2))
+
+/** Niveau RMS visé au bus maître (dBFS) pour l’ensemble basse + nappe, par niveau de paranoïa ; rien au niveau 1. */
+export const TARGET_DBFS: Record<ParanoiaLevel, number> = { 1: -Infinity, 2: -37, 3: -30, 4: -26, 5: -22 }
+/** Part de la puissance : la nappe médium porte plus (c’est elle qu’on entend sur un portable). */
+const BASS_POWER_SHARE = 0.45
+
+const gainFor = (level: ParanoiaLevel, share: number, unitRms: number) => {
+  const rms = 10 ** (TARGET_DBFS[level] / 20)
+  return Math.round(((Math.sqrt(share) * rms) / (AMBIENCE_BUS * unitRms)) * 100) / 100
+}
+const table = (share: number, unit: number): Record<ParanoiaLevel, number> => ({
+  1: 0,
+  2: gainFor(2, share, unit),
+  3: gainFor(3, share, unit),
+  4: gainFor(4, share, unit),
+  5: gainFor(5, share, unit),
+})
+/** Gain de la basse fantôme avant le bus d’ambiance (> 1 : le bus ramène à ≈ -27 dBFS). */
+export const SUB_GAINS: Record<ParanoiaLevel, number> = table(BASS_POWER_SHARE, BASS_UNIT_RMS)
+/** Gain de la nappe médium, même principe. */
+export const PAD_GAINS: Record<ParanoiaLevel, number> = table(1 - BASS_POWER_SHARE, PAD_UNIT_RMS)
+
+/** RMS estimé (dBFS) de l’ensemble basse + nappe au bus maître (couches non corrélées : puissances additionnées). */
+export const estimatedDbfs = (level: number) => {
+  const l = clampLevel(level)
+  const power = (SUB_GAINS[l] * BASS_UNIT_RMS) ** 2 + (PAD_GAINS[l] * PAD_UNIT_RMS) ** 2
+  return power === 0 ? -Infinity : 20 * Math.log10(AMBIENCE_BUS * Math.sqrt(power))
+}
 
 export const clampLevel = (n: number): ParanoiaLevel => Math.min(5, Math.max(1, Math.round(Number.isFinite(n) ? n : 1))) as ParanoiaLevel
 
 export const subGain = (level: number) => SUB_GAINS[clampLevel(level)]
+export const padGain = (level: number) => PAD_GAINS[clampLevel(level)]
+
+/** Gain du bus des sons rares (< 4 s, médium) : +≈ 10 dB, un coup de ≈ -18 dBFS crête, qui passe sur un portable sans faire sursauter. */
+export const RARE_BOOST = 3
 
 export type RareKind = 'thud' | 'breath' | 'crackle'
 export const RARE_KINDS: readonly RareKind[] = ['thud', 'breath', 'crackle']

@@ -2,7 +2,7 @@ import { effectScope, ref, watch } from 'vue'
 import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
 import type { PlaceId } from '../effects/places/types'
 import { ac, muted, noiseBuffer } from './sfx'
-import { SUB_HZ, nextRareDelay, pickRareKind, subGain, type RareKind } from './paranoiaAudio'
+import { BASS_PARTIALS, PAD_DEPTH, PAD_VOICES, RARE_BOOST, nextRareDelay, padGain, pickRareKind, subGain, type RareKind } from './paranoiaAudio'
 
 /** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. */
 export const MASTER_GAIN = 0.045
@@ -10,7 +10,7 @@ export const MASTER_GAIN = 0.045
 const TC_IN = 0.4
 const TC_OUT = 0.18
 const TC_MUTE = 0.07
-/** Montée/descente du sous-bourdon entre deux niveaux : très lente. */
+/** Montée/descente de la basse et de la nappe entre deux niveaux : très lente. */
 const TC_SUB = 2
 const STOP_AFTER_MS = 1100
 /** Espacement minimal entre deux événements d’un même lieu. */
@@ -341,6 +341,7 @@ const events: Record<EventKind, (e: Env) => void> = {
 /** Sons « qui ne vont pas » (niveaux 3+) : un coup lointain, un souffle, un craquement. Tous < 4 s, enveloppes lentes ou isolées (aucune modulation périodique). */
 const rareSounds: Record<RareKind, (e: Env) => void> = {
   thud: (e) => {
+    // coup lointain : corps grave, corps médium (audible sur un portable) et clic d’attaque
     const t0 = e.c.currentTime + 0.05
     const o = e.t.add(e.c.createOscillator())
     o.frequency.setValueAtTime(62, t0)
@@ -352,13 +353,25 @@ const rareSounds: Record<RareKind, (e: Env) => void> = {
     o.start(t0)
     o.stop(t0 + 1.3)
     e.t.release(o, [o, lp, g])
+    const m = e.t.add(e.c.createOscillator())
+    m.type = 'triangle'
+    m.frequency.setValueAtTime(150, t0)
+    m.frequency.exponentialRampToValueAtTime(70, t0 + 0.45)
+    const mlp = filt(e, 'lowpass', 420, 0.5)
+    const mg = gainNode(e, 0)
+    env(mg, t0, 0.35, 0.012, 0.6)
+    m.connect(mlp).connect(mg).connect(e.out)
+    m.start(t0)
+    m.stop(t0 + 0.7)
+    e.t.release(m, [m, mlp, mg])
+    swell(e, 'bandpass', 1400, 1, 0.4, 0.002, 0.05)
   },
-  breath: (e) => swell(e, 'bandpass', rnd(650, 800), 0.7, 0.22, 1.4, 3.4, rnd(380, 480)),
+  breath: (e) => swell(e, 'bandpass', rnd(1200, 1800), 0.8, 0.35, 1.4, 3.4, rnd(1900, 2600)),
   crackle: (e) => {
     const n = 3 + Math.floor(Math.random() * 3)
     let at = 0
     for (let i = 0; i < n; i++) {
-      swell(e, 'bandpass', rnd(900, 1500), 2.5, 0.22, 0.004, 0.08, undefined, at)
+      swell(e, 'bandpass', rnd(1200, 3000), 2.5, 0.3, 0.004, 0.08, undefined, at)
       at += 0.12 + Math.random() * 0.35
     }
   },
@@ -422,21 +435,35 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
     },
   }
 
-  // Sous-bourdon : toujours construit, son gain suit le niveau de paranoïa par paliers (changement lent, ≈ 6 s)
+  // Basse fantôme (fondamentale + harmoniques) et nappe tonale médium : toujours construites, gains par paliers (changement lent, ≈ 6 s)
   const sub = e.t.add(c.createGain())
   sub.gain.value = 0
   sub.connect(master)
-  osc(e, 'sine', SUB_HZ).connect(sub)
-  osc(e, 'sine', SUB_HZ * 2)
-    .connect(gainNode(e, 0.25))
-    .connect(sub)
+  for (const [hz, amp] of BASS_PARTIALS) osc(e, 'sine', hz).connect(gainNode(e, amp)).connect(sub)
+  const pad = e.t.add(c.createGain())
+  pad.gain.value = 0
+  pad.connect(master)
+  for (const v of PAD_VOICES) {
+    // enflure lente propre à chaque voix : gain = amp × (1 + PAD_DEPTH × sinus de période ≥ 9 s)
+    const vg = gainNode(e, v.amp)
+    osc(e, 'sine', v.hz).connect(vg).connect(pad)
+    osc(e, 'sine', 1 / v.period)
+      .connect(gainNode(e, v.amp * PAD_DEPTH))
+      .connect(vg.gain)
+  }
   const rampSub = () => {
     sub.gain.cancelScheduledValues(c.currentTime)
     sub.gain.setTargetAtTime(subGain(getLevel()), c.currentTime, TC_SUB)
+    pad.gain.cancelScheduledValues(c.currentTime)
+    pad.gain.setTargetAtTime(padGain(getLevel()), c.currentTime, TC_SUB)
   }
   rampSub()
 
-  // Sons rares : une seule minuterie, ré-armée à chaque tour, un son à la fois
+  // Sons rares : un bus à part, plus fort que les événements du lieu
+  const rareBus = gainNode(e, RARE_BOOST)
+  rareBus.connect(master)
+  const rareEnv: Env = { ...e, out: rareBus }
+  // une seule minuterie, ré-armée à chaque tour, un son à la fois
   let lastRare: RareKind | null = null
   const rareInterval = ref(0)
   const { start: startRare, stop: stopRare } = useTimeoutFn(
@@ -447,7 +474,7 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
         if (now - lastEventAt < MIN_SPACING_MS) return armRare(MIN_SPACING_MS / 1000 + Math.random() * 2)
         lastEventAt = now
         lastRare = pickRareKind(lastRare)
-        rareSounds[lastRare](e)
+        rareSounds[lastRare](rareEnv)
       }
       armRare()
     },

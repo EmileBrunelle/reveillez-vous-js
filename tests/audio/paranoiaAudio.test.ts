@@ -1,13 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { RARE_KINDS, SUB_GAINS, clampLevel, nextRareDelay, pickRareKind, rareRange, subGain } from '../../src/audio/paranoiaAudio'
+import { BASS_PARTIALS, PAD_GAINS, PAD_VOICES, RARE_KINDS, SUB_GAINS, clampLevel, estimatedDbfs, nextRareDelay, pickRareKind, rareRange, subGain } from '../../src/audio/paranoiaAudio'
 
 describe('sous-bourdon par palier', () => {
   it('absent au niveau 1, puis strictement croissant', () => {
     expect(subGain(1)).toBe(0)
     for (const l of [2, 3, 4, 5]) expect(subGain(l)).toBeGreaterThan(subGain(l - 1))
   })
-  it('reste discret (≤ 0,5 du bus d’ambiance)', () => {
-    expect(Math.max(...Object.values(SUB_GAINS))).toBeLessThanOrEqual(0.5)
+  it('la nappe médium : zéro au niveau 1, strictement croissante', () => {
+    expect(PAD_GAINS[1]).toBe(0)
+    for (const l of [2, 3, 4, 5] as const) expect(PAD_GAINS[l]).toBeGreaterThan(PAD_GAINS[(l - 1) as 1 | 2 | 3 | 4])
+  })
+  it('niveau RMS estimé au bus maître : silence au niveau 1, ≈ -30 dBFS au 3, ≈ -22 dBFS au 5, croissant', () => {
+    expect(estimatedDbfs(1)).toBe(-Infinity)
+    expect(estimatedDbfs(3)).toBeCloseTo(-30, 0)
+    expect(estimatedDbfs(5)).toBeCloseTo(-22, 0)
+    for (const l of [2, 3, 4, 5]) expect(estimatedDbfs(l)).toBeGreaterThan(estimatedDbfs(l - 1))
+  })
+  it('basse fantôme : fondamentale 41 Hz + harmoniques 82–205 Hz d’amplitude décroissante', () => {
+    expect(BASS_PARTIALS.map(([hz]) => hz)).toEqual([41, 82, 123, 164, 205])
+    for (let i = 1; i < BASS_PARTIALS.length; i++) expect(BASS_PARTIALS[i][1]).toBeLessThan(BASS_PARTIALS[i - 1][1])
+  })
+  it('nappe : voix entre 200 et 350 Hz, enflures de période ≥ 6 s, battement ≤ 1 Hz', () => {
+    for (const v of PAD_VOICES) {
+      expect(v.hz).toBeGreaterThanOrEqual(200)
+      expect(v.hz).toBeLessThanOrEqual(350)
+      expect(v.period).toBeGreaterThanOrEqual(6)
+    }
+    const hz = PAD_VOICES.map((v) => v.hz)
+    for (const a of hz) for (const b of hz) if (a !== b && Math.abs(a - b) < 5) expect(Math.abs(a - b)).toBeLessThanOrEqual(1)
   })
   it('borne les niveaux invalides', () => {
     expect(clampLevel(0)).toBe(1)
