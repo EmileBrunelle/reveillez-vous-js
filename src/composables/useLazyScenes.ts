@@ -1,19 +1,11 @@
 // Chunks chargés à la demande (hors du premier écran) : la carte du tirage, la scène de la porte
 // et les fenêtres/écrans secondaires. Les préchargements partent dès que possible (voir `prefetch`).
-import { defineAsyncComponent, h, markRaw, shallowRef, type Component } from 'vue'
-import TarotFallback from '../components/TarotFallback.vue'
+import { defineAsyncComponent, markRaw, shallowRef, type Component } from 'vue'
 import { loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadSound, loadTarotCard, prefetch } from '../lazy'
 
-export const useLazyScenes = (reading: () => { title: string; body: string; verse: string }) => {
-  // La carte du tirage est chargée avant la lecture (voir onPick : jamais de substitut) ; si le chunk échoue, defineAsyncComponent
-  // réessaie deux fois puis affiche la lecture de secours. errorComponent ne reçoit pas les props du parent : on lui rend le texte tiré.
-  const TarotFallbackBound = () => h(TarotFallback, reading())
-  const TarotCard = defineAsyncComponent({
-    loader: loadTarotCard,
-    timeout: 3000,
-    errorComponent: TarotFallbackBound,
-    onError: (_err, retry, fail, attempts) => (attempts <= 2 ? retry() : fail()),
-  })
+export const useLazyScenes = () => {
+  // La carte du tirage : simple enveloppe paresseuse. Le chunk est déjà là quand on la rend (onPick l’attend, « jamais de substitut »).
+  const TarotCard = defineAsyncComponent(loadTarotCard)
 
   const About = defineAsyncComponent(loadAbout)
   const ResetConfirm = defineAsyncComponent(loadReset)

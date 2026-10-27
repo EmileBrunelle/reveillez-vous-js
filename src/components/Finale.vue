@@ -56,6 +56,8 @@ const liveReady = ref(false)
 const showText = computed(() => (reduced.value ? liveReady.value : step.value === 'text'))
 const shown = computed(() => (reduced.value ? lines : lines.slice(0, count.value)))
 const showCredits = computed(() => reduced.value || step.value === 'credits')
+// Annonce du générique (titre et remerciement) ; en mouvement réduit, après le montage vide de la région (liveReady).
+const creditsAnnounce = computed(() => (showCredits.value && (!reduced.value || liveReady.value) ? `${CREDITS_TITLE}. ${CREDITS_THANKS}` : ''))
 const showBox = computed(() => showText.value || showCredits.value)
 // Un seul conteneur pour le texte puis le générique : il entre sur un ressort (échelle + opacité) et sa hauteur suit le contenu au ressort,
 // au lieu d’apparaître d’un coup plus grand. Mouvement réduit : simple fondu, hauteur posée directement.
@@ -226,6 +228,8 @@ const lineClass = (i: number) =>
     tabindex="-1"
     aria-label="Finale"
   >
+    <!-- Région live persistante, vide jusqu’au générique : un rôle status inséré déjà plein serait muet. -->
+    <p class="sr-only" role="status">{{ creditsAnnounce }}</p>
     <div v-if="showBox" ref="box" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" style="height: 0; opacity: 0">
       <div ref="inner" class="grid gap-3 justify-items-center px-4 py-5">
         <Transition :css="false" mode="out-in" @leave="leaveText">
@@ -249,7 +253,7 @@ const lineClass = (i: number) =>
                 <p v-else v-rise="{}" class="m-0" :class="lineClass(i)">{{ l }}</p>
               </template>
             </div>
-            <div v-if="showCredits" class="grid gap-3 justify-items-center" role="status">
+            <div v-if="showCredits" class="grid gap-3 justify-items-center">
               <h2 v-rise="{ d: creditDelay(0) }" class="font-title m-0 text-[1.6rem] tracking-[0.06em]">{{ CREDITS_TITLE }}</h2>
               <p v-for="(c, ci) in CREDITS_BODY" :key="c" v-rise="{ d: creditDelay(ci + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
               <p v-rise="{ d: creditDelay(CREDITS_BODY.length + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">

@@ -51,6 +51,7 @@ export const useGameFlow = () => {
   const { startBubble, stopBubble, clearBubbles } = useBubbles(rng)
 
   const focusTarget = ref<FocusTarget>(null)
+  const tarotOk = ref(true) // décidé une seule fois par pioche (onPick) : carte si le chunk est là à temps, sinon lecture de secours, sans bascule après coup
   const listening = ref(false)
   const phase = ref<Phase>('door')
   const closing = ref(false)
@@ -140,6 +141,7 @@ export const useGameFlow = () => {
     const tarot = await tarotReady()
     if (phase.value !== 'cut' || closing.value) return
     pickedPaquet.value = paquet
+    tarotOk.value = tarot
     prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng, paquet, progress.visits === 0)
     progress.remember(prophecy.value.arcane.numero, level.value, prophecy.value.arcane.nom)
     cardSettled.value = false
@@ -213,6 +215,7 @@ export const useGameFlow = () => {
     rng,
     phase,
     focusTarget,
+    tarotOk,
     closing,
     listening,
     sceneKey,
