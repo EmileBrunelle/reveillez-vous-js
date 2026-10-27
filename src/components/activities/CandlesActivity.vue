@@ -7,6 +7,7 @@ import { durationOf } from '../../engine/activityTiming'
 import { useHaptics } from '../../composables/haptics'
 import { TOUCH_GRACE_MS } from '../../composables/touchAim'
 import { useActivityDone } from '../../composables/useActivityDone'
+import { useDeferredText } from '../../composables/useDeferredText'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useKeyboardModality } from '../../composables/useKeyboardModality'
 import { advanceHold, isNearWick, pickSnuffed } from '../../engine/candles'
@@ -39,6 +40,7 @@ const reduced = useReducedMotion()
 const keyboard = useKeyboardModality()
 
 const COUNT = 3
+const prompt = useDeferredText(() => (over.value ? 'La pièce se réchauffe…' : snuffed.value >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles'))
 const stage = useTemplateRef<HTMLElement>('stage')
 const candleEls: (HTMLElement | null)[] = []
 const matchEl = useTemplateRef<HTMLElement>('matchEl')
@@ -190,7 +192,7 @@ useRafFn(({ delta }) => {
     <div class="fixed inset-0 -z-1 pointer-events-none bg-[#07050a]" aria-hidden="true" />
     <div class="warm fixed inset-0 -z-1 pointer-events-none" :class="{ 'no-motion': reduced }" :style="{ opacity: litCount / COUNT }" aria-hidden="true" />
     <p class="relative m-0 text-[1.4rem] text-[#e8d9b0]" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
-      {{ over ? 'La pièce se réchauffe…' : snuffed >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles' }}
+      {{ prompt }}
     </p>
     <div class="relative flex items-end gap-8 sm:gap-14">
       <button

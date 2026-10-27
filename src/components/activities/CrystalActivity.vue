@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
+import { useDeferredText } from '../../composables/useDeferredText'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'
@@ -28,6 +29,7 @@ const ratio = ref(0)
 const ringVersion = ref(0) // repousse le recalcul du masque CSS de secours
 const cleared = ref(false)
 const clearedAt = ref(0)
+const prompt = useDeferredText(() => (cleared.value ? 'La brume se dissipe…' : 'Essuyez la boule de cristal'))
 // Réussite (joueur ou minuterie) : `onFinish` règle la dissipation ; en mouvement réduit la brume disparaît d’un coup.
 const reducedMotion = useReducedMotion()
 const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
@@ -208,7 +210,7 @@ onUnmounted(() => {
       />
     </div>
     <p class="text-xl text-center px-4" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
-      {{ cleared ? 'La brume se dissipe…' : 'Essuyez la boule de cristal' }}
+      {{ prompt }}
     </p>
     <ActivityHud activity="crystal" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />

@@ -110,6 +110,8 @@ const hit = (i: number) => {
 <template>
   <div class="size-full flex flex-col items-center justify-center gap-4 px-4 pb-2 select-none">
     <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>
+    <!-- Séquence montrée aux lecteurs d’écran : le nom de chaque fenêtre qui s’allume, pendant la lecture seulement. -->
+    <p class="sr-only" role="status" aria-live="polite">{{ phase === 'play' && lit !== null ? `Fenêtre ${lit + 1}` : '' }}</p>
     <p class="font-ui text-xl text-center text-amber-100/90 max-w-[22ch]" :class="{ invisible: outcome !== 'play' }">Frappez aux fenêtres dans l’ordre où elles s’allument</p>
     <div ref="house" class="relative w-[min(78vw,300px)]">
       <div class="h-[70px] bg-[#0b0a10] [clip-path:polygon(50%_0,100%_100%,0_100%)]" aria-hidden="true" />
