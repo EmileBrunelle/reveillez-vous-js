@@ -12,6 +12,7 @@ import { useCollectionStore } from './stores/collection'
 import { useTabTitle } from './composables/useTabTitle'
 import { doors, pickDoor, pickPlaceVariant, placeForLevel, places } from './content/scenes'
 import { prophecies } from './content/prophecies'
+import { nextClockLine } from './engine/horloge'
 import { nextDoorLine, nextProphecy, nextReturnLine, nextTitled, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
 import { secureRng } from './engine/rng'
 import type { Paquet } from './engine/paquets'
@@ -35,8 +36,8 @@ const TarotCard = shallowRef<Component | null>(null)
 const tarotFailed = ref(false) // le chunk n’a pas pu se charger : lecture de secours en texte, le jeu ne reste jamais bloqué
 const loadTarotOnce = () => loadTarotCard().then((m) => void (TarotCard.value = markRaw(m.default)))
 const timeout = (ms: number) => new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
+// Pas de retour anticipé : si le chunk arrive après un échec, tarotFailed doit retomber, sinon la lecture de secours (testée avant TarotCard dans le gabarit) resterait jusqu’à la fin de la session.
 const ensureTarot = async () => {
-  if (TarotCard.value) return
   for (let n = 0; n < 2 && !TarotCard.value; n++) await Promise.race([loadTarotOnce(), timeout(3000)]).catch(() => undefined)
   tarotFailed.value = !TarotCard.value
 }
@@ -171,6 +172,8 @@ const enterDoor = () => {
   const greet = progress.memory.finished && level.value === 1 && !returnGreeted
   returnGreeted = true
   doorLine.value = greet ? nextReturnLine(safeStorage(), rng, FALLBACK_LINE) : nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
+  // La voyante remarque parfois l’heure locale (une fois par session ; pas au niveau 5, dont les répliques sont en capitales).
+  if (!greet && level.value < 5) doorLine.value = nextClockLine(new Date(), rng, safeSessionStorage()) ?? doorLine.value
   const played = parsePlayed(safeSessionStorage().getItem(PLAYED_ACTIVITIES_KEY))
   activityId.value = pickActivity(progress.visits, activityId.value, safeStorage(), rng, played)
   if (activityId.value) {
