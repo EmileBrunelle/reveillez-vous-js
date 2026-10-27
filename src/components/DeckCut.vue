@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
+import TarotEmblem from './TarotEmblem.vue'
 import { FAN, FAN_SCALE } from './deckFan'
 import { cardDeal } from '../audio/sfx'
 import { PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '../engine/paquets'
@@ -26,6 +27,7 @@ const chosen = ref<number | null>(null)
 const hot = ref<number | null>(null)
 const ready = ref(false)
 const cards = [0, 1, 2] as const
+const EMBLEMS: Record<Paquet, string> = { nuit: 'moon', feu: 'flame', brume: 'ghost' }
 
 // --- ressorts -------------------------------------------------------------------------------------------------------------------
 interface Spr {
@@ -48,7 +50,8 @@ const step = (p: Spr, k: number, d: number, dt: number) => {
   p.v += (k * (p.t - p.c) - d * p.v) * dt
   p.c += p.v * dt
 }
-const fx = (i: number) => FAN[i].x
+// Boîte étroite (téléphone en paysage) : les cartes latérales s’écartent davantage pour garder une bande cliquable d’au moins ~44 px.
+const fx = (i: number) => FAN[i].x * (W < 260 ? 1.8 : 1)
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 
 let W = 0 // largeur de la boîte de la carte (px)
@@ -308,18 +311,19 @@ const choose = (i: number) => {
     >
       Choisissez une carte.
     </p>
-    <!-- Nom et présage de chaque paquet, toujours visibles sous les cartes (jamais transformés : seul le survol ou le focus clavier les met en valeur). -->
-    <div
-      v-for="i in cards"
-      :key="`l${i}`"
-      class="deck__label absolute top-[calc(50%+30cqw)] w-[34cqw] m-0 text-center font-ui [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
-      :class="{ 'deck__label--on': hot === i && chosen === null, 'deck__label--gone': chosen !== null }"
-      :style="{ left: `calc(50% + ${FAN[i].x}cqw)` }"
+    <!-- Légende unique sous l’éventail : une ligne par paquet, dans l’ordre des cartes ; la ligne de la carte survolée ou ciblée au clavier passe en pleine opacité. -->
+    <ul
+      class="deck__legend absolute inset-x-[4cqw] bottom-[4cqw] m-0 p-0 list-none flex flex-col gap-[1.2cqw] font-ui text-[4.4cqw] leading-[1.1] text-left [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
+      :class="{ 'deck__legend--gone': chosen !== null }"
       aria-hidden="true"
     >
-      <p class="m-0 text-[max(13px,5.2cqw)] leading-[1.05] uppercase">{{ PAQUET_NOMS[paquets[i]] }}</p>
-      <p class="m-0 mt-[1cqw] text-[max(12px,4.4cqw)] leading-[1.1] [text-wrap:balance]">{{ PAQUET_PRESAGES[paquets[i]] }}</p>
-    </div>
+      <li v-for="i in cards" :key="i" class="deck__line flex items-start gap-[2cqw]" :class="{ 'deck__line--on': hot === i, 'deck__line--dim': hot !== null && hot !== i }">
+        <TarotEmblem class="shrink-0 size-[5.5cqw] [color:#b9821a]" :symbole="EMBLEMS[paquets[i]]" />
+        <span
+          ><b class="font-normal uppercase">{{ PAQUET_NOMS[paquets[i]] }}</b> : {{ PAQUET_PRESAGES[paquets[i]] }}</span
+        >
+      </li>
+    </ul>
     <button
       v-for="i in cards"
       :key="i"
@@ -363,15 +367,20 @@ const choose = (i: number) => {
 .deck__prompt--on {
   opacity: 1;
 }
-.deck__label {
-  translate: -50% 0;
-  opacity: 0.72;
+.deck__legend,
+.deck__line {
   transition: opacity 0.15s ease-out;
 }
-.deck__label--on {
+.deck__line {
+  opacity: 0.85;
+}
+.deck__line--on {
   opacity: 1;
 }
-.deck__label--gone {
+.deck__line--dim {
+  opacity: 0.45;
+}
+.deck__legend--gone {
   opacity: 0;
   transition-duration: 0.2s;
 }
@@ -383,7 +392,8 @@ const choose = (i: number) => {
 }
 @media (prefers-reduced-motion: reduce) {
   .deck__prompt,
-  .deck__label {
+  .deck__legend,
+  .deck__line {
     transition: none;
   }
 }
