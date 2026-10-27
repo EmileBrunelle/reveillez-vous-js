@@ -140,6 +140,83 @@ fn pumpkin(p: vec2f) -> vec2f {
   return vec2f(body, face);
 }
 
+fn cam_ray(c: vec2f, pitch: f32, yaw: f32) -> vec3f {
+  var r = normalize(vec3f(c.x, c.y, 1.3));
+  let cp = cos(pitch); let sp = sin(pitch);
+  r = vec3f(r.x, r.y * cp + r.z * sp, r.z * cp - r.y * sp);
+  let cy = cos(yaw); let sy = sin(yaw);
+  return vec3f(r.x * cy + r.z * sy, r.y, r.z * cy - r.x * sy);
+}
+
+// Rayons de lune : lumière directionnelle (axe MOON_DIR) à travers la brume. Les plans de lumière sont des bandes
+// de bruit dans le plan perpendiculaire à MOON_DIR (inclinées comme la lune), intégrées en 3 échantillons le long du rayon
+// (pas de boucle de marche en plus). Retourne la brillance (à teinter), densité de brume × bande × phase vers la lune.
+fn band_at(P: vec3f, drift: f32) -> f32 {
+  let e1 = normalize(cross(MOON_DIR, vec3f(0, 1, 0)));
+  let e2 = cross(e1, MOON_DIR);
+  let n = vnoise(vec3f(dot(P, e1) * 0.55 + drift * 0.01, dot(P, e2) * 1.1, 3.3));
+  return smoothstep(0.5, 0.7, n);
+}
+fn moon_shafts(ro: vec3f, rd: vec3f, tmax: f32, drift: f32, jit: f32, dens: f32) -> f32 {
+  var acc = 0.0;
+  for (var i = 0; i < 3; i++) {
+    let lo = 0.0 + 4.5 * f32(i) * f32(i) + 2.0 * f32(i); // 0, 6.5, 22
+    let w = 6.5 + 12.0 * f32(i); // 6.5, 18.5, 30.5
+    let dtt = clamp(tmax - lo, 0.0, w);
+    if (dtt <= 0.0) { continue; }
+    let t = lo + dtt * (0.25 + 0.5 * fract(jit + 0.37 * f32(i)));
+    let P = ro + rd * t;
+    let hgt = max(P.y + 0.9, 0.0);
+    acc += dtt * exp(-hgt * 0.45) * band_at(P, drift);
+  }
+  let cm = max(dot(rd, MOON_DIR), 0.0);
+  return acc * dens * (0.35 + 1.5 * pow(cm, 3.0));
+}
+
+// Poussière dans la lumière : 4 tranches de profondeur, un grain par cellule ; éclairée par la lune (dans les rayons) et,
+// à la variante lanterne, par la citrouille (source ponctuelle Lw). Retourne une couleur.
+fn dust_hash(p: vec3f) -> vec3f {
+  var q = fract(p * vec3f(0.1031, 0.1030, 0.0973));
+  q += dot(q, q.yzx + 33.33);
+  return fract((q.xxy + q.yzz) * q.zyx);
+}
+fn porch_motes(ro: vec3f, rd: vec3f, tmax: f32, Lw: vec3f, moonCol: vec3f, drift: f32, dens: f32, pix: f32) -> vec3f {
+  var acc = vec3f(0.0);
+  for (var i = 0; i < 4; i++) {
+    let s = 0.30 + 0.09 * f32(i);
+    let tk = 2.4 + 2.3 * f32(i);
+    if (tk >= tmax) { continue; }
+    let P = ro + rd * tk;
+    let off = vec3f(0.0, drift * 0.03 + f32(i) * 3.7, f32(i) * 11.0);
+    let cell = floor((P + off) / s);
+    let hh = dust_hash(cell + f32(i) * 17.0);
+    if (hh.x > dens) { continue; }
+    let ph = hh * 6.2832;
+    let sway = vec3f(sin(drift * 0.23 + ph.x), sin(drift * 0.19 + ph.y) * 0.6, cos(drift * 0.21 + ph.z)) * 0.16;
+    let m = (cell + 0.15 + 0.7 * dust_hash(cell + 5.1) + sway) * s - off;
+    let tm = dot(m - ro, rd);
+    if (tm < 0.5 || tm > tmax) { continue; }
+    let dist = length(m - ro - rd * tm);
+    let rad = max(tm * pix * 1.1, 0.010);
+    let shape = 1.0 - smoothstep(rad * 0.4, rad, dist);
+    if (shape <= 0.0) { continue; }
+    let tw = 0.7 + 0.3 * sin(drift * 0.8 + ph.x * 3.0);
+    var light = moonCol * (band_at(m, drift) * 1.0 + 0.02) * params.moon;
+    let d = m - Lw;
+    light += vec3f(1.0, 0.62, 0.26) * params.lamp * 3.0 / (0.25 + dot(d, d));
+    acc += shape * light * tw * (0.5 + hh.y);
+  }
+  return acc;
+}
+
+// Volume chaud autour de la citrouille : diffusion analytique d’une source ponctuelle dans une brume homogène.
+fn lamp_glow(ro: vec3f, rd: vec3f, tmax: f32, L: vec3f) -> f32 {
+  let w = L - ro;
+  let a = dot(w, rd);
+  let h = sqrt(max(dot(w, w) - a * a, 0.09));
+  return (atan((tmax - a) / h) - atan(-a / h)) / h;
+}
+
 fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   let up = clamp(rd.y, 0.0, 1.0);
   var c = mix(vec3f(0.21, 0.27, 0.39), vec3f(0.024, 0.036, 0.085), pow(up, 0.42));
@@ -186,11 +263,7 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   // Parallax: yaw/pitch (~3.4 deg / 2.3 deg max) for every layer + a small lateral eye shift that moves the near railing more.
   let yaw = params.sway + params.px * 0.06;
   let pitch = mix(-0.10, 0.12, land) + params.swayY - params.py * 0.04;
-  var rd = normalize(vec3f(c2.x, c2.y, 1.3));
-  let cp = cos(pitch); let sp = sin(pitch);
-  rd = vec3f(rd.x, rd.y * cp + rd.z * sp, rd.z * cp - rd.y * sp);
-  let cy = cos(yaw); let sy = sin(yaw);
-  rd = vec3f(rd.x * cy + rd.z * sy, rd.y, rd.z * cy - rd.x * sy);
+  let rd = cam_ray(c2, pitch, yaw);
   let ro = vec3f(params.px * 0.15, EYE_Y + params.py * 0.05, 0.0);
 
   let red = smoothstep(0.1, 0.9, p);
@@ -296,6 +369,20 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
     T *= 1.0 - k;
   }
   col = col * T + scat;
+
+  // --- Lumière volumétrique : rayons de lune obliques dans la brume, poussière révélée par la lumière, volume chaud de la citrouille.
+  // Variation spatiale seulement ; respiration < 0,1 Hz et ±5 % (jamais ≥ 3 Hz). La paranoïa n’augmente que la densité.
+  {
+    let tv = min(tEnd, 60.0);
+    let breath = 1.0 + 0.05 * sin(params.drift * 0.5);
+    let lc = vec2f(mix(-0.30, -1.05, land) - params.px * 0.05, mix(-0.95, -0.78, land));
+    let Lw = ro + cam_ray(lc, pitch, yaw) * 1.8;
+    col += moonCol * moon_shafts(ro, rd, tv, params.drift, jit, params.mist * (0.55 + 0.45 * p)) * 0.075 * params.moon * breath;
+    col += porch_motes(ro, rd, tv, Lw, moonCol, params.drift, 0.22 + 0.2 * p, 2.0 / (min(res.x, res.y) * 1.3)) * 0.9 * breath;
+    if (params.lamp > 0.0) {
+      col += vec3f(1.0, 0.55, 0.18) * lamp_glow(ro, rd, tv, Lw) * 0.05 * (0.8 + 0.4 * p) * params.mist * params.lamp * breath;
+    }
+  }
 
   // --- Lantern: steady warm glow + lit pumpkin on the porch (no flicker: luminance stays constant).
   let cc = length(c2 * vec2f(0.8, 0.6));
