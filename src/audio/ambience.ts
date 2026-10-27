@@ -2,6 +2,7 @@ import { effectScope, ref, watch } from 'vue'
 import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
 import type { PlaceId } from '../effects/places/types'
 import { ac, muted, noiseBuffer } from './sfx'
+import { SUB_HZ, nextRareDelay, pickRareKind, subGain, type RareKind } from './paranoiaAudio'
 
 /** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. */
 export const MASTER_GAIN = 0.045
@@ -9,6 +10,8 @@ export const MASTER_GAIN = 0.045
 const TC_IN = 0.4
 const TC_OUT = 0.18
 const TC_MUTE = 0.07
+/** Montée/descente du sous-bourdon entre deux niveaux : très lente. */
+const TC_SUB = 2
 const STOP_AFTER_MS = 1100
 /** Espacement minimal entre deux événements d’un même lieu. */
 const MIN_SPACING_MS = 3000
@@ -195,8 +198,8 @@ const env = (g: GainNode, at: number, peak: number, attack: number, dur: number)
 }
 
 /** Houle de bruit (non bouclée, bornée) : filtre `type` à `freq`, montée `attack`, durée `dur`. */
-const swell = (e: Env, type: BiquadFilterType, freq: number, q: number, peak: number, attack: number, dur: number, sweepTo = freq) => {
-  const t0 = e.c.currentTime + 0.05
+const swell = (e: Env, type: BiquadFilterType, freq: number, q: number, peak: number, attack: number, dur: number, sweepTo = freq, delay = 0) => {
+  const t0 = e.c.currentTime + 0.05 + delay
   const s = e.t.add(e.c.createBufferSource())
   s.buffer = sharedNoise(e.c)
   const f = filt(e, type, freq, q)
@@ -335,12 +338,38 @@ const events: Record<EventKind, (e: Env) => void> = {
   },
 }
 
+/** Sons « qui ne vont pas » (niveaux 3+) : un coup lointain, un souffle, un craquement. Tous < 4 s, enveloppes lentes ou isolées (aucune modulation périodique). */
+const rareSounds: Record<RareKind, (e: Env) => void> = {
+  thud: (e) => {
+    const t0 = e.c.currentTime + 0.05
+    const o = e.t.add(e.c.createOscillator())
+    o.frequency.setValueAtTime(62, t0)
+    o.frequency.exponentialRampToValueAtTime(34, t0 + 0.7)
+    const lp = filt(e, 'lowpass', 180, 0.5)
+    const g = gainNode(e, 0)
+    env(g, t0, 0.55, 0.02, 1.2)
+    o.connect(lp).connect(g).connect(e.out)
+    o.start(t0)
+    o.stop(t0 + 1.3)
+    e.t.release(o, [o, lp, g])
+  },
+  breath: (e) => swell(e, 'bandpass', rnd(650, 800), 0.7, 0.22, 1.4, 3.4, rnd(380, 480)),
+  crackle: (e) => {
+    const n = 3 + Math.floor(Math.random() * 3)
+    let at = 0
+    for (let i = 0; i < n; i++) {
+      swell(e, 'bandpass', rnd(900, 1500), 2.5, 0.22, 0.004, 0.08, undefined, at)
+      at += 0.12 + Math.random() * 0.35
+    }
+  },
+}
+
 /**
  * Ambiance sonore d’un lieu, synthétisée (Web Audio) : événements rares (longs silences) + éventuellement un bourdon très doux.
  * Fondu d’entrée ~1,5 s, de sortie ~0,8 s ; suit `muted` et la visibilité de l’onglet ; attend que le
  * contexte soit déverrouillé. Renvoie la fonction d’arrêt (idempotente).
  */
-export const startAmbience = (place: PlaceId): (() => void) => {
+export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1): (() => void) => {
   const c = ac()
   if (!c) return () => undefined
 
@@ -393,6 +422,47 @@ export const startAmbience = (place: PlaceId): (() => void) => {
     },
   }
 
+  // Sous-bourdon : toujours construit, son gain suit le niveau de paranoïa par paliers (changement lent, ≈ 6 s)
+  const sub = e.t.add(c.createGain())
+  sub.gain.value = 0
+  sub.connect(master)
+  osc(e, 'sine', SUB_HZ).connect(sub)
+  osc(e, 'sine', SUB_HZ * 2)
+    .connect(gainNode(e, 0.25))
+    .connect(sub)
+  const rampSub = () => {
+    sub.gain.cancelScheduledValues(c.currentTime)
+    sub.gain.setTargetAtTime(subGain(getLevel()), c.currentTime, TC_SUB)
+  }
+  rampSub()
+
+  // Sons rares : une seule minuterie, ré-armée à chaque tour, un son à la fois
+  let lastRare: RareKind | null = null
+  const rareInterval = ref(0)
+  const { start: startRare, stop: stopRare } = useTimeoutFn(
+    () => {
+      if (stopped) return
+      if (running()) {
+        const now = Date.now()
+        if (now - lastEventAt < MIN_SPACING_MS) return armRare(MIN_SPACING_MS / 1000 + Math.random() * 2)
+        lastEventAt = now
+        lastRare = pickRareKind(lastRare)
+        rareSounds[lastRare](e)
+      }
+      armRare()
+    },
+    rareInterval,
+    { immediate: false },
+  )
+  const armRare = (override?: number) => {
+    stopRare()
+    const d = override ?? nextRareDelay(getLevel())
+    if (d === null) return
+    rareInterval.value = d * 1000
+    startRare()
+  }
+  armRare()
+
   scope.run(() => {
     for (const b of RECIPES[place].beds) beds[b](e, RECIPES[place])
     for (const ev of RECIPES[place].events) e.every(ev.min, ev.max, () => events[ev.kind](e))
@@ -412,6 +482,10 @@ export const startAmbience = (place: PlaceId): (() => void) => {
       },
       { immediate: true },
     )
+    watch(getLevel, () => {
+      rampSub()
+      armRare()
+    })
     watch(muted, (m) => ramp(m ? TC_MUTE : TC_IN))
     watch(ambienceDucked, (d) => ramp(d ? TC_OUT : TC_IN))
   })
@@ -419,6 +493,7 @@ export const startAmbience = (place: PlaceId): (() => void) => {
   return () => {
     if (stopped) return
     stopped = true
+    stopRare()
     scope.stop()
     c.removeEventListener('statechange', onState)
     ramp(TC_OUT)

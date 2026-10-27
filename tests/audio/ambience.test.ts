@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { muted } from '../../src/audio/sfx'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MASTER_GAIN, NOISE_OFFSET_MAX, NOISE_SECONDS, RECIPES, randomDelay, startAmbience, targetLevel } from '../../src/audio/ambience'
@@ -169,6 +170,56 @@ describe('startAmbience (contexte factice)', () => {
   it('sans AudioContext : renvoie un stop inoffensif', () => {
     vi.stubGlobal('window', {})
     expect(() => startAmbience('perron')()).not.toThrow()
+  })
+})
+
+describe('niveau de paranoïa dans startAmbience', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.stubGlobal('window', { AudioContext: FakeCtx })
+    Object.assign(stats, { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, looped: 0, removed: [] })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('niveau 5 : plus de sources démarrées qu’au niveau 1 (sons rares), et tout s’arrête proprement', () => {
+    const run = (level: number) => {
+      stats.started = 0
+      const stop = startAmbience('cimetiere', () => level)
+      vi.advanceTimersByTime(600_000)
+      const n = stats.started
+      stop()
+      vi.advanceTimersByTime(2000)
+      expect(vi.getTimerCount()).toBe(0)
+      return n
+    }
+    const low = run(1)
+    const high = run(5)
+    expect(high).toBeGreaterThan(low)
+  })
+
+  it('le changement de niveau en cours de route ré-arme sans fuite de minuterie', () => {
+    const lvl = ref(1)
+    const stop = startAmbience('perron', () => lvl.value)
+    lvl.value = 4
+    vi.advanceTimersByTime(60_000)
+    lvl.value = 2
+    vi.advanceTimersByTime(60_000)
+    stop()
+    vi.advanceTimersByTime(2000)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('muet : aucun son créé au niveau 5', () => {
+    muted.value = true
+    const stop = startAmbience('perron', () => 5)
+    const base = stats.created
+    vi.advanceTimersByTime(300_000)
+    expect(stats.created).toBe(base)
+    stop()
+    muted.value = false
   })
 })
 
