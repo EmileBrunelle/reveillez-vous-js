@@ -1,4 +1,5 @@
 import { phraseGain, type NoteEvent } from './musicPlan'
+import { noiseBuffer } from './noise'
 
 // Piano de feutre synthétisé, proche du micro et un peu usé (esprit C418) : partiels étirés par inharmonicité, décroissance à deux étages
 // par partiel (coup puis résonance), deux cordes légèrement désaccordées pour les trois premiers partiels (battement lent), marteau de
@@ -120,20 +121,10 @@ export const peakSources = (notes: readonly NoteEvent[]): number => {
   return peak
 }
 
-const noiseCache = new WeakMap<BaseAudioContext, AudioBuffer>()
 const roomCache = new WeakMap<BaseAudioContext, AudioBuffer>()
 
-/** Bruit blanc de 120 ms, partagé (un seul tableau par contexte) : sert au marteau. */
-const noise = (c: BaseAudioContext): AudioBuffer => {
-  let b = noiseCache.get(c)
-  if (!b) {
-    b = c.createBuffer(1, Math.floor(c.sampleRate * 0.12), c.sampleRate)
-    const d = b.getChannelData(0)
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
-    noiseCache.set(c, b)
-  }
-  return b
-}
+/** Durée du bruit du marteau (s) : bref, partagé par le cache de `noiseBuffer`. */
+const HAMMER_NOISE = 0.12
 
 /** Réponse impulsionnelle d’une petite salle : bruit à décroissance exponentielle, assombri (filtre à un pôle) au fil du temps. */
 const room = (c: BaseAudioContext): AudioBuffer => {
@@ -245,7 +236,7 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
     // marteau de feutre : bref bruit sourd, passe-bas bas
     {
       const s = c.createBufferSource()
-      s.buffer = noise(c)
+      s.buffer = noiseBuffer(c, HAMMER_NOISE)
       const hl = c.createBiquadFilter()
       hl.type = 'lowpass'
       hl.frequency.value = Math.min(n.hz * 2, 700)

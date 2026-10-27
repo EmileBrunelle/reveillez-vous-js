@@ -1,6 +1,10 @@
 import { customRef, effectScope, watch, type EffectScope } from 'vue'
+import { useDocumentVisibility, useEventListener } from '@vueuse/core'
 import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '../stores/audio'
+import { noiseBuffer } from './noise'
 import { playMotif } from './motif'
+
+export { noiseBuffer }
 
 /** Sourdine : miroir du store, sans cache (résolu à chaque lecture, jamais à l’import : pinia doit être actif). */
 export const muted = customRef<boolean>(() => ({
@@ -56,17 +60,28 @@ export const effetsOut = (c: AudioContext) => bus(c, 'effets')
 /** Sortie des sons de la finale. */
 export const finaleOut = (c: AudioContext) => bus(c, 'finale')
 
-// Les changements de volume du store (curseurs, remise à zéro) se répercutent sur les bus du contexte courant.
-// Portée détachée : les watchers survivent au composant qui a déclenché le premier `ac()` (onMounted, etc.).
+/** Reprend le contexte s’il a été suspendu (iOS : « interrupted » après un appel ou une alarme) ; sans effet s’il tourne déjà ou s’il est fermé. */
+const resumeIfStopped = () => {
+  if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume()
+}
+
+// Les changements de volume du store (curseurs, remise à zéro) se répercutent sur les bus du contexte courant,
+// et le contexte est repris au retour de l’onglet et au prochain toucher (un contexte interrompu resterait muet).
+// Portée détachée : ces observateurs survivent au composant qui a déclenché le premier `ac()` (onMounted, etc.).
 let volumeScope: EffectScope | null = null
 let watchedStore: ReturnType<typeof useAudioStore> | null = null
-const watchVolumes = () => {
+const watchContext = () => {
   const store = useAudioStore()
   if (volumeScope && watchedStore === store) return
   volumeScope?.stop()
   watchedStore = store
   volumeScope = effectScope(true)
   volumeScope.run(() => {
+    const visibility = useDocumentVisibility()
+    watch(visibility, (v) => {
+      if (v === 'visible') resumeIfStopped()
+    })
+    useEventListener('pointerdown', resumeIfStopped, { passive: true })
     for (const k of VOLUME_KEYS)
       watch(
         () => store.volumes[k],
@@ -88,20 +103,12 @@ export const ac = (): AudioContext | null => {
     // bus (et limiteur) créés d’emblée : le DynamicsCompressor de Chrome atténue ses premières ms à froid, autant qu’il chauffe à vide
     bus(ctx, 'general')
   }
-  watchVolumes()
+  watchContext()
   return ctx
 }
 
 export const unlock = () => {
-  const c = ac()
-  if (c && c.state !== 'running') void c.resume()
-}
-
-export const noiseBuffer = (c: AudioContext, seconds: number) => {
-  const buf = c.createBuffer(1, Math.max(1, Math.floor(c.sampleRate * seconds)), c.sampleRate)
-  const d = buf.getChannelData(0)
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
-  return buf
+  if (ac()) resumeIfStopped()
 }
 
 const burst = (c: AudioContext, at: number, dur: number, freq: number, gain: number) => {
