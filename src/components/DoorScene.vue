@@ -387,7 +387,7 @@ const onSceneClick = (e: MouseEvent) => {
       >
         <component :is="door.component" class="block w-full h-full" />
       </div>
-      <div ref="strip" class="absolute left-[8%] right-[8%] -bottom-px h-[2px] opacity-0 bg-[#ffd56a] shadow-[0_0_6px_1px_rgb(255_213_106/0.6)] pointer-events-none" aria-hidden="true" />
+      <div ref="strip" class="absolute left-[8%] right-[8%] -bottom-px h-[2px] opacity-0 bg-[#e8a850] shadow-[0_0_8px_2px_rgb(232_168_80/0.4)] pointer-events-none" aria-hidden="true" />
       <button
         v-if="!closing"
         class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] outline-none"
@@ -447,13 +447,13 @@ const onSceneClick = (e: MouseEvent) => {
   right: 6%;
   bottom: -3px;
   height: 4px;
-  background: var(--accent);
-  box-shadow: 0 0 0.7778rem 0.2222rem rgb(255 226 140 / 0.8);
+  background: #e8a850;
+  box-shadow: 0 0 0.7778rem 0.2222rem rgb(232 168 80 / 0.45);
   opacity: 0;
   transition: opacity 0.2s;
 }
 .door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)::after {
-  opacity: 1;
+  opacity: 0.75;
 }
 [data-leaf] :deep(svg) {
   transform-origin: 0 50%;

@@ -1,0 +1,12 @@
+<svg viewBox="0 0 120 190" aria-hidden="true" focusable="false">
+  <defs><clipPath id="mausolee-mur"><path clip-rule="evenodd" d="M2 190V62L60 8l58 54V190ZM14 190V92a46 46 0 0 1 92 0V190Z"/></clipPath></defs>
+  <path fill-rule="evenodd" d="M2 190V62L60 8l58 54V190ZM14 190V92a46 46 0 0 1 92 0V190Z" fill="#5d5f66"/>
+  <path d="M2 190V62L60 8l58 54V190" fill="none" stroke="#9a9ca6" stroke-width="3"/>
+  <path d="M10 62L60 16l50 46" fill="none" stroke="#3a3c42" stroke-width="2"/>
+  <g clip-path="url(#mausolee-mur)">
+    <path d="M2 80h116M2 110h116M2 140h116M2 170h116M30 62v18M70 80v30M20 110v30M95 110v30M45 140v30M80 140v30M30 170v20M100 170v20" stroke="#45474e" stroke-width="1"/>
+  </g>
+  <path d="M60 24l5 9-5 9-5-9z" fill="none" stroke="#b9bcc8" stroke-width="2"/>
+  <path d="M60 36c-5 0-8 5-8 9s3 10 8 16c5-6 8-12 8-16s-3-9-8-9z" fill="none" stroke="#6a6c76" stroke-width="1.5"/>
+  <path d="M6 190c2-6 6-8 10-6M104 190c2-8 8-8 12-4M20 182c4-4 8-2 10 2" stroke="#4a6a3a" stroke-width="2.5" fill="none" opacity=".8"/>
+</svg>

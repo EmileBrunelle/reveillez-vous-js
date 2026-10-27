@@ -7,6 +7,8 @@ import DoorMausoleum from '~icons/rvj/porte-mausolee'
 import DoorHouse from '~icons/rvj/porte-maison'
 import FrameHouse from '~icons/rvj/porte-maison-cadre'
 import DoorClouds from '~icons/rvj/porte-nuages'
+import FrameClouds from '~icons/rvj/porte-nuages-cadre'
+import FrameMausoleum from '~icons/rvj/porte-mausolee-cadre'
 import maskPorch from '../assets/masks/perron.svg?no-inline'
 import maskCabin from '../assets/masks/cabane.svg?no-inline'
 import maskMausoleum from '../assets/masks/mausolee.svg?no-inline'
@@ -43,9 +45,9 @@ const PRIMARY_WEIGHT = 12
 export const doors: SceneVariant[] = [
   { id: 'perron', place: 'perron', weight: PRIMARY_WEIGHT, label: 'porte de perron avec contre-porte', component: DoorPorch, mask: maskPorch },
   { id: 'cabane', place: 'foret', weight: PRIMARY_WEIGHT, label: 'porte de cabane en planches', component: DoorCabin, mask: maskCabin },
-  { id: 'mausolee', place: 'cimetiere', weight: PRIMARY_WEIGHT, label: 'porte de mausolée en fer', component: DoorMausoleum, mask: maskMausoleum },
+  { id: 'mausolee', place: 'cimetiere', weight: PRIMARY_WEIGHT, label: 'porte de mausolée en fer', component: DoorMausoleum, frame: FrameMausoleum, mask: maskMausoleum },
   { id: 'maison', place: 'rue', weight: PRIMARY_WEIGHT, label: 'porte de maison avec imposte', component: DoorHouse, frame: FrameHouse, mask: maskHouse },
-  { id: 'nuages', place: 'nuages', weight: PRIMARY_WEIGHT, label: 'cadre de porte flottant dans les nuages', component: DoorClouds, mask: maskClouds },
+  { id: 'nuages', place: 'nuages', weight: PRIMARY_WEIGHT, label: 'cadre de porte flottant dans les nuages', component: DoorClouds, frame: FrameClouds, mask: maskClouds },
   { id: 'garde-robe', label: 'porte de garde-robe', component: DoorCloset, mask: maskCloset },
   { id: 'frigo', label: 'porte de frigo géante', component: DoorFridge, mask: maskFridge },
 ]
