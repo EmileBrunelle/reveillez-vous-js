@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
+import { computed, nextTick, onScopeDispose, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { Motion } from 'motion-v'
 import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { CREDITS_BODY, CREDITS_THANKS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, README_LABEL, README_PREFIX, REPO_URL, RESTART_LABEL } from '../content/finale'
-import { useFinaleAudio } from '../composables/useFinaleAudio'
 import { useRiseDirective, useTextLeave } from '../composables/useFinaleRise'
 import { useFinaleBox } from '../composables/useFinaleBox'
 import { useKeptAnimations } from '../composables/useKeptAnimations'
 import { focusQuietly } from '../composables/focusQuietly'
-import { BELL_DELAY } from '../audio/finale'
+import { BELL_DELAY, startFinaleAudio } from '../audio/finale'
 
 // Finale du niveau 5 : la télé s’éteint en une ligne, l’aube se lève, le texte arrive ligne par ligne, puis le générique.
 // `collapsed` : l’écran est noir (l’app coupe le CRT et passe le lieu en aube sans qu’on le voie). `restart` : « Recommencer ».
@@ -18,7 +17,8 @@ const emit = defineEmits<{ collapsed: []; restart: [] }>()
 const reduced = useReducedMotion()
 const collection = useCollectionStore()
 // Le mouvement réduit ne coupe pas le son : sans séquence, on garde seulement la nappe d’aube et la cloche (voir onMounted).
-const audio = useFinaleAudio()
+const audio = startFinaleAudio()
+onScopeDispose(() => audio.stop()) // coupe le son en fondu à la destruction (`stop` est idempotent : « passer » l’a peut-être déjà appelé)
 
 type Step = 'pre' | 'collapse' | 'black' | 'rise' | 'text' | 'credits'
 const step = ref<Step>('pre')

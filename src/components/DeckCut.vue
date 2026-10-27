@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { Motion, useMotionValue } from 'motion-v'
-import { useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { promiseTimeout, useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
 import { FAN, FAN_SCALE } from './deckFan'
@@ -10,6 +10,7 @@ import { cardDeal } from '../audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '../audio/cards'
 import { EMBLEMS, PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '../engine/paquets'
 import type { Rng } from '../engine/rng'
+import { nextFrame } from '../composables/nextFrame'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { focusQuietly } from '../composables/focusQuietly'
 
@@ -175,7 +176,10 @@ const finish = () => {
   c.o.c = 1
   c.mv.glow.set(0)
   apply()
-  emit('pick', paquets[chosen.value])
+  // Motion écrit les valeurs à la prochaine image, et `emit('pick')` démonte la coupe au flush : on attend une image (bornée, l’onglet masqué suspend rAF)
+  // pour que l’état final soit peint avant que TarotCard prenne le relais pixel pour pixel.
+  const picked = paquets[chosen.value]
+  void Promise.race([nextFrame(), promiseTimeout(120)]).then(() => emit('pick', picked))
 }
 
 const tick = (now: number) => {

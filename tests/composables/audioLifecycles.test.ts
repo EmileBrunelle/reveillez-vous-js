@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
 
+// Ces tests tournent dans un effectScope sans instance de composant : `tryOnMounted` s’exécute alors tout de suite, donc le départ « au montage »
+// (après le montage réel) n’est pas couvert ici, seulement le démarrage et l’arrêt à la destruction du scope (à vérifier en E2E).
 const mocks = vi.hoisted(() => ({
   stopAmbience: vi.fn(),
   stopMusic: vi.fn(),
@@ -12,8 +14,6 @@ const mocks = vi.hoisted(() => ({
   playStinger: vi.fn(),
   wipe: { move: vi.fn(), rest: vi.fn(), stop: vi.fn() },
   startWipeSound: vi.fn(),
-  finale: { stop: vi.fn(), bell: vi.fn() },
-  startFinaleAudio: vi.fn(),
 }))
 vi.mock('../../src/audio/ambience', () => ({ startAmbience: mocks.startAmbience }))
 vi.mock('../../src/audio/music', () => ({ startMusic: mocks.startMusic }))
@@ -23,14 +23,12 @@ vi.mock('../../src/audio/sfx', async () => {
 })
 vi.mock('../../src/audio/stinger', () => ({ playStinger: mocks.playStinger }))
 vi.mock('../../src/audio/wipe', () => ({ startWipeSound: mocks.startWipeSound }))
-vi.mock('../../src/audio/finale', () => ({ startFinaleAudio: mocks.startFinaleAudio }))
 
 import { muted } from '../../src/audio/sfx'
 import { usePlaceAudio } from '../../src/composables/usePlaceAudio'
 import { useKnockSchedule } from '../../src/composables/useKnockSchedule'
 import { useStinger } from '../../src/composables/useStinger'
 import { useWipeSound } from '../../src/composables/useWipeSound'
-import { useFinaleAudio } from '../../src/composables/useFinaleAudio'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -39,7 +37,6 @@ beforeEach(() => {
   mocks.scheduleKnocks.mockReturnValue({ cancel: mocks.cancel })
   mocks.playStinger.mockReturnValue(mocks.stopStinger)
   mocks.startWipeSound.mockReturnValue(mocks.wipe)
-  mocks.startFinaleAudio.mockReturnValue(mocks.finale)
   ;(muted as unknown as { value: boolean }).value = false
 })
 
@@ -114,15 +111,5 @@ describe('useWipeSound', () => {
     w.stop()
     w.move(1)
     expect(mocks.startWipeSound).toHaveBeenCalledTimes(2)
-  })
-})
-
-describe('useFinaleAudio', () => {
-  it('coupe le son de la finale à la destruction', () => {
-    const scope = effectScope()
-    const audio = scope.run(() => useFinaleAudio())!
-    expect(audio).toBe(mocks.finale)
-    scope.stop()
-    expect(mocks.finale.stop).toHaveBeenCalledOnce()
   })
 })

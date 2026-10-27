@@ -5,7 +5,8 @@ import { prophecies } from '../content/prophecies'
 import { nextFakeError, type ErrorIcon } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
 import { intersects, pickFreeSlot, type Box } from '../engine/freeZones'
-import { useFocusReturn, useFreeZones } from '../composables/useFreeZones'
+import { useFocusReturn } from '../composables/useFocusReturn'
+import { useFreeZones } from '../composables/useFreeZones'
 import { safeStorage } from '../composables/safeStorage'
 
 // Fausses fenêtres d’erreur Windows 98, purement décoratives (niveau 3+, bureau seulement). Elles n’apparaissent que dans les zones libres,

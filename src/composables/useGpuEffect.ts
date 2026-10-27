@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue'
-import { promiseTimeout, tryOnMounted, tryOnScopeDispose } from '@vueuse/core'
+import { tryOnMounted, tryOnScopeDispose, useTimeoutFn } from '@vueuse/core'
 import type { GpuLoop } from '../effects/gpuLoop'
 import { nextFrame } from './nextFrame'
 
@@ -29,7 +29,14 @@ export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, st
   const lost = ref(false)
   let gone = false
   let loop: GpuLoop | null = null
-  const bounded = <T>(p: Promise<T>, label: string): Promise<T> => (timeout ? Promise.race([p, promiseTimeout(timeout, true, `${label} timed out`) as Promise<never>]) : p)
+  // Borne `p` par `timeout` : rejette une Error à l’expiration ; la minuterie est annulée dès que `p` se termine (aucune minuterie qui traîne).
+  const bounded = <T>(p: Promise<T>, label: string): Promise<T> => {
+    if (!timeout) return p
+    return new Promise<T>((resolve, reject) => {
+      const { stop } = useTimeoutFn(() => reject(new Error(`${label} timed out`)), timeout)
+      p.then(resolve, reject).finally(stop)
+    })
+  }
 
   tryOnScopeDispose(() => {
     gone = true
@@ -50,11 +57,11 @@ export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, st
         return
       }
     }
-    await settle()
-    if (gone || !canvas.value) return
-    const run = start(canvas.value, () => (lost.value = true))
+    // L’attente de mise en page est DANS la borne : onglet masqué, rAF est suspendu et l’init échoue quand même après `timeout`.
+    const run = settle().then(() => (gone || !canvas.value ? null : start(canvas.value, () => (lost.value = true))))
     try {
       const s = await bounded(run, 'init')
+      if (!s) return
       if (gone) return s.stop()
       loop = s
       status.value = 'ready'
@@ -62,7 +69,7 @@ export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, st
       console.warn(warning, e)
       lost.value = true
       void run.then(
-        (s) => s.stop(), // l’init finit après l’expiration : on libère le périphérique
+        (s) => s?.stop(), // l’init finit après l’expiration : on libère le périphérique
         () => undefined,
       )
       if (!gone) status.value = 'failed'

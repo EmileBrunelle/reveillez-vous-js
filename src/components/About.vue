@@ -2,8 +2,8 @@
 import { nextTick, ref, watch, useTemplateRef } from 'vue'
 import { Dialog } from '@vuetify/v0'
 import { animate } from 'motion-v'
-import { promiseTimeout } from '@vueuse/core'
 import { useReducedMotion } from '../composables/useReducedMotion'
+import { useMotionScope } from '../composables/useMotionScope'
 import { finishAnimations, type Stoppable } from '../composables/finishAnimations'
 import { aboutClose, aboutOpen } from '../audio/sfx'
 import { REPO_URL } from '../content/finale'
@@ -26,7 +26,10 @@ const run = (el: Element | null | undefined, kf: Record<string, unknown>, opt: R
   running.push(c)
   return Promise.resolve(c).catch(() => undefined)
 }
+// Pause annulable (`halt()` l’annule avec la destruction du composant) : plus de minuterie brute qui survit.
+const { wait, halt } = useMotionScope()
 const stopAll = () => {
+  halt()
   running.forEach((r) => r.stop())
   running = []
 }
@@ -65,7 +68,7 @@ const playOpen = async () => {
     void run(title.value, { clipPath: ['inset(0 100% 0 0)', 'inset(0 0% 0 0)'] }, { duration: 0.28, delay: 0.14, ease: typed })
     void run(body.value, { opacity: [0, 1] }, { duration: 0.2, delay: 0.3, ease: 'easeOut' })
     await run(win.value, { clipPath: [DOT, LINE, FULL], opacity: [0, 1, 1], transform: ['scale(0.9)', 'scale(1)', 'scale(1)'] }, { duration: 0.42, times: [0, 0.4, 1], ease: 'easeOut' })
-    await promiseTimeout(90)
+    await wait(90)
   }
   rest()
   busy = false
