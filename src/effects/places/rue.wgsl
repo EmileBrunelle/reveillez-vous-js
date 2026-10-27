@@ -1,3 +1,5 @@
+import { ld_scatter, ld_motes, ld_haze } from "./lightDust.wgsl";
+
 struct Params {
   time: f32, // window clock (fixed when reduced motion)
   width: f32,
@@ -329,6 +331,20 @@ fn box_hit(ro: vec3f, rd: vec3f, lo: vec3f, hi: vec3f) -> vec4f {
   // Fog by distance, lamp halo on top.
   if (t < 900.0) { col = mix(col, fogc, 1.0 - exp(-min(t, 100.0) * 0.034)); }
   col += glow_lamp(ro, rd);
+
+  // Lumière volumétrique : cône du lampadaire, poussière révélée par la lumière, brume lunaire (lightDust.wgsl).
+  // Variation spatiale seulement avec la paranoïa ; respiration < 0,1 Hz et ±5 %.
+  {
+    let tv = min(t, 60.0);
+    let pa = params.paranoia;
+    let breath = 1.0 + 0.05 * sin(params.drift * 0.5);
+    let warm = vec3f(1.0, 0.68, 0.32);
+    let fogK = (0.085 + 0.04 * pa) * breath * (1.0 - 0.5 * isSnow);
+    col += warm * ld_scatter(ro, rd, tv, LAMP, fogK);
+    col += warm * ld_motes(ro, rd, tv, LAMP, params.drift, 0.8 + 0.2 * pa, PIX) * (1.4 + 0.6 * pa) * breath * (1.0 - 0.4 * isSnow);
+    let hz = ld_haze(ro, rd, tv, params.drift);
+    col += vec3f(0.12, 0.17, 0.30) * hz * (0.10 + 0.07 * pa) * (1.0 - 0.6 * isSnow) * (0.6 + 0.4 * smoothstep(-0.3, 0.9, dot(rd, MOON)));
+  }
 
   // Precipitation (screen space, low contrast; frozen when reduced motion)
   if (isRain > 0.5) {
