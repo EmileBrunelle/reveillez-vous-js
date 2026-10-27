@@ -9,6 +9,8 @@ import { DROP_EXTENT, OUIJA_BYE, OUIJA_NO, OUIJA_ROWS, OUIJA_YES, advanceDwell, 
 import { approach, liftFromSpeed, tiltFromVelocity, tremorOffset, wanderOffset } from '../../engine/ouijaMotion'
 import { orSecure, type Rng } from '../../engine/rng'
 import { ouijaFarewell, ouijaTick } from '../../audio/ouija'
+import { aimPoint } from '../../composables/touchAim'
+import { pulse } from '../../composables/haptics'
 import IconGoutte from '~icons/rvj/goutte'
 
 const props = defineProps<{ level: number; rng?: Rng }>()
@@ -105,6 +107,7 @@ const validate = (letter: string) => {
   popClear()
   popSeg.value = reduced.value ? -1 : segments.findIndex((sg) => sg.end === next)
   ouijaTick()
+  pulse(15)
   status.value = `Lettre ${letter}. ${next} sur ${word.length}.`
   if (next >= word.length) {
     farewell.value = true
@@ -123,8 +126,10 @@ const validate = (letter: string) => {
 const setTarget = (e: PointerEvent) => {
   const r = stage.value?.getBoundingClientRect()
   if (!r) return
-  target.x = e.clientX - r.left
-  target.y = e.clientY - r.top
+  // Au toucher, la goutte se tient 40 px au-dessus du doigt.
+  const p = aimPoint(e, r)
+  target.x = p.x
+  target.y = p.y
 }
 useEventListener(stage, 'pointermove', setTarget)
 useEventListener(stage, 'pointerdown', setTarget)
@@ -299,6 +304,15 @@ useRafFn(({ delta }) => {
 .key:focus-visible {
   outline: 3px solid #e8d9b0;
   outline-offset: 2px;
+}
+.letter::after {
+  /* Zone de toucher ≥ 44 px sans changer le dessin. */
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
 }
 .letter {
   width: var(--cell);

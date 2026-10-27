@@ -5,6 +5,7 @@ import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
+import { pulse } from '../../composables/haptics'
 import { knock } from '../../audio/sfx'
 import { knockIntensity } from '../../engine/knock'
 import { secureRng } from '../../engine/rng'
@@ -44,6 +45,7 @@ const { pause: stopTicks, resume: resumeTicks } = useIntervalFn(
       return
     }
     lit.value = seq[playIdx++]
+    pulse(20)
     unlight()
   },
   LIT_MS + GAP_MS,
@@ -78,6 +80,7 @@ const hit = (i: number) => {
     return
   }
   knock(knockIntensity(props.level))
+  pulse(20)
   lit.value = i
   unflash()
   hint.value = hintFor(seq, state)

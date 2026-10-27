@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useDocumentVisibility, useVibrate } from '@vueuse/core'
+import { useDocumentVisibility } from '@vueuse/core'
+import { pulse } from '../composables/haptics'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
@@ -25,10 +26,9 @@ const quick = props.quick === true
 const reduced = useReducedMotion()
 const keyboard = useKeyboardModality()
 const visibility = useDocumentVisibility()
-const { vibrate: buzz } = useVibrate()
-// Le haptique n’est pas du mouvement (aide au jeu muet) : pas bloqué par « mouvement réduit », seulement onglet caché.
+// Le haptique n’est pas du mouvement : pas bloqué par « mouvement réduit », seulement onglet caché. La garde (son coupé, vibrate absent) vit dans haptics.ts.
 const haptic = (ms: number) => {
-  if (visibility.value !== 'hidden') buzz(ms)
+  if (visibility.value !== 'hidden') pulse(ms)
 }
 
 const stage = ref<HTMLElement>()
@@ -116,14 +116,14 @@ const jitterInside = (intensity: number) => {
 
 const session = useSessionStore()
 const intensity = () => knockIntensity(props.level)
-const playerKnock = (e: MouseEvent) => {
+const playerKnock = (e: MouseEvent, fromPointer = false) => {
   session.pulse(0.6)
   unlock()
   haptic(20)
   knock(intensity())
   jitter(intensity())
   const r = stage.value?.getBoundingClientRect()
-  const keyboard = e.detail === 0 || (e.clientX === 0 && e.clientY === 0)
+  const keyboard = !fromPointer && (e.detail === 0 || (e.clientX === 0 && e.clientY === 0))
   if (keyboard && r) sparks.value?.emit(r.left + r.width / 2, r.top + r.height / 2)
   else sparks.value?.emit(e.clientX, e.clientY)
 }
@@ -238,13 +238,13 @@ const evaluate = () => {
   })
 }
 
-const onDoor = (e: MouseEvent) => {
+const onDoor = (e: MouseEvent, fromPointer = false) => {
   requestOrientationPermission() // repli iOS : no-op si déjà accordé/refusé
   if (state === 'opening') return finish()
   if (state !== 'idle') return
   if (phase.value === 'invite') {
     stopNudge()
-    playerKnock(e)
+    playerKnock(e, fromPointer)
     if (quick) {
       // Un seul coup, la porte réagit tout de suite (secousse + étincelles), puis elle s’ouvre.
       started = true
@@ -257,7 +257,7 @@ const onDoor = (e: MouseEvent) => {
   } else if (phase.value === 'repeat') {
     taps.push(performance.now())
     filled.value = Math.min(taps.length, pattern.value.length + 1)
-    playerKnock(e)
+    playerKnock(e, fromPointer)
     clearTimeout(silence)
     if (taps.length > pattern.value.length + 1) evaluate()
     else silence = window.setTimeout(evaluate, 1200)
@@ -265,6 +265,17 @@ const onDoor = (e: MouseEvent) => {
 }
 const onDoorKeydown = (e: KeyboardEvent) => {
   if (e.repeat) e.preventDefault()
+}
+// Tactile : le coup est mesuré au pointerdown (pas au click, ~0–300 ms plus tard) ; le click qui suit est ignoré.
+let pointerKnockAt = -Infinity
+const onDoorPointerdown = (e: PointerEvent) => {
+  if (e.pointerType === 'mouse') return
+  pointerKnockAt = performance.now()
+  onDoor(e, true)
+}
+const onDoorClick = (e: MouseEvent) => {
+  if (performance.now() - pointerKnockAt < 1000 && e.detail > 0) return
+  onDoor(e)
 }
 // Évite la sélection de texte par clics multiples.
 const onDoorMousedown = (e: MouseEvent) => {
@@ -396,7 +407,8 @@ const onSceneClick = (e: MouseEvent) => {
         :aria-describedby="phase === 'invite' ? 'door-said' : undefined"
         :data-phase="phase"
         :data-kbd="keyboard"
-        @click="onDoor"
+        @click="onDoorClick"
+        @pointerdown="onDoorPointerdown"
         @keydown="onDoorKeydown"
         @mousedown="onDoorMousedown"
       />
