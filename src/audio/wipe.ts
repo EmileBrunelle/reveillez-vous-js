@@ -1,5 +1,4 @@
-import { watch } from 'vue'
-import { ac, muted, noiseBuffer } from './sfx'
+import { ac, effetsOut, noiseBuffer } from './sfx'
 
 // Frottement d’un chiffon sur du verre : bruit passe-bande dont le gain et la fréquence suivent la vitesse du geste.
 // Vitesse en rayons de boule par seconde (le disque a un rayon de 1).
@@ -46,7 +45,6 @@ export const startWipeSound = (): WipeSound => {
   let stopped = false
   let lastT: number | null = null
   let idle: ReturnType<typeof setTimeout> | undefined
-  let unwatch: (() => void) | undefined
 
   const build = () => {
     const src = c.createBufferSource()
@@ -63,15 +61,13 @@ export const startWipeSound = (): WipeSound => {
     osc.frequency.value = 3100
     const sg = c.createGain()
     sg.gain.value = 0
-    // Sortie des effets : la sourdine (`muted` de sfx.ts) coupe ce nœud, comme les autres effets ponctuels.
+    // Bus des effets : son curseur de volume, la sourdine et l’onglet caché s’appliquent comme aux autres effets.
     const out = c.createGain()
-    out.gain.value = muted.value ? 0 : 1
     src.connect(band).connect(g).connect(out)
     osc.connect(sg).connect(out)
-    out.connect(c.destination)
+    out.connect(effetsOut(c))
     src.start()
     osc.start()
-    unwatch = watch(muted, (m) => out.gain.setTargetAtTime(m ? 0 : 1, c.currentTime, 0.03))
     return { src, osc, band, g, sg, out }
   }
 
@@ -93,7 +89,6 @@ export const startWipeSound = (): WipeSound => {
     if (stopped) return
     stopped = true
     clearTimeout(idle)
-    unwatch?.()
     if (!nodes) return
     const n = nodes
     nodes = null
