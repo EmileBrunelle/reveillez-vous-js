@@ -3,13 +3,22 @@ import { effectScope } from 'vue'
 
 // `useIdle` de VueUse écoute `window` et ne démarre que si `window` et `document` existent à l’import : l’environnement de test est node.
 // Un EventTarget fait office de `window` (les événements s’y envoient directement).
-const win = vi.hoisted(() => {
+const env = vi.hoisted(() => {
   const target = new EventTarget()
-  Object.assign(target, { document: { hidden: false, createElement: () => ({}) } })
-  Object.assign(globalThis, { window: target, document: (target as unknown as { document: object }).document })
-  return target
+  // Le document est aussi un EventTarget : `useDocumentVisibility` y écoute `visibilitychange`.
+  const doc = Object.assign(new EventTarget(), { hidden: false, visibilityState: 'visible', createElement: () => ({}) })
+  Object.assign(target, { document: doc })
+  Object.assign(globalThis, { window: target, document: doc })
+  return { win: target, doc }
 })
+const { win, doc } = env
+import { ACTIVITY_GRACE_MS } from '../../src/engine/activityTiming'
 import { AUTO_SUCCESS_MS, POKE_THROTTLE_MS, SKIP_REVEAL_MS, useActivityDone } from '../../src/composables/useActivityDone'
+
+const setVisibility = (state: 'visible' | 'hidden') => {
+  doc.visibilityState = state
+  doc.dispatchEvent(new Event('visibilitychange'))
+}
 
 describe('useActivityDone', () => {
   beforeEach(() => vi.useFakeTimers())
@@ -130,6 +139,47 @@ describe('useActivityDone', () => {
     expect(api.canSkip.value).toBe(false)
     vi.advanceTimersByTime(100 + POKE_THROTTLE_MS)
     expect(api.canSkip.value).toBe(true)
+    scope.stop()
+  })
+
+  it('un onglet caché ne fait pas échouer : le temps restant est gardé jusqu’au retour', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 5000 }))!
+    vi.advanceTimersByTime(ACTIVITY_GRACE_MS + 2000)
+    setVisibility('hidden')
+    expect(api.paused.value).toBe(true)
+    vi.advanceTimersByTime(120_000)
+    expect(api.outcome.value).toBe('play')
+    setVisibility('visible')
+    expect(api.paused.value).toBe(false)
+    vi.advanceTimersByTime(2999)
+    expect(api.outcome.value).toBe('play')
+    vi.advanceTimersByTime(1)
+    expect(api.outcome.value).toBe('fail')
+    scope.stop()
+  })
+
+  it('« Passer » n’apparaît pas pendant une pause et le compte repart à la reprise', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 20_000 }))!
+    api.pause('démonstration')
+    vi.advanceTimersByTime(SKIP_REVEAL_MS * 2)
+    expect(api.canSkip.value).toBe(false)
+    api.resume('démonstration')
+    vi.advanceTimersByTime(SKIP_REVEAL_MS - 1000)
+    expect(api.canSkip.value).toBe(false)
+    vi.advanceTimersByTime(ACTIVITY_GRACE_MS + 1000)
+    expect(api.canSkip.value).toBe(true)
+    scope.stop()
+  })
+
+  it('« Passer » déjà affiché disparaît quand une pause commence', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 20_000 }))!
+    vi.advanceTimersByTime(ACTIVITY_GRACE_MS + SKIP_REVEAL_MS)
+    expect(api.canSkip.value).toBe(true)
+    api.pause('démonstration')
+    expect(api.canSkip.value).toBe(false)
     scope.stop()
   })
 })

@@ -43,6 +43,7 @@ const { pause: stopTicks, resume: resumeTicks } = useIntervalFn(
     if (playIdx >= seq.length) {
       stopTicks()
       phase.value = 'input'
+      resume('démonstration')
       missed.value = false
       hint.value = hintFor(seq, input.value)
       return
@@ -55,7 +56,7 @@ const { pause: stopTicks, resume: resumeTicks } = useIntervalFn(
   { immediate: false, immediateCallback: true },
 )
 
-const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft, pause, resume } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('windows'),
   // Fin : les fenêtres se verrouillent (plus de frappe pendant l’issue) ; seule la réussite affiche la fin réussie.
   onFinish: (o) => {
@@ -66,6 +67,9 @@ const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done
   },
 })
 
+// La minuterie ne coule que pendant la phase `input` : en pause pendant chaque démonstration (initiale et rejeux après une faute).
+pause('démonstration')
+
 // Annonce vocale (région aria-live) des phases du jeu : la région existe dès le montage, le texte n’y entre qu’un instant après.
 // À l’issue (réussite ou échec) rien : le HUD, seule source, l’annonce.
 // Ordre complet annoncé au tour du joueur : « fenêtres 4, 5, 3 ».
@@ -75,6 +79,7 @@ const status = useDeferredText(() => (outcome.value !== 'play' ? '' : phase.valu
 const startPlay = () => {
   if (outcome.value !== 'play') return
   phase.value = 'play'
+  pause('démonstration')
   hint.value = null
   lit.value = null
   playIdx = 0
@@ -91,6 +96,7 @@ const hit = (i: number) => {
   if (result === 'wrong') {
     missed.value = true
     phase.value = 'play' // verrouille les entrées pendant la secousse et le rejeu
+    pause('démonstration')
     lit.value = null
     hint.value = null
     if (house.value && !reduced.value) {
@@ -131,7 +137,7 @@ const hit = (i: number) => {
         />
       </div>
     </div>
-    <ActivityHud activity="windows" :outcome="outcome" :started-at="startedAt" />
+    <ActivityHud activity="windows" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

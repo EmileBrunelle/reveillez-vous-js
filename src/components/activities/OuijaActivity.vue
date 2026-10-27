@@ -79,7 +79,7 @@ const { start: driftLater, stop: driftStop } = useTimeoutFn(
   { immediate: false },
 )
 
-const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('ouija'),
   delayMs: outcomeMsOf('ouija'),
   // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
@@ -319,7 +319,7 @@ const { pause } = useRafFn(({ delta }) => {
     <Motion as="span" class="drop absolute left-0 top-0 pointer-events-none" :style="{ x: dropX, y: dropY, rotate: dropTilt, scale: dropLift }" aria-hidden="true">
       <IconGoutte class="drop-shape" />
     </Motion>
-    <ActivityHud activity="ouija" :outcome="outcome" :started-at="startedAt" />
+    <ActivityHud activity="ouija" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

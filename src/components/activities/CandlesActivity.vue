@@ -46,7 +46,7 @@ const { start: relightLater, stop: relightStop } = useTimeoutFn(
   { immediate: false },
 )
 
-const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('candles'),
   // Fin par n’importe quel chemin (dont les 20 s) : la chandelle soufflée se rallume, rien ne reste sombre.
   // Expiration (échec) : rien ne se rallume, les chandelles restent comme elles sont.
@@ -220,7 +220,7 @@ const { pause } = useRafFn(({ delta }) => {
       <span class="match-flame" :class="{ 'no-motion': reduced }" />
       <span class="match-stick" />
     </Motion>
-    <ActivityHud activity="candles" :outcome="outcome" :started-at="startedAt" />
+    <ActivityHud activity="candles" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

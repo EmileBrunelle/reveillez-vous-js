@@ -7,23 +7,44 @@ import { animate } from 'motion-v'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '../../content/activityPrompts'
-import { durationOf, outcomeText, timeLeft, type Phase } from '../../engine/activityTiming'
+import { ACTIVITY_GRACE_MS, durationOf, outcomeText, timeLeft, type Phase } from '../../engine/activityTiming'
 import { useStinger } from '../../composables/useStinger'
 
-const { activity, outcome, startedAt } = defineProps<{ activity: TimedActivity; outcome: Phase; startedAt: number }>()
+// `paused` fige la barre (minuterie suspendue) ; `elapsed` donne le temps de jeu écoulé depuis la fin de la grâce (ms), pause comprise.
+const {
+  activity,
+  outcome,
+  startedAt,
+  paused = false,
+  elapsed = undefined,
+  graceLeft = undefined,
+} = defineProps<{ activity: TimedActivity; outcome: Phase; startedAt: number; paused?: boolean; elapsed?: () => number; graceLeft?: () => number }>()
 const prompt = computed(() => ACTIVITY_PROMPTS[activity])
 const duration = computed(() => durationOf(activity))
 const announcement = computed(() => outcomeText(activity, outcome))
 const reduced = useReducedMotion()
 
-// Barre : l’animation CSS (`drain`) la vide en `duration` ms, déjà entamée si le HUD monte après le départ du chrono (délai négatif) ;
-// elle se fige à l’issue. Seule la valeur accessible (aria-valuenow) passe par l’état, deux fois par seconde.
+// Barre : l’animation CSS (`drain`) la vide en `duration` ms après un délai de grâce (`ACTIVITY_GRACE_MS`, le temps du verbe : la barre reste pleine),
+// déjà entamée si le HUD monte après le départ du chrono (délai réduit) ; elle se fige à l’issue et pendant une pause (`animation-play-state`, délai compris). Seule la valeur accessible (aria-valuenow) passe par l’état, deux fois par seconde.
 const elapsedAtMount = Date.now() - startedAt
 // Durée et délai de l’animation, lus par le style via `v-bind()` (variables sur la racine du composant).
 const drainMs = computed(() => `${duration.value}ms`)
-const drainFrom = `${-elapsedAtMount}ms`
-const left = ref(Math.round(timeLeft(elapsedAtMount, duration.value) * 100))
-const { pause: pauseTick } = useIntervalFn(() => (left.value = Math.round(timeLeft(Date.now() - startedAt, duration.value) * 100)), 500)
+const drainFrom = ref(`${ACTIVITY_GRACE_MS - elapsedAtMount}ms`)
+// Clé de la barre : à chaque reprise elle est recréée avec un délai recalculé, donc sa largeur colle au temps restant réel même si la chronologie CSS a avancé pendant une pause (onglet caché).
+const barKey = ref(0)
+const playedMs = () => (elapsed ? elapsed() : Math.max(0, Date.now() - startedAt - ACTIVITY_GRACE_MS))
+const left = ref(Math.round(timeLeft(playedMs(), duration.value) * 100))
+watch(
+  () => paused,
+  (p) => {
+    if (p || outcome !== 'play') return
+    const played = playedMs()
+    drainFrom.value = played > 0 ? `${-played}ms` : `${graceLeft ? graceLeft() : ACTIVITY_GRACE_MS}ms`
+    barKey.value++
+  },
+  { flush: 'sync' },
+)
+const { pause: pauseTick } = useIntervalFn(() => (left.value = Math.round(timeLeft(playedMs(), duration.value) * 100)), 500)
 // Jingle en cours : coupé au démontage et si le son passe en muet pendant la lecture.
 const stinger = useStinger()
 
@@ -86,7 +107,7 @@ watch(
       :aria-valuetext="`${left} %`"
       class="absolute bottom-3 left-3 right-32 sm:right-36 h-3.5 border-2 border-solid border-black bg-black/70 p-px"
     >
-      <div class="drain h-full origin-left" :class="{ paused: outcome !== 'play' }" />
+      <div :key="barKey" class="drain h-full origin-left" :style="{ animationDelay: drainFrom }" :class="{ paused: paused || outcome !== 'play' }" />
     </div>
     <!-- issue -->
     <div v-if="outcome !== 'play'" class="absolute inset-x-0 bottom-14 flex justify-center px-4" aria-hidden="true">
@@ -105,7 +126,7 @@ watch(
 /* Vidage : transform seulement (compositeur), couleur fixée par paliers (ambre puis rouge à 75 % du temps écoulé). */
 .drain {
   background-color: #fcd34d;
-  animation: drain v-bind(drainMs) linear v-bind(drainFrom) both;
+  animation: drain v-bind(drainMs) linear both;
 }
 .drain.paused {
   animation-play-state: paused;

@@ -30,7 +30,7 @@ const clearedAt = ref(0)
 const prompt = useDeferredText(() => (outcome.value !== 'play' ? '' : 'Essuyez la boule de cristal'))
 // Réussite (joueur ou minuterie) : `onFinish` règle la dissipation ; en mouvement réduit la brume disparaît d’un coup.
 const reducedMotion = useReducedMotion()
-const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('crystal'),
   // Expiration (échec) : on arrête le frottement, la brume reste.
   onFinish: (o) => {
@@ -184,7 +184,7 @@ const { lost: failed } = useGpuEffect(
     <p class="text-xl text-center px-4" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
-    <ActivityHud activity="crystal" :outcome="outcome" :started-at="startedAt" />
+    <ActivityHud activity="crystal" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

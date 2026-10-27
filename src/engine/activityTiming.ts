@@ -5,6 +5,12 @@ export const MAX_ACTIVITY_MS = 20_000
 /** Durée d’affichage de l’issue (réussite ou échec) avant de passer à la suite (ms). */
 export const OUTCOME_MS = 1000
 
+/**
+ * Délai de grâce (ms) avant que la minuterie ne coule : le temps que le verbe géant du HUD surgisse (ressort) et se range
+ * (rangement à 800 ms + ~200 ms de ressort). La barre reste pleine pendant ce délai.
+ */
+export const ACTIVITY_GRACE_MS = 1000
+
 export type Outcome = 'win' | 'fail'
 export type Phase = 'play' | Outcome
 

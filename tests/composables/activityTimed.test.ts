@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
 import { useActivityDone } from '../../src/composables/useActivityDone'
+import { ACTIVITY_GRACE_MS } from '../../src/engine/activityTiming'
+
+const G = ACTIVITY_GRACE_MS
 
 describe('useActivityDone chronométrée (durationMs)', () => {
   beforeEach(() => vi.useFakeTimers())
@@ -11,7 +14,7 @@ describe('useActivityDone chronométrée (durationMs)', () => {
     const scope = effectScope()
     const api = scope.run(() => useActivityDone(emit, { durationMs: 8000 }))!
     expect(api.outcome.value).toBe('play')
-    vi.advanceTimersByTime(7999)
+    vi.advanceTimersByTime(G + 7999)
     expect(api.outcome.value).toBe('play')
     vi.advanceTimersByTime(1)
     expect(api.outcome.value).toBe('fail')
@@ -39,8 +42,100 @@ describe('useActivityDone chronométrée (durationMs)', () => {
     const onFinish = vi.fn()
     const scope = effectScope()
     scope.run(() => useActivityDone(() => undefined, { durationMs: 5000, onFinish }))
-    vi.advanceTimersByTime(5000)
+    vi.advanceTimersByTime(G + 5000)
     expect(onFinish).toHaveBeenCalledTimes(1)
+    scope.stop()
+  })
+
+  it('la grâce retarde l’échec : la minuterie ne coule qu’après le verbe du HUD', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(() => undefined, { durationMs: 5000 }))!
+    vi.advanceTimersByTime(5000)
+    expect(api.outcome.value).toBe('play')
+    expect(api.elapsed()).toBe(4000)
+    vi.advanceTimersByTime(G)
+    expect(api.outcome.value).toBe('fail')
+    scope.stop()
+  })
+
+  it('le temps écoulé reste à 0 pendant la grâce', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(() => undefined, { durationMs: 5000 }))!
+    vi.advanceTimersByTime(G - 1)
+    expect(api.elapsed()).toBe(0)
+    scope.stop()
+  })
+
+  it('pause/reprise conserve le temps restant', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(() => undefined, { durationMs: 5000 }))!
+    vi.advanceTimersByTime(G + 2000)
+    api.pause('test')
+    expect(api.paused.value).toBe(true)
+    vi.advanceTimersByTime(60_000)
+    expect(api.outcome.value).toBe('play')
+    expect(api.elapsed()).toBe(2000)
+    api.resume('test')
+    expect(api.paused.value).toBe(false)
+    vi.advanceTimersByTime(2999)
+    expect(api.outcome.value).toBe('play')
+    vi.advanceTimersByTime(1)
+    expect(api.outcome.value).toBe('fail')
+    scope.stop()
+  })
+
+  it('plusieurs raisons de pause : la minuterie ne reprend qu’une fois toutes levées', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(() => undefined, { durationMs: 5000 }))!
+    api.pause('a')
+    api.pause('b')
+    api.resume('a')
+    expect(api.paused.value).toBe(true)
+    vi.advanceTimersByTime(G + 10_000)
+    expect(api.outcome.value).toBe('play')
+    api.resume('b')
+    vi.advanceTimersByTime(G + 5000)
+    expect(api.outcome.value).toBe('fail')
+    scope.stop()
+  })
+
+  it('pause posée avant le départ (démonstration de Windows) : aucune seconde perdue', () => {
+    const scope = effectScope()
+    const api = scope.run(() => {
+      const a = useActivityDone(() => undefined, { durationMs: 5000 })
+      a.pause('démonstration')
+      return a
+    })!
+    vi.advanceTimersByTime(3850)
+    expect(api.outcome.value).toBe('play')
+    expect(api.elapsed()).toBe(0)
+    api.resume('démonstration')
+    vi.advanceTimersByTime(G + 4999)
+    expect(api.outcome.value).toBe('play')
+    vi.advanceTimersByTime(1)
+    expect(api.outcome.value).toBe('fail')
+    scope.stop()
+  })
+
+  it('elapsed reste juste après la fin', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(() => undefined, { durationMs: 5000 }))!
+    vi.advanceTimersByTime(G + 5000)
+    vi.advanceTimersByTime(10_000)
+    expect(api.elapsed()).toBe(5000)
+    scope.stop()
+  })
+
+  it('graceLeft donne la grâce restante, 0 une fois écoulée', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(() => undefined, { durationMs: 5000 }))!
+    vi.advanceTimersByTime(300)
+    api.pause('t')
+    vi.advanceTimersByTime(5000)
+    expect(api.graceLeft()).toBe(G - 300)
+    api.resume('t')
+    vi.advanceTimersByTime(G)
+    expect(api.graceLeft()).toBe(0)
     scope.stop()
   })
 

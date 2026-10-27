@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '../../src/content/activityPrompts'
 import { stingerDuration } from '../../src/audio/stinger'
-import { MAX_ACTIVITY_MS, OUTCOME_MS, durationOf, outcomeAt, outcomeMsOf, outcomeText, timeLeft } from '../../src/engine/activityTiming'
+import { ACTIVITY_GRACE_MS, MAX_ACTIVITY_MS, OUTCOME_MS, durationOf, outcomeAt, outcomeMsOf, outcomeText, timeLeft } from '../../src/engine/activityTiming'
 
 const ids = Object.keys(ACTIVITY_PROMPTS) as TimedActivity[]
 
@@ -11,6 +11,11 @@ describe('activityTiming', () => {
       expect(durationOf(id), id).toBeGreaterThanOrEqual(5000)
       expect(durationOf(id), id).toBeLessThanOrEqual(MAX_ACTIVITY_MS)
     }
+  })
+
+  it('les durées généreuses : chacune entre 16 s et le plafond, avec une grâce d’environ 1 s', () => {
+    for (const id of ids) expect(durationOf(id), id).toBeGreaterThanOrEqual(16_000)
+    expect(ACTIVITY_GRACE_MS).toBe(1000)
   })
 
   it('le jingle de réussite d’Ouija attend la fin du son « au revoir » (1,4 s)', () => {

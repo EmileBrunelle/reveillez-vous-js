@@ -17,7 +17,7 @@ const { level } = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
-const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), { durationMs: durationOf('wisps') })
+const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), { durationMs: durationOf('wisps') })
 const rng: Rng = secureRng()
 
 const TOTAL = 3
@@ -231,7 +231,7 @@ const keyboardHelpId = useId()
         <span class="wisp-orb block rounded-full" :class="{ 'wisp-bloom': blooming }" />
       </Motion>
     </template>
-    <ActivityHud activity="wisps" :outcome="outcome" :started-at="startedAt" />
+    <ActivityHud activity="wisps" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

@@ -16,10 +16,10 @@ export interface ActivityPrompt {
 }
 
 export const ACTIVITY_PROMPTS: Record<TimedActivity, ActivityPrompt> = {
-  candles: { verb: 'ALLUMEZ !', ms: 10_000, win: 'LUMIÈRE !', fail: 'Le courant d’air a gagné.' },
-  wisps: { verb: 'ATTRAPEZ !', ms: 14_000, win: 'ATTRAPÉS !', fail: 'Partis au dépanneur.' },
+  candles: { verb: 'ALLUMEZ !', ms: 16_000, win: 'LUMIÈRE !', fail: 'Le courant d’air a gagné.' },
+  wisps: { verb: 'ATTRAPEZ !', ms: 18_000, win: 'ATTRAPÉS !', fail: 'Partis au dépanneur.' },
   // Le jingle de réussite attend la fin du son « au revoir » de la planche (ouijaFarewell, ~1,4 s) : l’issue dure assez pour qu’il joue en entier.
-  ouija: { verb: 'ÉPELEZ !', ms: 16_000, winStingerDelay: 1.45, outcomeMs: 2600, win: 'MOT REÇU !', fail: 'La planche a perdu le fil.' },
-  windows: { verb: 'FRAPPEZ !', ms: 14_000, win: 'ON A OUVERT !', fail: 'Personne à la maison.' },
-  crystal: { verb: 'ESSUYEZ !', ms: 14_000, win: 'VUE CLAIRE !', fail: 'La brume garde la place.' },
+  ouija: { verb: 'ÉPELEZ !', ms: 20_000, winStingerDelay: 1.45, outcomeMs: 2600, win: 'MOT REÇU !', fail: 'La planche a perdu le fil.' },
+  windows: { verb: 'FRAPPEZ !', ms: 18_000, win: 'ON A OUVERT !', fail: 'Personne à la maison.' },
+  crystal: { verb: 'ESSUYEZ !', ms: 18_000, win: 'VUE CLAIRE !', fail: 'La brume garde la place.' },
 }
