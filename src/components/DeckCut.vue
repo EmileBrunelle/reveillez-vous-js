@@ -22,6 +22,7 @@ const reduced = useReducedMotion()
 
 const paquets = shufflePaquets(rng)
 const deckEl = useTemplateRef<HTMLElement>('deckEl')
+defineExpose({ focus: () => focusQuietly(deckEl.value, { preventScroll: true }) }) // appelé par App.vue (focusTarget 'deck')
 const slotEls = ref<HTMLElement[]>([])
 const tiltEls = ref<HTMLElement[]>([])
 const glowEls = ref<HTMLElement[]>([])

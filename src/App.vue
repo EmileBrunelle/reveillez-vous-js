@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { nextTick, ref, watch, useTemplateRef } from 'vue'
+import { computed, nextTick, ref, watch, useTemplateRef } from 'vue'
 import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
 import { storeToRefs } from 'pinia'
 import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
+import TarotFallback from './components/TarotFallback.vue'
 import Taskbar from './components/Taskbar.vue'
 import FakeErrors from './components/FakeErrors.vue'
 import BgPlace from './components/backgrounds/BgPlace.vue'
@@ -16,24 +17,28 @@ import { requestOrientationPermission } from './composables/useTilt'
 import { useTimeoutFn } from '@vueuse/core'
 import { unlock } from './audio/sfx'
 import { WAKE_LABEL } from './content/finale'
+import { ACTIVITY_PROMPTS } from './content/activityPrompts'
 import { focusQuietly } from './composables/focusQuietly'
 import { createFocusOnce } from './composables/focusOnce'
 import { useLazyScenes } from './composables/useLazyScenes'
 import { useGameFlow } from './composables/useGameFlow'
-
-// Hors du premier écran : chargés à la demande, préchargés dès que possible (voir useLazyScenes).
-const { tarotFailed, ensureTarot, TarotCard, DoorScene, ensureDoor, About, ResetConfirm, CollectionWindow, SoundWindow, DeckCut, Finale } = useLazyScenes()
 
 // Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
 // Ref fonction rappelée à chaque rendu : createFocusOnce ne focalise qu’une fois par élément (une réapparition de l’overlay = nouvel élément).
 const focusOverlay = createFocusOnce()
 const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
 const readingEl = useTemplateRef<HTMLElement>('readingEl')
+const activityEl = useTemplateRef<HTMLElement | { $el: HTMLElement }>('activityEl')
+const finaleEl = useTemplateRef<{ focus: () => void }>('finaleEl')
+const deckEl = useTemplateRef<{ focus: () => void }>('deckEl')
+const doorScene = useTemplateRef<{ $el?: Element }>('doorScene')
 
 // Phases d’une visite (porte -> activité -> coupe -> lecture -> finale) : voir useGameFlow.
 const {
   rng,
   phase,
+  focusTarget,
+  tarotOk,
   closing,
   listening,
   sceneKey,
@@ -46,6 +51,7 @@ const {
   prophecy,
   cardSettled,
   Activity,
+  activityId,
   startBubble,
   resetLevel,
   onDone,
@@ -56,7 +62,10 @@ const {
   onClosed,
   onCollapsed,
   onFinaleRestart,
-} = useGameFlow({ ensureTarot, tarotFailed, closeBtn, readingEl })
+} = useGameFlow()
+
+// Hors du premier écran : chargés à la demande, préchargés dès que possible (voir useLazyScenes).
+const { TarotCard, DoorScene, ensureDoor, About, ResetConfirm, CollectionWindow, SoundWindow, DeckCut, Finale } = useLazyScenes()
 
 // 'checking' until the CRT overlay got a WebGPU device; nothing of the experience renders before that.
 const gpu = ref<'checking' | 'ok' | 'blocked'>('checking')
@@ -106,6 +115,7 @@ useTabTitle(level)
 const resetOpen = ref(false)
 watch(resetOpen, (o) => o && (resetWanted.value = true))
 
+const activityLabel = computed(() => (activityId.value ? ACTIVITY_PROMPTS[activityId.value].verb : 'Activité'))
 const reduced = useReducedMotion()
 const mainEl = useTemplateRef<HTMLElement>('mainEl')
 const shake = (amp: number) => {
@@ -124,21 +134,59 @@ const approach = () => {
   ensureDoor().then(startAwaitEnd, () => undefined)
 }
 
-const focusSoon = (find: () => HTMLElement | null | undefined) => {
-  let n = 0
-  const t = () => {
-    const el = find()
-    if (el) return focusQuietly(el, { preventScroll: true })
-    if (n++ < 60) requestAnimationFrame(t)
+// Un écran qui se démonte laisse le focus sur <body> : useGameFlow nomme où il doit atterrir (focusTarget), ce watcher unique le traduit en élément.
+// Pas de sondage : AnimatePresence (mode wait) ne monte l’écran suivant qu’après la sortie du précédent, et sa ref passe alors de null à l’élément,
+// ce qui relance le watcher. Changer de cible entre-temps annule l’attente (targetEl repart de la nouvelle cible).
+type Focusable = HTMLElement | { $el?: Node; focus?: () => void }
+const domOf = (f: Focusable) => (f instanceof HTMLElement ? f : f.$el)
+const targetEl = computed<Focusable | null>(() => {
+  switch (focusTarget.value) {
+    case 'door':
+      return doorScene.value?.$el?.querySelector?.('.door-hit') ?? null
+    case 'activity':
+      return activityEl.value
+    case 'deck':
+      return deckEl.value
+    case 'reading':
+      return readingEl.value ?? null
+    case 'close':
+      return closeBtn.value ?? null
+    case 'finale':
+      return finaleEl.value
+    default:
+      return null
   }
-  requestAnimationFrame(t)
+})
+// Garde anti-vol : on ne déplace pas un focus que la personne a posé ailleurs (barre des tâches, fenêtre, élément déjà dans le nouvel écran).
+// Déplacement permis depuis <body> (l’écran précédent est démonté) ou depuis l’écran précédent, donc dans <main> ; vers « Fermer la porte »
+// (carte retournée), seulement depuis la section de lecture elle-même : quelqu’un qui lit la carte au lecteur d’écran n’est pas dérangé.
+const mayMoveFocus = (t: NonNullable<typeof focusTarget.value>, el: Focusable) => {
+  const a = document.activeElement
+  if (!a || a === document.body) return true
+  if (t === 'close') return a === readingEl.value
+  const dom = domOf(el)
+  if (dom instanceof Element && dom !== a && dom.contains(a)) return false
+  return !!mainEl.value?.contains(a)
 }
-// A phase unmounting drops focus to <body>: send it to the door button of the next door.
+watch(
+  targetEl,
+  (el) => {
+    const t = focusTarget.value
+    if (!t || !el) return
+    focusTarget.value = null
+    if (!mayMoveFocus(t, el)) return
+    const dom = domOf(el)
+    if (typeof (el as { focus?: unknown }).focus === 'function' && !(el instanceof HTMLElement))
+      el.focus?.() // DeckCut et Finale se focalisent eux-mêmes (conteneur nommé)
+    else if (dom instanceof HTMLElement) focusQuietly(dom, { preventScroll: true })
+  },
+  { flush: 'post' },
+)
 watch(
   () => [phase.value, closing.value, awaiting.value, gpu.value, DoorScene.value] as const,
   ([p, c, a, g, d]) => {
     if (p === 'door' && !c && !a && g === 'ok' && d) {
-      focusSoon(() => document.querySelector<HTMLElement>('.door-hit'))
+      focusTarget.value = 'door'
       startBubble()
     }
   },
@@ -191,6 +239,7 @@ watch(
           >
             <component
               :is="DoorScene"
+              ref="doorScene"
               :door="door"
               :line="doorLine"
               :level="level"
@@ -209,7 +258,11 @@ watch(
           <Motion
             v-else-if="phase === 'activity' && Activity"
             key="activity"
-            class="relative w-full max-w-[36rem] min-[1600px]:max-w-[90rem] h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] min-h-[22rem] grid"
+            ref="activityEl"
+            tabindex="-1"
+            role="group"
+            :aria-label="activityLabel"
+            class="relative w-full max-w-[36rem] min-[1600px]:max-w-[90rem] h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] min-h-[22rem] grid outline-none"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"
@@ -233,15 +286,9 @@ watch(
               class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
             >
               <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
-                <DeckCut v-if="phase === 'cut'" :level="level" :rng="rng" @pick="onPick" />
-                <div v-else-if="tarotFailed" class="max-h-full overflow-auto w-full max-w-[70ch] mx-auto p-4 text-left font-card [background:#f3e3b3] [color:#170a2b] [border:0.3rem_solid_#1f1038]">
-                  <h2 class="font-title m-0 mb-2 text-[1.1rem] uppercase">{{ prophecy.question }}</h2>
-                  <p class="m-0 mb-2 text-[1.1rem]">{{ prophecy.body }}</p>
-                  <p class="m-0 italic text-right">— {{ prophecy.verse }}</p>
-                </div>
-                <component
-                  :is="TarotCard"
-                  v-else-if="TarotCard"
+                <DeckCut v-if="phase === 'cut'" ref="deckEl" :level="level" :rng="rng" @pick="onPick" />
+                <TarotCard
+                  v-else-if="tarotOk"
                   :arcane="prophecy.arcane"
                   :title="prophecy.question"
                   :body="prophecy.body"
@@ -251,6 +298,7 @@ watch(
                   :paquet="pickedPaquet"
                   @flipped="onFlipped"
                 />
+                <TarotFallback v-else :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" />
               </div>
               <div class="flex flex-none flex-wrap gap-3 justify-center" :class="{ invisible: phase === 'cut' }" :inert="phase === 'cut'">
                 <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">{{ level >= 5 ? WAKE_LABEL : 'Fermer la porte' }}</button>
@@ -266,7 +314,7 @@ watch(
             :exit="{ opacity: 0 }"
             :transition="{ duration: 0.2 }"
           >
-            <Finale @collapsed="onCollapsed" @restart="onFinaleRestart" />
+            <Finale ref="finaleEl" @collapsed="onCollapsed" @restart="onFinaleRestart" />
           </Motion>
         </AnimatePresence>
       </main>

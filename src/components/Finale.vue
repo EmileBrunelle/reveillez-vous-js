@@ -56,6 +56,8 @@ const liveReady = ref(false)
 const showText = computed(() => (reduced.value ? liveReady.value : step.value === 'text'))
 const shown = computed(() => (reduced.value ? lines : lines.slice(0, count.value)))
 const showCredits = computed(() => reduced.value || step.value === 'credits')
+// Annonce du générique (titre et remerciement) ; en mouvement réduit, après le montage vide de la région (liveReady).
+const creditsAnnounce = computed(() => (showCredits.value && (!reduced.value || liveReady.value) ? `${CREDITS_TITLE}. ${CREDITS_THANKS}` : ''))
 const showBox = computed(() => showText.value || showCredits.value)
 // Un seul conteneur pour le texte puis le générique : il entre sur un ressort (échelle + opacité) et sa hauteur suit le contenu au ressort,
 // au lieu d’apparaître d’un coup plus grand. Mouvement réduit : simple fondu, hauteur posée directement.
@@ -107,6 +109,9 @@ const leaveText = (el: Element, done: () => void) => {
   }
   void Promise.resolve(a).then(end, end)
 }
+// Le focus arrive sur le conteneur nommé « Finale » dès l’entrée (App.vue, via focusTarget), puis sur « Recommencer » quand il apparaît.
+const rootEl = useTemplateRef<HTMLElement>('rootEl')
+defineExpose({ focus: () => focusQuietly(rootEl.value, { preventScroll: true }) })
 const restartBtn = useTemplateRef<HTMLButtonElement>('restartBtn')
 // Le générique peut dépasser (téléphone) : « Recommencer » est ramené dans la section défilante, en douceur sauf mouvement réduit.
 // Le bouton n’existe qu’une fois le générique monté (après le fondu du texte) : on agit à son montage, une fois la hauteur du conteneur posée.
@@ -218,16 +223,22 @@ const lineClass = (i: number) =>
     />
   </div>
   <section
-    class="w-full max-w-[34rem] max-h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
+    ref="rootEl"
+    class="w-full max-w-[34rem] max-h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white outline-none [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
+    tabindex="-1"
     aria-label="Finale"
   >
+    <!-- Région live persistante, vide jusqu’au générique : un rôle status inséré déjà plein serait muet. -->
+    <p class="sr-only" role="status">{{ creditsAnnounce }}</p>
     <div v-if="showBox" ref="box" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" style="height: 0; opacity: 0">
       <div ref="inner" class="grid gap-3 justify-items-center px-4 py-5">
         <Transition :css="false" mode="out-in" @leave="leaveText">
-          <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center" role="status">
-            <div v-if="showText" class="grid gap-3 justify-items-center">
+          <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center">
+            <!-- Région live à ajouts seulement : chaque ligne qui arrive est annoncée seule, pas le texte cumulé. -->
+            <div v-if="showText" class="grid gap-3 justify-items-center" role="status" aria-atomic="false" aria-relevant="additions">
               <template v-for="(l, i) in shown" :key="l">
-                <p v-if="i < FINALE_TITLE.length" class="m-0" :class="lineClass(i)" :aria-label="l">
+                <p v-if="i < FINALE_TITLE.length" class="m-0" :class="lineClass(i)">
+                  <span class="sr-only">{{ l }}</span>
                   <template v-for="(w, wi) in letters(l)" :key="wi">
                     <span class="inline-block whitespace-nowrap" aria-hidden="true"
                       ><span v-for="(c, ci) in w" :key="ci" v-rise="{ d: c.d, y: 10, letter: true }" class="inline-block">{{ c.ch }}</span></span
