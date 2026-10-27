@@ -11,6 +11,7 @@ import type { Paquet } from '../engine/paquets'
 import { secureRng } from '../engine/rng'
 import { useDeviceTilt } from '../composables/useTilt'
 import { useReducedMotion } from '../composables/useReducedMotion'
+import { createTapDrag } from '../composables/tapDrag'
 import { createLanding } from '../composables/cardLanding'
 import { useSessionStore } from '../stores/session'
 
@@ -253,9 +254,13 @@ watch(faceUp, (up) => up && armGlitch())
 const MAX_TILT = 8
 let raf = 0
 let finePointer = false // une souris/stylet a bougé : le pointeur l’emporte sur le gyroscope
+const touchDrag = createTapDrag()
+const fingerDown = ref(false) // le doigt est le seul maître de l’inclinaison pendant le contact
 const onMove = (e: PointerEvent) => {
-  if (e.pointerType !== 'touch') finePointer = true
-  if (reduced.value || e.pointerType === 'touch' || !settled.value || !root.value || !tiltEl.value) return
+  const touch = e.pointerType === 'touch'
+  if (!touch) finePointer = true
+  if (touch && (!touchDrag.active || !touchDrag.move(e.clientX, e.clientY))) return
+  if (reduced.value || (touch && !fingerDown.value) || !settled.value || !root.value || !tiltEl.value) return
   const r = root.value.getBoundingClientRect()
   const dx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / r.width))
   const dy = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / r.height))
@@ -274,7 +279,7 @@ const onMove = (e: PointerEvent) => {
 // Plus ample que le pointeur : à 8°, sur un téléphone, ça ne se voyait presque pas.
 const GYRO_TILT = 20
 useDeviceTilt({
-  enabled: () => !reduced.value && !finePointer && settled.value,
+  enabled: () => !reduced.value && !finePointer && settled.value && !fingerDown.value,
   apply: (nx, ny) => {
     const s = tiltEl.value?.style
     if (!s) return
@@ -285,6 +290,39 @@ useDeviceTilt({
     s.setProperty('--glare', '1')
   },
 })
+const onTouchDown = (e: PointerEvent) => {
+  if (e.pointerType !== 'touch') return
+  touchDrag.start(e.clientX, e.clientY)
+  if (reduced.value || !settled.value) return
+  fingerDown.value = true
+  try {
+    root.value?.setPointerCapture(e.pointerId)
+  } catch {
+    // capture refusée : le glissement continue de remonter jusqu’à window
+  }
+}
+// Relâché : retour au repos sur ressort doux (transition plus longue posée le temps du retour).
+let releaseTimer = 0
+const onTouchUp = (e: PointerEvent) => {
+  if (e.pointerType !== 'touch') return
+  touchDrag.end()
+  if (!fingerDown.value) return
+  fingerDown.value = false
+  const el = tiltEl.value
+  cancelAnimationFrame(raf)
+  if (!el) return
+  el.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
+  el.style.setProperty('--ry', '0deg')
+  el.style.setProperty('--rx', '0deg')
+  el.style.setProperty('--glare', '0')
+  window.clearTimeout(releaseTimer)
+  releaseTimer = window.setTimeout(() => el.style.removeProperty('transition'), 650)
+}
+// Un glissement n’est pas un tap : pas de skip à la fin du geste.
+const onCardClick = () => {
+  if (touchDrag.moved) return
+  skip()
+}
 const onLeave = () => {
   cancelAnimationFrame(raf)
   const s = tiltEl.value?.style
@@ -295,6 +333,8 @@ const onLeave = () => {
 }
 
 useEventListener(window, 'pointermove', onMove)
+useEventListener(window, 'pointerup', onTouchUp)
+useEventListener(window, 'pointercancel', onTouchUp)
 useEventListener(document, 'pointerleave', onLeave)
 useResizeObserver(root, () => scheduleFit())
 
@@ -309,12 +349,13 @@ onUnmounted(() => {
   window.clearTimeout(timer)
   glitchTimers.forEach(clearTimeout)
   cancelAnimationFrame(raf)
+  window.clearTimeout(releaseTimer)
   running.forEach((r) => r.stop())
 })
 </script>
 
 <template>
-  <div ref="root" class="tarot relative aspect-[7/12]" :class="[`tarot--l${level}`, `tarot--${paquet}`]" @click="skip">
+  <div ref="root" class="tarot relative aspect-[7/12]" :class="[`tarot--l${level}`, `tarot--${paquet}`, { 'touch-none': settled && !reduced }]" @click="onCardClick" @pointerdown="onTouchDown">
     <div class="tarot__sr absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ faceUp ? `${title} ${body} ${verse}` : '' }}</div>
     <div class="tarot__stage absolute inset-0 [perspective:1100px]">
       <div ref="dealEl" class="tarot__deal absolute inset-0 [transform-style:preserve-3d]">
