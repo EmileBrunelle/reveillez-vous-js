@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Directive, useTemplateRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, onWatcherCleanup, type Directive, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
@@ -118,8 +118,10 @@ const { start: focusLater, stop: focusStop } = useTimeoutFn(doFocus, 700, { imme
 watch(restartBtn, (el) => {
   if (!el) return
   focusStop()
-  if (reduced.value || skipped.value) setTimeout(doFocus, reduced.value ? 500 : 150)
-  else focusLater()
+  if (reduced.value || skipped.value) {
+    const t = setTimeout(doFocus, reduced.value ? 500 : 150)
+    onWatcherCleanup(() => clearTimeout(t))
+  } else focusLater()
 })
 
 // Un seul changement spatial, jamais de scintillement : barres noires qui se ferment (1,1 s), une ligne, puis le noir ; l’aube remonte en 4 s.
