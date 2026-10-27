@@ -9,7 +9,7 @@
 - Link must be public and working, no login/authorization, and stay up until winners are announced.
 - AI allowed, but must be declared: whether used, which tools, how they helped (README section « Déclaration d’utilisation de l’IA »; Émile fills the placeholders).
 - Criteria: creativity/originality; functionality/interactivity; design/UX; theme (voyance, predictions, chance, mystery, Halloween); effort/polish.
-- Hosting undecided (Vercel Hobby preferred; `.github/workflows/deploy.yml` = GitHub Pages plan B, `BASE_PATH`). Never deploy or commit without Émile's OK.
+- Hosting: GitHub Pages (Émile, 2026-10-27) via `.github/workflows/deploy.yml` (`BASE_PATH=/reveillez-vous-js/`); every push to main deploys, so push only verified batches. Never deploy or commit without Émile's OK.
 
 ## Commands and gates (all must pass before reporting done)
 
