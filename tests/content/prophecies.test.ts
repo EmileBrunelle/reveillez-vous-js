@@ -70,7 +70,7 @@ describe('prophecies content', () => {
         expect(out, ctx).not.toMatch(/\b(ce|le|de|du|que) Halloween/i)
       }
       expect(count).toBeGreaterThanOrEqual((prefix === 'rate' ? 5 * 4 : prefix === 'entrez' ? 3 : 5 * 9) * SEEDS)
-    })
+    }, 30_000) // parcours exhaustif : dépasse 5 s quand la suite complète charge le processeur
   }
 
   it('niveau*: exactly 3 non-empty parts split on |', () => {
