@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from 'vue'
 import { useElementSize, usePreferredReducedMotion, useRafFn, useEventListener, useTimeoutFn } from '@vueuse/core'
+import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { secureRng, type Rng } from '../../engine/rng'
 import { isNear, nextWaypoint, stepCatch, stepSpring, type Vec } from '../../engine/wisps'
@@ -8,7 +9,7 @@ import { isNear, nextWaypoint, stepCatch, stepSpring, type Vec } from '../../eng
 defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 
-const { finish, isFinished } = useActivityDone(() => emit('done'))
+const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'))
 const rng: Rng = secureRng()
 
 const TOTAL = 3
@@ -142,9 +143,7 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
 
 <template>
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
-    <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-200/90" aria-live="polite">
-      Suivez les trois feux follets ({{ caught }}/{{ TOTAL }}). Sinon, ils finiront par venir d’eux-mêmes.
-    </p>
+    <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-200/90" aria-live="polite">Suivez les trois feux follets ({{ caught }}/{{ TOTAL }}).</p>
     <p class="sr-only" role="status" aria-live="polite">{{ settled ? 'Les feux follets se sont laissé apprivoiser.' : '' }}</p>
     <template v-if="visible">
       <span
@@ -160,6 +159,7 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
         <span class="wisp-orb block rounded-full" :class="{ 'wisp-bloom': blooming }" :style="{ '--p': progress }" />
       </span>
     </template>
+    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
 

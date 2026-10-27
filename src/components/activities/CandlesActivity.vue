@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { advanceHold, isNearWick, pickSnuffed } from '../../engine/candles'
@@ -12,7 +13,7 @@ const props = defineProps<{ level: number; rng?: Rng }>()
 const rng = orSecure(props.rng)
 const emit = defineEmits<{ done: [] }>()
 
-const { finish, isFinished } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'), {
   delayMs: 600,
   // Fin par n’importe quel chemin (dont les 20 s) : la chandelle soufflée se rallume, rien ne reste sombre.
   onFinish: () => {
@@ -183,6 +184,7 @@ useRafFn(({ delta }) => {
       <span class="match-flame" :class="{ 'no-motion': reduced }" />
       <span class="match-stick" />
     </span>
+    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
 

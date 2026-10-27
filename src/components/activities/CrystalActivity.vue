@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
+import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
@@ -26,7 +27,7 @@ const cleared = ref(false)
 const clearedAt = ref(0)
 // Réussite (joueur ou minuterie) : `onFinish` règle la dissipation ; en mouvement réduit la brume disparaît d’un coup.
 const reducedMotion = useReducedMotion()
-const { finish } = useActivityDone(() => emit('done'), {
+const { finish, canSkip } = useActivityDone(() => emit('done'), {
   onFinish: () => {
     cleared.value = true
     clearedAt.value = now()
@@ -157,7 +158,7 @@ onUnmounted(() => {
       class="ball relative rounded-full touch-none cursor-grab focus-visible:outline-2 focus-visible:outline-offset-4"
       tabindex="0"
       role="group"
-      aria-label="Boule de cristal embrumée. Glissez le doigt ou la souris dessus pour l’essuyer. Au clavier, les flèches déplacent le chiffon. Sinon, patientez : la brume finira par se dissiper d’elle-même."
+      aria-label="Boule de cristal embrumée. Glissez le doigt ou la souris dessus pour l’essuyer. Au clavier, les flèches déplacent le chiffon."
       @pointerdown="onDown"
       @pointermove="onMove"
       @pointerup="onUp"
@@ -181,6 +182,7 @@ onUnmounted(() => {
     <p class="text-xl text-center px-4" aria-live="polite">
       {{ cleared ? 'La brume se dissipe…' : 'Essuyez la boule de cristal' }}
     </p>
+    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
 

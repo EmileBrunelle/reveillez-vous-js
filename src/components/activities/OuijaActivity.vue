@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { OUIJA_SHOWN, OUIJA_WORDS } from '../../content/ouija'
@@ -29,7 +30,7 @@ const farewell = ref(false)
 const status = ref(`Épelez le mot ${shown}.`)
 const reduced = useReducedMotion()
 
-const { finish, isFinished } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'), {
   delayMs: 1300,
   // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
   onFinish: () => {
@@ -204,6 +205,7 @@ useRafFn(({ delta }) => {
     <span ref="dropEl" class="drop absolute left-0 top-0 pointer-events-none" aria-hidden="true">
       <IconGoutte class="drop-shape" />
     </span>
+    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
 
