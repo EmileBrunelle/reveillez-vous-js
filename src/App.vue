@@ -348,6 +348,8 @@ const onFinaleRestart = () => {
               :line="doorLine"
               :level="level"
               :closing="closing"
+              :quick="progress.knocked"
+              @knocked="progress.markKnocked"
               @open="onDone"
               @about="openAbout"
               @reset="resetOpen = true"

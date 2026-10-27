@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { arcaneIndex, MEMORY_KEY, useProgressStore, VISITS_KEY } from '../../src/stores/progress'
+import { arcaneIndex, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '../../src/stores/progress'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
 
 const m = new Map<string, string>()
@@ -69,6 +69,29 @@ describe('progress store', () => {
   it('merges partial or mistyped memory with defaults', () => {
     m.set(MEMORY_KEY, JSON.stringify({ lastArcane: 'x', lastNom: 42, lastLevel: 3, finished: 'yes' }))
     expect(fresh().memory).toEqual({ lastArcane: null, lastNom: null, lastLevel: 3, finished: false })
+  })
+
+  it('knocked: false at first, set by markKnocked in sessionStorage only, cleared by reset and completeFinale, gone with the session', () => {
+    const s = fresh()
+    expect(s.knocked).toBe(false)
+    s.markKnocked()
+    expect(s.knocked).toBe(true)
+    expect(ss.get(KNOCKED_KEY)).toBe('1')
+    expect(m.has(KNOCKED_KEY)).toBe(false)
+    expect(fresh().knocked).toBe(true)
+    s.reset()
+    expect(s.knocked).toBe(false)
+    s.markKnocked()
+    s.completeFinale()
+    expect(s.knocked).toBe(false)
+    s.markKnocked()
+    ss.clear()
+    expect(fresh().knocked).toBe(false)
+  })
+
+  it.each(['abc', '', '2', 'true'])('knocked falls back to false on garbage %j', (raw) => {
+    ss.set(KNOCKED_KEY, raw)
+    expect(fresh().knocked).toBe(false)
   })
 
   it('bump increments and returns the new count; reset only clears visits', () => {

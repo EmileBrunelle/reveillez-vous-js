@@ -18,8 +18,10 @@ import Seer from '~icons/rvj/voyante'
 import SparkPool from './SparkPool.vue'
 import KnockPattern from './KnockPattern.vue'
 
-const props = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean }>()
-const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; closed: []; listening: [boolean] }>()
+const props = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean; quick?: boolean }>()
+const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; knocked: []; closed: []; listening: [boolean] }>()
+// Visite de rappel : un seul toucher ouvre la porte (rituel déjà réussi plus tôt dans la session). Fixé au montage.
+const quick = props.quick === true
 const reduced = useReducedMotion()
 const keyboard = useKeyboardModality()
 const visibility = useDocumentVisibility()
@@ -141,7 +143,7 @@ const phase = ref<Phase>('invite')
 const texts = (key: string) => (Array.isArray(prophecies[key]) ? (prophecies[key] as unknown[]).filter((t): t is string => typeof t === 'string') : [])
 const ghosts = computed(() => ['(Cognez à la porte)', props.line, ...texts(`rate${props.level}`), ...texts('entrez')])
 watch(phase, (p) => emit('listening', p === 'listen'))
-const said = ref('(Cognez à la porte)')
+const said = ref(quick ? props.line : '(Cognez à la porte)')
 const verdictText = ref('')
 // Invite sans geste depuis ~3 s : on souffle que la porte se touche (respiration lente + ligne d’aide).
 const nudge = ref(false)
@@ -154,7 +156,7 @@ const hint = computed(() => {
   if (verdictText.value) return verdictText.value
   if (phase.value === 'listen') return 'Ça cogne de l’intérieur…'
   if (phase.value === 'repeat') return 'Touchez la porte : un coup par point.'
-  if (phase.value === 'invite' && nudge.value) return 'Touchez la porte pour cogner.'
+  if (phase.value === 'invite' && (nudge.value || quick)) return quick ? 'Touchez la porte pour l’ouvrir.' : 'Touchez la porte pour cogner.'
   return ''
 })
 const announce = ref('')
@@ -214,6 +216,7 @@ const evaluate = () => {
   if (v === 'ok') {
     verdictText.value = 'Bien.'
     announce.value = 'Bien. La porte s’ouvre.'
+    emit('knocked')
     void wait(350).then(open)
     return
   }
@@ -242,7 +245,12 @@ const onDoor = (e: MouseEvent) => {
   if (phase.value === 'invite') {
     stopNudge()
     playerKnock(e)
-    if (!started) {
+    if (quick) {
+      // Un seul coup, la porte réagit tout de suite (secousse + étincelles), puis elle s’ouvre.
+      started = true
+      announce.value = 'La porte s’ouvre.'
+      void wait(450).then(open)
+    } else if (!started) {
       started = true
       void wait(800).then(startListen)
     }
