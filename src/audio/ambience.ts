@@ -1,8 +1,24 @@
 import { effectScope, ref, watch } from 'vue'
 import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
 import type { PlaceId } from '../effects/places/types'
-import { ac, ambienceOut, muted, noiseBuffer } from './sfx'
-import { BASS_PARTIALS, PAD_DEPTH, PAD_VOICES, RARE_BOOST, nextRareDelay, padGain, pickRareKind, subGain, type RareKind } from './paranoiaAudio'
+import { ac, ambienceOut, effetsOut, muted, noiseBuffer } from './sfx'
+import { motifBusyUntil, motifWarning, playMotif } from './motif'
+import {
+  BASS_PARTIALS,
+  PAD_DEPTH,
+  PAD_VOICES,
+  RARE_BOOST,
+  WARNING_DUCK_DB,
+  WARNING_DUCK_DOWN,
+  WARNING_DUCK_UP,
+  nextRareDelay,
+  nextWarningDelay,
+  padGain,
+  pickRareKind,
+  subGain,
+  warningAllowed,
+  type RareKind,
+} from './paranoiaAudio'
 
 /** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. */
 export const MASTER_GAIN = 0.045
@@ -560,11 +576,14 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
   // Basse fantôme (fondamentale + harmoniques) et nappe tonale médium : toujours construites, gains par paliers (changement lent, ≈ 6 s)
   const sub = e.t.add(c.createGain())
   sub.gain.value = 0
-  sub.connect(master)
   for (const [hz, amp] of BASS_PARTIALS) osc(e, 'sine', hz).connect(gainNode(e, amp)).connect(sub)
   const pad = e.t.add(c.createGain())
   pad.gain.value = 0
-  pad.connect(master)
+  // gain à part pour l’avertissement : basse et nappe baissent ensemble sans toucher à leurs paliers par niveau
+  const paraDuck = e.t.add(c.createGain())
+  pad.connect(paraDuck)
+  sub.connect(paraDuck)
+  paraDuck.connect(master)
   for (const v of PAD_VOICES) {
     // enflure lente propre à chaque voix : gain = amp × (1 + PAD_DEPTH × sinus de période ≥ 9 s)
     const vg = gainNode(e, v.amp)
@@ -623,6 +642,36 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
   }
   armRare()
 
+  // Avertissement rare (niveaux 3+) : le motif grave et lent, la nappe baisse pendant qu’il joue
+  const warnInterval = ref(0)
+  const { start: startWarn, stop: stopWarn } = useTimeoutFn(
+    () => {
+      if (stopped) return
+      const now = Date.now()
+      if (running() && warningAllowed(getLevel()) && now - lastEventAt >= MIN_SPACING_MS && motifBusyUntil.value <= c.currentTime) {
+        lastEventAt = now
+        const dur = playMotif(c, effetsOut(c), motifWarning())
+        fadeParam(paraDuck.gain, c.currentTime, 10 ** (WARNING_DUCK_DB / 20), WARNING_DUCK_DOWN)
+        unduckDelay.value = Math.max(dur - WARNING_DUCK_UP * 0.5, WARNING_DUCK_DOWN) * 1000
+        startUnduck()
+        return armWarning()
+      }
+      armWarning(MIN_SPACING_MS / 1000 + Math.random() * 5)
+    },
+    warnInterval,
+    { immediate: false },
+  )
+  const unduckDelay = ref(0)
+  const { start: startUnduck, stop: stopUnduck } = useTimeoutFn(() => fadeParam(paraDuck.gain, c.currentTime, 1, WARNING_DUCK_UP), unduckDelay, { immediate: false })
+  const armWarning = (override?: number) => {
+    stopWarn()
+    const d = override ?? nextWarningDelay(getLevel())
+    if (d === null) return
+    warnInterval.value = d * 1000
+    startWarn()
+  }
+  armWarning()
+
   scope.run(() => {
     for (const b of RECIPES[place].beds) beds[b](bedEnv, RECIPES[place])
     for (const ev of RECIPES[place].events) e.every(ev.min, ev.max, () => events[ev.kind](eventEnv))
@@ -646,6 +695,7 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
     watch(getLevel, () => {
       rampSub()
       armRare()
+      armWarning()
     })
     watch(muted, () => ramp(FADE_MUTE))
     watch(ambienceDucked, (d) => ramp(d ? FADE_OUT : FADE_IN))
@@ -655,6 +705,8 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
     if (stopped) return
     stopped = true
     stopRare()
+    stopWarn()
+    stopUnduck()
     scope.stop()
     c.removeEventListener('statechange', onState)
     lastStopAt = Date.now()

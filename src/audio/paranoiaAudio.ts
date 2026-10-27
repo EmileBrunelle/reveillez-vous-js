@@ -96,3 +96,16 @@ export const pickRareKind = (previous: RareKind | null, rng: () => number = Math
   const pool = RARE_KINDS.filter((k) => k !== previous)
   return pool[Math.min(pool.length - 1, Math.floor(rng() * pool.length))]
 }
+
+/** Avertissement rare (le motif « mystère » grave et lent) : jamais aux niveaux 1–2, au plus une fois par 60–90 s dès le niveau 3. */
+export const WARNING_MIN_LEVEL = 3
+export const WARNING_RANGE = { min: 60, max: 90 } as const
+/** Pendant l’avertissement, la couche de paranoïa (basse + nappe) baisse d’environ 8 dB (rampe douce), puis remonte. */
+export const WARNING_DUCK_DB = -8
+export const WARNING_DUCK_DOWN = 0.4
+export const WARNING_DUCK_UP = 1.5
+
+export const warningAllowed = (level: number) => clampLevel(level) >= WARNING_MIN_LEVEL
+
+/** Délai (s) avant le prochain avertissement, ou `null` aux niveaux 1–2. `rng` ∈ [0,1[ injectable. */
+export const nextWarningDelay = (level: number, rng: () => number = Math.random): number | null => (warningAllowed(level) ? WARNING_RANGE.min + (WARNING_RANGE.max - WARNING_RANGE.min) * rng() : null)
