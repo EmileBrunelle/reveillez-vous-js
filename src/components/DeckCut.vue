@@ -7,7 +7,7 @@ import { FAN, FAN_SCALE } from './deckFan'
 import { isDrag, nearestIndex, tapOutcome } from './deckTouch'
 import { cardDeal } from '../audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '../audio/cards'
-import { PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '../engine/paquets'
+import { EMBLEMS, PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '../engine/paquets'
 import type { Rng } from '../engine/rng'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { focusQuietly } from '../composables/focusQuietly'
@@ -22,6 +22,7 @@ const reduced = useReducedMotion()
 
 const paquets = shufflePaquets(rng)
 const deckEl = useTemplateRef<HTMLElement>('deckEl')
+const focusSink = useTemplateRef<HTMLElement>('focusSink') // cible de focus muette après le choix (voir choose)
 defineExpose({ focus: () => focusQuietly(deckEl.value, { preventScroll: true }) }) // appelé par App.vue (focusTarget 'deck')
 const slotEls = ref<HTMLElement[]>([])
 const tiltEls = ref<HTMLElement[]>([])
@@ -40,7 +41,6 @@ const zClass = (i: number) => {
 const ready = ref(false)
 const TOUCH_HINT = 'Touchez de nouveau pour choisir.'
 const cards = [0, 1, 2] as const
-const EMBLEMS: Record<Paquet, string> = { nuit: 'moon', feu: 'flame', brume: 'ghost' }
 
 // --- ressorts -------------------------------------------------------------------------------------------------------------------
 interface Spr {
@@ -408,7 +408,9 @@ const choose = (i: number) => {
   hot.value = null
   if (reduced.value) cardPickStill()
   else cardPick()
-  focusQuietly(deckEl.value) // les boutons se désactivent puis disparaissent : le focus reste dans la coupe au lieu de tomber sur <body>
+  // Les boutons se désactivent puis disparaissent : le focus reste dans la coupe au lieu de tomber sur <body>. Cible muette (ni rôle ni nom) plutôt que le
+  // groupe nommé : la zone de statut annonce seule « Carte choisie. », le nom du groupe n’est pas relu.
+  focusQuietly(focusSink.value)
   if (reduced.value) {
     layoutStatic()
     startReducedPick()
@@ -425,6 +427,7 @@ const choose = (i: number) => {
   <!-- La section et la rangée « Fermer la porte » sont dans App.vue (communes à la coupe et à la lecture). -->
   <div ref="deckEl" tabindex="-1" class="deck relative outline-none aspect-[7/12]" role="group" :aria-labelledby="promptId">
     <p class="absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ status }}</p>
+    <span ref="focusSink" tabindex="-1" class="absolute size-px outline-none"></span>
     <!-- Invite et légende : sans effet de mise en page sauf sur grand écran haut, où elles forment une colonne à droite de l’éventail. -->
     <div class="deck__side">
       <p

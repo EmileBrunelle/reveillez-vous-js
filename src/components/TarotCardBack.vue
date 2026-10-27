@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import TarotEmblem from './TarotEmblem.vue'
-import type { Paquet } from '../engine/paquets'
+import { EMBLEMS, type Paquet } from '../engine/paquets'
 
 // fill : prend toute la largeur de son parent (cartes de l’éventail, dos de TarotCard) au lieu de s’ajuster à l’emplacement 7:12.
 // paquet : le dos du paquet (couleur, motif, emblème) ; la nuit sert aussi de substitut pendant le chargement.
 const { paquet = 'nuit' } = defineProps<{ fill?: boolean; paquet?: Paquet }>()
-const EMBLEMS: Record<Paquet, string> = { nuit: 'moon', feu: 'flame', brume: 'ghost' }
 </script>
 
 <!-- Dos de la carte : substitut de TarotCard pendant le chargement (même boîte 7:12), et visuel partagé par le dos de TarotCard et les cartes de DeckCut. -->

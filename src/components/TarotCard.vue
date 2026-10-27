@@ -1,41 +1,35 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
-import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotEmblem from './TarotEmblem.vue'
 import TarotCardBack from './TarotCardBack.vue'
 import { emblemMask } from './emblemMask'
-import { cardDeal, cardFlip, cardThud } from '../audio/sfx'
+import { cardFlip, cardThud } from '../audio/sfx'
 import type { Arcane } from '../engine/prophecy'
 import type { Paquet } from '../engine/paquets'
-import { secureRng } from '../engine/rng'
-import { useDeviceTilt } from '../composables/useTilt'
 import { useReducedMotion } from '../composables/useReducedMotion'
-import { createTapDrag } from '../composables/tapDrag'
 import { createLanding } from '../composables/cardLanding'
+import { useCardGlitch } from '../composables/useCardGlitch'
+import { useCardTilt } from '../composables/useCardTilt'
+import { useFitBody } from '../composables/useFitBody'
 import { useSessionStore } from '../stores/session'
 
-const {
-  arcane,
-  title,
-  body,
-  faceDown = false,
-  level = 1,
-  handoff = false,
-  paquet = 'nuit',
-} = defineProps<{ arcane: Arcane; title: string; body: string; verse: string; faceDown?: boolean; level?: number; handoff?: boolean; paquet?: Paquet }>()
-const emit = defineEmits<{ dealt: []; flipped: [] }>()
+// La carte arrive de la coupe (DeckCut) déjà en place, dos visible, identique : rien à poser, on la retourne tout de suite (voir deal).
+const { arcane, title, body, level = 1, paquet = 'nuit' } = defineProps<{ arcane: Arcane; title: string; body: string; verse: string; level?: number; paquet?: Paquet }>()
+const emit = defineEmits<{ flipped: [] }>()
 const reduced = useReducedMotion()
 const session = useSessionStore()
 const shimmerEl = useTemplateRef<HTMLElement>('shimmerEl')
+// `will-change` seulement pendant le reflet : une couche GPU permanente pour une animation de 750 ms coûte de la mémoire pour rien.
+const shimmering = ref(false)
 // Pose de la carte, une seule fois par retournement : bruit sourd (toujours), ondulation CRT et reflet (jamais en mouvement réduit).
-// Le reflet anime son propre élément (`.tarot__shimmer`) : ni `deal`, ni `tilt`, ni `flip` ne sont touchés, donc aucun transform partagé avec useTilt.
+// Le reflet anime son propre élément (`.tarot__shimmer`) : ni `deal`, ni `tilt`, ni `flip` ne sont touchés, donc aucun transform partagé avec l’inclinaison.
 const landing = createLanding({
   reduced: () => reduced.value,
   thud: cardThud,
   ripple: (amp) => session.pulse(amp),
   shimmer: () => {
-    shimmerEl.value?.animate(
+    const a = shimmerEl.value?.animate(
       [
         { transform: 'translateX(-130%)', opacity: 0 },
         { opacity: 1, offset: 0.25 },
@@ -44,6 +38,12 @@ const landing = createLanding({
       ],
       { duration: 750, easing: 'ease-in-out' },
     )
+    if (!a) return
+    shimmering.value = true
+    void a.finished.then(
+      () => (shimmering.value = false),
+      () => (shimmering.value = false),
+    )
   },
 })
 
@@ -51,84 +51,25 @@ const root = useTemplateRef<HTMLElement>('root')
 const dealEl = useTemplateRef<HTMLElement>('dealEl')
 const tiltEl = useTemplateRef<HTMLElement>('tiltEl')
 const flipEl = useTemplateRef<HTMLElement>('flipEl')
+const panelEl = useTemplateRef<HTMLElement>('panelEl')
+const bodyEl = useTemplateRef<HTMLElement>('bodyEl')
 
-// Face-up flag drives aria and the tilt; `faceUp` lags `faceDown` until the flip lands.
+// `faceUp` pilote l’aria, les faces visibles et le hoquet ; il suit le retournement (il passe à vrai en cours de route).
 const faceUp = ref(false)
 const settled = ref(false)
 
-// Title size by length (container-width units); body size is fitted in px by fitBody() (grows and shrinks).
+// Taille du titre selon sa longueur (unités de largeur du conteneur) ; celle du corps est ajustée en px par useFitBody.
 const maskUrl = computed(() => emblemMask(arcane.symbole))
 const titleSize = computed(() => {
   const n = title.length
   return n < 40 ? 5.4 : n < 70 ? 4.6 : 3.9
 })
-const panelEl = useTemplateRef<HTMLElement>('panelEl')
-const bodyEl = useTemplateRef<HTMLElement>('bodyEl')
-// Largest font size (px) in [MIN_PX, max] for which the body fits the panel without scrolling.
-// Uses layout sizes (offset/client/scroll*), which ignore the deal/flip/tilt transforms.
-// max = min(9% of card width, max(34px × max(1, width/576), 7.5% of card width)): le second terme laisse grandir les cartes très larges; floor = 11px (a longest level-5 prophecy must fit a 360x640 phone).
-const MIN_PX = 11
-const MAX_PX = 34
-const WIDE_RATIO = 0.075 // plafond relatif des grandes cartes (≥ 453 px de large) ; téléphone et portable restent sous MAX_PX
-const REF_W = 576 // largeur de carte de référence : au-delà, le plafond de police grandit avec la carte
-let lastW = 0
-let lastH = 0
-let fitRaf = 0
-// Résultat de l’ajustement, lié au gabarit (:style sur le corps, :data-emblem sur la racine) : un re-rendu ne peut ni réinitialiser la police ni l’emblème.
-const bodyPx = ref(0)
-const emblem = ref<'' | 'small' | 'none'>('')
-// Coalesces every trigger into one rAF; unless forced (content/fonts changed), skips when the card size is unchanged.
-const scheduleFit = (force = false) => {
-  if (force) lastW = lastH = 0
-  if (fitRaf) return
-  fitRaf = requestAnimationFrame(() => {
-    fitRaf = 0
-    fitBody()
-  })
-}
-const fitBody = () => {
-  const panel = panelEl.value
-  const bodyNode = bodyEl.value
-  const w = root.value?.offsetWidth
-  const h = root.value?.offsetHeight
-  if (!panel || !bodyNode || !w || !h || !panel.clientHeight) return
-  if (w === lastW && h === lastH) return
-  lastW = w
-  lastH = h
-  const cs = getComputedStyle(panel)
-  const room = panel.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
-  const fits = (px: number) => {
-    bodyNode.style.fontSize = `${px}px`
-    return bodyNode.offsetHeight <= room + 0.5 && panel.scrollHeight <= panel.clientHeight + 1
-  }
-  // Règle : on MESURE en impératif (chaque essai exige un offsetHeight synchrone), puis on COMMIT le résultat dans l’état (bodyPx, emblem).
-  // Le DOM contient déjà la valeur finale à la sortie : le patch de Vue est un no-op, mais un re-rendu ultérieur la conserve.
-  const commit = (emb: '' | 'small' | 'none', px: number) => {
-    bodyPx.value = px
-    emblem.value = emb
-  }
-  // Try the full emblem, then a half-size one, then none: the font never drops below MIN_PX.
-  for (const emb of ['', 'small', 'none'] as const) {
-    const el = root.value!
-    if (emb) el.dataset.emblem = emb
-    else delete el.dataset.emblem
-    let lo = MIN_PX
-    let hi = Math.max(lo, Math.min(w * 0.09, Math.max(MAX_PX * Math.max(1, w / REF_W), w * WIDE_RATIO)))
-    if (fits(hi)) return commit(emb, hi)
-    if (emb !== 'none' && !fits(lo)) continue
-    for (let i = 0; i < 10; i++) {
-      const mid = (lo + hi) / 2
-      if (fits(mid)) lo = mid
-      else hi = mid
-    }
-    bodyNode.style.fontSize = `${lo}px`
-    return commit(emb, lo)
-  }
-}
-watch(
-  () => [body, title],
-  () => scheduleFit(true),
-)
+const { bodyPx, emblem } = useFitBody({ root, panel: panelEl, body: bodyEl, sources: [() => body, () => title] })
+const { releasing, onTouchDown, wasDrag } = useCardTilt({ root, tilt: tiltEl, settled, reduced })
+useCardGlitch({ root, level: () => level, faceUp, reduced })
+
+// Les quatre coins dorés (losanges posés sur les angles du cadre).
+const CORNERS = ['top-[-1.5cqw] left-[-1.5cqw]', 'top-[-1.5cqw] right-[-1.5cqw]', 'bottom-[-1.5cqw] left-[-1.5cqw]', 'bottom-[-1.5cqw] right-[-1.5cqw]']
 
 let skipped = false
 let running: { stop: () => void }[] = []
@@ -142,17 +83,18 @@ const go = (el: Element | null | undefined, kf: Record<string, unknown>, opt: Re
 const snap = (el: Element | null | undefined, kf: Record<string, unknown>) => go(el, kf, { duration: 0 })
 const wait = (ms: number) => new Promise<void>((r) => (timer = window.setTimeout(r, ms)))
 
-const rest = (down: boolean) => {
+// Face visible, sans animation.
+const rest = () => {
   snap(dealEl.value, { x: 0, y: 0, scale: 1, rotateZ: 0, opacity: 1 })
-  snap(flipEl.value, { rotateY: down ? 0 : 180 })
-  faceUp.value = !down
+  snap(flipEl.value, { rotateY: 180 })
+  faceUp.value = true
   settled.value = true
 }
 
-const flip = async (toFaceUp: boolean) => {
+const flip = async () => {
   if (reduced.value) {
-    rest(!toFaceUp)
-    if (toFaceUp) landing.land()
+    rest()
+    landing.land()
     emit('flipped')
     return
   }
@@ -160,203 +102,44 @@ const flip = async (toFaceUp: boolean) => {
   landing.arm()
   cardFlip()
   const lift = go(dealEl.value, { scale: [1, 1.14, 0.97, 1.04, 1], rotateZ: [0, -3, 2, -1, 0] }, { duration: 0.6, ease: 'easeOut' })
-  const turn = go(flipEl.value, { rotateY: toFaceUp ? 180 : 0 }, { type: 'spring', stiffness: 120, damping: 9.5 })
+  const turn = go(flipEl.value, { rotateY: 180 }, { type: 'spring', stiffness: 120, damping: 9.5 })
   await wait(180)
   if (skipped) return
-  faceUp.value = toFaceUp
+  faceUp.value = true
   await Promise.all([lift, turn])
   if (skipped) return
   settled.value = true
-  if (toFaceUp) landing.land()
+  landing.land()
   emit('flipped')
 }
 
+// Relais de la coupe : la carte est déjà à sa place, dos visible ; on la retourne après une courte pause.
 const deal = async () => {
-  if (handoff) {
-    // Relais de la coupe : la carte est déjà à sa place, dos visible, identique à la carte de DeckCut (rien à poser). On la retourne tout de suite.
-    settled.value = true
-    emit('dealt')
-    if (faceDown) return
-    await wait(reduced.value ? 150 : 140)
-    if (skipped) return
-    if (reduced.value) {
-      rest(false)
-      landing.land()
-      emit('flipped')
-      return
-    }
-    await flip(true)
-    return
-  }
-  if (reduced.value) {
-    snap(flipEl.value, { rotateY: faceDown ? 0 : 180 })
-    faceUp.value = !faceDown
-    snap(dealEl.value, { opacity: 0, x: 0, y: 0, scale: 1, rotateZ: 0 })
-    await go(dealEl.value, { opacity: [0, 1] }, { duration: 0.25 })
-    settled.value = true
-    emit('dealt')
-    if (!faceDown) {
-      landing.land()
-      emit('flipped')
-    }
-    return
-  }
-  const o = { x: -40, y: -260, scale: 0.4, rot: -18 }
-  snap(flipEl.value, { rotateY: 0 })
-  snap(dealEl.value, { x: o.x, y: o.y, scale: o.scale, rotateZ: o.rot, opacity: 0 })
-  cardDeal()
-  go(dealEl.value, { opacity: [0, 1] }, { duration: 0.12 })
-  await go(dealEl.value, { x: [o.x, 0], y: [o.y, 0], scale: [o.scale, 1], rotateZ: [o.rot, 0] }, { type: 'spring', stiffness: 150, damping: 17 })
-  if (skipped) return
   settled.value = true
-  emit('dealt')
-  if (faceDown) return
-  await wait(250)
+  await wait(150)
   if (skipped) return
-  await flip(true)
+  await flip()
 }
 
+// Un toucher ou un clic termine tout de suite l’animation de retournement (raccourci : la carte se retourne seule, rien n’exige ce geste).
 const skip = () => {
   if (skipped) return
   skipped = true
   window.clearTimeout(timer)
   running.forEach((r) => r.stop())
   running = []
-  rest(faceDown)
-}
-
-watch(
-  () => faceDown,
-  (down) => {
-    if (!settled.value) return
-    skipped = false
-    void flip(!down)
-  },
-)
-
-// Levels 4-5: rare one-shot "CRT hiccup" (80-150 ms): one band of the card jumps 2-6 px with a 1-3 px RGB split.
-// L4: 1 per reading, L5: 1-2. Never within 2 s of the flip (faceUp turns true ~0.2 s into it); skipped under reduced motion.
-// Never the prophecy body: only the numero/emblem/title/verse/banner bands move; no luminance change.
-const rng = secureRng()
-const glitchTimers: number[] = []
-let glitchArmed = false
-const glitch = () => {
-  const bands = root.value?.querySelectorAll<HTMLElement>('.tarot__numero, .tarot__emblem, .tarot__title, .tarot__verse, .tarot__banner')
-  const content = root.value?.querySelector<HTMLElement>('.tarot__content')
-  if (!bands?.length || !content) return
-  const dur = 80 + rng() * 70
-  const dx = (2 + rng() * 4) * (rng() < 0.5 ? -1 : 1)
-  const split = 1 + rng() * 2
-  bands[Math.floor(rng() * bands.length)].animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], { duration: dur, easing: 'steps(2, jump-none)' })
-  content.animate([{ textShadow: `${split}px 0 rgb(255 0 0 / 0.5), ${-split}px 0 rgb(0 160 160 / 0.5)` }, { textShadow: 'none' }], { duration: dur, easing: 'steps(2, jump-none)' })
-}
-const armGlitch = () => {
-  if (glitchArmed || reduced.value || level < 4) return
-  glitchArmed = true
-  const n = level >= 5 && rng() < 0.5 ? 2 : 1
-  let t = 0
-  Array.from({ length: n }).forEach(() => {
-    t += 2000 + rng() * 6000
-    glitchTimers.push(window.setTimeout(glitch, t))
-  })
-}
-watch(faceUp, (up) => up && armGlitch())
-
-// Pointer tilt (mouse/pen only, max 8 deg) with a glare following the pointer.
-const MAX_TILT = 8
-let raf = 0
-let finePointer = false // une souris/stylet a bougé : le pointeur l’emporte sur le gyroscope
-const touchDrag = createTapDrag()
-const fingerDown = ref(false) // le doigt est le seul maître de l’inclinaison pendant le contact
-// Variables CSS d’inclinaison : écrites en impératif, une fois par image (pointeur/gyroscope), pour ne pas re-rendre le composant à 60 Hz.
-// Seul point d’écriture : setTilt / restTilt.
-const setTilt = ({ rx, ry, gx, gy, glare }: { rx: number; ry: number; gx: number; gy: number; glare: number }) => {
-  const s = tiltEl.value?.style
-  if (!s) return
-  s.setProperty('--ry', `${ry}deg`)
-  s.setProperty('--rx', `${rx}deg`)
-  s.setProperty('--gx', `${gx}%`)
-  s.setProperty('--gy', `${gy}%`)
-  s.setProperty('--glare', `${glare}`)
-}
-const restTilt = () => {
-  const s = tiltEl.value?.style
-  if (!s) return
-  s.setProperty('--ry', '0deg')
-  s.setProperty('--rx', '0deg')
-  s.setProperty('--glare', '0')
-}
-const onMove = (e: PointerEvent) => {
-  const touch = e.pointerType === 'touch'
-  if (!touch) finePointer = true
-  if (touch && (!touchDrag.active || !touchDrag.move(e.clientX, e.clientY))) return
-  if (reduced.value || (touch && !fingerDown.value) || !settled.value || !root.value || !tiltEl.value) return
-  const r = root.value.getBoundingClientRect()
-  const dx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / r.width))
-  const dy = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / r.height))
-  cancelAnimationFrame(raf)
-  raf = requestAnimationFrame(() => setTilt({ rx: -dy * MAX_TILT, ry: dx * MAX_TILT, gx: 50 + dx * 60, gy: 50 + dy * 60, glare: 1 }))
-}
-// Gyroscope (mobile) : mêmes variables CSS que le pointeur ; la carte reste « fixe » dans le monde (sens inverse du téléphone).
-// Plus ample que le pointeur : à 8°, sur un téléphone, ça ne se voyait presque pas.
-const GYRO_TILT = 20
-useDeviceTilt({
-  enabled: () => !reduced.value && !finePointer && settled.value && !fingerDown.value,
-  apply: (nx, ny) => setTilt({ rx: ny * GYRO_TILT, ry: -nx * GYRO_TILT, gx: 50 - nx * 60, gy: 50 - ny * 60, glare: 1 }),
-})
-const onTouchDown = (e: PointerEvent) => {
-  if (e.pointerType !== 'touch') return
-  touchDrag.start(e.clientX, e.clientY)
-  if (reduced.value || !settled.value) return
-  fingerDown.value = true
-  try {
-    root.value?.setPointerCapture(e.pointerId)
-  } catch {
-    // capture refusée : le glissement continue de remonter jusqu’à window
-  }
-}
-// Relâché : retour au repos sur ressort doux (transition plus longue posée le temps du retour).
-const releasing = ref(false)
-const { start: startRelease, stop: stopRelease } = useTimeoutFn(() => (releasing.value = false), 650, { immediate: false })
-const onTouchUp = (e: PointerEvent) => {
-  if (e.pointerType !== 'touch') return
-  touchDrag.end()
-  if (!fingerDown.value) return
-  fingerDown.value = false
-  cancelAnimationFrame(raf)
-  if (!tiltEl.value) return
-  releasing.value = true
-  restTilt()
-  stopRelease()
-  startRelease()
+  rest()
 }
 // Un glissement n’est pas un tap : pas de skip à la fin du geste.
 const onCardClick = () => {
-  if (touchDrag.moved) return
+  if (wasDrag()) return
   skip()
 }
-const onLeave = () => {
-  cancelAnimationFrame(raf)
-  restTilt()
-}
 
-useEventListener(window, 'pointermove', onMove)
-useEventListener(window, 'pointerup', onTouchUp)
-useEventListener(window, 'pointercancel', onTouchUp)
-useEventListener(document, 'pointerleave', onLeave)
-useResizeObserver(root, () => scheduleFit())
-
-onMounted(() => {
-  scheduleFit(true)
-  void document.fonts?.ready.then(() => scheduleFit(true))
-  void deal()
-})
+onMounted(() => void deal())
 onUnmounted(() => {
-  cancelAnimationFrame(fitRaf)
   skipped = true
   window.clearTimeout(timer)
-  glitchTimers.forEach(clearTimeout)
-  cancelAnimationFrame(raf)
   running.forEach((r) => r.stop())
 })
 </script>
@@ -366,7 +149,7 @@ onUnmounted(() => {
     ref="root"
     class="tarot relative aspect-[7/12]"
     :data-emblem="emblem || undefined"
-    :class="[`tarot--l${level}`, `tarot--${paquet}`, { 'touch-none': settled && !reduced }]"
+    :class="[`tarot--l${level}`, `tarot--${paquet}`, { 'touch-pinch-zoom': settled && !reduced }]"
     @click="onCardClick"
     @pointerdown="onTouchDown"
   >
@@ -386,12 +169,7 @@ onUnmounted(() => {
                 class="tarot__content absolute inset-[1.6cqw] [border:0.6cqw_solid_var(--tarot-gold)] [outline:0.5cqw_solid_var(--tarot-ink)] [outline-offset:-2.2cqw] flex flex-col items-center [padding:3.4cqw_4.6cqw_0] gap-[1.6cqw] font-card"
                 :style="{ '--title': `${titleSize}cqw` }"
               >
-                <span class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] top-[-1.5cqw] left-[-1.5cqw]" /><span
-                  class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] top-[-1.5cqw] right-[-1.5cqw]"
-                />
-                <span class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] bottom-[-1.5cqw] left-[-1.5cqw]" /><span
-                  class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)] bottom-[-1.5cqw] right-[-1.5cqw]"
-                />
+                <span v-for="c in CORNERS" :key="c" class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)]" :class="c" />
                 <div class="tarot__numero font-title text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">{{ arcane.numero }}</div>
                 <div class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]" :style="{ '--emblem-mask': maskUrl }"><TarotEmblem :symbole="arcane.symbole" /></div>
                 <h2 class="tarot__title font-title m-0 [font-size:var(--title)] leading-[1.15] text-center uppercase [overflow-wrap:anywhere]" :data-text="title">{{ title }}</h2>
@@ -410,13 +188,13 @@ onUnmounted(() => {
                   {{ arcane.nom }}
                 </div>
               </div>
-              <div class="tarot__glare absolute inset-0 pointer-events-none [opacity:var(--glare,0)] [transition:opacity_0.2s]" />
-              <div ref="shimmerEl" class="tarot__shimmer absolute inset-0 pointer-events-none opacity-0" />
+              <div class="tarot__glare" />
+              <div ref="shimmerEl" class="tarot__shimmer absolute inset-0 pointer-events-none opacity-0" :class="{ 'will-change-[transform,opacity]': shimmering }" />
             </div>
             <!-- Dos : le même visuel que les cartes de DeckCut (TarotCardBack). -->
             <div class="tarot__face tarot__back absolute inset-0" :class="{ 'tarot__face--up': faceUp }" :aria-hidden="faceUp">
               <TarotCardBack fill :paquet="paquet" class="absolute inset-0">
-                <div class="tarot__glare absolute inset-0 pointer-events-none [opacity:var(--glare,0)] [transition:opacity_0.2s]" />
+                <div class="tarot__glare" />
               </TarotCardBack>
             </div>
           </div>
@@ -432,9 +210,9 @@ onUnmounted(() => {
   --tarot-ink: #1f1038;
   --tarot-gold: #b9821a;
   --tarot-paper: #f3e3b3;
-  /* Fits its slot (.tarot-slot is a size container) while keeping the 7:12 ratio. */
+  /* S’inscrit dans son emplacement (conteneur de taille) en gardant le ratio 7:12. */
   width: min(100cqw, calc(100cqh * 7 / 12));
-  /* Containment lives here, OUTSIDE the 3D chain (Firefox flattens preserve-3d through contained elements). */
+  /* Le containment vit ici, HORS de la chaîne 3D (Firefox aplatit preserve-3d à travers un élément contenu). */
   container-type: inline-size;
 }
 .tarot__tilt {
@@ -450,7 +228,7 @@ onUnmounted(() => {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-/* Belt and braces: explicit visibility by side, in case a browser flattens the 3D context and backface-visibility is ignored. */
+/* Ceinture et bretelles : visibilité explicite par face, au cas où un navigateur aplatit le contexte 3D et ignore backface-visibility. */
 .tarot__front:not(.tarot__face--up),
 .tarot__back.tarot__face--up {
   visibility: hidden;
@@ -466,12 +244,16 @@ onUnmounted(() => {
   display: none;
 }
 .tarot__glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--glare, 0);
+  transition: opacity 0.2s;
   background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.3), rgb(255 255 255 / 0) 55%);
 }
 /* Reflet unique à la pose : une bande diagonale douce, animée en JS (WAAPI) sur son propre élément, une seule fois, jamais en mouvement réduit. */
 .tarot__shimmer {
   background: linear-gradient(115deg, transparent 35%, rgb(255 250 225 / 0.35) 50%, transparent 65%);
-  will-change: transform, opacity;
 }
 /* Teinte du paquet choisi : l’encre et le papier (discrets) et la teinte du reflet ; le cadre doré reste doré. */
 .tarot--feu {

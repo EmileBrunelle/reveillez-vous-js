@@ -294,7 +294,6 @@ watch(
                   :body="prophecy.body"
                   :verse="prophecy.verse"
                   :level="level"
-                  handoff
                   :paquet="pickedPaquet"
                   @flipped="onFlipped"
                 />
