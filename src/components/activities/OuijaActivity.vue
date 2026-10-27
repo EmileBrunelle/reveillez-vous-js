@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
 import { useElementBounding, useEventListener, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
-import { Motion, useMotionValue, useSpring } from 'motion-v'
+import { M as Motion, useMotionValue, useSpring } from 'motion-v'
 import { useRovingFocus } from '@vuetify/v0'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'

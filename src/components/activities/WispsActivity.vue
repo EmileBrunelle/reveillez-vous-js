@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useId, useTemplateRef } from 'vue'
 import { useElementSize, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
-import { Motion, useMotionValue } from 'motion-v'
+import { M as Motion, useMotionValue } from 'motion-v'
 import { useDeferredText } from '../../composables/useDeferredText'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import ActivitySkip from './ActivitySkip.vue'

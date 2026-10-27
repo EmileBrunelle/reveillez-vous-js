@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onScopeDispose, onMounted, ref, watch, useTemplateRef } from 'vue'
-import { Motion } from 'motion-v'
+import { M as Motion } from 'motion-v'
 import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'

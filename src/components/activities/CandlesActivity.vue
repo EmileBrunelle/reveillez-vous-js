@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, useTemplateRef } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
-import { Motion, useMotionValue, useSpring } from 'motion-v'
+import { M as Motion, useMotionValue, useSpring } from 'motion-v'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'

@@ -41,7 +41,7 @@ beforeEach(() => {
 })
 
 describe('usePlaceAudio', () => {
-  it('démarre ambiance et piano au montage, les arrête seuls à la destruction', () => {
+  it('démarre ambiance et piano au montage, les arrête seuls à la destruction', async () => {
     const scope = effectScope()
     scope.run(() =>
       usePlaceAudio(
@@ -50,11 +50,25 @@ describe('usePlaceAudio', () => {
       ),
     )
     expect(mocks.startAmbience).toHaveBeenCalledWith('forest', expect.any(Function))
-    expect(mocks.startMusic).toHaveBeenCalledOnce()
+    // Le piano est un import dynamique : il démarre à la résolution de l’import.
+    await vi.waitFor(() => expect(mocks.startMusic).toHaveBeenCalledOnce())
     expect(mocks.stopAmbience).not.toHaveBeenCalled()
     scope.stop()
     expect(mocks.stopAmbience).toHaveBeenCalledOnce()
     expect(mocks.stopMusic).toHaveBeenCalledOnce()
+  })
+
+  it('démonté avant la résolution de l’import : le piano ne démarre pas', async () => {
+    const scope = effectScope()
+    scope.run(() =>
+      usePlaceAudio(
+        () => 'forest' as never,
+        () => 3,
+      ),
+    )
+    scope.stop()
+    await new Promise((r) => setTimeout(r, 20))
+    expect(mocks.startMusic).not.toHaveBeenCalled()
   })
 })
 

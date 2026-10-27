@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
-import { Motion, useMotionValue } from 'motion-v'
+import { M as Motion, useMotionValue } from 'motion-v'
 import { useEventListener, useElementSize, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
