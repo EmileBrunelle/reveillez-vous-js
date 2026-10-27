@@ -42,8 +42,18 @@ const house = useTemplateRef<HTMLElement>('house')
 const missed = ref(false)
 // Annonce vocale (région aria-live) des phases du jeu.
 // À l’échec (temps écoulé), rien : le HUD annonce déjà l’issue.
+// Ordre complet annoncé au tour du joueur : « fenêtres 4, 5, 3 ».
+const turnOrder = `fenêtres ${seq.map((n) => n + 1).join(', ')}`
 const status = computed(() =>
-  outcome.value === 'fail' ? '' : phase.value === 'won' ? 'Bravo, c’est réussi.' : phase.value === 'input' ? 'À vous.' : missed.value ? 'Ce n’était pas celle-là. On recommence.' : 'Regardez bien…',
+  outcome.value === 'fail'
+    ? ''
+    : phase.value === 'won'
+      ? 'Bravo, c’est réussi.'
+      : phase.value === 'input'
+        ? `À vous : ${turnOrder}.`
+        : missed.value
+          ? 'Ce n’était pas celle-là. On recommence.'
+          : 'Regardez bien…',
 )
 let playIdx = 0
 let shake: { stop: () => void } | undefined
@@ -110,8 +120,6 @@ const hit = (i: number) => {
 <template>
   <div class="size-full flex flex-col items-center justify-center gap-4 px-4 pb-2 select-none">
     <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>
-    <!-- Séquence montrée aux lecteurs d’écran : le nom de chaque fenêtre qui s’allume, pendant la lecture seulement. -->
-    <p class="sr-only" role="status" aria-live="polite">{{ phase === 'play' && lit !== null ? `Fenêtre ${lit + 1}` : '' }}</p>
     <p class="font-ui text-xl text-center text-amber-100/90 max-w-[22ch]" :class="{ invisible: outcome !== 'play' }">Frappez aux fenêtres dans l’ordre où elles s’allument</p>
     <div ref="house" class="relative w-[min(78vw,300px)]">
       <div class="h-[70px] bg-[#0b0a10] [clip-path:polygon(50%_0,100%_100%,0_100%)]" aria-hidden="true" />

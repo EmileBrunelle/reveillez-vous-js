@@ -137,8 +137,6 @@ const caption = (i: number) => {
 type Phase = 'invite' | 'listen' | 'repeat' | 'busy'
 const phase = ref<Phase>('invite')
 const saidId = useId()
-// Nom du bouton selon la phase : « Ouvrir » seulement tant que la porte n’a pas encore répondu.
-const doorName = computed(() => (phase.value === 'listen' ? 'Écouter la porte' : phase.value === 'repeat' ? 'Frapper à la porte' : 'Ouvrir la porte'))
 const texts = (key: string) => (Array.isArray(prophecies[key]) ? (prophecies[key] as unknown[]).filter((t): t is string => typeof t === 'string') : [])
 const ghosts = computed(() => ['(Cognez à la porte)', line, ...texts(`rate${level}`), ...texts('entrez')])
 watch(phase, (p) => emit('listening', p === 'listen'))
@@ -402,8 +400,8 @@ const onSceneClick = (e: MouseEvent) => {
         v-if="!closing"
         class="door-hit absolute inset-0 z-3 p-0 m-0 border-0 bg-transparent cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] outline-none"
         type="button"
-        :aria-label="doorName"
-        :aria-describedby="phase === 'invite' || phase === 'repeat' ? saidId : undefined"
+        aria-label="Ouvrir la porte"
+        :aria-describedby="saidId"
         :data-phase="phase"
         :data-kbd="keyboard"
         @click="onDoorClick"

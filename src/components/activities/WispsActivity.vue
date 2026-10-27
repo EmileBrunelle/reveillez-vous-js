@@ -168,14 +168,14 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
 <template>
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
     <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
-      {{ prompt }}<span v-if="prompt" class="sr-only"> Au clavier, activez le bouton « Attraper le feu follet ».</span>
+      {{ prompt }}<span v-if="prompt" class="sr-only"> Au clavier, activez le bouton “Attraper le feu follet”.</span>
     </p>
     <!-- Chemin clavier : visible seulement au focus ; Entrée ou Espace attrape le feu follet quand il est là. -->
     <button
       v-if="outcome === 'play'"
       type="button"
       class="font-ui sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:bottom-16 focus-visible:left-1/2 focus-visible:-translate-x-1/2 focus-visible:px-4 focus-visible:py-1 focus-visible:text-xl focus-visible:text-emerald-100 focus-visible:bg-black/70 focus-visible:border-2 focus-visible:border-solid focus-visible:border-emerald-200 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-white"
-      @click="catchIt"
+      @click="!hidden && catchIt()"
     >
       Attraper le feu follet
     </button>
