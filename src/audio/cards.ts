@@ -1,7 +1,7 @@
 import { ac, effetsOut, muted, noiseBuffer } from './sfx'
 
 // Sons de papier des cartes (coupe, collection) : bruit filtré, enveloppes courtes, hauteur légèrement aléatoire.
-// Tous passent par le bus des effets et restent bien sous `cardThud` (crête 0,4).
+// Tous passent par le bus des effets et restent bien sous `cardThud` (crête 0,4, soit environ -20 dBFS, le plus fort des sons de ce fichier).
 export const PEAK = { hover: 0.04, slide: 0.07, whoosh: 0.12, tap: 0.08, collect: 0.07 } as const
 export const ENV_MIN = 0.03 // durées (s) des frottements de papier
 export const ENV_MAX = 0.15

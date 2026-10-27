@@ -12,11 +12,24 @@ const makeGain = (): FakeGain => {
   g.connect.mockImplementation((n: unknown) => ((g.to = n), n))
   return g
 }
+interface FakeLimiter {
+  threshold: { value: number }
+  knee: { value: number }
+  ratio: { value: number }
+  attack: { value: number }
+  release: { value: number }
+  to?: unknown
+  connect: (n: unknown) => unknown
+}
 class FakeCtx {
   state = 'running'
   currentTime = 1
   destination = { dest: true }
   createGain = () => makeGain()
+  createDynamicsCompressor = () => {
+    const k: FakeLimiter = { threshold: { value: 0 }, knee: { value: 0 }, ratio: { value: 0 }, attack: { value: 0 }, release: { value: 0 }, connect: (n) => ((k.to = n), n) }
+    return k
+  }
 }
 const asCtx = (c: FakeCtx) => c as unknown as AudioContext
 const asGain = (g: GainNode) => g as unknown as FakeGain
@@ -59,7 +72,7 @@ describe('setVolume', () => {
 })
 
 describe('bus par catégorie', () => {
-  it('chaque catégorie a son bus, branché sur le général, branché sur la destination', () => {
+  it('chaque catégorie a son bus, branché sur le général, puis limiteur, puis destination', () => {
     const fake = new FakeCtx()
     const c = asCtx(fake)
     const a = asGain(ambienceOut(c))
@@ -68,7 +81,10 @@ describe('bus par catégorie', () => {
     expect(new Set([a, e, f]).size).toBe(3)
     expect(asGain(effetsOut(c))).toBe(e) // même bus à chaque appel
     expect(a.to).toBe(e.to)
-    expect((a.to as FakeGain).to).toBe(fake.destination)
+    const limiter = (a.to as FakeGain).to as FakeLimiter // général → limiteur → compensation de gain → destination
+    expect((limiter.to as FakeGain).to).toBe(fake.destination)
+    expect(limiter.threshold.value).toBeLessThan(0)
+    expect(limiter.ratio.value).toBeGreaterThanOrEqual(10)
   })
   it('un volume sauvegardé s’applique à la création des bus', () => {
     setVolume('finale', 0.25)

@@ -22,6 +22,7 @@ class FakeCtx {
   currentTime = 0
   destination = makeNode()
   createGain = () => makeNode()
+  createDynamicsCompressor = () => makeNode()
   createBiquadFilter = () => makeNode()
   createOscillator = () => makeNode(true)
   addEventListener() {}

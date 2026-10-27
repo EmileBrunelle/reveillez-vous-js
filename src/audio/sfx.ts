@@ -50,7 +50,17 @@ const bus = (c: AudioContext, key: VolumeKey): GainNode => {
   if (!b) {
     const general = c.createGain()
     general.gain.value = volumes.general
-    general.connect(c.destination)
+    // limiteur doux en sortie : seuil -6 dB, ratio élevé, attaque courte, relâche ~150 ms (aucun écrêtage à la somme des bus)
+    const limiter = c.createDynamicsCompressor()
+    limiter.threshold.value = -6
+    limiter.knee.value = 6
+    limiter.ratio.value = 20
+    limiter.attack.value = 0.003
+    limiter.release.value = 0.15
+    // le compresseur de Chrome ajoute ~2,3 dB de gain de compensation (non réglable) : on le retire pour ne pas changer le niveau général
+    const trim = c.createGain()
+    trim.gain.value = 0.77
+    general.connect(limiter).connect(trim).connect(c.destination)
     b = { general } as Buses
     for (const k of VOLUME_KEYS) {
       if (k === 'general') continue
@@ -90,6 +100,8 @@ export const ac = (): AudioContext | null => {
     const C = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!C) return null
     ctx = new C()
+    // bus (et limiteur) créés d’emblée : le DynamicsCompressor de Chrome atténue ses premières ms à froid, autant qu’il chauffe à vide
+    bus(ctx, 'general')
   }
   return ctx
 }
@@ -128,6 +140,18 @@ export interface KnockHandle {
 }
 
 const thump = (c: AudioContext, at: number, gain: number) => {
+  // composante médium discrète (triangle ~300 Hz qui chute, très courte) : rend le coup audible sur un petit haut-parleur
+  const m = c.createOscillator()
+  m.type = 'triangle'
+  m.frequency.setValueAtTime(320, at)
+  m.frequency.exponentialRampToValueAtTime(220, at + 0.07)
+  const mg = c.createGain()
+  mg.gain.setValueAtTime(0.0001, at)
+  mg.gain.linearRampToValueAtTime(gain * 0.3, at + 0.004)
+  mg.gain.exponentialRampToValueAtTime(0.001, at + 0.09)
+  m.connect(mg).connect(effetsOut(c))
+  m.start(at)
+  m.stop(at + 0.1)
   const o = c.createOscillator()
   o.type = 'sine'
   o.frequency.setValueAtTime(140, at)
@@ -138,11 +162,12 @@ const thump = (c: AudioContext, at: number, gain: number) => {
   o.connect(g).connect(effetsOut(c))
   o.start(at)
   o.stop(at + 0.13)
-  return o
+  return [m, o]
 }
 
 /** One knock (noise burst + thump) scheduled at audio time `at`; returns the sources so they can be stopped. */
-const knockAt = (c: AudioContext, at: number, intensity: number): AudioScheduledSourceNode[] => [...burst(c, at, 0.12, 400, 0.4 + 0.5 * intensity), thump(c, at, 0.3 + 0.4 * intensity)]
+// Gains en 0,15–0,9 (clac) et 0,12–0,7 (coup) : écart d’environ 14 dB entre l’intensité 0 (niv. 1) et 1 (niv. 5).
+const knockAt = (c: AudioContext, at: number, intensity: number): AudioScheduledSourceNode[] => [...burst(c, at, 0.12, 400, 0.15 + 0.75 * intensity), ...thump(c, at, 0.12 + 0.58 * intensity)]
 
 /** Plays one knock now. Silent when muted or when the audio context is not running (not unlocked yet). */
 export const knock = (intensity: number) => {
@@ -211,7 +236,7 @@ export const creak = () => {
   f.frequency.linearRampToValueAtTime(1400, t + 0.8)
   const g = c.createGain()
   g.gain.setValueAtTime(0.0001, t)
-  g.gain.linearRampToValueAtTime(0.12, t + 0.1)
+  g.gain.linearRampToValueAtTime(0.48, t + 0.1)
   g.gain.linearRampToValueAtTime(0.0001, t + 0.85)
   o.connect(f).connect(g).connect(effetsOut(c))
   o.start(t)
@@ -224,8 +249,8 @@ export const slam = () => {
   const c = ac()
   if (!c || muted.value) return
   const t = c.currentTime
-  burst(c, t, 0.25, 700, 1)
-  thump(c, t, 1)
+  burst(c, t, 0.25, 700, 0.7)
+  thump(c, t, 0.7)
 }
 
 export const hymn = () => {
@@ -238,8 +263,11 @@ export const hymn = () => {
     o.type = 'square'
     o.frequency.value = hz
     const g = c.createGain()
-    g.gain.setValueAtTime(0.06, t + i * 0.2)
-    g.gain.setValueAtTime(0.0001, t + i * 0.2 + 0.18)
+    const s = t + i * 0.2
+    g.gain.setValueAtTime(0.0001, s)
+    g.gain.linearRampToValueAtTime(0.12, s + 0.008)
+    g.gain.setValueAtTime(0.12, s + 0.17)
+    g.gain.linearRampToValueAtTime(0.0001, s + 0.18)
     o.connect(g).connect(effetsOut(c))
     o.start(t + i * 0.2)
     o.stop(t + i * 0.2 + 0.2)
@@ -271,14 +299,14 @@ export const cardFlip = () => {
   const c = ac()
   if (!c || muted.value) return
   const t = c.currentTime
-  burst(c, t, 0.08, 6000, 0.35)
+  burst(c, t, 0.08, 6000, 0.14)
   const o = c.createOscillator()
   o.type = 'triangle'
   o.frequency.setValueAtTime(520, t + 0.16)
   o.frequency.exponentialRampToValueAtTime(880, t + 0.26)
   const g = c.createGain()
   g.gain.setValueAtTime(0.0001, t)
-  g.gain.setValueAtTime(0.09, t + 0.16)
+  g.gain.setValueAtTime(0.036, t + 0.16)
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.3)
   o.connect(g).connect(effetsOut(c))
   o.start(t)
@@ -311,8 +339,11 @@ const beep = (c: AudioContext, at: number, from: number, to: number, dur: number
   o.frequency.setValueAtTime(from, at)
   o.frequency.linearRampToValueAtTime(to, at + dur)
   const g = c.createGain()
-  g.gain.setValueAtTime(gain, at)
-  g.gain.setValueAtTime(0.0001, at + dur)
+  // attaque et relâche de 6 ms : pas de saut de gain (clic) aux bords de l’onde carrée
+  g.gain.setValueAtTime(0.0001, at)
+  g.gain.linearRampToValueAtTime(gain, at + 0.006)
+  g.gain.setValueAtTime(gain, at + dur - 0.006)
+  g.gain.linearRampToValueAtTime(0.0001, at + dur)
   o.connect(g).connect(effetsOut(c))
   o.start(at)
   o.stop(at + dur + 0.01)
