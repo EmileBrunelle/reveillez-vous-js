@@ -107,6 +107,9 @@ const leaveText = (el: Element, done: () => void) => {
   }
   void Promise.resolve(a).then(end, end)
 }
+// Le focus arrive sur le conteneur nommé « Finale » dès l’entrée (App.vue, via focusTarget), puis sur « Recommencer » quand il apparaît.
+const rootEl = useTemplateRef<HTMLElement>('rootEl')
+defineExpose({ focus: () => focusQuietly(rootEl.value, { preventScroll: true }) })
 const restartBtn = useTemplateRef<HTMLButtonElement>('restartBtn')
 // Le générique peut dépasser (téléphone) : « Recommencer » est ramené dans la section défilante, en douceur sauf mouvement réduit.
 // Le bouton n’existe qu’une fois le générique monté (après le fondu du texte) : on agit à son montage, une fois la hauteur du conteneur posée.
@@ -218,16 +221,20 @@ const lineClass = (i: number) =>
     />
   </div>
   <section
-    class="w-full max-w-[34rem] max-h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
+    ref="rootEl"
+    class="w-full max-w-[34rem] max-h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white outline-none [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
+    tabindex="-1"
     aria-label="Finale"
   >
     <div v-if="showBox" ref="box" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" style="height: 0; opacity: 0">
       <div ref="inner" class="grid gap-3 justify-items-center px-4 py-5">
         <Transition :css="false" mode="out-in" @leave="leaveText">
-          <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center" role="status">
-            <div v-if="showText" class="grid gap-3 justify-items-center">
+          <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center">
+            <!-- Région live à ajouts seulement : chaque ligne qui arrive est annoncée seule, pas le texte cumulé. -->
+            <div v-if="showText" class="grid gap-3 justify-items-center" role="status" aria-atomic="false" aria-relevant="additions">
               <template v-for="(l, i) in shown" :key="l">
-                <p v-if="i < FINALE_TITLE.length" class="m-0" :class="lineClass(i)" :aria-label="l">
+                <p v-if="i < FINALE_TITLE.length" class="m-0" :class="lineClass(i)">
+                  <span class="sr-only">{{ l }}</span>
                   <template v-for="(w, wi) in letters(l)" :key="wi">
                     <span class="inline-block whitespace-nowrap" aria-hidden="true"
                       ><span v-for="(c, ci) in w" :key="ci" v-rise="{ d: c.d, y: 10, letter: true }" class="inline-block">{{ c.ch }}</span></span
@@ -242,7 +249,7 @@ const lineClass = (i: number) =>
                 <p v-else v-rise="{}" class="m-0" :class="lineClass(i)">{{ l }}</p>
               </template>
             </div>
-            <div v-if="showCredits" class="grid gap-3 justify-items-center">
+            <div v-if="showCredits" class="grid gap-3 justify-items-center" role="status">
               <h2 v-rise="{ d: creditDelay(0) }" class="font-title m-0 text-[1.6rem] tracking-[0.06em]">{{ CREDITS_TITLE }}</h2>
               <p v-for="(c, ci) in CREDITS_BODY" :key="c" v-rise="{ d: creditDelay(ci + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
               <p v-rise="{ d: creditDelay(CREDITS_BODY.length + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">
