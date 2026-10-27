@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
 import { onClickOutside, useEventListener, useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
@@ -18,6 +18,7 @@ defineProps<{ level: number }>()
 const emit = defineEmits<{ about: []; collection: []; sound: []; reset: []; resetLevel: [] }>()
 
 const open = ref(false)
+const menuId = useId()
 const warm = () => prefetch(loadAbout, loadCollection, loadReset, loadSound) // les boîtes de dialogue sont des chunks à part
 const startBtn = useTemplateRef<HTMLButtonElement>('startBtn')
 const menu = useTemplateRef<HTMLElement>('menu')
@@ -120,7 +121,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         type="button"
         aria-haspopup="menu"
         :aria-expanded="open"
-        aria-controls="start-menu"
+        :aria-controls="menuId"
         @click="toggle"
         @pointerenter="warm"
         @focus="warm"
@@ -130,7 +131,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
       </button>
       <div
         v-show="open"
-        id="start-menu"
+        :id="menuId"
         ref="menu"
         class="absolute bottom-full left-0 mb-[2px] flex w-[min(17rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] bg-[#c0c0c0] p-[2px] shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#dfdfdf,inset_-2px_-2px_grey,inset_2px_2px_#fff]"
         role="menu"

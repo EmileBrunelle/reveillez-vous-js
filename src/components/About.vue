@@ -166,6 +166,7 @@ const skip = () => {
             (CC BY 3.0). Polices : VT323, IM Fell English et Cinzel (SIL OFL 1.1).
           </p>
           <Dialog.Close
+            aria-label="Fermer"
             class="select-none touch-manipulation [-webkit-tap-highlight-color:transparent] [font:inherit] cursor-pointer text-black border-2 border-solid border-black focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px] bg-[#ffff55] py-[0.4rem] px-4"
             >Fermer</Dialog.Close
           >

@@ -27,6 +27,8 @@ describe('SoundWindow', () => {
     for (const label of ['Volume général', 'Ambiance', 'Effets', 'Finale']) expect(html).toContain(`>${label}</label>`)
     expect(html).toContain('100 %')
     expect(html).toContain('Valeurs par défaut')
-    expect(html).toContain('aria-labelledby="sound-title"')
+    const titleId = html.match(/aria-labelledby="([^"]+)"/)?.[1]
+    expect(titleId).toBeTruthy()
+    expect(html).toContain(`id="${titleId}"`)
   })
 })
