@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Directive, useTemplateRef } from 'vue'
-import { animate } from 'motion-v'
+import { animate, Motion, useMotionValue } from 'motion-v'
 import { useEventListener, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
@@ -26,6 +26,7 @@ const skipped = ref(false)
 // Statique d’emblée en mouvement réduit ou après un saut ; sinon chaque élément monte sur un ressort doux, après `d` secondes.
 let running: Stoppable[] = []
 const vRise: Directive<HTMLElement, { d?: number; y?: number; letter?: boolean; soft?: boolean }> = {
+  // Exception : un hook de directive est l’endroit prévu pour toucher le DOM ; l’état initial invisible doit précéder le premier rendu (pas de flash avant le ressort).
   beforeMount(el) {
     if (!reduced.value && !skipped.value) el.style.opacity = '0'
   },
@@ -64,7 +65,11 @@ const creditsAnnounce = computed(() => (showCredits.value && (!reduced.value || 
 const showBox = computed(() => showText.value || showCredits.value)
 // Un seul conteneur pour le texte puis le générique : il entre sur un ressort (échelle + opacité) et sa hauteur suit le contenu au ressort,
 // au lieu d’apparaître d’un coup plus grand. Mouvement réduit : simple fondu, hauteur posée directement.
-const box = useTemplateRef<HTMLElement>('box')
+// Hauteur, opacité, échelle et décalage du conteneur : des valeurs Motion liées au gabarit (`:style`), aucune écriture à la main sur l’élément.
+const boxHeight = useMotionValue(0)
+const boxOpacity = useMotionValue(0)
+const boxScale = useMotionValue(1)
+const boxY = useMotionValue(0)
 const inner = useTemplateRef<HTMLElement>('inner')
 let boxIn = false
 let heightAnim: Stoppable | undefined
@@ -76,25 +81,24 @@ const keep = (a: Stoppable) => {
   )
 }
 useResizeObserver(inner, () => {
-  const el = box.value
   const h = inner.value?.offsetHeight
-  if (!el || !h) return
+  if (!h) return
   if (!boxIn) {
     boxIn = true
-    el.style.height = `${h}px`
-    if (skipped.value) return void (el.style.opacity = '1')
-    keep(
-      animate(
-        el,
-        { opacity: [0, 1], ...(reduced.value ? {} : { scale: [0.94, 1], y: [14, 0] }) } as never,
-        reduced.value ? ({ duration: 0.6, ease: 'easeOut' } as never) : ({ type: 'spring', stiffness: 70, damping: 16 } as never),
-      ),
-    )
+    boxHeight.set(h)
+    if (skipped.value) return void boxOpacity.set(1)
+    if (reduced.value) return keep(animate(boxOpacity, 1, { duration: 0.6, ease: 'easeOut' }))
+    boxScale.set(0.94)
+    boxY.set(14)
+    const spring = { type: 'spring', stiffness: 70, damping: 16 } as const
+    keep(animate(boxOpacity, 1, spring))
+    keep(animate(boxScale, 1, spring))
+    keep(animate(boxY, 0, spring))
     return
   }
-  if (reduced.value || skipped.value) return void (el.style.height = `${h}px`)
+  if (reduced.value || skipped.value) return void boxHeight.set(h)
   heightAnim?.stop?.()
-  heightAnim = animate(el, { height: h } as never, { type: 'spring', stiffness: 90, damping: 20 } as never)
+  heightAnim = animate(boxHeight, h, { type: 'spring', stiffness: 90, damping: 20 })
   keep(heightAnim)
 })
 // Le texte s’efface avant que le générique ne prenne sa place (la hauteur du conteneur se règle pendant ce temps).
@@ -200,8 +204,8 @@ const skip = () => {
 const onButton = (e: Event) => e.target instanceof Element && !!e.target.closest('button, a, [role="menuitem"]')
 useEventListener(document, 'click', (e) => onButton(e) || skip())
 useEventListener(document, 'keydown', (e) => (e.key === ' ' || e.key === 'Enter') && !onButton(e) && skip())
+// Exception : libère le son (Web Audio, hors VueUse) et mène les ressorts à leur fin ; les minuteries VueUse s’arrêtent seules avec le scope.
 onBeforeUnmount(() => {
-  stop()
   finishAnimations(running)
   running = []
   audio.stop()
@@ -231,7 +235,7 @@ const lineClass = (i: number) =>
   >
     <!-- Région live persistante, vide jusqu’au générique : un rôle status inséré déjà plein serait muet. -->
     <p class="sr-only" role="status">{{ creditsAnnounce }}</p>
-    <div v-if="showBox" ref="box" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" style="height: 0; opacity: 0">
+    <Motion v-if="showBox" as="div" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" :style="{ height: boxHeight, opacity: boxOpacity, scale: boxScale, y: boxY }">
       <div ref="inner" class="grid gap-3 justify-items-center px-4 py-5">
         <Transition :css="false" mode="out-in" @leave="leaveText">
           <div :key="reduced ? 'all' : step" class="grid gap-3 justify-items-center">
@@ -270,6 +274,6 @@ const lineClass = (i: number) =>
           </div>
         </Transition>
       </div>
-    </div>
+    </Motion>
   </section>
 </template>
