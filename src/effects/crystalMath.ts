@@ -1,5 +1,15 @@
 /** Aides pures de la boule de cristal : anneau de coups de chiffon et estimation de couverture. Coordonnées : disque unité, y vers le bas. */
 
+/** Part de la boule à essuyer pour réussir. */
+export const WIN_RATIO = 0.7
+/** Rayon d’essuyage d’un point (disque unité) : un trou apparaît entre deux points plus éloignés que lui. */
+export const WIPE_RADIUS = 0.22
+/**
+ * Pas d’une pression de flèche (disque unité), borné par WIPE_RADIUS pour que l’essuyage au clavier ne laisse pas de trous.
+ * Le nombre de pressions pour réussir en serpentin est vérifié par tests/effects/crystalMath.test.ts.
+ */
+export const KEY_STEP = 0.2
+
 /** Nombre de points transmis au shader (champs p0..p7 de l’uniforme). */
 export const RING_SIZE = 8
 
@@ -72,7 +82,7 @@ export const decodeCell = (packed: number[], i: number, j: number, n = 16): bool
 }
 
 /** Grille grossière n × n : seules les cellules dont le centre est dans le disque comptent. */
-export const createCoverage = (n = 16, radius = 0.22) => {
+export const createCoverage = (n = 16, radius = WIPE_RADIUS) => {
   const inside: boolean[] = []
   const wiped: boolean[] = []
   let total = 0

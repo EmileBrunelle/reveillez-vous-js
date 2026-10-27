@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DROP_EXTENT, DWELL_MS, advanceDwell, clampDrop, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift } from '../../src/engine/ouija'
+import { DROP_EXTENT, DWELL_MS, advanceDwell, clampDrop, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift, wrongLetterMessage } from '../../src/engine/ouija'
 import { mulberry32 } from '../../src/engine/rng'
 
 describe('ouija', () => {
@@ -78,5 +78,12 @@ describe('ouija', () => {
   })
   it('clampDrop ne bouge pas une cible déjà dans les bornes', () => {
     expect(clampDrop(100, 200, 384, 600)).toEqual({ x: 100, y: 200 })
+  })
+
+  it('annonce une mauvaise lettre : la lettre touchée et la lettre attendue', () => {
+    expect(wrongLetterMessage('Z', 'M')).toBe('Z : ce n’est pas la bonne lettre. La lettre attendue est M.')
+    // Deux essais différents ne donnent pas le même texte (la région aria-live ne réannonce pas un texte identique).
+    expect(wrongLetterMessage('Z', 'M')).not.toBe(wrongLetterMessage('Y', 'M'))
+    expect(wrongLetterMessage('Z', null)).toBe('Z : ce n’est pas la bonne lettre.')
   })
 })

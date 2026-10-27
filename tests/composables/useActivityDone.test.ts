@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { AUTO_SUCCESS_MS, SKIP_REVEAL_MS, useActivityDone } from '../../src/composables/useActivityDone'
+import { AUTO_SUCCESS_MS, POKE_THROTTLE_MS, SKIP_REVEAL_MS, useActivityDone } from '../../src/composables/useActivityDone'
 
 describe('useActivityDone', () => {
   beforeEach(() => vi.useFakeTimers())
@@ -108,5 +108,24 @@ describe('useActivityDone', () => {
     vi.advanceTimersByTime(SKIP_REVEAL_MS * 2)
     expect(api.canSkip.value).toBe(false)
     scope.stop()
+  })
+
+  it('une rafale de pointermove repousse « Passer » sans l’avancer : jamais avant 12 s, au plus 250 ms après', () => {
+    vi.stubGlobal('document', new EventTarget())
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100, autoMs: 120_000 }))!
+    // 5 s de pointermove à 60 Hz.
+    for (let i = 0; i < 300; i++) {
+      document.dispatchEvent(new Event('pointermove'))
+      vi.advanceTimersByTime(16)
+    }
+    expect(api.canSkip.value).toBe(false)
+    // Le dernier événement date d’environ 16 ms : la minuterie (réarmée au plus POKE_THROTTLE_MS après lui) n’échoit jamais avant SKIP_REVEAL_MS.
+    vi.advanceTimersByTime(SKIP_REVEAL_MS - 100)
+    expect(api.canSkip.value).toBe(false)
+    vi.advanceTimersByTime(100 + POKE_THROTTLE_MS)
+    expect(api.canSkip.value).toBe(true)
+    scope.stop()
+    vi.unstubAllGlobals()
   })
 })

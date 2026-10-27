@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RING_SIZE, clampToDisc, createCoverage, createWipeRing, decodeCell, packCoverage, spacedStamps, stampsAlong } from '../../src/effects/crystalMath'
+import { KEY_STEP, RING_SIZE, WIN_RATIO, WIPE_RADIUS, clampToDisc, createCoverage, createWipeRing, decodeCell, packCoverage, spacedStamps, stampsAlong } from '../../src/effects/crystalMath'
 
 describe('createWipeRing', () => {
   it('écrase le plus ancien point une fois plein', () => {
@@ -106,5 +106,43 @@ describe('packCoverage / decodeCell', () => {
     const packed = c.pack()
     expect(decodeCell(packed, 8, 8)).toBe(true)
     expect(decodeCell(packed, 0, 0)).toBe(false)
+  })
+})
+
+// Mesuré : 41 pressions (≈ 3 par seconde sur les 14 s) ; marge pour un tracé moins efficace.
+const PRESSES_MAX = 60
+
+describe('objectif au clavier', () => {
+  // Le chiffon part du centre (0, 0), comme dans CrystalActivity ; chaque pression pose un point.
+  const play = (rowStep: number) => {
+    const cov = createCoverage()
+    let x = 0
+    let y = 0
+    let presses = 0
+    const press = (dx: number, dy: number) => {
+      const p = clampToDisc(x + dx * KEY_STEP, y + dy * KEY_STEP)
+      x = p.x
+      y = p.y
+      cov.mark(x, y)
+      presses++
+    }
+    for (let k = 0; k < 4; k++) press(0, -1) // vers le haut de la boule
+    let dir = -1
+    while (cov.ratio() < WIN_RATIO && presses < 400) {
+      for (let k = 0; k < 10 && cov.ratio() < WIN_RATIO; k++) press(dir, 0)
+      for (let k = 0; k < rowStep && cov.ratio() < WIN_RATIO; k++) press(0, 1)
+      dir = -dir
+    }
+    return { ratio: cov.ratio(), presses }
+  }
+
+  it('le pas d’une flèche ne dépasse pas le rayon d’essuyage (aucun trou entre deux points)', () => {
+    expect(KEY_STEP).toBeLessThanOrEqual(WIPE_RADIUS)
+  })
+
+  it('un serpentin aux flèches depuis le centre atteint WIN_RATIO en un nombre raisonnable de pressions', () => {
+    const { ratio, presses } = play(2)
+    expect(ratio).toBeGreaterThanOrEqual(WIN_RATIO)
+    expect(presses).toBeLessThan(PRESSES_MAX)
   })
 })

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
+import { useDeferredText } from '../../composables/useDeferredText'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useHaptics } from '../../composables/haptics'
 import { knock } from '../../audio/sfx'
@@ -16,16 +17,6 @@ import { checkStep, hintFor, makeSequence, startInput } from '../../engine/windo
 const { level } = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
-const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
-  durationMs: durationOf('windows'),
-  // Fin : les fenêtres se verrouillent (plus de frappe pendant l’issue) ; seule la réussite affiche la fin réussie.
-  onFinish: (o) => {
-    stopTicks()
-    lit.value = null
-    hint.value = null
-    phase.value = o === 'win' ? 'won' : 'play'
-  },
-})
 const reduced = useReducedMotion()
 
 // Fenêtre allumée ~700 ms, intervalle de 350 ms ; fondus CSS de 350 ms (variation de luminance bien sous 3 Hz).
@@ -34,27 +25,13 @@ const GAP_MS = 350
 const WINDOWS = 6
 const seq = makeSequence(secureRng(), 3, WINDOWS)
 
+// État lu par `onFinish` et par les minuteries : déclaré avant `useActivityDone`.
 const phase = ref<'intro' | 'play' | 'input' | 'won'>('intro')
 const lit = ref<number | null>(null)
 const input = ref(startInput())
 const hint = ref<number | null>(null)
 const house = useTemplateRef<HTMLElement>('house')
 const missed = ref(false)
-// Annonce vocale (région aria-live) des phases du jeu.
-// À l’échec (temps écoulé), rien : le HUD annonce déjà l’issue.
-// Ordre complet annoncé au tour du joueur : « fenêtres 4, 5, 3 ».
-const turnOrder = `fenêtres ${seq.map((n) => n + 1).join(', ')}`
-const status = computed(() =>
-  outcome.value === 'fail'
-    ? ''
-    : phase.value === 'won'
-      ? 'Bravo, c’est réussi.'
-      : phase.value === 'input'
-        ? `À vous : ${turnOrder}.`
-        : missed.value
-          ? 'Ce n’était pas celle-là. On recommence.'
-          : 'Regardez bien…',
-)
 let playIdx = 0
 let shake: { stop: () => void } | undefined
 
@@ -76,6 +53,24 @@ const { pause: stopTicks, resume: resumeTicks } = useIntervalFn(
   LIT_MS + GAP_MS,
   { immediate: false, immediateCallback: true },
 )
+
+const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
+  durationMs: durationOf('windows'),
+  // Fin : les fenêtres se verrouillent (plus de frappe pendant l’issue) ; seule la réussite affiche la fin réussie.
+  onFinish: (o) => {
+    stopTicks()
+    lit.value = null
+    hint.value = null
+    phase.value = o === 'win' ? 'won' : 'play'
+  },
+})
+
+// Annonce vocale (région aria-live) des phases du jeu : la région existe dès le montage, le texte n’y entre qu’un instant après.
+// À l’issue (réussite ou échec) rien : le HUD, seule source, l’annonce.
+// Ordre complet annoncé au tour du joueur : « fenêtres 4, 5, 3 ».
+const turnOrder = `fenêtres ${seq.map((n) => n + 1).join(', ')}`
+const status = useDeferredText(() => (outcome.value !== 'play' ? '' : phase.value === 'input' ? `À vous : ${turnOrder}.` : missed.value ? 'Ce n’était pas celle-là. On recommence.' : 'Regardez bien…'))
+
 const startPlay = () => {
   if (outcome.value !== 'play') return
   phase.value = 'play'

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useId, useTemplateRef } from 'vue'
 import { useDeferredText } from '../../composables/useDeferredText'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -8,14 +8,13 @@ import { useActivityDone } from '../../composables/useActivityDone'
 import { startWipeSound, type WipeSound } from '../../audio/wipe'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import type { GpuLoop } from '../../effects/gpuLoop'
-import { clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
+import { KEY_STEP, WIN_RATIO, clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
 
 // Niveau 5 : essuyer la boule de cristal. Brume WebGPU (canvas carré) ; si le GPU échoue, brume CSS qui s’efface quand même.
 defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
-const WIN_RATIO = 0.7
 const SPACING = 0.14
-const KEY_STEP = 0.14
+const helpId = useId()
 
 const ball = useTemplateRef<HTMLElement>('ball')
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
@@ -28,7 +27,8 @@ const ratio = ref(0)
 const ringVersion = ref(0) // repousse le recalcul du masque CSS de secours
 const cleared = ref(false)
 const clearedAt = ref(0)
-const prompt = useDeferredText(() => (cleared.value ? 'La brume se dissipe…' : 'Essuyez la boule de cristal'))
+// À l’issue la région se vide : le HUD annonce seul le résultat.
+const prompt = useDeferredText(() => (outcome.value !== 'play' ? '' : 'Essuyez la boule de cristal'))
 // Réussite (joueur ou minuterie) : `onFinish` règle la dissipation ; en mouvement réduit la brume disparaît d’un coup.
 const reducedMotion = useReducedMotion()
 const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {
@@ -184,8 +184,9 @@ onUnmounted(() => {
       ref="ball"
       class="ball relative rounded-full touch-none cursor-grab focus-visible:outline-2 focus-visible:outline-offset-4"
       tabindex="0"
-      role="group"
-      aria-label="Boule de cristal embrumée. Glissez le doigt ou la souris dessus pour l’essuyer. Au clavier, les flèches déplacent le chiffon."
+      role="application"
+      aria-label="Boule de cristal embrumée"
+      :aria-describedby="helpId"
       @pointerdown="onDown"
       @pointermove="onMove"
       @pointerup="onUp"
@@ -206,6 +207,7 @@ onUnmounted(() => {
         aria-hidden="true"
       />
     </div>
+    <p :id="helpId" class="sr-only">Glissez le doigt ou la souris sur la boule pour l’essuyer. Au clavier, les flèches déplacent le chiffon.</p>
     <p class="text-xl text-center px-4" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
