@@ -46,6 +46,17 @@ export const prophecies: Grammar = {
     '{question1}|Les cartes voient votre fin de session : 76 tasses de café. Elles voient aussi la 77ᵉ. Elles vous déconseillent la 78ᵉ.|{verset}',
   ],
 
+  // ---- Première lecture de la session (visites = 0) : pure voyance/Halloween, jamais de clin d’œil complotiste -------
+  // Même format que `niveau1`, tirée par `nextProphecy` quand `premiere` est vrai (sac persisté `premiere1`).
+  premiere1: [
+    '{question1}|Dans la boule de cristal, je vois une porte, une main et un petit sac de {bonbon}. La porte, c’est la vôtre. La main, c’est la mienne.|{verset}',
+    '{question1}|D’après la pleine lune, vous passerez une très belle semaine. Une personne en drap blanc vous demandera du sel. Donnez-lui-en.|{verset}',
+    '{question1}|Le 31 octobre, de petites créatures sonneront chez vous. Vous aurez peur du ninja de six ans. Les cartes savent pourquoi.|{verset}',
+    '{question1}|À minuit, ce soir, vous entendrez peut-être un léger craquement. Ce sera un fantôme poli qui cherche l’interrupteur.|{verset}',
+    '{question1}|Cette semaine, une personne vous offrira une citrouille. Acceptez-la : ce sera la première d’une longue série.|{verset}',
+    '{question1}|J’ai tiré une carte : une belle journée vous attend {moment}. Le chat noir, lui, aura une journée terrible. Je ne dis pas pourquoi.|{verset}',
+  ],
+
   // ---- Niveau 2 · Soupçon : les liens apparaissent ----------------------------------
   niveau2: [
     '{question2}|Ma boule de cristal annonce que {futur} {moment}. Exactement comme je l’avais prédit. Exactement comme on l’avait prévu.|{verset}',
@@ -291,6 +302,12 @@ export const prophecies: Grammar = {
   onglet5: ['REVENEZ.', 'JE SUIS DANS L’ONGLET.', 'IL N’Y A PERSONNE. REVENEZ.'],
 
   // ---- Bulles de la barre des tâches (« Titre|Texte ») -------------------------------------------
+  // Niveau 1 : une seule bulle, juste après la toute première lecture de la session (visites = 0) ; elle annonce la suite.
+  bulle1: [
+    'Visite enregistrée|Une première visite. La porte vous attend.',
+    'Barre des tâches|Votre passage a été noté. La porte vous attend.',
+    'Niveau de vigilance : 1|Je vous regarde, avec bienveillance. Pour l’instant.',
+  ],
   bulle2: [
     'Nouveau message|La boule de cristal a essayé de vous joindre.',
     'Mise à jour disponible|Votre avenir a été mis à jour. Redémarrage requis.',
