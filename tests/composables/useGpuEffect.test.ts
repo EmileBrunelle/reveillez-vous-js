@@ -13,14 +13,16 @@ const loop = () => ({ stop: vi.fn<() => void>() })
 const flush = async () => {
   for (let i = 0; i < 6; i++) await Promise.resolve()
 }
+const visible = ref('visible')
 const mount = (start: Parameters<typeof useGpuEffect>[1], options: Parameters<typeof useGpuEffect>[2] = {}) => {
   const scope = effectScope()
-  const fx = scope.run(() => useGpuEffect(canvas, start, { settle, warning: 'test', ...options }))!
+  const fx = scope.run(() => useGpuEffect(canvas, start, { settle, warning: 'test', visibility: visible, ...options }))!
   return { scope, ...fx }
 }
 
 describe('useGpuEffect', () => {
   beforeEach(() => {
+    visible.value = 'visible'
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
   })
   afterEach(() => vi.useRealTimers())
@@ -54,6 +56,7 @@ describe('useGpuEffect', () => {
     const start = vi.fn(async () => loop())
     let release!: () => void
     const { scope } = mount(start, { settle: () => new Promise<void>((r) => (release = r)) })
+    await flush() // la visibilité est déjà acquise : `settle` est en attente
     scope.stop()
     release()
     await flush()
@@ -118,5 +121,48 @@ describe('useGpuEffect', () => {
     await vi.advanceTimersByTimeAsync(101)
     expect(status.value).toBe('failed')
     expect(vi.mocked(console.warn).mock.calls.at(-1)?.[1]).toBeInstanceOf(Error)
+  })
+
+  it('document caché : ni start ni échec, même après le délai ; visible : démarrage normal', async () => {
+    vi.useFakeTimers()
+    visible.value = 'hidden'
+    const l = loop()
+    const start = vi.fn(async () => l)
+    const { status, lost } = mount(start, { timeout: 5000, gate: async () => true })
+    await vi.advanceTimersByTimeAsync(20000)
+    expect(start).not.toHaveBeenCalled()
+    expect(status.value).toBe('starting')
+    expect(lost.value).toBe(false)
+    visible.value = 'visible'
+    await vi.advanceTimersByTimeAsync(0)
+    expect(start).toHaveBeenCalledOnce()
+    expect(status.value).toBe('ready')
+  })
+
+  it('visible mais attente bloquée : le délai court à partir de la visibilité, puis start n’est jamais lancé', async () => {
+    vi.useFakeTimers()
+    visible.value = 'hidden'
+    let release!: () => void
+    const start = vi.fn(async () => loop())
+    const { status } = mount(start, { timeout: 5000, settle: () => new Promise<void>((r) => (release = r)) })
+    await vi.advanceTimersByTimeAsync(10000)
+    visible.value = 'visible'
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(status.value).toBe('starting')
+    await vi.advanceTimersByTimeAsync(1100)
+    expect(status.value).toBe('failed')
+    release()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(start).not.toHaveBeenCalled() // expiré : pas de start inutile
+  })
+
+  it('destruction pendant l’attente de visibilité : rien ne démarre au retour', async () => {
+    visible.value = 'hidden'
+    const start = vi.fn(async () => loop())
+    const { scope } = mount(start)
+    scope.stop()
+    visible.value = 'visible'
+    await flush()
+    expect(start).not.toHaveBeenCalled()
   })
 })

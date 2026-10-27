@@ -1,5 +1,5 @@
-import { ref, type Ref } from 'vue'
-import { tryOnMounted, tryOnScopeDispose, useTimeoutFn } from '@vueuse/core'
+import { ref, watch, type Ref } from 'vue'
+import { tryOnMounted, tryOnScopeDispose, useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
 import type { GpuLoop } from '../effects/gpuLoop'
 import { nextFrame } from './nextFrame'
 
@@ -15,6 +15,8 @@ export interface GpuEffectOptions {
   warning?: string
   /** Attente avant l’init, pour que le canevas soit mis en page (une image par défaut) ; injectable pour les tests. */
   settle?: () => Promise<void>
+  /** Visibilité du document ; injectable pour les tests (par défaut `useDocumentVisibility()`, créé dans le scope du composant). */
+  visibility?: Readonly<Ref<'visible' | 'hidden' | string>>
 }
 
 /**
@@ -25,6 +27,13 @@ export interface GpuEffectOptions {
  */
 export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, start: (canvas: HTMLCanvasElement, onLost: () => void) => Promise<GpuLoop>, options: GpuEffectOptions = {}) => {
   const { gate, timeout, warning = 'Effet GPU désactivé :', settle = nextFrame } = options
+  // Onglet ouvert en arrière-plan : rAF est suspendu, une init bornée y échouerait pour de bon. On attend donc la visibilité AVANT la porte, la mise en page
+  // et la borne : le délai ne commence qu’une fois l’onglet visible. Le `watch` vit dans le scope du composant (aucune fuite après la destruction).
+  const visibility = options.visibility ?? useDocumentVisibility()
+  const waiters: Array<() => void> = []
+  watch(visibility, (v) => v === 'visible' && waiters.splice(0).forEach((r) => r()))
+  const whenVisible = () => (visibility.value === 'visible' ? Promise.resolve() : new Promise<void>((resolve) => waiters.push(resolve)))
+  let expired = false
   const status = ref<GpuStatus>('starting')
   const lost = ref(false)
   let gone = false
@@ -44,6 +53,8 @@ export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, st
     loop = null
   })
   tryOnMounted(async () => {
+    await whenVisible()
+    if (gone) return
     if (gate) {
       let ok = false
       try {
@@ -58,7 +69,7 @@ export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, st
       }
     }
     // L’attente de mise en page est DANS la borne : onglet masqué, rAF est suspendu et l’init échoue quand même après `timeout`.
-    const run = settle().then(() => (gone || !canvas.value ? null : start(canvas.value, () => (lost.value = true))))
+    const run = settle().then(() => (gone || expired || !canvas.value ? null : start(canvas.value, () => (lost.value = true))))
     try {
       const s = await bounded(run, 'init')
       if (!s) return
@@ -66,6 +77,7 @@ export const useGpuEffect = (canvas: Readonly<Ref<HTMLCanvasElement | null>>, st
       loop = s
       status.value = 'ready'
     } catch (e) {
+      expired = true // si l’attente de mise en page finit après l’expiration, `start` n’est même pas lancé
       console.warn(warning, e)
       lost.value = true
       void run.then(

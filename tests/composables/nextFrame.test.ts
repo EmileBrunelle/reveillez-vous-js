@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextFrame } from '../../src/composables/nextFrame'
+import { nextFrame, nextFrameOr } from '../../src/composables/nextFrame'
 
 // useRafFn de VueUse ne démarre que si `window` existe à l’import (isClient) : l’environnement de test est node.
 const frames = vi.hoisted(() => {
@@ -28,5 +28,24 @@ describe('nextFrame', () => {
     expect(done).toBe(true)
     runFrame() // l’éventuelle image suivante déclenchée par la boucle
     expect(frames.length).toBe(0)
+  })
+
+  it('nextFrameOr : l’image gagne, la minuterie est annulée', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }) // rAF reste la file du test
+    const p = nextFrameOr(120)
+    runFrame()
+    await p
+    expect(vi.getTimerCount()).toBe(0)
+    vi.useRealTimers()
+  })
+
+  it('nextFrameOr : le délai gagne si rAF est suspendu, la boucle est arrêtée', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }) // rAF reste la file du test
+    const p = nextFrameOr(120)
+    await vi.advanceTimersByTimeAsync(121)
+    await p
+    expect(vi.getTimerCount()).toBe(0)
+    expect(() => runFrame()).not.toThrow() // une image tardive ne fait rien
+    vi.useRealTimers()
   })
 })
