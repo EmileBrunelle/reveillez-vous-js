@@ -6,7 +6,7 @@ import { useProgressStore } from '../../stores/progress'
 import { startAmbience } from '../../audio/ambience'
 import { placeLoaders, type PlaceId } from '../../effects/places'
 
-const props = defineProps<{ place: PlaceId; variant?: Record<string, number> }>()
+const props = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const failed = ref(false)
@@ -53,6 +53,7 @@ onMounted(async () => {
       shader: cfg.shader,
       params: (st) => cfg.params({ ...st, variant: props.variant }),
       motion: () => !reducedMotion.value,
+      sharp: () => props.sharp ?? false,
       paranoia,
       parallax,
       onLost: () => (failed.value = true),

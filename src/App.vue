@@ -319,7 +319,7 @@ const onFinaleRestart = () => {
       Connexion aux ondes…
     </p>
     <template v-if="gpu === 'ok'">
-      <BgPlace :key="place.id" :place="place.id" :variant="placeVariant.params" />
+      <BgPlace :key="place.id" :place="place.id" :variant="placeVariant.params" :sharp="crtOff" />
       <div
         class="fixed inset-0 z-0 pointer-events-none bg-[rgb(120_0_0/0.35)] transition-opacity duration-[400ms] motion-reduce:transition-none"
         :class="listening ? 'opacity-100' : 'opacity-0'"
