@@ -366,16 +366,17 @@ const onSceneClick = (e: MouseEvent) => {
       <div class="absolute inset-0" aria-hidden="true">
         <div
           ref="glow"
-          class="absolute inset-0 opacity-0 [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat] [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]"
+          class="absolute inset-[1.5px] opacity-0 [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat] [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]"
           :style="{ maskImage: `url('${door.mask}')`, WebkitMaskImage: `url('${door.mask}')` }"
         />
         <div ref="seer" class="absolute left-1/2 bottom-0 w-[38%] -ml-[19%] opacity-0 [&_.seer]:block [&_.seer]:w-full"><Seer class="seer" /></div>
       </div>
       <div
         ref="spill"
-        class="absolute -left-[45%] -right-[45%] top-[8%] h-[130%] opacity-0 origin-[50%_0] [clip-path:polygon(33%_0,67%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0.7),rgb(255_226_140/0))] pointer-events-none"
+        class="absolute -left-[45%] -right-[45%] top-[60%] h-[80%] opacity-0 origin-[50%_0] [clip-path:polygon(33%_0,67%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0),rgb(255_226_140/0.6)_14%,rgb(255_226_140/0))] blur-[7px] pointer-events-none"
         aria-hidden="true"
       />
+      <component :is="door.frame" v-if="door.frame" class="absolute inset-0 block w-full h-full pointer-events-none" />
       <div
         ref="leaf"
         data-leaf

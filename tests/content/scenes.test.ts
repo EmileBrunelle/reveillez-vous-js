@@ -73,7 +73,7 @@ describe('doors', () => {
   })
   it('door SVGs keep a door-handle for the knock animation and the shared viewBox', () => {
     readdirSync('src/assets/svg')
-      .filter((f) => f.startsWith('porte-'))
+      .filter((f) => f.startsWith('porte-') && !f.endsWith('-cadre.svg'))
       .forEach((f) => {
         const svg = readFileSync(`src/assets/svg/${f}`, 'utf8')
         expect(svg, f).toContain('class="door-handle"')
