@@ -59,15 +59,25 @@ describe('startFinaleAudio', () => {
     expect(stats.oscStarted).toBe(0)
   })
 
-  it('muet : aucune source démarrée', () => {
+  it('muet : les sons démarrent quand même (la sourdine passe par le bus maître, pour revenir si on la retire)', () => {
     vi.stubGlobal('window', { AudioContext: FakeCtx })
     muted.value = true
     const a = startFinaleAudio()
     a.powerDown()
     a.dawn()
     a.bell()
-    expect(stats.oscStarted).toBe(0)
+    expect(stats.oscStarted).toBeGreaterThan(0)
     a.stop()
+  })
+
+  it('stop(false) (saut) garde les ambiances étouffées ; le stop() final les libère', () => {
+    vi.stubGlobal('window', { AudioContext: FakeCtx })
+    const a = startFinaleAudio()
+    a.powerDown()
+    a.stop(false)
+    expect(ambienceDucked.value).toBe(true)
+    a.stop()
+    expect(ambienceDucked.value).toBe(false)
   })
 
   it('séquence complète puis stop() : étouffe les ambiances, arrête et déconnecte tout, idempotent', () => {

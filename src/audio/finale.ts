@@ -22,7 +22,8 @@ export interface FinaleAudio {
   /** Une cloche douce sur « Bonjour. ». */
   bell: () => void
   /** Coupe tout (passer, Recommencer, démontage) ; idempotent. */
-  stop: () => void
+  /** Coupe tout en fondu. `releaseDuck` à false (saut de séquence) : les ambiances restent étouffées jusqu’au prochain arrêt complet. */
+  stop: (releaseDuck?: boolean) => void
 }
 
 const noop: FinaleAudio = { powerDown: () => {}, dawn: () => {}, fadePad: () => {}, bell: () => {}, stop: () => {} }
@@ -38,7 +39,8 @@ export const startFinaleAudio = (enabled = true): FinaleAudio => {
   let padGain: GainNode | null = null
   const padOscs: OscillatorNode[] = []
   let stopped = false
-  const live = () => !stopped && !muted.value
+  // La sourdine passe par `master` : les sons démarrent quand même, et réapparaissent si on la retire en cours de finale.
+  const live = () => !stopped
 
   const unwatch = watch(muted, (m) => {
     master.gain.cancelScheduledValues(c.currentTime)
@@ -131,11 +133,11 @@ export const startFinaleAudio = (enabled = true): FinaleAudio => {
         o.stop(t + dur + 0.05)
       })
     },
-    stop() {
+    stop(releaseDuck = true) {
+      if (releaseDuck) ambienceDucked.value = false
       if (stopped) return
       stopped = true
       unwatch()
-      ambienceDucked.value = false
       const t = c.currentTime
       master.gain.cancelScheduledValues(t)
       master.gain.setTargetAtTime(0, t, 0.06)

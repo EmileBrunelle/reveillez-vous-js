@@ -76,9 +76,10 @@ onMounted(() => {
 })
 // Passer la séquence : tout le reste (texte, générique, « Recommencer ») apparaît d’un coup.
 const skip = () => {
-  if (step.value === 'credits') return
+  // En mouvement réduit tout est déjà affiché : rien à passer (et la nappe continue).
+  if (step.value === 'credits' || reduced.value) return
   stop()
-  audio.stop() // coupe nappe et cloche en fondu, sans oscillateur orphelin
+  audio.stop(false) // coupe nappe et cloche en fondu, sans oscillateur orphelin ; le générique reste silencieux comme en fin normale
   if (step.value === 'pre' || step.value === 'collapse') emit('collapsed') // l’aube doit quand même se mettre en place
   count.value = lines.length
   step.value = 'credits'
