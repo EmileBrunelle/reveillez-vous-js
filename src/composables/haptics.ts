@@ -1,5 +1,3 @@
-import { muted } from '../audio/sfx'
-
 /** Durée maximale d’une impulsion : courte, jamais de motif soutenu (WCAG 2.3.1, ≥ 3 Hz). */
 export const MAX_PULSE_MS = 30
 export const MIN_PULSE_MS = 10
@@ -10,9 +8,11 @@ type VibrateNav = { vibrate?: (pattern: number) => boolean }
 
 const defaultNav = (): object | undefined => (typeof navigator === 'undefined' ? undefined : navigator)
 
-/** Garde unique : Android seulement (iOS n’expose pas vibrate), et rien si le son est coupé. */
-export const canVibrate = (nav: object | undefined = defaultNav(), isMuted: boolean = muted.value): boolean =>
-  !isMuted && !!nav && 'vibrate' in nav && typeof (nav as VibrateNav).vibrate === 'function'
+const tabHidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden'
+
+/** Garde unique : Android seulement (iOS n’expose pas vibrate), et rien quand l’onglet est caché.
+ * Le son coupé ne bloque pas : le haptique aide justement le jeu muet (rythme de la porte). */
+export const canVibrate = (nav: object | undefined = defaultNav(), hidden: boolean = tabHidden()): boolean => !hidden && !!nav && 'vibrate' in nav && typeof (nav as VibrateNav).vibrate === 'function'
 
 let last = -Infinity
 /** Impulsion courte (10–30 ms), silencieuse si la garde refuse. `nav` et `now` sont injectables pour les tests. */

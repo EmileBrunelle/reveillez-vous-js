@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { muted } from '../../src/audio/sfx'
 import { canVibrate, MAX_PULSE_MS, MIN_GAP_MS, MIN_PULSE_MS, pulse, resetPulseLimiter } from '../../src/composables/haptics'
 
 beforeEach(() => {
-  muted.value = false
   resetPulseLimiter()
 })
 
@@ -13,9 +11,9 @@ describe('canVibrate', () => {
     expect(canVibrate(undefined)).toBe(false)
     expect(canVibrate({ vibrate: () => true })).toBe(true)
   })
-  it('refuse quand le son est coupé', () => {
-    muted.value = true
-    expect(canVibrate({ vibrate: () => true })).toBe(false)
+  it('refuse quand l’onglet est caché, mais pas quand le son est coupé', () => {
+    expect(canVibrate({ vibrate: () => true }, true)).toBe(false)
+    expect(canVibrate({ vibrate: () => true }, false)).toBe(true)
   })
 })
 
@@ -27,13 +25,8 @@ describe('pulse', () => {
     pulse(1, { vibrate }, 2000)
     expect(vibrate).toHaveBeenLastCalledWith(MIN_PULSE_MS)
   })
-  it('ne vibre pas si muet ou sans vibrate', () => {
-    const vibrate = vi.fn(() => true)
-    muted.value = true
-    expect(pulse(20, { vibrate }, 1000)).toBe(false)
-    muted.value = false
+  it('ne vibre pas sans vibrate', () => {
     expect(pulse(20, {}, 1000)).toBe(false)
-    expect(vibrate).not.toHaveBeenCalled()
   })
   it('n’empile pas deux impulsions trop rapprochées', () => {
     const vibrate = vi.fn(() => true)
