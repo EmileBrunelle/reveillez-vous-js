@@ -3,6 +3,7 @@ import { ref, useId } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import IconEye from '~icons/rvj/oeil'
 
+defineOptions({ inheritAttrs: false }) // la racine est un fragment : les attributs (classes de la barre des tâches) vont sur le bouton
 defineProps<{ level: number }>()
 const emit = defineEmits<{ reset: [] }>()
 const hintId = useId()
@@ -49,6 +50,7 @@ const onKeyup = (e: KeyboardEvent) => {
 
 <template>
   <button
+    v-bind="$attrs"
     type="button"
     class="relative m-0 p-0 border-0 bg-transparent [color:inherit] [font-family:inherit] leading-[inherit] text-[0.75rem] tracking-[0.05em] cursor-pointer select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] before:content-[''] before:absolute before:-inset-[2px]"
     :class="{ 'vigil--reset': flash }"
@@ -65,8 +67,6 @@ const onKeyup = (e: KeyboardEvent) => {
     @blur="release"
   >
     <span :id="hintId" class="sr-only" aria-hidden="true">Triple-clic, appui long ou Entrée maintenue 600 millisecondes pour recommencer à zéro.</span>
-    <!-- Région live persistante (montée vide, texte changé ensuite) : un rôle status inséré déjà plein serait muet. -->
-    <span class="sr-only" role="status">{{ flash ? 'Vigilance réinitialisée' : '' }}</span>
     <span v-if="flash" aria-hidden="true">Vigilance réinitialisée</span>
     <span v-else class="inline-flex items-center gap-1" role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">
       <IconEye class="w-4 h-4 flex-none" />
@@ -76,6 +76,8 @@ const onKeyup = (e: KeyboardEvent) => {
       <circle cx="14" cy="14" r="12" fill="none" stroke="currentColor" stroke-width="2" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" />
     </svg>
   </button>
+  <!-- Région live persistante, SŒUR du bouton (ses enfants sont présentationnels pour l’ARIA) : montée vide, texte changé ensuite ; un rôle status inséré déjà plein serait muet. -->
+  <span class="sr-only" role="status">{{ flash ? 'Vigilance réinitialisée' : '' }}</span>
 </template>
 
 <style scoped>

@@ -46,7 +46,7 @@ const avoidBoxes = (): Box[] => {
   return boxes
 }
 // Zone sûre (encoche, coins arrondis) : les fausses fenêtres ne s’y glissent jamais. Mesurée une seule fois, à la première utilisation
-// (une sonde éphémère lit les variables --safe-*, fixes pour la durée de la visite).
+// (une sonde éphémère lit les variables --safe-*) ; le cache est invalidé à chaque rotation de l’écran (l’encoche change de côté).
 let safeInsets: { t: number; r: number; l: number } | null = null
 const safe = () => {
   if (safeInsets) return safeInsets
@@ -58,6 +58,8 @@ const safe = () => {
   probe.remove()
   return safeInsets
 }
+const portrait = useMediaQuery('(orientation: portrait)')
+watch(portrait, () => (safeInsets = null))
 const area = (): Box => {
   const s = safe()
   return { left: s.l, top: s.t, right: window.innerWidth - s.r, bottom: document.querySelector('.taskbar')?.getBoundingClientRect().top ?? window.innerHeight }
