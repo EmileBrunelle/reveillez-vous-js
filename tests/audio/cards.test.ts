@@ -27,7 +27,9 @@ vi.mock('../../src/audio/sfx', () => ({
   ac: () => ctx,
   effetsOut: () => h.out,
   muted: h.muted,
-  noiseBuffer: (_c: unknown, s: number) => (h.durs.push(s), {}),
+}))
+vi.mock('../../src/audio/noise', () => ({
+  startNoise: (_c: unknown, _src: unknown, _at: number, dur: number) => void h.durs.push(dur),
 }))
 
 import { cardCollect, cardHover, cardPick, cardPickStill, createGate, ENV_MAX, ENV_MIN, HOVER_MIN_INTERVAL, jitter, PEAK, WHOOSH_DUR } from '../../src/audio/cards'

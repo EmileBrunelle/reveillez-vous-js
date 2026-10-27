@@ -64,7 +64,8 @@ type Store = Pick<Storage, 'getItem' | 'setItem'>
 const load = (storage: Store, key: string): Record<string, Bag> => {
   try {
     const raw = JSON.parse(storage.getItem(key) ?? '{}')
-    return raw && typeof raw === 'object' ? raw : {}
+    // un tableau est un « object » en JS : l’exiger non-tableau, sinon `bags[id] = …` ne serait jamais sérialisé
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
   } catch {
     return {}
   }

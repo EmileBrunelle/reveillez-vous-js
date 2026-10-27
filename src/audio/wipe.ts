@@ -1,4 +1,7 @@
-import { ac, effetsOut, noiseBuffer } from './sfx'
+import { effectScope } from 'vue'
+import { useTimeoutFn } from '@vueuse/core'
+import { ac, effetsOut } from './sfx'
+import { startNoise } from './noise'
 
 // Frottement d’un chiffon sur du verre : bruit passe-bande dont le gain et la fréquence suivent la vitesse du geste.
 // Vitesse en rayons de boule par seconde (le disque a un rayon de 1).
@@ -44,11 +47,12 @@ export const startWipeSound = (): WipeSound => {
   let nodes: { src: AudioBufferSourceNode; osc: OscillatorNode; band: BiquadFilterNode; g: GainNode; sg: GainNode; out: GainNode } | null = null
   let stopped = false
   let lastT: number | null = null
-  let idle: ReturnType<typeof setTimeout> | undefined
+  // portée propre : l’appelant (un geste, pas un composant) n’en fournit pas ; elle porte la minuterie d’inactivité puis celle de libération
+  const scope = effectScope(true)
+  const idle = scope.run(() => useTimeoutFn(() => rest(), IDLE_MS, { immediate: false }))!
 
   const build = () => {
     const src = c.createBufferSource()
-    src.buffer = noiseBuffer(c, 2)
     src.loop = true
     const band = c.createBiquadFilter()
     band.type = 'bandpass'
@@ -66,7 +70,7 @@ export const startWipeSound = (): WipeSound => {
     src.connect(band).connect(g).connect(out)
     osc.connect(sg).connect(out)
     out.connect(effetsOut(c))
-    src.start()
+    startNoise(c, src, c.currentTime)
     osc.start()
     return { src, osc, band, g, sg, out }
   }
@@ -80,7 +84,7 @@ export const startWipeSound = (): WipeSound => {
   }
 
   const rest = () => {
-    clearTimeout(idle)
+    idle.stop()
     lastT = null
     apply({ gain: 0, freq: FREQ_MIN, squeak: 0 }, RELEASE)
   }
@@ -88,8 +92,8 @@ export const startWipeSound = (): WipeSound => {
   const stop = () => {
     if (stopped) return
     stopped = true
-    clearTimeout(idle)
-    if (!nodes) return
+    idle.stop()
+    if (!nodes) return scope.stop()
     const n = nodes
     nodes = null
     const t = c.currentTime
@@ -101,9 +105,18 @@ export const startWipeSound = (): WipeSound => {
     } catch {
       // déjà arrêtés
     }
-    setTimeout(() => {
-      for (const x of [n.src, n.osc, n.band, n.g, n.sg, n.out]) x.disconnect()
-    }, 350)
+    // libération après la descente du gain, dans la portée : elle ne s’arrête qu’une fois les nœuds déconnectés
+    scope.run(() => {
+      const { start } = useTimeoutFn(
+        () => {
+          for (const x of [n.src, n.osc, n.band, n.g, n.sg, n.out]) x.disconnect()
+          scope.stop()
+        },
+        350,
+        { immediate: false },
+      )
+      start()
+    })
   }
 
   const move = (distance: number) => {
@@ -115,8 +128,7 @@ export const startWipeSound = (): WipeSound => {
     if (c.state !== 'running') void c.resume()
     nodes ??= build()
     apply(wipeParams(distance / dt), SMOOTH)
-    clearTimeout(idle)
-    idle = setTimeout(rest, IDLE_MS)
+    idle.start()
   }
 
   return { move, rest, stop }

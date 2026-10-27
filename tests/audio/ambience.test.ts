@@ -3,22 +3,9 @@ import { muted } from '../../src/audio/sfx'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
-import {
-  EVENT_BOOST,
-  FADE_IN,
-  FADE_MUTE,
-  FADE_OUT,
-  FADE_XFADE,
-  MASTER_GAIN,
-  NOISE_OFFSET_MAX,
-  NOISE_SECONDS,
-  RECIPES,
-  bedGain,
-  fadeParam,
-  randomDelay,
-  startAmbience,
-  targetLevel,
-} from '../../src/audio/ambience'
+import { FADE_IN, FADE_MUTE, FADE_OUT, FADE_XFADE, fadeParam, startAmbience, targetLevel } from '../../src/audio/ambience'
+import { EVENT_BOOST, MASTER_GAIN, NOISE_OFFSET_MAX, RECIPES, bedGain, randomDelay } from '../../src/audio/ambienceSynth'
+import { NOISE_SECONDS } from '../../src/audio/noise'
 import type { PlaceId } from '../../src/effects/places/types'
 
 const PLACES: PlaceId[] = ['perron', 'foret', 'cimetiere', 'rue', 'nuages']
@@ -184,6 +171,16 @@ describe('startAmbience (contexte factice)', () => {
     expect(stats.created).toBeGreaterThan(base) // des événements ont eu lieu
     expect(stats.started - startedBase).toBeLessThan(30) // et pas un flot continu
     stop()
+    vi.advanceTimersByTime(2500)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('à l’arrêt, toutes les minuteries de la portée sont annulées d’un coup : il ne reste que la libération différée', () => {
+    const stop = startAmbience('cimetiere')
+    vi.advanceTimersByTime(60_000)
+    expect(vi.getTimerCount()).toBeGreaterThan(1) // événements, sons rares, avertissement
+    stop()
+    expect(vi.getTimerCount()).toBe(1)
     vi.advanceTimersByTime(2500)
     expect(vi.getTimerCount()).toBe(0)
   })

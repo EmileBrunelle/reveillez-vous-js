@@ -51,6 +51,15 @@ describe('shuffleBag', () => {
     expect(drawPersisted(store, 'porte2', 4, mulberry32(1))).toBeLessThan(4)
   })
 
+  it('remplace un tableau stocké par un objet, de sorte que l’état persiste', () => {
+    const store = memStore()
+    store.setItem(BAGS_KEY, '[]')
+    drawPersisted(store, 'porte2', 4, mulberry32(1))
+    const saved = JSON.parse(store.getItem(BAGS_KEY) ?? 'null')
+    expect(Array.isArray(saved)).toBe(false)
+    expect(saved.porte2.pos).toBe(1)
+  })
+
   describe('allowed', () => {
     const isPerm = (b: Bag, n: number) => [...b.order].sort((a, c) => a - c).join() === Array.from({ length: n }, (_, i) => i).join()
 

@@ -1,7 +1,8 @@
-import { watch } from 'vue'
+import { effectScope, watch } from 'vue'
 import { ac, finaleOut, muted } from './sfx'
 import { ambienceDucked } from './ambience'
 import { playMotif } from './motif'
+import { useTimeoutFn } from '@vueuse/core'
 
 // Sons de la finale, synthétisés (Web Audio). Un seul bus `master` par finale : muet, « passer » et
 // « Recommencer » ramènent ce bus à 0 puis arrêtent et déconnectent toutes les sources (aucun oscillateur orphelin).
@@ -25,8 +26,7 @@ export interface FinaleAudio {
   fadePad: () => void
   /** Une cloche douce sur « Bonjour. ». */
   bell: () => void
-  /** Coupe tout (passer, Recommencer, démontage) ; idempotent. */
-  /** Coupe tout en fondu. `releaseDuck` à false (saut de séquence) : les ambiances restent étouffées jusqu’au prochain arrêt complet. */
+  /** Coupe tout en fondu (passer, Recommencer, démontage) ; idempotent. `releaseDuck` à false (saut de séquence) : les ambiances restent étouffées jusqu’au prochain arrêt complet. */
   stop: (releaseDuck?: boolean) => void
 }
 
@@ -46,10 +46,15 @@ export const startFinaleAudio = (enabled = true): FinaleAudio => {
   // La sourdine passe par `master` : les sons démarrent quand même, et réapparaissent si on la retire en cours de finale.
   const live = () => !stopped
 
-  const unwatch = watch(muted, (m) => {
-    master.gain.cancelScheduledValues(c.currentTime)
-    master.gain.setTargetAtTime(m ? 0 : FINALE_LEVEL, c.currentTime, 0.05)
-  })
+  // portée propre : la finale est lancée hors composant ; elle porte l’observateur de sourdine puis la minuterie de libération
+  const scope = effectScope(true)
+  scope.run(() =>
+    watch(muted, (m) => {
+      if (!live()) return
+      master.gain.cancelScheduledValues(c.currentTime)
+      master.gain.setTargetAtTime(m ? 0 : FINALE_LEVEL, c.currentTime, 0.05)
+    }),
+  )
   const osc = (type: OscillatorType, hz: number) => {
     const o = c.createOscillator()
     o.type = type
@@ -142,20 +147,28 @@ export const startFinaleAudio = (enabled = true): FinaleAudio => {
       if (releaseDuck) ambienceDucked.value = false
       if (stopped) return
       stopped = true
-      unwatch()
       const t = c.currentTime
       master.gain.cancelScheduledValues(t)
       master.gain.setTargetAtTime(0, t, 0.06)
-      setTimeout(() => {
-        sources.forEach((s) => {
-          try {
-            s.stop()
-          } catch {
-            /* déjà arrêté */
-          }
-        })
-        master.disconnect()
-      }, 400)
+      // libération dans la portée (elle s’arrête une fois les sources coupées)
+      scope.run(() => {
+        const { start } = useTimeoutFn(
+          () => {
+            sources.forEach((s) => {
+              try {
+                s.stop()
+              } catch {
+                /* déjà arrêté */
+              }
+            })
+            master.disconnect()
+            scope.stop()
+          },
+          400,
+          { immediate: false },
+        )
+        start()
+      })
     },
   }
 }
