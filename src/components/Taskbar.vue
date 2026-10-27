@@ -3,7 +3,7 @@ import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { onClickOutside, useEventListener, useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
-import { loadAbout, loadCollection, loadReset, prefetch } from '../lazy'
+import { loadAbout, loadCollection, loadReset, loadSound, prefetch } from '../lazy'
 import Vigilance from './Vigilance.vue'
 import IconStart from '~icons/rvj/demarrer'
 import IconSound from '~icons/rvj/son'
@@ -14,10 +14,10 @@ import IconGithub from '~icons/simple-icons/github'
 import { focusQuietly } from '../composables/focusQuietly'
 
 defineProps<{ level: number }>()
-const emit = defineEmits<{ about: []; collection: []; reset: []; resetLevel: [] }>()
+const emit = defineEmits<{ about: []; collection: []; sound: []; reset: []; resetLevel: [] }>()
 
 const open = ref(false)
-const warm = () => prefetch(loadAbout, loadCollection, loadReset) // les boîtes de dialogue sont des chunks à part
+const warm = () => prefetch(loadAbout, loadCollection, loadReset, loadSound) // les boîtes de dialogue sont des chunks à part
 const startBtn = useTemplateRef<HTMLButtonElement>('startBtn')
 const menu = useTemplateRef<HTMLElement>('menu')
 const items = () => Array.from(menu.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
@@ -50,10 +50,11 @@ const chooseFullscreen = () => {
   close(true)
   switchFullscreen()
 }
-const choose = (e: 'about' | 'collection' | 'reset') => {
-  close(e === 'collection') // le focus revient sur « Démarrer » avant l’ouverture : c’est là que la fenêtre le rendra
+const choose = (e: 'about' | 'collection' | 'sound' | 'reset') => {
+  close(e === 'collection' || e === 'sound') // le focus revient sur « Démarrer » avant l’ouverture : c’est là que la fenêtre le rendra
   if (e === 'about') emit('about')
   else if (e === 'collection') emit('collection')
+  else if (e === 'sound') emit('sound')
   else emit('reset')
 }
 onClickOutside(menu, () => close(), { ignore: [startBtn] })
@@ -144,6 +145,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         <div class="flex-1 min-w-0 py-[2px]">
           <button class="" :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
           <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('collection')">Collection</button>
+          <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('sound')">Son…</button>
           <a
             :class="item"
             href="https://github.com/EmileBrunelle/reveillez-vous-js"

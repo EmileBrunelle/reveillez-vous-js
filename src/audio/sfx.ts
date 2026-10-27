@@ -1,6 +1,87 @@
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
+import { safeStorage } from '../composables/safeStorage'
 
 export const muted = ref(false)
+
+// Volumes par catégorie (0 à 1), persistés sous `rvj-audio`. Chaque catégorie a un GainNode branché sur le bus
+// « général », lui-même branché sur la destination : tout son passe par le bus de sa catégorie.
+export const AUDIO_KEY = 'rvj-audio'
+export const VOLUME_KEYS = ['general', 'ambiance', 'effets', 'finale'] as const
+export type VolumeKey = (typeof VOLUME_KEYS)[number]
+export type Volumes = Record<VolumeKey, number>
+export const DEFAULT_VOLUMES: Readonly<Volumes> = { general: 1, ambiance: 1, effets: 1, finale: 1 }
+
+const validVolume = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1
+
+/** Lit le JSON stocké ; chaque valeur invalide ou absente retombe sur 1 sans toucher aux autres. */
+export const parseVolumes = (raw: string | null): Volumes => {
+  const out: Volumes = { ...DEFAULT_VOLUMES }
+  if (!raw) return out
+  try {
+    const data: unknown = JSON.parse(raw)
+    if (data && typeof data === 'object') for (const k of VOLUME_KEYS) if (validVolume((data as Record<string, unknown>)[k])) out[k] = (data as Record<string, number>)[k]
+  } catch {
+    /* JSON illisible : valeurs par défaut */
+  }
+  return out
+}
+
+const readVolumes = (): Volumes => {
+  try {
+    return parseVolumes(safeStorage().getItem(AUDIO_KEY))
+  } catch {
+    return { ...DEFAULT_VOLUMES }
+  }
+}
+
+export const volumes = reactive<Volumes>(readVolumes())
+
+type Buses = Record<VolumeKey, GainNode>
+const buses = new WeakMap<AudioContext, Buses>()
+
+const rampTo = (c: AudioContext, node: GainNode, v: number) => {
+  node.gain.cancelScheduledValues(c.currentTime)
+  node.gain.setTargetAtTime(v, c.currentTime, 0.03)
+}
+
+/** Bus d’une catégorie pour ce contexte (créé à la demande, au volume courant). `general` mène à la destination. */
+const bus = (c: AudioContext, key: VolumeKey): GainNode => {
+  let b = buses.get(c)
+  if (!b) {
+    const general = c.createGain()
+    general.gain.value = volumes.general
+    general.connect(c.destination)
+    b = { general } as Buses
+    for (const k of VOLUME_KEYS) {
+      if (k === 'general') continue
+      const g = c.createGain()
+      g.gain.value = volumes[k]
+      g.connect(general)
+      b[k] = g
+    }
+    buses.set(c, b)
+  }
+  return b[key]
+}
+/** Sortie des sons d’ambiance (lieux, couche de paranoïa). */
+export const ambienceOut = (c: AudioContext) => bus(c, 'ambiance')
+/** Sortie des effets : à utiliser pour tout nouvel effet (`node.connect(effetsOut(c))`, jamais `c.destination`). */
+export const effetsOut = (c: AudioContext) => bus(c, 'effets')
+/** Sortie des sons de la finale. */
+export const finaleOut = (c: AudioContext) => bus(c, 'finale')
+
+/** Règle un volume (borné à 0–1, valeur invalide ignorée), l’applique au bus et le persiste. */
+export const setVolume = (key: VolumeKey, v: number) => {
+  if (!validVolume(v)) return
+  volumes[key] = v
+  if (ctx && ctx.state !== 'closed') rampTo(ctx, bus(ctx, key), v)
+  try {
+    safeStorage().setItem(AUDIO_KEY, JSON.stringify({ ...volumes }))
+  } catch {
+    /* stockage indisponible : le volume vaut pour la session */
+  }
+}
+export const resetVolumes = () => VOLUME_KEYS.forEach((k) => setVolume(k, DEFAULT_VOLUMES[k]))
 
 let ctx: AudioContext | null = null
 export const ac = (): AudioContext | null => {
@@ -34,7 +115,7 @@ const burst = (c: AudioContext, at: number, dur: number, freq: number, gain: num
   const g = c.createGain()
   g.gain.setValueAtTime(gain, at)
   g.gain.exponentialRampToValueAtTime(0.001, at + dur)
-  src.connect(f).connect(g).connect(c.destination)
+  src.connect(f).connect(g).connect(effetsOut(c))
   src.start(at)
   return [src]
 }
@@ -54,7 +135,7 @@ const thump = (c: AudioContext, at: number, gain: number) => {
   const g = c.createGain()
   g.gain.setValueAtTime(gain, at)
   g.gain.exponentialRampToValueAtTime(0.001, at + 0.12)
-  o.connect(g).connect(c.destination)
+  o.connect(g).connect(effetsOut(c))
   o.start(at)
   o.stop(at + 0.13)
   return o
@@ -132,7 +213,7 @@ export const creak = () => {
   g.gain.setValueAtTime(0.0001, t)
   g.gain.linearRampToValueAtTime(0.12, t + 0.1)
   g.gain.linearRampToValueAtTime(0.0001, t + 0.85)
-  o.connect(f).connect(g).connect(c.destination)
+  o.connect(f).connect(g).connect(effetsOut(c))
   o.start(t)
   lfo.start(t)
   o.stop(t + 0.9)
@@ -159,7 +240,7 @@ export const hymn = () => {
     const g = c.createGain()
     g.gain.setValueAtTime(0.06, t + i * 0.2)
     g.gain.setValueAtTime(0.0001, t + i * 0.2 + 0.18)
-    o.connect(g).connect(c.destination)
+    o.connect(g).connect(effetsOut(c))
     o.start(t + i * 0.2)
     o.stop(t + i * 0.2 + 0.2)
   })
@@ -181,7 +262,7 @@ export const cardDeal = () => {
   g.gain.setValueAtTime(0.0001, t)
   g.gain.linearRampToValueAtTime(0.22, t + 0.06)
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.24)
-  src.connect(f).connect(g).connect(c.destination)
+  src.connect(f).connect(g).connect(effetsOut(c))
   src.start(t)
 }
 
@@ -199,7 +280,7 @@ export const cardFlip = () => {
   g.gain.setValueAtTime(0.0001, t)
   g.gain.setValueAtTime(0.09, t + 0.16)
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.3)
-  o.connect(g).connect(c.destination)
+  o.connect(g).connect(effetsOut(c))
   o.start(t)
   o.stop(t + 0.32)
 }
@@ -220,7 +301,7 @@ export const cardThud = () => {
   g.gain.setValueAtTime(0.0001, t)
   g.gain.linearRampToValueAtTime(0.4, t + 0.008)
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.13)
-  src.connect(f).connect(g).connect(c.destination)
+  src.connect(f).connect(g).connect(effetsOut(c))
   src.start(t)
 }
 
@@ -232,7 +313,7 @@ const beep = (c: AudioContext, at: number, from: number, to: number, dur: number
   const g = c.createGain()
   g.gain.setValueAtTime(gain, at)
   g.gain.setValueAtTime(0.0001, at + dur)
-  o.connect(g).connect(c.destination)
+  o.connect(g).connect(effetsOut(c))
   o.start(at)
   o.stop(at + dur + 0.01)
 }
@@ -244,6 +325,12 @@ export const aboutOpen = () => {
   const t = c.currentTime
   beep(c, t, 440, 440, 0.07, 0.05)
   beep(c, t + 0.1, 880, 880, 0.09, 0.05)
+}
+
+/** Aperçu à la sortie du curseur « Effets » : le bip d’ouverture (court, discret). */
+export const previewEffects = () => {
+  unlock()
+  aboutOpen()
 }
 
 /** About closes: one short falling blip. */
