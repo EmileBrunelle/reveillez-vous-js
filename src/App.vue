@@ -184,6 +184,9 @@ const enterDoor = () => {
 }
 enterDoor()
 
+// Dev seulement (exclu du build de prod) : ?phase=deck ou ?phase=card saute la porte et les activités, pour tester la mise en page.
+const devPhase = import.meta.env.DEV ? new URLSearchParams(location.search).get('phase') : null
+
 // Une visite : la porte s’ouvre -> activité (niveau 2+) -> coupe du paquet -> lecture. La prophétie est tirée une fois, à l’ouverture.
 const onDone = () => {
   prefetch(loadTarotCard)
@@ -216,6 +219,10 @@ const onPick = async (paquet: Paquet) => {
   phase.value = 'reading'
   hymn()
   void nextTick(() => focusQuietly(tarotFailed.value ? closeBtn.value : readingEl.value, { preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
+}
+if (devPhase === 'deck' || devPhase === 'card') {
+  phase.value = 'cut'
+  if (devPhase === 'card') void onPick('nuit')
 }
 const leave = (count: boolean) => {
   if (closing.value) return
@@ -344,7 +351,7 @@ const onFinaleRestart = () => {
           <Motion
             v-if="phase === 'door'"
             :key="`door-${sceneKey}`"
-            class="w-full max-w-[36rem] grid justify-items-center"
+            class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"
@@ -370,7 +377,7 @@ const onFinaleRestart = () => {
           <Motion
             v-else-if="phase === 'activity' && Activity"
             key="activity"
-            class="relative w-full max-w-[36rem] h-[calc(100dvh-1.5rem-var(--taskbar-h))] min-h-[22rem] grid"
+            class="relative w-full max-w-[36rem] min-[1600px]:max-w-[90rem] h-[calc(100dvh-1.5rem-var(--taskbar-h))] min-h-[22rem] grid"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"
@@ -381,7 +388,7 @@ const onFinaleRestart = () => {
           <Motion
             v-else-if="phase === 'cut' || phase === 'reading'"
             key="deal"
-            class="w-full max-w-[36rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]"
+            class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"
@@ -391,11 +398,11 @@ const onFinaleRestart = () => {
             <section
               ref="readingEl"
               tabindex="-1"
-              class="w-full max-w-[36rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
+              class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
             >
               <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
                 <DeckCut v-if="phase === 'cut'" :level="level" :rng="rng" @pick="onPick" />
-                <div v-else-if="tarotFailed" class="max-h-full overflow-auto w-full p-4 text-left font-card [background:#f3e3b3] [color:#170a2b] [border:0.3rem_solid_#1f1038]">
+                <div v-else-if="tarotFailed" class="max-h-full overflow-auto w-full max-w-[70ch] mx-auto p-4 text-left font-card [background:#f3e3b3] [color:#170a2b] [border:0.3rem_solid_#1f1038]">
                   <h2 class="font-title m-0 mb-2 text-[1.1rem] uppercase">{{ prophecy.question }}</h2>
                   <p class="m-0 mb-2 text-[1.1rem]">{{ prophecy.body }}</p>
                   <p class="m-0 italic text-right">— {{ prophecy.verse }}</p>
@@ -421,7 +428,7 @@ const onFinaleRestart = () => {
           <Motion
             v-else-if="phase === 'finale'"
             key="finale"
-            class="w-full max-w-[36rem] grid justify-items-center"
+            class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"
