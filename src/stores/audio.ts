@@ -30,7 +30,7 @@ const serializer = { read: parseVolumes, write: (v: Volumes): string => JSON.str
 
 /** Réglages audio : volumes (localStorage) et sourdine (session seulement, jamais persistée). */
 export const useAudioStore = defineStore('audio', () => {
-  const volumes = useStorage<Volumes>(AUDIO_KEY, { ...DEFAULT_VOLUMES }, safeStorage(), { flush: 'sync', writeDefaults: false, listenToStorageChanges: false, serializer })
+  const volumes = useStorage<Volumes>(AUDIO_KEY, { ...DEFAULT_VOLUMES }, safeStorage(), { flush: 'sync', writeDefaults: false, listenToStorageChanges: false, serializer, onError: () => {} })
   const muted = ref(false)
 
   /** Règle un volume (valeur hors 0–1 ou non finie ignorée) et le persiste. */

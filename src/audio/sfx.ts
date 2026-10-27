@@ -1,4 +1,4 @@
-import { customRef, watch } from 'vue'
+import { customRef, effectScope, watch, type EffectScope } from 'vue'
 import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '../stores/audio'
 import { playMotif } from './motif'
 
@@ -57,20 +57,25 @@ export const effetsOut = (c: AudioContext) => bus(c, 'effets')
 export const finaleOut = (c: AudioContext) => bus(c, 'finale')
 
 // Les changements de volume du store (curseurs, remise à zéro) se répercutent sur les bus du contexte courant.
-let stopVolumeWatch: (() => void) | null = null
+// Portée détachée : les watchers survivent au composant qui a déclenché le premier `ac()` (onMounted, etc.).
+let volumeScope: EffectScope | null = null
+let watchedStore: ReturnType<typeof useAudioStore> | null = null
 const watchVolumes = () => {
-  if (stopVolumeWatch) return
   const store = useAudioStore()
-  const stops = VOLUME_KEYS.map((k) =>
-    watch(
-      () => store.volumes[k],
-      (v) => {
-        if (ctx && ctx.state !== 'closed') rampTo(ctx, bus(ctx, k), v)
-      },
-      { flush: 'sync' },
-    ),
-  )
-  stopVolumeWatch = () => stops.forEach((stop) => stop())
+  if (volumeScope && watchedStore === store) return
+  volumeScope?.stop()
+  watchedStore = store
+  volumeScope = effectScope(true)
+  volumeScope.run(() => {
+    for (const k of VOLUME_KEYS)
+      watch(
+        () => store.volumes[k],
+        (v) => {
+          if (ctx && ctx.state !== 'closed') rampTo(ctx, bus(ctx, k), v)
+        },
+        { flush: 'sync' },
+      )
+  })
 }
 
 let ctx: AudioContext | null = null
@@ -80,10 +85,10 @@ export const ac = (): AudioContext | null => {
     const C = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!C) return null
     ctx = new C()
-    watchVolumes()
     // bus (et limiteur) créés d’emblée : le DynamicsCompressor de Chrome atténue ses premières ms à froid, autant qu’il chauffe à vide
     bus(ctx, 'general')
   }
+  watchVolumes()
   return ctx
 }
 
