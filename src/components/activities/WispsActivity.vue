@@ -4,6 +4,8 @@ import { useElementSize, usePreferredReducedMotion, useRafFn, useEventListener, 
 import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { secureRng, type Rng } from '../../engine/rng'
+import { aimPoint, TOUCH_GRACE_MS } from '../../composables/touchAim'
+import { pulse } from '../../composables/haptics'
 import { isNear, nextWaypoint, stepCatch, stepWisp, wispTuning, type Vec } from '../../engine/wisps'
 
 const props = defineProps<{ level: number }>()
@@ -67,6 +69,7 @@ const { start: nextWisp } = useTimeoutFn(
 const catchIt = () => {
   if (blooming.value || !visible.value || isFinished()) return
   blooming.value = true
+  pulse(25)
   trail.value = []
   caught.value++
   if (caught.value >= TOTAL) {
@@ -117,18 +120,40 @@ const { pause } = useRafFn(({ delta }) => {
   if (progress.value >= 1) catchIt()
 })
 
-const local = (e: PointerEvent): Vec => {
-  const r = stage.value!.getBoundingClientRect()
-  return { x: e.clientX - r.left, y: e.clientY - r.top }
+// Au toucher : point de capture 40 px au-dessus du doigt (guide visible), et le doigt levé garde la prise 300 ms.
+const guide = ref<Vec | null>(null)
+const { start: dropGrace, stop: cancelGrace } = useTimeoutFn(
+  () => {
+    pointer = null
+    guide.value = null
+  },
+  TOUCH_GRACE_MS,
+  { immediate: false },
+)
+const aim = (e: PointerEvent): Vec => {
+  cancelGrace()
+  const p = aimPoint(e, stage.value!.getBoundingClientRect())
+  guide.value = e.pointerType === 'touch' ? p : null
+  return p
 }
-useEventListener(stage, 'pointermove', (e: PointerEvent) => (pointer = local(e)))
-useEventListener(stage, 'pointerleave', () => (pointer = null))
-useEventListener(stage, 'pointercancel', () => (pointer = null))
+useEventListener(stage, 'pointermove', (e: PointerEvent) => (pointer = aim(e)))
+useEventListener(stage, 'pointerleave', (e: PointerEvent) => {
+  if (e.pointerType === 'touch') return // le tactile émet pointerleave juste après pointerup : la tolérance de 300 ms s’applique
+  cancelGrace()
+  pointer = null
+  guide.value = null
+})
+useEventListener(stage, 'pointercancel', () => {
+  cancelGrace()
+  pointer = null
+  guide.value = null
+})
 useEventListener(stage, 'pointerup', (e: PointerEvent) => {
-  if (e.pointerType !== 'mouse') pointer = null
+  if (e.pointerType === 'touch') dropGrace()
+  else if (e.pointerType !== 'mouse') pointer = null
 })
 useEventListener(stage, 'pointerdown', (e: PointerEvent) => {
-  pointer = local(e)
+  pointer = aim(e)
   if (!hidden.value && isNear(pointer, pos.value, tuning.value.radius)) catchIt()
 })
 
@@ -139,6 +164,7 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
     <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-200/90" aria-live="polite">Suivez les trois feux follets ({{ caught }}/{{ TOTAL }}).</p>
     <p class="sr-only" role="status" aria-live="polite">{{ settled ? 'Les feux follets se sont laissé apprivoiser.' : '' }}</p>
+    <span v-if="guide" class="wisp-guide pointer-events-none absolute left-0 top-0 rounded-full" :style="{ transform: `translate3d(${guide.x - 14}px, ${guide.y - 14}px, 0)` }" aria-hidden="true" />
     <template v-if="visible">
       <span
         v-for="(p, i) in trailPoints"
@@ -164,6 +190,12 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
   height: 44px;
   background: radial-gradient(circle, #eafff6 0%, #7dffc8 25%, rgb(60 200 230 / 0.55) 55%, transparent 72%);
   filter: blur(1.5px) drop-shadow(0 0 14px rgb(90 255 200 / 0.8));
+}
+.wisp-guide {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgb(125 255 200 / 0.7);
+  box-shadow: 0 0 10px rgb(90 255 200 / 0.5);
 }
 .wisp-wrap {
   animation: wisp-in 0.6s ease-out;

@@ -2,6 +2,8 @@
 import { computed, reactive, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
+import { pulse } from '../../composables/haptics'
+import { TOUCH_GRACE_MS } from '../../composables/touchAim'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useKeyboardModality } from '../../composables/useKeyboardModality'
@@ -94,6 +96,7 @@ const { start: relightLater, stop: relightStop } = useTimeoutFn(
 const light = (i: number) => {
   if (lit[i]) return
   lit[i] = true
+  pulse(20)
   hold[i] = 1
   if (snuffed.value === i) {
     snuffed.value = -1
@@ -109,7 +112,10 @@ const light = (i: number) => {
   finish()
 }
 
+// Au toucher, l’allumette reste visible 300 ms après le pointerup, puis s’efface en fondu.
+const { start: hideMatch, stop: keepMatch } = useTimeoutFn(() => (matchVisible.value = false), TOUCH_GRACE_MS, { immediate: false })
 const setTarget = (e: PointerEvent) => {
+  keepMatch()
   const r = stage.value?.getBoundingClientRect()
   if (!r) return
   target.x = e.clientX - r.left
@@ -124,15 +130,20 @@ const setTarget = (e: PointerEvent) => {
 useEventListener(stage, 'pointermove', setTarget)
 useEventListener(stage, 'pointerdown', setTarget)
 useEventListener(stage, 'pointerup', (e: PointerEvent) => {
-  if (e.pointerType === 'touch') matchVisible.value = false
+  if (e.pointerType === 'touch') hideMatch()
 })
 useEventListener(stage, 'pointercancel', () => {
+  keepMatch()
   matchVisible.value = false
   hold.forEach((_, i) => {
     if (!lit[i]) hold[i] = 0
   })
 })
-useEventListener(stage, 'pointerleave', () => (matchVisible.value = false))
+useEventListener(stage, 'pointerleave', (e: PointerEvent) => {
+  if (e.pointerType === 'touch') return // pointerleave suit pointerup au toucher : le fondu de 300 ms s’applique
+  keepMatch()
+  matchVisible.value = false
+})
 
 const wickPoint = (i: number) => {
   const c = candleEls[i]
