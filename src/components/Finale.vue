@@ -113,10 +113,10 @@ const lineClass = (i: number) => (i < FINALE_TITLE.length ? 'font-title text-[1.
     class="w-full max-w-[34rem] max-h-[calc(100dvh-1.5rem-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
     aria-label="Finale"
   >
-    <div v-if="showText" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.4)]" role="status">
+    <div v-if="showText" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.58)]" role="status">
       <p v-for="(l, i) in shown" :key="l" class="m-0 finale-line" :class="lineClass(i)">{{ l }}</p>
     </div>
-    <div v-if="showCredits" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.5)] finale-line">
+    <div v-if="showCredits" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.62)] finale-line">
       <h2 class="font-title m-0 text-[1.6rem] tracking-[0.06em]">{{ CREDITS_TITLE }}</h2>
       <p v-for="c in CREDITS_BODY" :key="c" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
       <p class="m-0 font-card text-[1.05rem] leading-snug">
