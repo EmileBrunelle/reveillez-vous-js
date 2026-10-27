@@ -143,6 +143,20 @@ const ghosts = computed(() => ['(Cognez à la porte)', props.line, ...texts(`rat
 watch(phase, (p) => emit('listening', p === 'listen'))
 const said = ref('(Cognez à la porte)')
 const verdictText = ref('')
+// Invite sans geste depuis ~3 s : on souffle que la porte se touche (respiration lente + ligne d’aide).
+const nudge = ref(false)
+let nudgeTimer = 0
+const stopNudge = () => {
+  clearTimeout(nudgeTimer)
+  nudge.value = false
+}
+const hint = computed(() => {
+  if (verdictText.value) return verdictText.value
+  if (phase.value === 'listen') return 'Ça cogne de l’intérieur…'
+  if (phase.value === 'repeat') return 'Touchez la porte : un coup par point.'
+  if (phase.value === 'invite' && nudge.value) return 'Touchez la porte pour cogner.'
+  return ''
+})
 const announce = ref('')
 const pattern = ref<Gap[]>([])
 const lit = ref(0)
@@ -226,6 +240,7 @@ const onDoor = (e: MouseEvent) => {
   if (state === 'opening') return finish()
   if (state !== 'idle') return
   if (phase.value === 'invite') {
+    stopNudge()
     playerKnock(e)
     if (!started) {
       started = true
@@ -251,8 +266,12 @@ const onDoorMousedown = (e: MouseEvent) => {
 onMounted(() => {
   if (props.closing) return void slamShut()
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
+  nudgeTimer = window.setTimeout(() => (nudge.value = true), 3000)
 })
-onUnmounted(halt)
+onUnmounted(() => {
+  clearTimeout(nudgeTimer)
+  halt()
+})
 
 const open = async () => {
   if (state === 'opening') return finish()
@@ -352,6 +371,7 @@ const onSceneClick = (e: MouseEvent) => {
       <div
         ref="leaf"
         data-leaf
+        :data-nudge="nudge && phase === 'invite' ? '' : undefined"
         class="absolute inset-0 origin-[0_50%] backface-hidden select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
         role="img"
         :aria-label="door.label"
@@ -391,7 +411,7 @@ const onSceneClick = (e: MouseEvent) => {
         >
       </div>
       <KnockPattern :class="{ invisible: phase === 'invite' }" :pattern="pattern" :lit="lit" :filled="filled" :mode="phase === 'listen' ? 'listen' : 'repeat'" />
-      <p class="m-0 text-[0.9rem]" aria-hidden="true">{{ verdictText || (phase === 'listen' ? 'Ça cogne de l’intérieur…' : phase === 'repeat' ? 'À vous de cogner.' : '') }}</p>
+      <p class="m-0 text-[0.9rem]" aria-hidden="true">{{ hint }}</p>
       <p class="sr-only" role="status" aria-live="polite">{{ announce }}</p>
     </div>
     <SparkPool ref="sparks" />
@@ -447,6 +467,15 @@ const onSceneClick = (e: MouseEvent) => {
     outline-offset: -4px;
   }
 }
+/* Invite : la porte respire (6 s par cycle, ≈0,17 Hz, 1,5 % d’amplitude), sans changement de luminance. Coupée dès le premier coup. */
+[data-leaf][data-nudge] {
+  animation: door-breathe 6s ease-in-out infinite;
+}
+@keyframes door-breathe {
+  50% {
+    transform: scale(1.015);
+  }
+}
 /* Halo de la boule de cristal : respiration lente (5 s, ≈0,2 Hz), faible amplitude, jamais de scintillement. */
 [data-stage] :deep(.seer-halo) {
   animation: seer-halo 5s ease-in-out infinite;
@@ -457,6 +486,9 @@ const onSceneClick = (e: MouseEvent) => {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  [data-leaf][data-nudge] {
+    animation: none;
+  }
   [data-stage] :deep(.seer-halo) {
     animation: none;
   }
