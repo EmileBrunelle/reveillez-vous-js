@@ -25,6 +25,15 @@ const tiltEls = ref<HTMLElement[]>([])
 const glowEls = ref<HTMLElement[]>([])
 const chosen = ref<number | null>(null)
 const hot = ref<number | null>(null)
+// Rang d’empilement : la carte choisie garde celui qu’elle avait au clic tant que les autres ne se sont pas écartées.
+// Passer devant d’un coup une carte qui la recouvre encore donne l’impression qu’elle la traverse.
+const flying = ref(false)
+let pickZ = 1
+const restZ = (i: number) => (hot.value === i ? 5 : i === 1 ? 3 : 1)
+const zClass = (i: number) => {
+  const z = chosen.value === i ? (flying.value ? 10 : pickZ) : chosen.value === null ? restZ(i) : i === 1 ? 3 : 1
+  return z === 10 ? 'z-10' : z === 5 ? 'z-5' : z === 3 ? 'z-3' : 'z-1'
+}
 const ready = ref(false)
 const cards = [0, 1, 2] as const
 const EMBLEMS: Record<Paquet, string> = { nuit: 'moon', feu: 'flame', brume: 'ghost' }
@@ -105,6 +114,7 @@ const apply = () => {
 const finish = () => {
   if (finished || chosen.value === null) return
   finished = true
+  flying.value = true
   const c = state[chosen.value]
   CH.forEach((ch) => {
     c[ch].c = c[ch].t
@@ -152,6 +162,7 @@ const tick = (now: number) => {
         c.k = 420
         c.zeta = 0.9
       } else {
+        flying.value = true
         c.x.t = 0
         c.y.t = 0
         c.r.t = 0
@@ -167,7 +178,8 @@ const tick = (now: number) => {
       const off = pickAt + OTHERS_DELAY + (k + (i === 1 ? 0.5 : 0)) * 70
       if (now >= off) {
         const f = FAN[i]
-        const dir = f.x === 0 ? 0 : Math.sign(f.x)
+        // La carte du milieu s’écarte du côté opposé au choix : elle libère le chemin de l’envol au lieu de rester dessous.
+        const dir = f.x === 0 ? (chosen.value === 0 ? 1 : -1) : Math.sign(f.x)
         c.x.t = (fx(i) / 100) * W + dir * 0.5 * W
         c.y.t = (f.y / 100) * W + 0.14 * W
         c.r.t = f.rot * 2.2
@@ -285,6 +297,8 @@ const { start: startFallback } = useTimeoutFn(() => finish(), 1800, { immediate:
 const choose = (i: number) => {
   if (chosen.value !== null || !ready.value) return
   W = deckEl.value?.offsetWidth ?? W
+  pickZ = restZ(i)
+  flying.value = reduced.value
   chosen.value = i
   hot.value = null
   focusQuietly(deckEl.value) // les boutons se désactivent puis disparaissent : le focus reste dans la coupe au lieu de tomber sur <body>
@@ -331,7 +345,7 @@ const choose = (i: number) => {
       type="button"
       style="opacity: 0"
       class="deck__card absolute top-1/2 left-1/2 p-0 m-0 border-0 [background:none] cursor-pointer rounded-[4cqw] will-change-transform focus-visible:[outline:0.9cqw_solid_#f3e3b3] focus-visible:outline-offset-[1.2cqw]"
-      :class="{ 'z-10': chosen === i, 'z-5': hot === i && chosen === null, 'z-3': i === 1 && hot !== 1 && chosen !== 1, 'z-1': i !== 1 && hot !== i && chosen !== i, 'pointer-events-none': !ready }"
+      :class="[zClass(i), { 'pointer-events-none': !ready }]"
       :aria-label="`${PAQUET_NOMS[paquets[i]]} : ${PAQUET_PRESAGES[paquets[i]]}`"
       :disabled="chosen !== null"
       @click="choose(i)"
