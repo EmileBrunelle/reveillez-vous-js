@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { AUTO_SUCCESS_MS, useActivityDone } from '../../src/composables/useActivityDone'
+import { AUTO_SUCCESS_MS, SKIP_REVEAL_MS, useActivityDone } from '../../src/composables/useActivityDone'
 
 describe('useActivityDone', () => {
   beforeEach(() => vi.useFakeTimers())
@@ -53,5 +53,40 @@ describe('useActivityDone', () => {
     vi.advanceTimersByTime(AUTO_SUCCESS_MS)
     expect(auto).toEqual(['finish'])
     s2.stop()
+  })
+
+  it('révèle « Passer » après 12 s, avant la réussite automatique', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100 }))!
+    expect(SKIP_REVEAL_MS).toBe(12_000)
+    expect(SKIP_REVEAL_MS).toBeLessThan(AUTO_SUCCESS_MS)
+    vi.advanceTimersByTime(SKIP_REVEAL_MS - 1)
+    expect(api.canSkip.value).toBe(false)
+    vi.advanceTimersByTime(1)
+    expect(api.canSkip.value).toBe(true)
+    scope.stop()
+  })
+
+  it('« Passer » (finish) termine tout de suite, cache le bouton et n’émet qu’une fois', () => {
+    const emit = vi.fn()
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(emit, { delayMs: 100 }))!
+    vi.advanceTimersByTime(SKIP_REVEAL_MS)
+    api.finish()
+    expect(api.canSkip.value).toBe(false)
+    vi.advanceTimersByTime(100)
+    expect(emit).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(AUTO_SUCCESS_MS * 2)
+    expect(emit).toHaveBeenCalledTimes(1)
+    scope.stop()
+  })
+
+  it('une réussite avant 12 s ne révèle jamais « Passer »', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100 }))!
+    api.finish()
+    vi.advanceTimersByTime(SKIP_REVEAL_MS * 2)
+    expect(api.canSkip.value).toBe(false)
+    scope.stop()
   })
 })

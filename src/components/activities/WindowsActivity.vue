@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { animate } from 'motion-v'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
+import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { knock } from '../../audio/sfx'
@@ -11,7 +12,7 @@ import { checkStep, hintFor, makeSequence, startInput } from '../../engine/windo
 
 const props = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
-const { finish } = useActivityDone(() => emit('done'))
+const { finish, canSkip } = useActivityDone(() => emit('done'))
 const reduced = useReducedMotion()
 
 // Fenêtre allumée ~700 ms, intervalle de 350 ms ; fondus CSS de 350 ms (variation de luminance bien sous 3 Hz).
@@ -27,15 +28,7 @@ const hint = ref<number | null>(null)
 const house = ref<HTMLElement>()
 const missed = ref(false)
 // Annonce vocale (région aria-live) des phases du jeu.
-const status = computed(() =>
-  phase.value === 'won'
-    ? 'Bravo, c’est réussi.'
-    : phase.value === 'input'
-      ? 'À vous.'
-      : missed.value
-        ? 'Ce n’était pas celle-là. On recommence.'
-        : 'Regardez bien… (L’activité se termine d’elle-même après un moment.)',
-)
+const status = computed(() => (phase.value === 'won' ? 'Bravo, c’est réussi.' : phase.value === 'input' ? 'À vous.' : missed.value ? 'Ce n’était pas celle-là. On recommence.' : 'Regardez bien…'))
 let playIdx = 0
 let shake: { stop: () => void } | undefined
 
@@ -114,5 +107,6 @@ const hit = (i: number) => {
         />
       </div>
     </div>
+    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
