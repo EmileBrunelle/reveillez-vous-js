@@ -89,3 +89,11 @@ export interface PhraseGate {
 
 /** Une phrase ne démarre jamais sur un leitmotif ou un jingle, ni en sourdine, onglet caché, finale ou contexte suspendu. */
 export const canStartPhrase = (g: PhraseGate): boolean => g.running && !g.muted && !g.hidden && !g.ducked && g.nowMs >= g.nextAtMs && g.motifBusyUntil <= g.ctxTime && g.stingerBusyUntil <= g.ctxTime
+
+/** Délai (s) avant la prochaine phrase après un retour (fin de sourdine, onglet revenu, fin de finale) : pas de départ immédiat. */
+export const RESUME_MIN = 8
+export const RESUME_MAX = 20
+export const resumeDelay = (rng: Rng): number => RESUME_MIN + rng() * (RESUME_MAX - RESUME_MIN)
+
+/** Valeur d’occupation après une coupure anticipée : on ne rabaisse que ce qu’on a posé soi-même (`current === mine`), jamais la valeur d’un autre. */
+export const releaseBusy = (current: number, mine: number, previous: number): number => (current === mine ? previous : current)

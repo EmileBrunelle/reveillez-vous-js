@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { releaseBusy } from './musicPlan'
 import { ac, effetsOut, muted } from './sfx'
 import type { Outcome } from '../engine/activityTiming'
 
@@ -45,7 +46,9 @@ export const playStinger = (o: Outcome, delay = 0): (() => void) => {
   const stops: (() => void)[] = []
   const t0 = c.currentTime + delay
   const out = effetsOut(c)
-  stingerBusyUntil.value = Math.max(stingerBusyUntil.value, t0 + stingerDuration(o) + 0.3)
+  const prevBusy = stingerBusyUntil.value
+  const myBusy = Math.max(prevBusy, t0 + stingerDuration(o) + 0.3)
+  stingerBusyUntil.value = myBusy
   for (const n of STINGERS[o]) {
     const s = t0 + n.at
     const e = s + n.dur
@@ -71,5 +74,8 @@ export const playStinger = (o: Outcome, delay = 0): (() => void) => {
       osc.stop(t + 0.04)
     })
   }
-  return () => stops.forEach((f) => f())
+  return () => {
+    stops.forEach((f) => f())
+    stingerBusyUntil.value = releaseBusy(stingerBusyUntil.value, myBusy, prevBusy)
+  }
 }

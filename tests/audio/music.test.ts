@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mulberry32 } from '../../src/engine/rng'
-import { GAP_MAX, GAP_MIN, canStartPhrase, musicGap, phraseDuration, planPhrase, type PhraseGate } from '../../src/audio/musicPlan'
+import { GAP_MAX, GAP_MIN, RESUME_MAX, RESUME_MIN, canStartPhrase, musicGap, phraseDuration, planPhrase, releaseBusy, resumeDelay, type PhraseGate } from '../../src/audio/musicPlan'
 
 const primary = (level: number, seed: number) => planPhrase(level, mulberry32(seed)).filter((n) => !n.echo)
 
@@ -80,4 +80,20 @@ describe('canStartPhrase', () => {
     for (const k of ['muted', 'hidden', 'ducked'] as const) expect(canStartPhrase({ ...free, [k]: true })).toBe(false)
     expect(canStartPhrase({ ...free, running: false })).toBe(false)
   })
+})
+
+describe('resumeDelay', () => {
+  it('reste entre 8 et 20 s', () => {
+    const r = mulberry32(9)
+    for (let i = 0; i < 300; i++) {
+      const d = resumeDelay(r)
+      expect(d).toBeGreaterThanOrEqual(RESUME_MIN)
+      expect(d).toBeLessThan(RESUME_MAX)
+    }
+  })
+})
+
+describe('releaseBusy', () => {
+  it('rabaisse sa propre valeur', () => expect(releaseBusy(30, 30, 5)).toBe(5))
+  it('ne rabaisse jamais la valeur d’un autre', () => expect(releaseBusy(42, 30, 5)).toBe(42))
 })

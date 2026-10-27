@@ -4,7 +4,7 @@ import { orSecure, type Rng } from '../engine/rng'
 import { ambienceDucked, fadeParam } from './ambience'
 import { motifBusyUntil } from './motif'
 import { playPhrase, type PhraseHandle } from './pianoVoice'
-import { canStartPhrase, musicGap, phraseDuration, planPhrase } from './musicPlan'
+import { canStartPhrase, musicGap, phraseDuration, planPhrase, releaseBusy, resumeDelay } from './musicPlan'
 import { ac, ambienceOut, muted } from './sfx'
 import { stingerBusyUntil } from './stinger'
 
@@ -35,15 +35,24 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
   let stopped = false
   let hidden = false
   let mine: PhraseHandle | null = null
+  /** Occupation posée par ma phrase et valeur d’avant, pour la rabaisser si elle est coupée. */
+  let myBusy = 0
+  let prevBusy = 0
   if (nextAtMs === 0) nextAtMs = Date.now() + musicGap(rng) * 400
   const out = c.createGain()
   out.gain.value = 1
   out.connect(ambienceOut(c))
 
   const endMine = (fade: number) => {
-    mine?.stop(fade)
+    if (!mine) return
+    mine.stop(fade)
+    motifBusyUntil.value = releaseBusy(motifBusyUntil.value, myBusy, prevBusy)
     if (current === mine) current = null
     mine = null
+  }
+
+  const delayResume = () => {
+    nextAtMs = Math.max(nextAtMs, Date.now() + resumeDelay(rng) * 1000)
   }
 
   const tick = () => {
@@ -70,7 +79,9 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
     const t0 = c.currentTime + 0.1
     mine = current = playPhrase(c, out, t0, notes, level >= 3 && level < 5 ? WOBBLE_CENTS : 0)
     const dur = phraseDuration(notes)
-    motifBusyUntil.value = Math.max(motifBusyUntil.value, t0 + dur)
+    prevBusy = motifBusyUntil.value
+    myBusy = Math.max(prevBusy, t0 + dur)
+    motifBusyUntil.value = myBusy
     nextAtMs = Date.now() + (dur + musicGap(rng)) * 1000
   }
 
@@ -81,11 +92,15 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
       (v) => {
         hidden = v === 'hidden'
         if (hidden) endMine(FADE_QUICK)
+        else delayResume()
       },
       { immediate: true },
     )
-    watch(muted, (m) => m && endMine(FADE_QUICK))
-    watch(ambienceDucked, (d) => d && endMine(FADE_QUICK))
+    watch(muted, (m) => (m ? endMine(FADE_QUICK) : delayResume()))
+    watch(ambienceDucked, (d) => (d ? endMine(FADE_QUICK) : delayResume()))
+    // un jingle ou un leitmotif qui démarre coupe la phrase en cours (sauf l’occupation posée par ma propre phrase)
+    watch(stingerBusyUntil, (v) => v > c.currentTime && endMine(FADE_QUICK))
+    watch(motifBusyUntil, (v) => mine && v !== myBusy && v > c.currentTime && endMine(FADE_QUICK))
     useIntervalFn(tick, TICK_MS)
   })
 
