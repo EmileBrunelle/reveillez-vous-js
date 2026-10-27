@@ -2,8 +2,11 @@ import { defineConfig, presetWind4, transformerDirectives, transformerVariantGro
 
 export default defineConfig({
   presets: [presetWind4({ preflights: { reset: false, theme: 'on-demand' } })],
-  // Tout src/ (.vue et .ts); les ids de Vite peuvent porter un suffixe ?query.
-  content: { pipeline: { include: [/\/src\/.*\.(vue|ts)($|\?)/] } },
+  // .vue seulement (les ids de Vite peuvent porter un suffixe ?query) : aucun .ts ne porte de classes.
+  content: { pipeline: { include: [/\/src\/.*\.vue($|\?)/] } },
+  // Utilitaires nus jamais employés comme classes mais homonymes d’identifiants ou de mots du code (`me`, `ms`, étape 'collapse', événement 'resize', « mis » en commentaire…) :
+  // sans ça, ils produisent du CSS mort et le survol UnoCSS de VS Code s’affiche sur des variables.
+  blocklist: ['me', 'ms', 'mis', 'ring', 'resize', 'collapse', 'px', 'py', 'table', 'static', 'tab', 'ma'],
   transformers: [transformerDirectives(), transformerVariantGroup()],
   theme: {
     font: {
