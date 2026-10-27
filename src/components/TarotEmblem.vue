@@ -24,7 +24,7 @@ import IconBat from '~icons/game-icons/bat'
 import IconSnowman from '~icons/game-icons/snowman'
 import IconAntenna from '~icons/game-icons/tv-tower'
 
-// Static imports: tree-shaken, no runtime fetching. Plain object of component definitions (never put in a ref).
+// Imports statiques : élagués au build, aucun chargement à l’exécution. Objet simple de définitions de composants (jamais mis dans une ref).
 const ICONS: Record<string, Component> = {
   fool: IconFool,
   wheel: IconWheel,

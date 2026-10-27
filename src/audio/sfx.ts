@@ -131,7 +131,7 @@ const burst = (c: AudioContext, at: number, dur: number, freq: number, gain: num
 }
 
 export interface KnockHandle {
-  /** Hit times on the clock `now()` reads (the AudioContext clock when it is running). */
+  /** Instants des coups sur l’horloge lue par `now()` (l’horloge de l’AudioContext quand il tourne). */
   times: number[]
   now: () => number
   cancel: () => void
@@ -163,7 +163,7 @@ const thump = (c: AudioContext, at: number, gain: number, mid: number) => {
   return [m, o]
 }
 
-/** One knock (noise burst + thump) scheduled at audio time `at`; returns the sources so they can be stopped. */
+/** Un coup (rafale de bruit + choc sourd) planifié à l’instant audio `at` ; retourne les sources pour pouvoir les arrêter. */
 // Intensité 0 (niv. 1) à 1 (niv. 5). Le plafond du limiteur (≈ -3,6 dBFS crête) fixe le niv. 5 ; pour garder ≥ 10 dB d’écart sans
 // rendre le niv. 1 inaudible, c’est la composante médium (triangle ~300 Hz, seule audible sur un portable) qui porte le bas de l’échelle :
 // elle part haut (0,13) et monte peu, alors que le clac et le corps grave (sous 150 Hz) grimpent de 0,14/0,12 à 0,9/0,7.
@@ -174,17 +174,17 @@ const knockAt = (c: AudioContext, at: number, intensity: number): AudioScheduled
   ...thump(c, at, lerp(KNOCK.thump, intensity), lerp(KNOCK.mid, intensity)),
 ]
 
-/** Plays one knock now. Silent when muted or when the audio context is not running (not unlocked yet). */
+/** Joue un coup maintenant. Silencieux en sourdine ou quand le contexte audio ne tourne pas (pas encore déverrouillé). */
 export const knock = (intensity: number) => {
   if (muted.value || !ctx || ctx.state !== 'running') return
   knockAt(ctx, ctx.currentTime, intensity)
 }
 
 /**
- * Schedules knocks at `offsets` (seconds from the first, which plays ~50 ms from now) on the Web Audio clock
- * and calls `onHit` from a rAF loop when the clock reaches each hit (shifted by the output latency), so
- * visuals and sound share one time base. Before audio is unlocked (no running context) the same schedule
- * runs silently on performance.now().
+ * Planifie des coups à `offsets` (secondes depuis le premier, qui joue ~50 ms après maintenant) sur l’horloge Web Audio
+ * et appelle `onHit` depuis une boucle rAF quand l’horloge atteint chaque coup (décalé par la latence de sortie), de sorte
+ * que l’image et le son partagent une seule base de temps. Avant le déverrouillage audio (aucun contexte actif), le même
+ * calendrier s’exécute en silence sur performance.now().
  */
 export const scheduleKnocks = (offsets: number[], intensity: number, onHit: (i: number, intensity: number) => void): KnockHandle => {
   const live = ctx !== null && ctx.state === 'running'
@@ -211,7 +211,7 @@ export const scheduleKnocks = (offsets: number[], intensity: number, onHit: (i: 
         try {
           s.stop()
         } catch {
-          /* already stopped */
+          /* déjà arrêtée */
         }
       })
     },
@@ -285,7 +285,7 @@ export const hymn = () => {
   })
 }
 
-/** Card slides in: a short filtered-noise swish rising in pitch. */
+/** La carte glisse : un court bruissement de bruit filtré dont la hauteur monte. */
 export const cardDeal = () => {
   const c = ac()
   if (!c || muted.value) return
@@ -304,7 +304,7 @@ export const cardDeal = () => {
   startNoise(c, src, t, 0.25)
 }
 
-/** Card flips: a papery snap and a small bright blip on the landing. */
+/** La carte se retourne : un claquement de papier et un petit bip clair à l’atterrissage. */
 export const FLIP_BLIP_HZ = 554.37
 export const cardFlip = () => {
   const c = ac()
@@ -324,7 +324,7 @@ export const cardFlip = () => {
   o.stop(t + 0.32)
 }
 
-/** Card lands after the flip: a short, dull paper thud (low-passed noise, no tone). */
+/** La carte atterrit après le retournement : un court choc sourd de papier (bruit passe-bas, sans tonalité). */
 export const cardThud = () => {
   const c = ac()
   if (!c || muted.value) return
@@ -359,7 +359,7 @@ const beep = (c: AudioContext, at: number, from: number, to: number, dur: number
   o.stop(at + dur + 0.01)
 }
 
-/** About opens: the leitmotif, short and high, no echo (replaces the old two beeps). */
+/** Ouverture de la fenêtre À propos : le leitmotiv, court et aigu, sans écho (remplace les deux anciens bips). */
 export const aboutOpen = () => {
   const c = ac()
   if (!c || muted.value) return
@@ -372,7 +372,7 @@ export const previewEffects = () => {
   aboutOpen()
 }
 
-/** About closes: one short falling blip. */
+/** Fermeture de la fenêtre À propos : un court bip descendant. */
 export const aboutClose = () => {
   const c = ac()
   if (!c || muted.value) return

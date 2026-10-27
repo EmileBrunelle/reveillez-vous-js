@@ -8,7 +8,7 @@ import raw from '../../src/../src/content/prophecies.ts?raw'
 const SEEDS = 60
 const levels = [1, 2, 3, 4, 5]
 
-/** Every (key, template, seed) expansion of the real content. */
+/** Chaque expansion (clé, gabarit, graine) du contenu réel. */
 // eslint-disable-next-line func-style -- générateur : func-style n’exempte pas `function*`
 function* expansions(prefix: 'niveau' | 'porte' | 'rate') {
   for (const n of levels) {
@@ -22,7 +22,7 @@ function* expansions(prefix: 'niveau' | 'porte' | 'rate') {
   }
 }
 
-/** Single-table keys (no level suffix) joined to the same checks. */
+/** Clés à table unique (sans suffixe de niveau) soumises aux mêmes vérifications. */
 // eslint-disable-next-line func-style -- générateur : func-style n’exempte pas `function*`
 function* entrezExpansions() {
   for (const [i, tpl] of (prophecies.entrez as string[]).entries()) {

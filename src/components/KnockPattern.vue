@@ -2,9 +2,9 @@
 import type { Gap } from '../engine/rhythm'
 
 /**
- * Pattern of the seer drawn as dots: ● ● ─── ● (a long gap is a wider, ruled space).
- * listen: dots 0..lit-1 are lit (seer progress). repeat: dots 0..filled-1 are filled (player progress).
- * Decorative only: the announcements live in DoorScene's aria-live region.
+ * Motif de la voyante dessiné en points : ● ● ─── ● (une pause longue est un espace plus large, tracé d’un trait).
+ * listen : les points 0..lit-1 sont allumés (progression de la voyante). repeat : les points 0..filled-1 sont remplis (progression de la personne).
+ * Décoratif seulement : les annonces vivent dans la région aria-live de DoorScene.
  */
 defineProps<{ pattern: Gap[]; lit: number; filled: number; mode: 'listen' | 'repeat' }>()
 </script>

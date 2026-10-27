@@ -128,8 +128,8 @@ canvas {
   user-select: text;
 }
 
-/* Reading phase: the whole screen fits the viewport (no page scroll). Small top/bottom padding (no fixed
-   elements left; the vigilance badge is inline under « Fermer la porte »). */
+/* Phase de lecture : tout l’écran tient dans la fenêtre (pas de défilement de page). Petit remplissage haut/bas (plus aucun
+   élément fixe ; le badge de vigilance est en ligne sous « Fermer la porte »). */
 .app--reading {
   height: 100vh;
   height: 100dvh;

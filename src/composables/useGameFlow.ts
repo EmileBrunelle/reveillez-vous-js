@@ -175,7 +175,7 @@ export const useGameFlow = () => {
     closing.value = true
     unlock()
     if (count) progress.bump()
-    // The open door slams first; the next variant is picked once it is shut (see onClosed).
+    // La porte ouverte claque d’abord ; la variante suivante est choisie une fois qu’elle est fermée (voir onClosed).
     sceneKey.value++
     phase.value = 'door'
   }

@@ -35,7 +35,7 @@ export interface SceneVariant {
   place?: PlaceId
   /** Poids de tirage relatif (défaut 1). */
   weight?: number
-  /** Reserved for a future vgpu renderer (shader params). */
+  /** Réservé à un futur moteur de rendu vgpu (paramètres de shader). */
   params?: Record<string, number>
 }
 
@@ -64,7 +64,7 @@ export const pickDoor = (placeId: PlaceId, rng: Rng): SceneVariant =>
 /** Variante d’un lieu : un lieu peut en avoir plusieurs (paramètres de shader différents). */
 export interface PlaceVariant {
   id: string
-  /** Relative pick weight (default 1). */
+  /** Poids de tirage relatif (défaut 1). */
   weight?: number
   params?: Record<string, number>
 }
@@ -124,7 +124,7 @@ export const places: Place[] = [
   },
 ]
 
-// Dev-only: `?bg=<placeId>` forces a place (stripped from production builds).
+// Dev seulement : `?bg=<placeId>` force un lieu (retiré des versions de production).
 const forced = import.meta.env.DEV && typeof location !== 'undefined' ? new URLSearchParams(location.search).get('bg') : null
 
 /** Lieu du niveau `level` (ou celui forcé par `?bg=` en dev). */

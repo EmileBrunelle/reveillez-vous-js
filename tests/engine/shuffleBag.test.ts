@@ -40,7 +40,7 @@ describe('shuffleBag', () => {
   it('persisted bag survives a reload (no repeat) and resets on size change', () => {
     const store = memStore()
     const first = [0, 1, 2, 3, 4].map(() => drawPersisted(store, 'niveau1', 5, mulberry32(1)))
-    // each call used a fresh rng seeded identically, yet the saved bag prevents repeats
+    // chaque appel utilisait un rng neuf à la même graine, mais le sac sauvegardé empêche les répétitions
     expect(new Set(first).size).toBe(5)
     expect(drawPersisted(store, 'niveau1', 8, mulberry32(1))).toBeLessThan(8)
   })

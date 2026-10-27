@@ -9,7 +9,7 @@ const root = useTemplateRef<HTMLElement>('root')
 let next = 0
 const live: { stop: () => void }[] = []
 
-/** Emits one spark at viewport (x, y); pooled, so at most SIZE exist at any time. */
+/** Émet une étincelle à la position (x, y) de la fenêtre ; mise en réserve, donc au plus SIZE existent en tout temps. */
 const emit = (x: number, y: number) => {
   const idx = next++ % SIZE
   const el = root.value?.children[idx] as HTMLElement | undefined
