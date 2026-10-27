@@ -183,7 +183,7 @@ useRafFn(({ delta }) => {
         :key="n"
         :ref="(el) => (candleEls[n - 1] = el as HTMLElement | null)"
         type="button"
-        class="candle relative bg-transparent border-0 p-0 cursor-pointer w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4"
+        class="candle relative bg-transparent border-0 p-0 cursor-pointer w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4 focus-visible:shadow-none"
         :class="{ pulse: snuffed === n - 1 && !reduced && keyboard }"
         :aria-label="lit[n - 1] ? `Chandelle ${n} allumée` : `Allumer la chandelle ${n}`"
         @pointerenter="hovered[n - 1] = true"
