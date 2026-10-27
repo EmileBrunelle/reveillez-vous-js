@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { Motion, useMotionValue } from 'motion-v'
-import { useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useElementSize, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
 import { FAN, FAN_SCALE } from './deckFan'
@@ -83,9 +83,12 @@ const fanScale = () => (wide.value ? 0.8 : FAN_SCALE)
 const fx = (i: number) => FAN[i].x * (wide.value ? 1.5 : W < 260 ? 1.8 : 1)
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 
-let W = 0 // largeur de la boîte de la carte (px)
-useResizeObserver(deckEl, () => {
-  W = deckEl.value?.offsetWidth ?? 0
+// Largeur de la boîte de la carte (px). `border-box` = l’équivalent d’offsetWidth, mais en flottant (offsetWidth arrondit à l’entier).
+// useElementSize lit offsetWidth au montage, puis suit le ResizeObserver. `W` en reste le miroir non réactif lu par la boucle rAF.
+const { width: deckW } = useElementSize(deckEl, undefined, { box: 'border-box' })
+let W = 0
+watch(deckW, (w) => {
+  W = w
   if (reduced.value) layoutStatic()
 })
 watch(wide, () => reduced.value && layoutStatic())
@@ -295,7 +298,7 @@ const dealSfx = cards.map((i) => useTimeoutFn(cardDeal, 160 + i * 110, { immedia
 const { start: startPhase } = useTimeoutFn(() => (phase = 'idle'), 900, { immediate: false })
 const { start: startReady } = useTimeoutFn(() => (ready.value = true), 1000, { immediate: false })
 onMounted(() => {
-  W = deckEl.value?.offsetWidth ?? 0
+  W = deckW.value // lecture synchrone du montage : le watcher de deckW n’a pas encore tourné
   if (reduced.value) {
     layoutStatic()
     ready.value = true
@@ -421,7 +424,7 @@ const onFocus = (i: number, e: FocusEvent) => ((e.target as HTMLElement).matches
 const { start: startFallback } = useTimeoutFn(() => finish(), 1800, { immediate: false }) // filet indépendant de la boucle rAF (onglet masqué, largeur nulle…)
 const choose = (i: number) => {
   if (chosen.value !== null || !ready.value) return
-  W = deckEl.value?.offsetWidth ?? W
+  W = deckW.value || W // jamais 0 ici : un choix suppose une boîte rendue ; on garde la dernière largeur connue sinon
   flying.value = reduced.value
   chosen.value = i
   hot.value = null
