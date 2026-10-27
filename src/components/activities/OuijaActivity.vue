@@ -9,7 +9,7 @@ import { durationOf, outcomeMsOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useDeferredText } from '../../composables/useDeferredText'
 import { useReducedMotion } from '../../composables/useReducedMotion'
-import { useOverlayOpen } from '../../composables/useOverlayOpen'
+import { isOverlayActive } from '../../composables/useOverlayOpen'
 import { OUIJA_SHOWN, OUIJA_WORDS } from '../../content/ouija'
 import {
   DROP_EXTENT,
@@ -187,12 +187,11 @@ const setTarget = (e: PointerEvent) => {
 useEventListener(stage, 'pointermove', setTarget)
 useEventListener(stage, 'pointerdown', setTarget)
 
-const overlayOpen = useOverlayOpen()
 // Épellation au clavier : taper les lettres du mot (accents ignorés) ; la goutte glisse vers la lettre validée.
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
   if (e.repeat || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return
   // Une fenêtre ou un menu est ouvert (Collection, À propos, Démarrer, réinitialisation) : la touche ne lui appartient pas.
-  if (overlayOpen(e)) return
+  if (isOverlayActive(e.target, document)) return
   const letter = normalizeKey(e.key)
   if (!letter) return
   const before = index.value

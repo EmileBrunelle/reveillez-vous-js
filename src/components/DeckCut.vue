@@ -88,6 +88,8 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 const { width: deckW } = useElementSize(deckEl, undefined, { box: 'border-box' })
 let W = 0
 watch(deckW, (w) => {
+  // useElementSize repasse à 0 quand la cible change, avant que le ResizeObserver ne mesure : on ignore ce 0.
+  if (!w) return
   W = w
   if (reduced.value) layoutStatic()
 })
