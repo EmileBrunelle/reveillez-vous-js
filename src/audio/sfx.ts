@@ -139,7 +139,7 @@ export interface KnockHandle {
   cancel: () => void
 }
 
-const thump = (c: AudioContext, at: number, gain: number) => {
+const thump = (c: AudioContext, at: number, gain: number, mid: number) => {
   // composante médium discrète (triangle ~300 Hz qui chute, très courte) : rend le coup audible sur un petit haut-parleur
   const m = c.createOscillator()
   m.type = 'triangle'
@@ -147,7 +147,7 @@ const thump = (c: AudioContext, at: number, gain: number) => {
   m.frequency.exponentialRampToValueAtTime(220, at + 0.07)
   const mg = c.createGain()
   mg.gain.setValueAtTime(0.0001, at)
-  mg.gain.linearRampToValueAtTime(gain * 0.3, at + 0.004)
+  mg.gain.linearRampToValueAtTime(mid, at + 0.004)
   mg.gain.exponentialRampToValueAtTime(0.001, at + 0.09)
   m.connect(mg).connect(effetsOut(c))
   m.start(at)
@@ -166,8 +166,15 @@ const thump = (c: AudioContext, at: number, gain: number) => {
 }
 
 /** One knock (noise burst + thump) scheduled at audio time `at`; returns the sources so they can be stopped. */
-// Gains en 0,15–0,9 (clac) et 0,12–0,7 (coup) : écart d’environ 14 dB entre l’intensité 0 (niv. 1) et 1 (niv. 5).
-const knockAt = (c: AudioContext, at: number, intensity: number): AudioScheduledSourceNode[] => [...burst(c, at, 0.12, 400, 0.15 + 0.75 * intensity), ...thump(c, at, 0.12 + 0.58 * intensity)]
+// Intensité 0 (niv. 1) à 1 (niv. 5). Le plafond du limiteur (≈ -3,6 dBFS crête) fixe le niv. 5 ; pour garder ≥ 10 dB d’écart sans
+// rendre le niv. 1 inaudible, c’est la composante médium (triangle ~300 Hz, seule audible sur un portable) qui porte le bas de l’échelle :
+// elle part haut (0,13) et monte peu, alors que le clac et le corps grave (sous 150 Hz) grimpent de 0,14/0,12 à 0,9/0,7.
+const KNOCK = { burst: [0.13, 0.77], thump: [0.12, 0.58], mid: [0.13, 0.1] } as const
+const lerp = ([a, b]: readonly [number, number], i: number) => a + b * i
+const knockAt = (c: AudioContext, at: number, intensity: number): AudioScheduledSourceNode[] => [
+  ...burst(c, at, 0.12, 400, lerp(KNOCK.burst, intensity)),
+  ...thump(c, at, lerp(KNOCK.thump, intensity), lerp(KNOCK.mid, intensity)),
+]
 
 /** Plays one knock now. Silent when muted or when the audio context is not running (not unlocked yet). */
 export const knock = (intensity: number) => {
@@ -250,7 +257,7 @@ export const slam = () => {
   if (!c || muted.value) return
   const t = c.currentTime
   burst(c, t, 0.25, 700, 0.7)
-  thump(c, t, 0.7)
+  thump(c, t, 0.7, 0.21)
 }
 
 export const hymn = () => {
