@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
+import { startWipeSound, type WipeSound } from '../../audio/wipe'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
 
@@ -30,11 +31,26 @@ const reducedMotion = useReducedMotion()
 const { finish, canSkip } = useActivityDone(() => emit('done'), {
   onFinish: () => {
     cleared.value = true
+    wipe?.stop()
+    wipe = null
     clearedAt.value = now()
   },
 })
 const seed = Math.random() * 10 // bruit cosmétique : Math.random suffit
 let last: { x: number; y: number } | null = null
+// Son de frottement : créé au premier geste (geste utilisateur), coupé à la fin de l’activité.
+let wipe: WipeSound | null = null
+let prevPt: { x: number; y: number } | null = null
+const rub = (p: { x: number; y: number }) => {
+  if (cleared.value) return
+  wipe ??= startWipeSound()
+  wipe.move(prevPt ? Math.hypot(p.x - prevPt.x, p.y - prevPt.y) : 0)
+  prevPt = p
+}
+const rubEnd = () => {
+  prevPt = null
+  wipe?.rest()
+}
 
 const wipeAt = (x: number, y: number) => {
   const p = clampToDisc(x, y)
@@ -65,8 +81,10 @@ const onDown = (e: PointerEvent) => {
   el.setPointerCapture?.(e.pointerId)
   captured = { el, id: e.pointerId }
   last = null
+  prevPt = null
   const p = toBall(e)
   if (!p) return
+  rub(p)
   wipeAt(p.x, p.y)
   kbd.value = null
 }
@@ -75,9 +93,11 @@ const onMove = (e: PointerEvent) => {
   if (!last && e.pointerType !== 'mouse') return
   const p = toBall(e)
   if (!p) return
+  rub(p)
   wipeAt(p.x, p.y)
 }
 const onUp = () => {
+  rubEnd()
   last = null
   captured = null
 }
@@ -92,6 +112,7 @@ const onKey = (e: KeyboardEvent) => {
   const cur = kbd.value ?? { x: 0, y: 0 }
   const p = clampToDisc(cur.x + v[0] * KEY_STEP, cur.y + v[1] * KEY_STEP)
   kbd.value = p
+  rub(p)
   last = null // chaque pression pose son point
   wipeAt(p.x, p.y)
   last = null
@@ -140,6 +161,8 @@ onMounted(async () => {
 onUnmounted(() => {
   gone = true
   last = null
+  wipe?.stop()
+  wipe = null
   try {
     if (captured?.el.hasPointerCapture?.(captured.id)) captured.el.releasePointerCapture(captured.id)
   } catch {
