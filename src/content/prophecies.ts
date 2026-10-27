@@ -71,7 +71,7 @@ export const prophecies: Grammar = {
     '{question2}|Trois chats noirs, deux fantômes, un seul fournisseur de {bonbon}. Mon tarot en tire une conclusion : vous passerez la nuit du 31 octobre à compter vos bonbons.|{verset}',
     '{question2}|Ce soir, à minuit, {objet.nom} va changer de couleur. Si vous ne le voyez pas, c’est que vous en faites partie.|{verset}',
     '{question2}|Vous avez rouvert la porte. Avant même que je frappe, {objet.nom} l’avait annoncé. J’ai noté l’heure. Vous aussi, je pense.|{verset}',
-    '{question2}|Votre boule de cristal montre une tourtière. Au Lac-Saint-Jean, on vous dira que ce n’en est pas une : la vraie est un grand pâté de viandes en cubes, cuit longtemps. La voyance ne tranchera pas ce débat.|{verset}',
+    '{question2}|Votre boule de cristal montre une tourtière. Au Lac-Saint-Jean, on vous dira que ce n’en est pas une. La voyance ne tranchera pas ce débat.|{verset}',
     '{question2}|Ce soir, vous remettrez une araignée dehors au lieu de l’écraser. Vous vous sentirez sage. Elle mourra d’hypothermie. Les cartes ne jugent pas.|{verset}',
     '{question2}|En vous, il y a deux loups. L’un veut du Paris Pâté. L’autre veut des sardines. Les cartes savent lequel gagnera demain matin. Elles ne le diront pas.|{verset}',
     '{question2}|Les cartes sont formelles : les Nordiques reviendront. Les Expos aussi. Les cartes disent ça depuis 1995. Elles sont patientes.|{verset}',
