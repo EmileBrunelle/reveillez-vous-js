@@ -2,6 +2,7 @@ import { effectScope, ref, watch } from 'vue'
 import { useDocumentVisibility, useEventListener, useTimeoutFn } from '@vueuse/core'
 import type { PlaceId } from '../effects/places/types'
 import { ac, ambienceOut, effetsOut, muted } from './sfx'
+import { runLater } from './runLater'
 import { motifBusyUntil, motifWarning, playMotif } from './motif'
 import { EVENT_BOOST, RECIPES, beds, bedGain, createTracker, events, gainNode, osc, rareSounds, randomDelay, type Env } from './ambienceSynth'
 import {
@@ -84,8 +85,6 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
 
   const t = createTracker()
   const scope = effectScope(true)
-  // portée distincte pour la libération différée : elle doit survivre à `scope.stop()` le temps du fondu de sortie
-  const releaseScope = effectScope(true)
   let stopped = false
   let hidden = false
   let lastEventAt = -Infinity
@@ -254,17 +253,9 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
     lastStopAt = Date.now()
     ramp(FADE_OUT)
     // les nœuds sont libérés une fois le fondu de sortie fini
-    releaseScope.run(() => {
-      const { start } = useTimeoutFn(
-        () => {
-          t.dispose()
-          master.disconnect()
-          releaseScope.stop()
-        },
-        STOP_AFTER_MS,
-        { immediate: false },
-      )
-      start()
-    })
+    runLater(() => {
+      t.dispose()
+      master.disconnect()
+    }, STOP_AFTER_MS)
   }
 }

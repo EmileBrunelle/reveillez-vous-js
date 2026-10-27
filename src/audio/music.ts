@@ -5,6 +5,7 @@ import { ambienceDucked, fadeParam } from './ambience'
 import { motifBusyUntil } from './motif'
 import { playPhrase, type PhraseHandle } from './pianoVoice'
 import { canStartPhrase, createSession, musicGap, phraseDuration, planPhrase, releaseBusy, resumeDelay, type MelodySession } from './musicPlan'
+import { runLater } from './runLater'
 import { ac, ambienceOut, muted } from './sfx'
 import { stingerBusyUntil } from './stinger'
 
@@ -113,6 +114,6 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
     scope.stop()
     endMine(FADE_STOP)
     fadeParam(out.gain, c.currentTime, 0, FADE_STOP)
-    setTimeout(() => out.disconnect(), (FADE_STOP + 0.3) * 1000)
+    runLater(() => out.disconnect(), (FADE_STOP + 0.3) * 1000)
   }
 }

@@ -1,5 +1,6 @@
 import { phraseGain, type NoteEvent } from './musicPlan'
 import { noiseBuffer } from './noise'
+import { runLater } from './runLater'
 
 // Piano de feutre synthétisé, proche du micro et un peu usé (esprit C418) : partiels étirés par inharmonicité, décroissance à deux étages
 // par partiel (coup puis résonance), deux cordes légèrement désaccordées pour les trois premiers partiels (battement lent), marteau de
@@ -261,7 +262,7 @@ export const playPhrase = (c: BaseAudioContext, out: AudioNode, t0: number, note
   }
   for (const s of sources) {
     s.onended = () => {
-      if (--remaining === 0) setTimeout(cleanup, (ROOM_SECONDS + 0.5) * 1000)
+      if (--remaining === 0) runLater(cleanup, (ROOM_SECONDS + 0.5) * 1000)
     }
   }
   let stopped = false

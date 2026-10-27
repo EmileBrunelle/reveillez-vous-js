@@ -1,4 +1,7 @@
+import { effectScope } from 'vue'
+import { useTimeoutFn } from '@vueuse/core'
 import { ac, effetsOut, noiseBuffer } from './sfx'
+import { runLater } from './runLater'
 
 // Frottement d’un chiffon sur du verre : bruit passe-bande dont le gain et la fréquence suivent la vitesse du geste.
 // Vitesse en rayons de boule par seconde (le disque a un rayon de 1).
@@ -44,7 +47,9 @@ export const startWipeSound = (): WipeSound => {
   let nodes: { src: AudioBufferSourceNode; osc: OscillatorNode; band: BiquadFilterNode; g: GainNode; sg: GainNode; out: GainNode } | null = null
   let stopped = false
   let lastT: number | null = null
-  let idle: ReturnType<typeof setTimeout> | undefined
+  // portée détachée : l’appelant (un geste, pas un composant) ne fournit pas de portée qui nettoierait la minuterie
+  const scope = effectScope(true)
+  const idle = scope.run(() => useTimeoutFn(() => rest(), IDLE_MS, { immediate: false }))!
 
   const build = () => {
     const src = c.createBufferSource()
@@ -80,7 +85,7 @@ export const startWipeSound = (): WipeSound => {
   }
 
   const rest = () => {
-    clearTimeout(idle)
+    idle.stop()
     lastT = null
     apply({ gain: 0, freq: FREQ_MIN, squeak: 0 }, RELEASE)
   }
@@ -88,7 +93,7 @@ export const startWipeSound = (): WipeSound => {
   const stop = () => {
     if (stopped) return
     stopped = true
-    clearTimeout(idle)
+    scope.stop()
     if (!nodes) return
     const n = nodes
     nodes = null
@@ -101,7 +106,7 @@ export const startWipeSound = (): WipeSound => {
     } catch {
       // déjà arrêtés
     }
-    setTimeout(() => {
+    runLater(() => {
       for (const x of [n.src, n.osc, n.band, n.g, n.sg, n.out]) x.disconnect()
     }, 350)
   }
@@ -115,8 +120,7 @@ export const startWipeSound = (): WipeSound => {
     if (c.state !== 'running') void c.resume()
     nodes ??= build()
     apply(wipeParams(distance / dt), SMOOTH)
-    clearTimeout(idle)
-    idle = setTimeout(rest, IDLE_MS)
+    idle.start()
   }
 
   return { move, rest, stop }
