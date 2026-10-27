@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
-import { CREDITS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL } from '../content/finale'
+import { CREDITS_BODY, CREDITS_THANKS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, README_LABEL, README_PREFIX, REPO_URL, RESTART_LABEL } from '../content/finale'
 import { focusQuietly } from '../composables/focusQuietly'
 import { startFinaleAudio } from '../audio/finale'
 
@@ -118,7 +118,14 @@ const lineClass = (i: number) => (i < FINALE_TITLE.length ? 'font-title text-[1.
     </div>
     <div v-if="showCredits" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.5)] finale-line">
       <h2 class="font-title m-0 text-[1.6rem] tracking-[0.06em]">{{ CREDITS_TITLE }}</h2>
-      <p v-for="c in CREDITS" :key="c" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
+      <p v-for="c in CREDITS_BODY" :key="c" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
+      <p class="m-0 font-card text-[1.05rem] leading-snug">
+        {{ README_PREFIX
+        }}<a class="linklike focus-visible:[outline-color:#fff]" :href="`${REPO_URL}#readme`" target="_blank" rel="noopener noreferrer" aria-label="README sur GitHub (nouvel onglet)">{{
+          README_LABEL
+        }}</a>
+      </p>
+      <p class="m-0 font-card text-[1.05rem] leading-snug">{{ CREDITS_THANKS }}</p>
       <p class="m-0 font-card text-[1.05rem] leading-snug">Arcanes révélés : {{ collection.count }} sur {{ collection.total }}</p>
       <button ref="restartBtn" class="btn mt-2" type="button" @click="emit('restart')">{{ RESTART_LABEL }}</button>
     </div>

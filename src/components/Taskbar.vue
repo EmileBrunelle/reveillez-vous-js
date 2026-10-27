@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { onClickOutside, useEventListener, useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
+import { REPO_URL } from '../content/finale'
 import { loadAbout, loadCollection, loadReset, loadSound, prefetch } from '../lazy'
 import Vigilance from './Vigilance.vue'
 import IconStart from '~icons/rvj/demarrer'
@@ -146,16 +147,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
           <button class="" :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
           <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('collection')">Collection</button>
           <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('sound')">Son…</button>
-          <a
-            :class="item"
-            href="https://github.com/EmileBrunelle/reveillez-vous-js"
-            target="_blank"
-            rel="noopener noreferrer"
-            role="menuitem"
-            tabindex="-1"
-            aria-label="Code source sur GitHub (nouvel onglet)"
-            @click="close()"
-          >
+          <a :class="item" :href="REPO_URL" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1" aria-label="Code source sur GitHub (nouvel onglet)" @click="close()">
             <IconGithub class="w-4 h-4 flex-none" aria-hidden="true" />
             Code source
           </a>

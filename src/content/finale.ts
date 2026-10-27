@@ -16,15 +16,21 @@ export const FINALE_GREETING = 'Bonjour.'
 
 /** Générique : un titre, puis des lignes (la dernière est le remerciement). */
 export const CREDITS_TITLE = 'Réveillez-vous.js'
-export const CREDITS = [
+export const REPO_URL = 'https://github.com/EmileBrunelle/reveillez-vous-js'
+export const README_PREFIX = 'Détails et code source : '
+export const README_LABEL = 'le README sur GitHub'
+
+/** Lignes du générique avant la ligne du README (affichée par Finale.vue) et le remerciement final. */
+export const CREDITS_BODY = [
   'Une voyance d’Halloween imaginée et codée par Émile Brunelle',
   'Défi Fortune.js de l’AGEEI, UQAM, 2026',
   'Technologies : Vue, TypeScript, Vite, UnoCSS, motion-v, WebGPU (vgpu), Web Audio',
   'Icônes : game-icons.net, CC BY 3.0',
   'Polices : VT323, IM Fell English, Cinzel (SIL OFL)',
-  'Écrit avec l’aide de Claude Code (IA) : détails dans le README du code source, github.com/EmileBrunelle/reveillez-vous-js',
-  'Merci d’avoir ouvert la porte.',
+  'Écrit avec l’aide de Claude Code (IA)',
 ] as const
+export const CREDITS_THANKS = 'Merci d’avoir ouvert la porte.'
+export const CREDITS = [...CREDITS_BODY, CREDITS_THANKS] as const
 
 export const RESTART_LABEL = 'Recommencer'
 export const WAKE_LABEL = 'Réveillez-vous'

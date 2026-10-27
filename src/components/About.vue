@@ -4,6 +4,7 @@ import { Dialog } from '@vuetify/v0'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { aboutClose, aboutOpen } from '../audio/sfx'
+import { REPO_URL } from '../content/finale'
 
 // Parent v-model = "wants open". `shown` is what the native dialog actually sees, so the close animation
 // can play before the dialog really closes. Pure DOM + motion: no dependency on WebGPU.
@@ -143,12 +144,13 @@ const skip = () => {
           <p class="[margin:0_0_0.9rem]">
             <a
               class="select-text text-[#0000aa] underline visited:text-[#550055] focus-visible:[outline:3px_solid_#aa0000] focus-visible:outline-offset-[2px]"
-              href="https://github.com/EmileBrunelle/reveillez-vous-js"
+              :href="REPO_URL"
               target="_blank"
               rel="noopener noreferrer"
               >Code source</a
             >
           </p>
+          <p class="[margin:0_0_0.9rem]">Ce projet a été écrit avec l’aide de l’IA (Claude Code, d’Anthropic) ; la déclaration complète se trouve dans le README du code source.</p>
           <p class="[margin:0_0_0.9rem]">
             Icônes :
             <a

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CREDITS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL, WAKE_LABEL, returnGrammar } from '../../src/content/finale'
+import { CREDITS, CREDITS_THANKS, REPO_URL, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL, WAKE_LABEL, returnGrammar } from '../../src/content/finale'
 import { nextReturnLine } from '../../src/engine/prophecy'
 import { mulberry32 } from '../../src/engine/rng'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
@@ -41,6 +41,12 @@ describe('contenu de la finale et du retour', () => {
   it('le générique cite game-icons CC BY 3.0 et l’IA', () => {
     expect(CREDITS.some((c) => c.includes('game-icons.net') && c.includes('CC BY 3.0'))).toBe(true)
     expect(CREDITS.some((c) => c.includes('Claude Code (IA)'))).toBe(true)
+  })
+
+  it('le générique finit par le remerciement et ne contient aucune URL', () => {
+    expect(CREDITS[CREDITS.length - 1]).toBe(CREDITS_THANKS)
+    expect(CREDITS.some((c) => c.includes('http'))).toBe(false)
+    expect(REPO_URL).toMatch(/^https:\/\/github\.com\//)
   })
 })
 
