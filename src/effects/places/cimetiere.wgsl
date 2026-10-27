@@ -2,22 +2,22 @@ struct Params {
   time: f32,
   width: f32,
   height: f32,
-  paranoia: f32, // 0..1, eased on the CPU
-  sway: f32, // camera sway (0 when reduced motion)
+  paranoia: f32, // 0..1, adouci côté CPU
+  sway: f32, // balancement de la caméra (0 si mouvement réduit)
   swayY: f32,
-  drift: f32, // animation clock: rolling fog, drizzle, blinks (0 when reduced motion)
-  eyes: f32, // 0..1 presence of eyes low in the fog
-  px: f32, // parallax -1..1 (0 when reduced motion)
+  drift: f32, // horloge d’animation : brume roulante, bruine, clignements (0 si mouvement réduit)
+  eyes: f32, // 0..1 présence d’yeux bas dans la brume
+  px: f32, // parallaxe -1..1 (0 si mouvement réduit)
   py: f32,
-  mist: f32, // variant: fog density multiplier
-  moon: f32, // variant: moon size / brightness multiplier
-  rain: f32, // variant: 0..1 drizzle
+  mist: f32, // variante : multiplicateur de densité de la brume
+  moon: f32, // variante : multiplicateur de taille / luminosité de la lune
+  rain: f32, // variante : 0..1 bruine
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
-// Scene: small village cemetery at night. Headstones and crosses are analytic silhouettes on 6 depth planes,
-// a stone wall topped with an iron fence closes the lot (with a gate gap), village roofs far behind, low rolling fog, moon.
-// No time-driven luminance term: fog and drizzle move spatially, slowly.
+// Scène : petit cimetière de village la nuit. Pierres tombales et croix sont des silhouettes analytiques sur 6 plans de profondeur,
+// un mur de pierre surmonté d’une clôture en fer ferme le terrain (avec une ouverture pour le portail), toits du village loin derrière, brume basse qui roule, lune.
+// Aucun terme de luminance piloté par le temps : la brume et la bruine bougent lentement, dans l’espace.
 
 var<private> MOON_DIR: vec3f;
 var<private> MOON_EX: vec3f;
@@ -50,7 +50,7 @@ fn sd_box2(p: vec2f, b: vec2f) -> f32 {
   return length(max(q, vec2f(0.0))) + min(max(q.x, q.y), 0.0);
 }
 
-// Grave marker in local units (base at y=0, x centred). kind: 0 arched headstone, 1 crooked slab, 2 wooden cross, 3 iron cross.
+// Monument funéraire en unités locales (base à y=0, x centré). kind : 0 pierre tombale arrondie, 1 dalle de travers, 2 croix de bois, 3 croix de fer.
 fn marker(lp: vec2f, kind: i32, tilt: f32) -> f32 {
   let cs = cos(tilt);
   let sn = sin(tilt);
@@ -60,21 +60,21 @@ fn marker(lp: vec2f, kind: i32, tilt: f32) -> f32 {
   }
   if (kind == 1) {
     var d = sd_box2(p - vec2f(0.0, 0.32), vec2f(0.38, 0.32));
-    d = max(d, (p.x - 0.1 + (p.y - 0.4) * 0.8) * 0.8); // broken corner
+    d = max(d, (p.x - 0.1 + (p.y - 0.4) * 0.8) * 0.8); // coin brisé
     return d;
   }
   if (kind == 2) {
     return min(sd_box2(p - vec2f(0.0, 0.5), vec2f(0.055, 0.5)), sd_box2(p - vec2f(0.0, 0.78), vec2f(0.28, 0.05)));
   }
   var d = min(sd_box2(p - vec2f(0.0, 0.6), vec2f(0.022, 0.6)), sd_box2(p - vec2f(0.0, 0.95), vec2f(0.2, 0.022)));
-  d = min(d, abs(length(p - vec2f(0.0, 0.95)) - 0.09) - 0.014); // ring
-  d = min(d, length(p - vec2f(0.0, 1.24)) - 0.045); // finial
+  d = min(d, abs(length(p - vec2f(0.0, 0.95)) - 0.09) - 0.014); // anneau
+  d = min(d, length(p - vec2f(0.0, 1.24)) - 0.045); // fleuron
   d = min(d, length(p - vec2f(0.22, 0.95)) - 0.035);
   d = min(d, length(p - vec2f(-0.22, 0.95)) - 0.035);
   return d;
 }
 
-// Row of markers on the plane z = D: returns vec2(coverage, kind) so the caller can colour wood / stone / iron.
+// Rangée de monuments sur le plan z = D : retourne vec2(couverture, kind) pour que l’appelant colore bois / pierre / fer.
 fn row_mask(ro: vec3f, rd: vec3f, D: f32, seed: f32, aa: f32) -> vec2f {
   let X = ro.x + rd.x / rd.z * D;
   let Y = ro.y + rd.y / rd.z * D;
@@ -98,14 +98,14 @@ fn row_mask(ro: vec3f, rd: vec3f, D: f32, seed: f32, aa: f32) -> vec2f {
   return vec2f(m, kd);
 }
 
-// Stone wall (Y<0.7) + iron fence above it, with a gate gap in the middle. Returns vec2(coverage, 0 stone / 1 iron).
+// Mur de pierre (Y<0,7) + clôture en fer au-dessus, avec une ouverture de portail au milieu. Retourne vec2(couverture, 0 pierre / 1 fer).
 fn boundary(ro: vec3f, rd: vec3f, aa: f32) -> vec2f {
   let X = ro.x + rd.x / rd.z * WALL_Z;
   let Y = ro.y + rd.y / rd.z * WALL_Z;
   if (Y < 0.0) { return vec2f(0.0); }
   let ax = abs(X);
   var stone = step(1.5, ax) * step(Y, 0.7);
-  stone = max(stone, step(abs(ax - 1.75), 0.2) * step(Y, 2.0)); // gate pillars
+  stone = max(stone, step(abs(ax - 1.75), 0.2) * step(Y, 2.0)); // piliers du portail
   let bx = abs(fract(X / 0.28 + 0.5) - 0.5) * 0.28;
   let tip = 0.02 * clamp((1.72 - Y) / 0.2, 0.0, 1.0);
   var bars = step(bx, tip + aa) * step(0.7, Y) * step(Y, 1.72);
@@ -115,7 +115,7 @@ fn boundary(ro: vec3f, rd: vec3f, aa: f32) -> vec2f {
   return vec2f(clamp(max(isStone, bars), 0.0, 1.0), select(1.0, 0.0, isStone > 0.5));
 }
 
-// Village roofs (steep gables, chimneys) as an angular silhouette; .y = lit window.
+// Toits du village (pignons raides, cheminées) en silhouette angulaire ; .y = fenêtre éclairée.
 fn village(a: f32, e: f32) -> vec2f {
   let x = a * 26.0 + 3.0;
   let cell = floor(x);
@@ -124,7 +124,7 @@ fn village(a: f32, e: f32) -> vec2f {
   let roofH = 0.025 + 0.03 * h11(cell * 2.9);
   let tri = 1.0 - abs(f * 2.0 - 1.0);
   var h = wb + roofH * tri * 1.6;
-  if (h11(cell * 4.1) > 0.7 && abs(f - 0.72) < 0.05) { h += 0.02; } // chimney
+  if (h11(cell * 4.1) > 0.7 && abs(f - 0.72) < 0.05) { h += 0.02; } // cheminée
   let present = step(0.12, h11(cell * 7.7));
   let inside = step(e, h * present) * step(0.0, e);
   let win = step(0.72, h11(cell * 9.1)) * step(abs(f - 0.35), 0.06) * step(abs(e - wb * 0.5), 0.006);
@@ -206,7 +206,7 @@ fn moon_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
   return g;
 }
 
-// A pair of eyes low in the fog, slow blink.
+// Une paire d’yeux bas dans la brume, clignement lent.
 fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   var g = 0.0;
   for (var s = -1; s <= 1; s += 2) {
@@ -254,7 +254,7 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   let a = atan2(rd.x, rd.z);
   let e = asin(clamp(rd.y, -1.0, 1.0));
 
-  // --- Background: sky, far trees, village roofs; or ground (grass, gravel path).
+  // --- Arrière-plan : ciel, arbres lointains, toits du village ; ou sol (herbe, sentier de gravier).
   if (rd.y >= 0.0) {
     col = sky_col(rd, p, moonCol, moonR);
     if (e < treeline(a)) {
@@ -277,7 +277,7 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
     col = gc;
   }
 
-  // --- Boundary wall + fence, then grave rows far to near.
+  // --- Mur d’enceinte + clôture, puis rangées de tombes du plus loin au plus proche.
   if (rd.z > 0.05) {
     let aaK = 2.4 / (1.3 * min(res.x, res.y));
     let bd = boundary(ro, rd, WALL_Z * aaK);
@@ -294,16 +294,16 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
       let r = row_mask(ro, rd, D, f32(li), D * aaK / 0.85);
       if (r.x > 0.0) {
         let Y = ro.y + rd.y / rd.z * D;
-        var sc = vec3f(0.055, 0.064, 0.078) * (0.55 + 0.6 * clamp(Y, 0.0, 1.2)); // moonlit stone, lighter toward the top
-        if (r.y > 1.5 && r.y < 2.5) { sc = vec3f(0.020, 0.014, 0.010); } // wood
-        if (r.y > 2.5) { sc = vec3f(0.003, 0.004, 0.006); } // iron
+        var sc = vec3f(0.055, 0.064, 0.078) * (0.55 + 0.6 * clamp(Y, 0.0, 1.2)); // pierre éclairée par la lune, plus claire vers le haut
+        if (r.y > 1.5 && r.y < 2.5) { sc = vec3f(0.020, 0.014, 0.010); } // bois
+        if (r.y > 2.5) { sc = vec3f(0.003, 0.004, 0.006); } // fer
         col = mix(col, sc, r.x);
         if (r.x > 0.5) { tEnd = min(tEnd, D / rd.z); }
       }
     }
   }
 
-  // --- Eyes low in the fog (high paranoia only).
+  // --- Yeux bas dans la brume (forte paranoïa seulement).
   if (params.eyes > 0.01) {
     let ec = mix(vec3f(1.0, 0.65, 0.18), vec3f(1.0, 0.12, 0.05), p);
     let e1 = eye_pair(ro, rd, vec3f(-2.9, 0.7, 8.0), 0.30, tEnd) * smoothstep(0.0, 0.4, params.eyes);
@@ -312,7 +312,7 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
     col += ec * (e1 + e2 + e3) * 2.2;
   }
 
-  // --- Low rolling fog: hugs the ground, noise drifting slowly.
+  // --- Brume basse qui roule : collée au sol, bruit qui dérive lentement.
   let N = 8;
   let jit = fract(52.9829189 * fract(dot(fc, vec2f(0.06711056, 0.00583715))));
   var T = 1.0;
@@ -342,13 +342,13 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   col = col * T + scat;
   col += moonCol * moon_motes(ro, rd, tEnd) * 0.5 * params.moon * T;
 
-  // --- Drizzle (screen space, sparse, dim; the centre stays clear).
+  // --- Bruine (espace écran, clairsemée, tamisée ; le centre reste dégagé).
   let cc = length(c2 * vec2f(0.8, 0.6));
   if (params.rain > 0.0) {
     col += vec3f(0.45, 0.52, 0.66) * streaks(c2) * 0.10 * params.rain * smoothstep(0.1, 0.6, cc);
   }
 
-  // --- Grade: dim the centre so the door and text stay readable, soft vignette, dither.
+  // --- Étalonnage : assombrit le centre pour que la porte et le texte restent lisibles, vignette douce, tramage.
   col *= mix(0.72, 1.0, smoothstep(0.0, 1.1, cc));
   col *= 1.0 - 0.35 * smoothstep(0.6, 1.5, length(c2));
   col = col / (1.0 + col * 0.6);

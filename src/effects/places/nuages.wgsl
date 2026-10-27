@@ -2,20 +2,20 @@ struct Params {
   time: f32,
   width: f32,
   height: f32,
-  paranoia: f32, // 0..1, eased on the CPU
-  sway: f32, // slow floating (0 when reduced motion)
+  paranoia: f32, // 0..1, adouci côté CPU
+  sway: f32, // flottement lent (0 si mouvement réduit)
   swayY: f32,
-  drift: f32, // cloud wind clock (0 when reduced motion)
+  drift: f32, // horloge du vent dans les nuages (0 si mouvement réduit)
   px: f32,
   py: f32,
-  blood: f32, // variant: 1 = blood moon
-  dawn: f32, // variant: 1 = dawn glow on the horizon (finale)
+  blood: f32, // variante : 1 = lune de sang
+  dawn: f32, // variante : 1 = lueur de l’aube à l’horizon (finale)
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
-// Scene: above a sea of clouds (two 2D fbm layers on horizontal planes, parallax between them), a huge moon,
-// stars, haze at the horizon. At high paranoia a tiny figure stands far away on the clouds, watching.
-// Everything drifts slowly; no time-driven global luminance term.
+// Scène : au-dessus d’une mer de nuages (deux couches fbm 2D sur des plans horizontaux, avec parallaxe entre elles), une lune immense,
+// des étoiles, de la brume à l’horizon. À forte paranoïa, une minuscule silhouette se tient au loin sur les nuages, à observer.
+// Tout dérive lentement ; aucun terme global de luminance piloté par le temps.
 
 var<private> MOON_DIR: vec3f;
 
@@ -56,7 +56,7 @@ fn tcap(p: vec2f, a: vec2f, b: vec2f, r1: f32, r2: f32) -> f32 {
   let h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
   return length(pa - ba * h) - mix(r1, r2, h);
 }
-// Standing figure, feet at y=0, ~1 unit tall.
+// Silhouette debout, pieds à y=0, ~1 unité de haut.
 fn figure_sd(p: vec2f) -> f32 {
   var d = tcap(p, vec2f(-0.04, 0.0), vec2f(-0.04, 0.45), 0.035, 0.05);
   d = min(d, tcap(p, vec2f(0.04, 0.0), vec2f(0.04, 0.45), 0.035, 0.05));
@@ -71,11 +71,11 @@ fn sky_col(rd: vec3f, c2: vec2f, mc: vec2f, r: f32, moonCol: vec3f, hazeCol: vec
   let up = clamp(rd.y, 0.0, 1.0);
   var c = mix(hazeCol, topCol, pow(up, 0.45));
   let a = atan2(rd.x, rd.z);
-  // Dawn: warm glow band hugging the horizon around dawnAz.
+  // Aube : bande de lueur chaude collée à l’horizon autour de dawnAz.
   let da = a - dawnAz;
   let glow = exp(-up * 7.0) * exp(-da * da * 1.4);
   c += vec3f(1.0, 0.46, 0.30) * 0.55 * glow * params.dawn;
-  // Moon in screen space (stays round on any aspect), halo around it.
+  // Lune dans l’espace écran (reste ronde quel que soit le rapport), avec un halo autour.
   let dm = length(c2 - mc);
   c += moonCol * (0.22 * exp(-dm * 1.6 / r) + 0.5 * exp(-dm * 4.5 / r));
   let disc = 1.0 - smoothstep(r - 0.008, r + 0.004, dm);
@@ -83,7 +83,7 @@ fn sky_col(rd: vec3f, c2: vec2f, mc: vec2f, r: f32, moonCol: vec3f, hazeCol: vec
   let maria = 0.72 + 0.20 * vnoise3(vec3f(mp * 1.8, 1.7)) + 0.12 * vnoise3(vec3f(mp * 5.0, 4.1)) + 0.06 * vnoise3(vec3f(mp * 14.0, 8.3));
   let limb = 1.0 - 0.28 * pow(clamp(length(mp), 0.0, 1.0), 3.0);
   c = mix(c, moonCol * maria * limb * mix(1.35, 0.7, params.dawn), disc);
-  // Stars (fewer at dawn), fade near the moon.
+  // Étoiles (moins nombreuses à l’aube), s’estompent près de la lune.
   let sp = vec2f(a, asin(clamp(rd.y, -1.0, 1.0))) * 80.0;
   let cell = floor(sp);
   let fp = fract(sp) - 0.5;
@@ -116,7 +116,7 @@ fn sky_col(rd: vec3f, c2: vec2f, mc: vec2f, r: f32, moonCol: vec3f, hazeCol: vec
   let mc = mcBase - vec2f(yaw, pitch - mix(0.12, 0.14, land)) * 1.3;
   let ro = vec3f(params.px * 0.5, params.py * 0.2, 0.0);
 
-  // Palette by variant: pale moon, blood moon, dawn.
+  // Palette selon la variante : lune pâle, lune de sang, aube.
   let blood = params.blood;
   let dawn = params.dawn;
   let moonCol = mix(mix(vec3f(0.88, 0.93, 1.0), vec3f(0.98, 0.88, 0.84), dawn), vec3f(0.95, 0.12, 0.06), blood) * mix(1.0, 0.95, dawn);
@@ -131,7 +131,7 @@ fn sky_col(rd: vec3f, c2: vec2f, mc: vec2f, r: f32, moonCol: vec3f, hazeCol: vec
 
   if (rd.y >= 0.0) {
     col = sky_col(rd, c2, mc, moonR, moonCol, hazeCol, topCol, dawnAz);
-    // Distant figure watching from the clouds (appears with paranoia).
+    // Silhouette lointaine qui observe depuis les nuages (apparaît avec la paranoïa).
     let fa = mix(0.30, 0.52, land);
     let feetE = -0.012;
     let sc = 0.075;
@@ -140,7 +140,7 @@ fn sky_col(rd: vec3f, c2: vec2f, mc: vec2f, r: f32, moonCol: vec3f, hazeCol: vec
     let wa = (1.0 - smoothstep(-0.0008, 0.0012, wd)) * smoothstep(0.5, 0.85, p);
     col = mix(col, vec3f(0.004, 0.005, 0.012), wa);
   } else {
-    // Cloud sea: two horizontal layers, nearest first; the lower one shows through gaps, darker.
+    // Mer de nuages : deux couches horizontales, la plus proche d’abord ; la plus basse se voit par les trouées, plus sombre.
     let wind = vec2f(params.drift * 0.06, params.drift * 0.025);
     var acc = vec3f(0.0);
     var T = 1.0;
@@ -153,26 +153,26 @@ fn sky_col(rd: vec3f, c2: vec2f, mc: vec2f, r: f32, moonCol: vec3f, hazeCol: vec
       let oct = select(5, 3, i == 1);
       let d = mix(fbm(q, oct), 0.55, 1.0 - exp(-t * 0.03));
       let cov = select(smoothstep(0.34, 0.66, d), smoothstep(0.28, 0.58, d), i == 1);
-      // Light from the moon side: density gradient towards the moon.
+      // Lumière du côté de la lune : gradient de densité vers la lune.
       let dl = select(mix(fbm(q + mxz * 0.1, oct), 0.55, 1.0 - exp(-t * 0.03)), d, i == 1);
       var shade = clamp(0.62 + (d - dl) * 8.0, 0.0, 1.0);
       shade = mix(shade, 0.5, f32(i) * 0.5);
       var c = mix(shadowCol, litCol, shade * shade * mix(1.0, 0.45, f32(i)));
-      // Moon glitter on the clouds below the moon.
+      // Scintillement lunaire sur les nuages sous la lune.
       let rm = normalize(vec3f(rd.x, -rd.y, rd.z));
       c += moonCol * 0.25 * pow(max(dot(rm, MOON_DIR), 0.0), 18.0) * mix(1.0, 0.4, f32(i));
-      // Atmospheric perspective.
+      // Perspective atmosphérique.
       let hz = 1.0 - exp(-t * 0.03);
       c = mix(c, hazeCol, hz);
       acc += T * cov * c;
       T *= 1.0 - cov;
     }
-    // Below the clouds: a deep, dark abyss.
+    // Sous les nuages : un abîme profond et sombre.
     acc += T * mix(vec3f(0.006, 0.01, 0.03), shadowCol * 0.6, 0.5);
     col = acc;
   }
 
-  // Grade: calm the centre for the door/text, vignette, dither.
+  // Étalonnage : apaise le centre pour la porte/le texte, vignette, tramage.
   let cc = length(c2 * vec2f(0.8, 0.6));
   col *= mix(0.72, 1.0, smoothstep(0.0, 1.1, cc));
   col *= 1.0 - 0.33 * smoothstep(0.6, 1.5, length(c2));

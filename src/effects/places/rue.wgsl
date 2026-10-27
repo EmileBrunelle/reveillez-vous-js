@@ -1,23 +1,23 @@
 import { ld_scatter, ld_motes, ld_haze } from "./lightDust.wgsl";
 
 struct Params {
-  time: f32, // window clock (fixed when reduced motion)
+  time: f32, // horloge des fenêtres (figée si mouvement réduit)
   width: f32,
   height: f32,
-  paranoia: f32, // 0..1, eased on the CPU
+  paranoia: f32, // 0..1, adouci côté CPU
   sway: f32,
   swayY: f32,
-  drift: f32, // precipitation clock (0 when reduced motion)
+  drift: f32, // horloge des précipitations (0 si mouvement réduit)
   px: f32,
   py: f32,
-  weather: f32, // variant: 0 clear, 1 light rain (wet street), 2 snow
-  cold: f32, // variant: share of cold-lit windows 0..1
+  weather: f32, // variante : 0 dégagé, 1 pluie légère (rue mouillée), 2 neige
+  cold: f32, // variante : proportion de fenêtres à lumière froide 0..1
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
-// Scene: a narrow village street at night, camera in the middle of the road looking down it.
-// Two facades (planes x = +-W) with pitched roofs and dormers, outdoor staircases, a lamppost and a parked car.
-// Windows wake up one by one (2 s apart, 1.5 s fade): the neighbours watch. No global luminance term.
+// Scène : une étroite rue de village la nuit, caméra au milieu de la chaussée, regardant vers le fond.
+// Deux façades (plans x = ±W) avec toits en pente et lucarnes, escaliers extérieurs, un lampadaire et une voiture garée.
+// Les fenêtres s’allument une à une (à 2 s d’intervalle, fondu de 1,5 s) : le voisinage observe. Aucun terme global de luminance.
 
 const W: f32 = 3.4;
 const EYE: f32 = 1.6;
@@ -48,9 +48,9 @@ fn band(d: f32, w: f32, pw: f32) -> f32 { return 1.0 - smoothstep(w - pw, w + pw
 
 fn house_h(side: f32, cell: f32) -> f32 { return 6.1 + 1.5 * h21(vec2f(cell * 1.7 + side, side * 5.3 + 2.0)); }
 
-// Window state: rgb = emitted colour (already scaled), a = lit 0..1.
-// 5 slots per house (2 floors x 2 columns + dormer), 12 houses per side: 120 windows, ranks permuted mod 127,
-// each woken 2 s after the previous one, lit for 100 s, 1.5 s fade in, 3 s fade out.
+// État d’une fenêtre : rgb = couleur émise (déjà mise à l’échelle), a = allumée 0..1.
+// 5 emplacements par maison (2 étages x 2 colonnes + lucarne), 12 maisons par côté : 120 fenêtres, rangs permutés mod 127,
+// chacune réveillée 2 s après la précédente, allumée 100 s, fondu d’entrée de 1,5 s, fondu de sortie de 3 s.
 fn win_state(side: f32, cell: f32, slot: f32) -> vec4f {
   let cm = cell - 12.0 * floor(cell / 12.0);
   let n = (select(0.0, 1.0, side > 0.0) * 12.0 + cm) * 5.0 + slot;
@@ -68,7 +68,7 @@ fn win_state(side: f32, cell: f32, slot: f32) -> vec4f {
   return vec4f(col, lit * occ);
 }
 
-// Silhouette presence grows smoothly with paranoia (no pop while it eases).
+// La présence de la silhouette croît en douceur avec la paranoïa (pas de saut pendant l’adoucissement).
 fn sil_gate(h: f32) -> f32 {
   let thr = smoothstep(0.35, 0.9, params.paranoia) * 0.6;
   return smoothstep(h - 0.06, h + 0.06, thr) * smoothstep(0.0, 0.05, thr);
@@ -90,7 +90,7 @@ fn wall_col(s: f32, P: vec3f, pw: f32) -> vec3f {
   alb = mix(alb, vec3f(0.17, 0.22, 0.21) * tone, step(0.82, hh));
   alb *= 0.85 + 0.3 * vnoise(vec3f(zl * 3.0, y * 6.0, hh * 10.0));
   alb *= 1.0 - 0.14 * clamp(1.0 - pw * 22.0, 0.0, 1.0) * smoothstep(0.35, 0.5, abs(fract(y / 0.15) - 0.5));
-  // Light: ambient + lamppost.
+  // Lumière : ambiante + lampadaire.
   let wcl = clamp(params.weather - 1.0, 0.0, 1.0);
   let amb = mix(vec3f(0.06, 0.075, 0.135), vec3f(0.045, 0.05, 0.075), step(0.5, params.weather)) + vec3f(0.04, 0.045, 0.06) * wcl;
   let n = vec3f(-s, 0.0, 0.0);
@@ -99,7 +99,7 @@ fn wall_col(s: f32, P: vec3f, pw: f32) -> vec3f {
   let lamp = vec3f(1.0, 0.68, 0.32) * 15.0 / (4.0 + d2) * max(dot(n, L) * inverseSqrt(d2), 0.0);
   var col = alb * (amb + lamp);
 
-  // Windows / door
+  // Fenêtres / porte
   let f = select(0.0, 1.0, y > 3.1);
   let c = select(0.0, 1.0, zl > 3.0);
   let cx = 1.5 + 2.8 * c;
@@ -125,7 +125,7 @@ fn wall_col(s: f32, P: vec3f, pw: f32) -> vec3f {
     col = mix(col, glass, ins);
   }
 
-  // Outdoor staircase (dark ironwork) + landing in front of the door
+  // Escalier extérieur (ferronnerie sombre) + palier devant la porte
   if (st) {
     let sy = 0.25 + (zl - 0.3) * (3.1 / 2.7);
     var iron = 0.0;
@@ -177,7 +177,7 @@ fn glow_lamp(ro: vec3f, rd: vec3f) -> vec3f {
   return vec3f(1.0, 0.68, 0.32) * (1.1 * exp(-a * 300.0) + 0.22 * exp(-a * 30.0) + 0.04 * exp(-a * 6.0));
 }
 
-// Facades, roofs and sky. Returns (colour, distance); no ground, no props.
+// Façades, toits et ciel. Retourne (couleur, distance) ; ni sol ni accessoires.
 fn env(ro: vec3f, rd: vec3f) -> vec4f {
   let s = select(-1.0, 1.0, rd.x >= 0.0);
   let adx = max(abs(rd.x), 0.0001);
@@ -188,7 +188,7 @@ fn env(ro: vec3f, rd: vec3f) -> vec4f {
   if (tw < FAR && yw <= hw) {
     return vec4f(wall_col(s, vec3f(s * W, yw, zw), tw * PIX), tw);
   }
-  // Pitched roof: y = H + (s*x - W) * K for s*x - W in [0, ROOFW]; H taken from the cell where the ray lands.
+  // Toit en pente : y = H + (s*x - W) * K pour s*x - W dans [0, ROOFW] ; H pris dans la cellule où le rayon atterrit.
   let denom = rd.y - ROOFK * s * rd.x;
   if (abs(denom) > 0.0001 && tw < FAR) {
     let k0 = ROOFK * s * ro.x - ROOFK * W - ro.y;
@@ -209,7 +209,7 @@ fn env(ro: vec3f, rd: vec3f) -> vec4f {
       col *= 1.0 + 12.0 * (1.0 - wcl * 0.7) / (4.0 + d2) * max(dot(nrm, L) * inverseSqrt(d2), 0.0);
       col += vec3f(0.05, 0.07, 0.11) * (1.0 - step(0.5, params.weather)) * max(dot(nrm, MOON), 0.0);
       col += vec3f(0.01, 0.012, 0.02);
-      // Dormer decal.
+      // Décalque de lucarne.
       let hasD = step(h21(vec2f(cell + 5.0, s + 41.0)), 0.55);
       let dx = zl - 3.0;
       let dv = u - 1.05;
@@ -272,7 +272,7 @@ fn box_hit(ro: vec3f, rd: vec3f, lo: vec3f, hi: vec3f) -> vec4f {
   var t = e.w;
   let fogc = fog_col();
 
-  // Ground
+  // Sol
   var tg = 1e9;
   if (rd.y < -0.0001) { tg = -ro.y / rd.y; }
   if (tg < t) {
@@ -299,7 +299,7 @@ fn box_hit(ro: vec3f, rd: vec3f, lo: vec3f, hi: vec3f) -> vec4f {
     }
   }
 
-  // Props: lamp mast + head, parked car.
+  // Accessoires : mât et tête du lampadaire, voiture garée.
   if (abs(rd.z) > 0.001) {
     let tm = (LAMP.z - ro.z) / rd.z;
     if (tm > 0.0 && tm < t) {
@@ -328,7 +328,7 @@ fn box_hit(ro: vec3f, rd: vec3f, lo: vec3f, hi: vec3f) -> vec4f {
     t = car.x;
   }
 
-  // Fog by distance, lamp halo on top.
+  // Brume selon la distance, halo du lampadaire par-dessus.
   if (t < 900.0) { col = mix(col, fogc, 1.0 - exp(-min(t, 100.0) * 0.034)); }
   col += glow_lamp(ro, rd);
 
@@ -346,7 +346,7 @@ fn box_hit(ro: vec3f, rd: vec3f, lo: vec3f, hi: vec3f) -> vec4f {
     col += vec3f(0.12, 0.17, 0.30) * hz * (0.10 + 0.07 * pa) * (1.0 - 0.6 * isSnow) * (0.6 + 0.4 * smoothstep(-0.3, 0.9, dot(rd, MOON)));
   }
 
-  // Precipitation (screen space, low contrast; frozen when reduced motion)
+  // Précipitations (espace écran, faible contraste ; figées si mouvement réduit)
   if (isRain > 0.5) {
     let cx = floor(fc.x / 2.0);
     let r = h11(cx);
@@ -367,7 +367,7 @@ fn box_hit(ro: vec3f, rd: vec3f, lo: vec3f, hi: vec3f) -> vec4f {
     }
   }
 
-  // Grade: calm the centre for the door/text, vignette, dither.
+  // Étalonnage : apaise le centre pour la porte/le texte, vignette, tramage.
   let cc = length(c2 * vec2f(0.8, 0.6));
   col *= mix(0.72, 1.0, smoothstep(0.0, 1.1, cc));
   col *= 1.0 - 0.35 * smoothstep(0.6, 1.5, length(c2));

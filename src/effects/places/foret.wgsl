@@ -2,23 +2,23 @@ struct Params {
   time: f32,
   width: f32,
   height: f32,
-  paranoia: f32, // 0..1, eased on the CPU
-  sway: f32, // camera sway (0 when reduced motion)
+  paranoia: f32, // 0..1, adouci côté CPU
+  sway: f32, // balancement de la caméra (0 si mouvement réduit)
   swayY: f32,
-  drift: f32, // animation clock: fog, flicker, snow, blinks (0 when reduced motion)
-  eyes: f32, // 0..1 presence of eyes in the dark
-  px: f32, // parallax -1..1 (0 when reduced motion)
+  drift: f32, // horloge d’animation : brume, vacillement, neige, clignements (0 si mouvement réduit)
+  eyes: f32, // 0..1 présence d’yeux dans le noir
+  px: f32, // parallaxe -1..1 (0 si mouvement réduit)
   py: f32,
-  mist: f32, // variant: fog density multiplier
-  moon: f32, // variant: moon size / brightness multiplier
-  snow: f32, // variant: 0..1 flurries
-  glow: f32, // jack-o'-lantern strength
+  mist: f32, // variante : multiplicateur de densité de la brume
+  moon: f32, // variante : multiplicateur de taille / luminosité de la lune
+  snow: f32, // variante : 0..1 rafales de neige
+  glow: f32, // intensité des citrouilles
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
-// Scene: night path through a forest. Jack-o'-lanterns line the path (analytic ellipsoids with a carved face),
-// tree trunks and branches are analytic silhouettes on 5 depth planes, a few noise samples of drifting mist, moon, optional flurries.
-// Candle flicker: three slow sines (<= 1.3 Hz), small amplitude. Nothing else changes luminance over time.
+// Scène : sentier nocturne dans une forêt. Des citrouilles d’Halloween bordent le sentier (ellipsoïdes analytiques au visage sculpté),
+// troncs et branches sont des silhouettes analytiques sur 5 plans de profondeur, quelques échantillons de bruit pour la brume qui dérive, la lune, des rafales de neige optionnelles.
+// Vacillement de bougie : trois sinus lents (≤ 1,3 Hz), faible amplitude. Rien d’autre ne change la luminance dans le temps.
 
 var<private> MOON_DIR: vec3f;
 const EYE_Y: f32 = 1.5;
@@ -53,7 +53,7 @@ fn tcap(p: vec2f, a: vec2f, b: vec2f, r1: f32, r2: f32) -> f32 {
 
 fn path_x(z: f32) -> f32 { return 0.9 * sin(z * 0.11) + 0.35 * sin(z * 0.31 + 1.0); }
 
-// --- Jack-o'-lanterns: index i (depth row) and side s (-1 / +1).
+// --- Citrouilles d’Halloween : indice i (rangée de profondeur) et côté s (-1 / +1).
 fn p_key(i: i32, s: f32) -> f32 { return f32(i) * 2.0 + select(0.0, 1.0, s > 0.0); }
 fn p_scale(k: f32) -> f32 { return select(0.8 + 0.4 * h11(k * 2.3), 0.0, h11(k * 7.9) < 0.14); }
 fn p_center(i: i32, s: f32) -> vec3f {
@@ -61,13 +61,13 @@ fn p_center(i: i32, s: f32) -> vec3f {
   let z = 1.8 + f32(i) * 2.4 + 0.9 * h11(k * 5.1);
   return vec3f(path_x(z) + s * (1.35 + 0.5 * h11(k * 9.7)), 0.35 * p_scale(k), z);
 }
-// Candle flicker: ~0.2, 0.7 and 1.3 Hz, total amplitude ~ +-0.14.
+// Vacillement de bougie : ~0,2, 0,7 et 1,3 Hz, amplitude totale ~ ±0,14.
 fn flick(k: f32) -> f32 {
   let ph = k * 2.399;
   return 1.0 + 0.05 * sin(params.drift * 1.2 + ph * 3.0) + 0.05 * sin(params.drift * 4.4 + ph) + 0.035 * sin(params.drift * 8.1 + ph * 2.1 + 1.0);
 }
 
-// Warm light cast on the ground at g.
+// Lumière chaude projetée sur le sol en g.
 fn lant_light(g: vec3f) -> f32 {
   var l = 0.0;
   for (var i = 0; i < NP; i++) {
@@ -82,7 +82,7 @@ fn lant_light(g: vec3f) -> f32 {
   return l;
 }
 
-// Carved face mask (u right, v up, ~[-1,1] on the lantern): triangular eyes, nose, toothy mouth.
+// Masque du visage sculpté (u vers la droite, v vers le haut, ~[-1,1] sur la citrouille) : yeux triangulaires, nez, bouche dentée.
 fn face(u: f32, v: f32) -> f32 {
   let ex = abs(u) - 0.40;
   let ey = v - 0.22;
@@ -95,7 +95,7 @@ fn face(u: f32, v: f32) -> f32 {
   return clamp(eye + nose + mouth, 0.0, 1.0);
 }
 
-// Tree trunks + branches on the plane z = D (coverage 0..1). Skips the clearing where the path runs.
+// Troncs d’arbres + branches sur le plan z = D (couverture 0..1). Évite la clairière où passe le sentier.
 fn trunk_mask(ro: vec3f, rd: vec3f, D: f32, seed: f32, aa: f32) -> f32 {
   let X = ro.x + rd.x / rd.z * D;
   let Y = ro.y + rd.y / rd.z * D;
@@ -171,7 +171,7 @@ fn flakes(c2: vec2f, scale: f32, speed: f32, seed: f32) -> f32 {
   return step(0.74, h21(cell + seed)) * smoothstep(0.2, 0.05, length(f - o));
 }
 
-// One pair of eyes in the dark at world position c (separation 0.34), slow blink.
+// Une paire d’yeux dans le noir à la position monde c (écartement 0,34), clignement lent.
 fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   var g = 0.0;
   for (var s = -1; s <= 1; s += 2) {
@@ -266,7 +266,7 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
   let a = atan2(rd.x, rd.z);
   let e = asin(clamp(rd.y, -1.0, 1.0));
 
-  // --- Background: sky + far ridge, or ground (leaves, lit path, lantern light).
+  // --- Arrière-plan : ciel + crête lointaine, ou sol (feuilles, sentier éclairé, lumière des citrouilles).
   if (rd.y >= 0.0) {
     col = sky_col(rd, p, moonCol, moonR);
     if (e < treeline(a)) {
@@ -285,7 +285,7 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
     col = gc;
   }
 
-  // --- Jack-o'-lanterns (nearest ellipsoid hit) + halos.
+  // --- Citrouilles d’Halloween (ellipsoïde touché le plus proche) + halos.
   var tL = 1.0e9;
   var halo = 0.0;
   var embers = vec3f(0.0);
@@ -330,8 +330,8 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
   if (tL < 1.0e8) {
     let sc = p_scale(hitK);
     let rad = vec3f(0.40, 0.35, 0.40) * sc;
-    let q = (ro + rd * tL - hitC) / rad; // on the unit sphere
-    // The face looks toward the path and the camera.
+    let q = (ro + rd * tL - hitC) / rad; // sur la sphère unité
+    // Le visage regarde vers le sentier et la caméra.
     let fdir = normalize(vec3f(-hitS * 0.55, 0.0, -1.0));
     let right = vec3f(-fdir.z, 0.0, fdir.x);
     let fr = dot(q, fdir);
@@ -344,11 +344,11 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
     body += warm * 0.10 * fl * smoothstep(-0.2, 0.9, fr);
     body += moonCol * 0.02 * max(dot(q, MOON_DIR), 0.0);
     col = mix(body, vec3f(1.0, 0.55, 0.14) * 1.5 * fl, m);
-    col = mix(col, vec3f(0.01, 0.014, 0.006), smoothstep(0.78, 0.95, q.y)); // stem
+    col = mix(col, vec3f(0.01, 0.014, 0.006), smoothstep(0.78, 0.95, q.y)); // tige
     tEnd = tL;
   }
 
-  // --- Trunks, far to near, each skipped when a lantern is closer.
+  // --- Troncs, du plus loin au plus proche, chacun ignoré quand une citrouille est plus proche.
   if (rd.z > 0.05) {
     let aaK = 2.4 / (1.3 * min(res.x, res.y));
     for (var li = 4; li >= 0; li--) {
@@ -362,10 +362,10 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
     }
   }
 
-  // --- Dust catching the lantern glow (hidden behind opaque trunks/lanterns through tEnd).
+  // --- Poussière captant la lueur des citrouilles (masquée derrière les troncs/citrouilles opaques jusqu’à tEnd).
   col += warm * 0.8 * params.glow * lant_motes(ro, rd, tEnd);
 
-  // --- Eyes between the trunks (high paranoia only).
+  // --- Yeux entre les troncs (forte paranoïa seulement).
   if (params.eyes > 0.01) {
     let ec = mix(vec3f(1.0, 0.65, 0.18), vec3f(1.0, 0.12, 0.05), p);
     let e1 = eye_pair(ro, rd, vec3f(-3.9, 1.35, 8.5), 0.30, tEnd) * smoothstep(0.0, 0.4, params.eyes);
@@ -374,7 +374,7 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
     col += ec * (e1 + e2 + e3) * 2.2;
   }
 
-  // --- Mist: few samples, noise drifting slowly, ground-hugging.
+  // --- Brume : peu d’échantillons, bruit qui dérive lentement, collée au sol.
   let N = 7;
   let jit = fract(52.9829189 * fract(dot(fc, vec2f(0.06711056, 0.00583715))));
   var T = 1.0;
@@ -407,14 +407,14 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
   }
   col = col * T + scat;
 
-  // --- Flurries (screen space, slow; the centre stays clear).
+  // --- Rafales de neige (espace écran, lentes ; le centre reste dégagé).
   let cc = length(c2 * vec2f(0.8, 0.6));
   if (params.snow > 0.0) {
     let fl = flakes(c2, 13.0, 0.9, 1.0) + 0.7 * flakes(c2 + 0.37, 22.0, 1.4, 5.0);
     col += vec3f(0.55, 0.62, 0.78) * fl * 0.35 * params.snow * smoothstep(0.1, 0.6, cc);
   }
 
-  // --- Grade: dim the centre so the door and text stay readable, soft vignette, dither.
+  // --- Étalonnage : assombrit le centre pour que la porte et le texte restent lisibles, vignette douce, tramage.
   col *= mix(0.72, 1.0, smoothstep(0.0, 1.1, cc));
   col *= 1.0 - 0.35 * smoothstep(0.6, 1.5, length(c2));
   col = col / (1.0 + col * 0.6);

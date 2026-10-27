@@ -8,8 +8,8 @@ export const porchParams = (s: RaymarchState & { variant?: Record<string, number
   const { t, paranoia: p } = s
   const m = s.motion
   const v = s.variant ?? {}
-  const k = 1 + 1.2 * p // uneasy: amplitude grows ...
-  const speed = 0.13 / (1 + 0.8 * p) // ... while the rhythm slows
+  const k = 1 + 1.2 * p // inquiétant : l’amplitude augmente ...
+  const speed = 0.13 / (1 + 0.8 * p) // ... pendant que le rythme ralentit
   return {
     time: t,
     width: s.width,
