@@ -25,14 +25,13 @@ const tiltEls = ref<HTMLElement[]>([])
 const glowEls = ref<HTMLElement[]>([])
 const chosen = ref<number | null>(null)
 const hot = ref<number | null>(null)
-// Rang d’empilement : la carte choisie garde celui qu’elle avait au clic tant que les autres ne se sont pas écartées.
-// Passer devant d’un coup une carte qui la recouvre encore donne l’impression qu’elle la traverse.
+// Rang d’empilement fixe : passer d’un coup devant une carte qui la recouvre encore donne l’impression de la traverser.
+// Au survol, la carte se soulève et ses voisines se tassent ; la carte choisie ne passe devant qu’à l’envol, une fois les autres écartées.
 const flying = ref(false)
-let pickZ = 1
-const restZ = (i: number) => (hot.value === i ? 5 : i === 1 ? 3 : 1)
+const restZ = (i: number) => (i === 1 ? 3 : 1)
 const zClass = (i: number) => {
-  const z = chosen.value === i ? (flying.value ? 10 : pickZ) : chosen.value === null ? restZ(i) : i === 1 ? 3 : 1
-  return z === 10 ? 'z-10' : z === 5 ? 'z-5' : z === 3 ? 'z-3' : 'z-1'
+  const z = chosen.value === i && flying.value ? 10 : restZ(i)
+  return z === 10 ? 'z-10' : z === 3 ? 'z-3' : 'z-1'
 }
 const ready = ref(false)
 const cards = [0, 1, 2] as const
@@ -73,7 +72,7 @@ useResizeObserver(deckEl, () => {
 const restOf = (i: number, h: number | null) => {
   const f = FAN[i]
   const me = h === i
-  const sep = h === null || me ? 0 : (i < h ? -1 : 1) * 0.015 * W
+  const sep = h === null || me ? 0 : (i < h ? -1 : 1) * 0.06 * W
   return { x: (fx(i) / 100) * W + sep, y: (f.y / 100) * W + (me ? -0.04 * W : 0), r: me ? f.rot * 0.35 : f.rot, s: me ? FAN_SCALE * 1.04 : FAN_SCALE }
 }
 const stackOf = (i: number) => ({ x: (i - 1) * 0.006 * W, y: 0.05 * W - i * 0.006 * W, r: (i - 1) * 2, s: FAN_SCALE * 0.92 })
@@ -297,7 +296,6 @@ const { start: startFallback } = useTimeoutFn(() => finish(), 1800, { immediate:
 const choose = (i: number) => {
   if (chosen.value !== null || !ready.value) return
   W = deckEl.value?.offsetWidth ?? W
-  pickZ = restZ(i)
   flying.value = reduced.value
   chosen.value = i
   hot.value = null
