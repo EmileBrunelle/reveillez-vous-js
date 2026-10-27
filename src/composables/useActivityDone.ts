@@ -1,9 +1,9 @@
-import { useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { ref } from 'vue'
 
 // Délai de réussite automatique : une activité se réussit toujours, même sans y toucher.
 export const AUTO_SUCCESS_MS = 20_000
-// Au bout de ce délai sans réussite, un bouton « Passer » discret apparaît (la minuterie automatique reste le filet de sécurité).
+// Au bout de ce délai sans réussite ni interaction, un bouton « Passer » discret apparaît (la minuterie automatique reste le filet de sécurité).
 export const SKIP_REVEAL_MS = 12_000
 
 // Fin d’activité commune : `finish` n’émet qu’une fois (réussite du joueur ou minuterie, le premier gagne)
@@ -29,5 +29,16 @@ export const useActivityDone = (
   auto.start()
   const reveal = useTimeoutFn(() => (canSkip.value = !finished), skipMs, { immediate: false })
   reveal.start()
+  // « Passer » dépanne qui reste bloqué : toute interaction repousse son apparition (qui joue ne le voit jamais, la réussite automatique arrive avant).
+  // Une fois affiché, il reste : il ne doit pas fuir sous le doigt de qui veut l’atteindre.
+  const poke = () => {
+    if (finished || canSkip.value) return
+    reveal.stop()
+    reveal.start()
+  }
+  // Cible résolue à l’appel (pas de `document` en SSR ni dans les tests node).
+  const doc = () => globalThis.document
+  useEventListener(doc, 'pointerdown', poke, { passive: true })
+  useEventListener(doc, 'keydown', poke)
   return { finish, canSkip, isFinished: () => finished }
 }

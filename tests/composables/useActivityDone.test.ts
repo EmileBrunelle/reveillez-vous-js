@@ -81,6 +81,26 @@ describe('useActivityDone', () => {
     scope.stop()
   })
 
+  it('qui joue ne voit pas « Passer » : chaque interaction repousse son apparition', () => {
+    // Pas de DOM (node) : un EventTarget suffit pour les écouteurs.
+    vi.stubGlobal('document', new EventTarget())
+    const scope = effectScope()
+    // Réussite automatique repoussée : on simule plus de 20 s de jeu.
+    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100, autoMs: 60_000 }))!
+    for (let t = 0; t < 3; t++) {
+      vi.advanceTimersByTime(SKIP_REVEAL_MS - 1000)
+      document.dispatchEvent(new Event(t % 2 ? 'keydown' : 'pointerdown'))
+    }
+    expect(api.canSkip.value).toBe(false)
+    vi.advanceTimersByTime(SKIP_REVEAL_MS)
+    expect(api.canSkip.value).toBe(true)
+    // Affiché, il reste malgré une nouvelle interaction.
+    document.dispatchEvent(new Event('pointerdown'))
+    expect(api.canSkip.value).toBe(true)
+    scope.stop()
+    vi.unstubAllGlobals()
+  })
+
   it('une réussite avant 12 s ne révèle jamais « Passer »', () => {
     const scope = effectScope()
     const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100 }))!
