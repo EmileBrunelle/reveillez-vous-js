@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
@@ -24,6 +25,12 @@ describe('annonces uniques pour les lecteurs d’écran', () => {
     const sink = html.match(/<span[^>]*tabindex="-1"[^>]*>/)?.[0] ?? ''
     expect(sink).not.toBe('')
     expect(sink).not.toMatch(/role=|aria-label/)
+  })
+
+  it('DeckCut : aucun commentaire HTML avant la racine du gabarit (sinon, en dev, le statut est écrit deux fois)', () => {
+    const source = readFileSync(new URL('../../src/components/DeckCut.vue', import.meta.url), 'utf8')
+    const template = source.slice(source.indexOf('<template>') + '<template>'.length).trimStart()
+    expect(template.startsWith('<div')).toBe(true)
   })
 
   it('Vigilance : la région live est présente et vide au départ (pas insérée déjà remplie)', async () => {

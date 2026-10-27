@@ -321,6 +321,8 @@ onMounted(() => {
   startPhase()
 })
 
+// La section et la rangée « Fermer la porte » sont dans App.vue (communes à la coupe et à la lecture).
+// Pas de commentaire HTML avant la racine du gabarit : en dev, Vue en fait un fragment racine, repeint sans optimisation (le texte du statut s’écrivait deux fois).
 // --- interactions ---------------------------------------------------------------------------------------------------------------
 const setHot = (i: number | null) => {
   if (chosen.value !== null || !ready.value || reduced.value) return
@@ -441,7 +443,6 @@ const choose = (i: number) => {
 </script>
 
 <template>
-  <!-- La section et la rangée « Fermer la porte » sont dans App.vue (communes à la coupe et à la lecture). -->
   <div ref="deckEl" tabindex="-1" class="deck relative outline-none aspect-[7/12]" role="group" :aria-labelledby="promptId">
     <p class="absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ status }}</p>
     <span ref="focusSink" tabindex="-1" class="absolute size-px outline-none"></span>
