@@ -21,7 +21,7 @@ const onClick = () => {
   <button
     v-if="shown"
     type="button"
-    class="skip win-btn font-ui text-lg absolute bottom-2 right-2 z-10 focus-visible:outline-2 focus-visible:outline-dashed focus-visible:outline-black focus-visible:outline-offset-[-6px]"
+    class="skip win-btn font-ui text-lg absolute bottom-2 right-6 z-10 before:content-[''] before:absolute before:-inset-[9px] focus-visible:outline-2 focus-visible:outline-dashed focus-visible:outline-black focus-visible:outline-offset-[-6px]"
     :aria-disabled="show ? undefined : 'true'"
     :class="{ 'opacity-60 cursor-default': !show }"
     @click="onClick"

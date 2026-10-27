@@ -104,7 +104,7 @@ const pad = (n: number) => String(n).padStart(2, '0')
 const hhmm = () => `${pad(new Date(nowMs.value).getHours())}:${pad(new Date(nowMs.value).getMinutes())}`
 
 const item =
-  'flex items-center gap-2 w-full min-h-10 px-3 text-[0.9rem] text-black no-underline text-left cursor-pointer border-0 bg-transparent [font:inherit] hover:bg-[#000080] hover:text-white focus:bg-[#000080] focus:text-white focus:outline-none sm:min-h-8'
+  'flex items-center gap-2 w-full min-h-[max(2.5rem,44px)] px-3 text-[0.9rem] text-black no-underline text-left cursor-pointer border-0 bg-transparent [font:inherit] hover:bg-[#000080] hover:text-white focus:bg-[#000080] focus:text-white focus:outline-none sm:min-h-8'
 const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
 </script>
 
@@ -115,7 +115,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     <div class="relative flex">
       <button
         ref="startBtn"
-        class="win-btn flex items-center gap-[0.35rem] min-w-10 min-h-10 px-2 py-0 font-bold [font:inherit] font-bold border-0"
+        class="win-btn relative before:content-[''] before:absolute before:-inset-[2px] flex items-center gap-[0.35rem] min-w-10 min-h-10 px-2 py-0 font-bold [font:inherit] font-bold border-0"
         :class="open ? 'shadow-[inset_-1px_-1px_#fff,inset_1px_1px_#0a0a0a,inset_-2px_-2px_#dfdfdf,inset_2px_2px_grey]' : ''"
         type="button"
         aria-haspopup="menu"
@@ -174,7 +174,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         <strong v-if="balloon.title" class="flex-1 min-w-0 truncate">{{ balloon.title }}</strong>
         <span v-else class="flex-1" />
         <button
-          class="flex-none grid place-items-center w-6 h-6 p-0 border-0 bg-transparent text-black cursor-pointer text-[1rem] leading-none hover:bg-[#c0c0c0]"
+          class="relative before:content-[''] before:absolute before:-inset-[10px] flex-none grid place-items-center w-6 h-6 p-0 border-0 bg-transparent text-black cursor-pointer text-[1rem] leading-none hover:bg-[#c0c0c0]"
           type="button"
           aria-label="Fermer la notification"
           @click="session.dismiss(balloon.id)"
@@ -189,7 +189,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     <div class="flex items-stretch gap-1 pl-1 pr-1 bg-[#c0c0c0]" :class="inset">
       <Vigilance :level="level" class="flex items-center min-h-10 min-w-10 justify-center" @reset="emit('resetLevel')" />
       <button
-        class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black"
+        class="relative before:content-[''] before:absolute before:-inset-[2px] grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black"
         type="button"
         aria-label="Couper le son"
         :aria-pressed="muted"
@@ -201,7 +201,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
       </button>
       <button
         v-if="canFullscreen"
-        class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black"
+        class="relative before:content-[''] before:absolute before:-inset-[2px] grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black"
         type="button"
         :aria-label="fullscreenLabel"
         :aria-pressed="isFullscreen"
