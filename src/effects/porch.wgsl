@@ -403,7 +403,10 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
   }
   if (params.leaves > 0.0) {
     let lf = max(leaf_layer(c2, 7.0, 0.35, 0.0), 0.7 * leaf_layer(c2 + vec2f(0.4, 0.2), 12.0, 0.6, 9.0));
-    col = mix(col, vec3f(0.80, 0.34, 0.07), lf * 0.85 * params.leaves * edge);
+    // Éclairées comme la scène : albedo d’automne × lumière nocturne (brume + lune), un peu plus claires vers la lune (haut), lampe en appoint.
+    let moonSide = mix(0.8, 1.3, smoothstep(-0.8, 0.9, c2.y));
+    let leafLight = fogLit * 4.4 * moonSide + moonCol * params.moon * 0.06 + vec3f(0.55, 0.26, 0.07) * params.lamp * 0.3;
+    col = mix(col, vec3f(0.48, 0.19, 0.06) * mix(vec3f(dot(leafLight, vec3f(0.34))), leafLight, 0.35), lf * 0.85 * params.leaves * edge);
   }
 
   // --- Grade: dim the centre so white UI text stays readable, soft vignette, dither.
