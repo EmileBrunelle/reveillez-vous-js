@@ -6,19 +6,30 @@ import { BASS_PARTIALS, PAD_DEPTH, PAD_VOICES, RARE_BOOST, nextRareDelay, padGai
 
 /** Niveau du bus d’ambiance (≈ -27 dBFS) : moins de la moitié de l’ancien 0,1, bien sous les coups et la voix. */
 export const MASTER_GAIN = 0.045
-/** Constantes de temps (setTargetAtTime) : ≈ 1,5 s à l’entrée, ≈ 0,8 s à la sortie, < 0,3 s pour le mute. */
-const TC_IN = 0.4
-const TC_OUT = 0.18
-const TC_MUTE = 0.07
+/** Durées des fondus (s) : entrée d’un lieu, fondu enchaîné d’un lieu à l’autre, départ (porte fermée, finale), sourdine. */
+export const FADE_IN = 2.5
+export const FADE_XFADE = 2
+export const FADE_OUT = 2
+export const FADE_MUTE = 0.25
+/** Fondu bref quand l’onglet se cache ou revient. */
+const FADE_HIDDEN = 0.5
+/** Nombre de segments d’un fondu (rampes linéaires approchant le quart de cosinus / sinus). */
+const FADE_STEPS = 24
+/** Gain du bus des événements de lieu (+≈ 11 dB) : ils étaient ≈ -45 dBFS crête, inaudibles sous la voix d’un portable. */
+export const EVENT_BOOST = 3.6
 /** Montée/descente de la basse et de la nappe entre deux niveaux : très lente. */
 const TC_SUB = 2
-const STOP_AFTER_MS = 1100
+const STOP_AFTER_MS = FADE_OUT * 1000 + 150
 /** Espacement minimal entre deux événements d’un même lieu. */
 const MIN_SPACING_MS = 3000
 
 export type EventKind = 'gust' | 'creak' | 'owl' | 'twig' | 'rustle' | 'bell' | 'crow' | 'dog' | 'door' | 'chime' | 'airSwell'
-/** Seul lit continu autorisé : un bourdon grave, très doux (jamais de bruit large bande). */
-export type BedKind = 'drone'
+/**
+ * Lits continus, très bas (≈ -42 dBFS RMS au niveau 1) : bourdon grave, bourdon électrique, souffle étroit, vent, médium discret.
+ * Décision d’Émile (2026-10-26) : le bruit large bande reste banni, mais un bruit est permis s’il est filtré étroit (passe-bande à Q élevé)
+ * et bas (< 600 Hz), modulé très lentement (aucune modulation ≥ 3 Hz).
+ */
+export type BedKind = 'drone' | 'hum' | 'breath' | 'wind' | 'mid'
 
 export interface EventSpec {
   kind: EventKind
@@ -31,20 +42,24 @@ export interface Recipe {
   beds: BedKind[]
   /** Fréquence fondamentale du bourdon (Hz), si le lieu en a un. */
   droneHz?: number
+  /** Gain relatif du bourdon (1 par défaut) : le baisser laisse la composante médium porter le lit sur un portable. */
+  droneGain?: number
+  /** Centre (Hz) du souffle médium discret (lit `mid`). */
+  midHz?: number
   events: EventSpec[]
 }
 
 /** Peu de son, beaucoup d’atmosphère : événements rares, longs silences entre eux. */
 export const RECIPES: Record<PlaceId, Recipe> = {
   perron: {
-    beds: [],
+    beds: ['wind'],
     events: [
       { kind: 'gust', min: 9, max: 22 },
       { kind: 'creak', min: 16, max: 34 },
     ],
   },
   foret: {
-    beds: [],
+    beds: ['breath'],
     events: [
       { kind: 'owl', min: 14, max: 30 },
       { kind: 'twig', min: 10, max: 24 },
@@ -52,23 +67,27 @@ export const RECIPES: Record<PlaceId, Recipe> = {
     ],
   },
   cimetiere: {
-    beds: ['drone'],
+    beds: ['drone', 'mid'],
     droneHz: 55,
+    midHz: 280,
+    droneGain: 0.45,
     events: [
       { kind: 'bell', min: 16, max: 32 },
       { kind: 'crow', min: 14, max: 30 },
     ],
   },
   rue: {
-    beds: [],
+    beds: ['hum'],
     events: [
       { kind: 'dog', min: 15, max: 32 },
       { kind: 'door', min: 12, max: 26 },
     ],
   },
   nuages: {
-    beds: ['drone'],
+    beds: ['drone', 'mid'],
     droneHz: 110,
+    midHz: 420,
+    droneGain: 0.3,
     events: [
       { kind: 'chime', min: 8, max: 20 },
       { kind: 'airSwell', min: 10, max: 24 },
@@ -84,6 +103,33 @@ export const ambienceDucked = ref(false)
 
 /** Niveau cible du bus : 0 si coupé, onglet caché, arrêté ou étouffé par la finale. */
 export const targetLevel = (s: { muted: boolean; hidden: boolean; stopped: boolean; ducked?: boolean }) => (s.muted || s.hidden || s.stopped || s.ducked ? 0 : MASTER_GAIN)
+
+/** Gain du bus des lits : plein au niveau 1, ramené sous la nappe dès le niveau 2 (pas d’empilement qui masque les événements). */
+export const bedGain = (level: number) => (level <= 1 ? 0.9 : 0.55)
+
+/**
+ * Programme un fondu à puissance constante vers `target` en `dur` s : part de la valeur courante (annule les rampes en cours,
+ * donc aucun saut si l’on change d’avis en plein fondu), montée en sinus (quart d’onde), descente en cosinus.
+ */
+export const fadeParam = (param: AudioParam, now: number, target: number, dur: number) => {
+  const v0 = param.value
+  param.cancelScheduledValues(now)
+  param.setValueAtTime(v0, now)
+  if (v0 === target || dur <= 0) {
+    param.setValueAtTime(target, now + Math.max(dur, 0))
+    return
+  }
+  const up = target > v0
+  for (let i = 1; i <= FADE_STEPS; i++) {
+    const x = i / FADE_STEPS
+    const shape = up ? Math.sin((Math.PI / 2) * x) : 1 - Math.cos((Math.PI / 2) * x)
+    param.linearRampToValueAtTime(i === FADE_STEPS ? target : v0 + (target - v0) * shape, now + dur * x)
+  }
+}
+
+/** Horodatage du dernier arrêt : un lieu qui démarre juste après un arrêt est un changement de lieu (fondu enchaîné). */
+let lastStopAt = -Infinity
+const XFADE_WINDOW_MS = 250
 
 const rnd = (a: number, b: number) => randomDelay(a, b)
 
@@ -171,9 +217,9 @@ const osc = (e: Env, type: OscillatorType, freq: number) => {
 }
 
 /** Bourdon : sinus en quinte, lowpass doux, gain et filtre qui respirent très lentement (aucun battement audible : le seul écart de fréquence est de 0,05 Hz). */
-const drone = (e: Env, hz: number) => {
+const drone = (e: Env, hz: number, k = 1) => {
   const lp = filt(e, 'lowpass', 260, 0.5)
-  const g = gainNode(e, 0.3)
+  const g = gainNode(e, 0.3 * k)
   lp.connect(g).connect(e.out)
   osc(e, 'sine', hz).connect(lp)
   osc(e, 'sine', hz * 1.5)
@@ -182,12 +228,59 @@ const drone = (e: Env, hz: number) => {
   osc(e, 'sine', hz * 2 + 0.05)
     .connect(gainNode(e, 0.25))
     .connect(lp)
-  osc(e, 'sine', 0.045).connect(gainNode(e, 0.12)).connect(g.gain)
+  osc(e, 'sine', 0.045)
+    .connect(gainNode(e, 0.12 * k))
+    .connect(g.gain)
   osc(e, 'sine', 0.03).connect(gainNode(e, 70)).connect(lp.frequency)
 }
 
+/** Bourdon électrique de lampadaire : 100 Hz + harmoniques 200 et 300 Hz légères, respiration très lente (0,07 Hz). */
+const hum = (e: Env) => {
+  const lp = filt(e, 'lowpass', 500, 0.5)
+  const g = gainNode(e, BED_HUM_GAIN)
+  lp.connect(g).connect(e.out)
+  for (const [hz, amp] of [
+    [100, 1],
+    [200, 0.5],
+    [300, 0.35],
+  ] as const)
+    osc(e, 'sine', hz).connect(gainNode(e, amp)).connect(lp)
+  osc(e, 'sine', 0.07)
+    .connect(gainNode(e, BED_HUM_GAIN * 0.15))
+    .connect(g.gain)
+}
+
+/** Souffle de bruit filtré étroit et bas : passe-bande `hz` / `q`, gain qui respire à `breathHz` (≤ 0,1 Hz), centre qui dérive de ± `sweep` Hz à `sweepHz`. */
+const noiseBand = (e: Env, o: { hz: number; q: number; gain: number; breathHz: number; depth: number; sweep?: number; sweepHz?: number }) => {
+  const s = e.t.add(e.c.createBufferSource())
+  s.buffer = sharedNoise(e.c)
+  s.loop = true
+  const bp = filt(e, 'bandpass', o.hz, o.q)
+  const g = gainNode(e, o.gain)
+  s.connect(bp).connect(g).connect(e.out)
+  s.start(0, Math.random() * NOISE_OFFSET_MAX)
+  osc(e, 'sine', o.breathHz)
+    .connect(gainNode(e, o.gain * o.depth))
+    .connect(g.gain)
+  if (o.sweep)
+    osc(e, 'sine', o.sweepHz ?? 0.05)
+      .connect(gainNode(e, o.sweep))
+      .connect(bp.frequency)
+}
+
+/** Gains d’étalonnage des lits (le passe-bande étroit laisse passer très peu d’énergie ; réglés sur des rendus hors ligne, cible ≈ -42 dBFS RMS en sortie). */
+export const BED_NOISE_GAIN = { breath: 5.3, wind: 3, mid: 4.5 }
+export const BED_HUM_GAIN = 0.185
+
 const beds: Record<BedKind, (e: Env, r: Recipe) => void> = {
-  drone: (e, r) => drone(e, r.droneHz ?? 55),
+  drone: (e, r) => drone(e, r.droneHz ?? 55, r.droneGain),
+  hum: (e) => hum(e),
+  // forêt : souffle étroit (Q élevé), respiration très lente
+  breath: (e) => noiseBand(e, { hz: 420, q: 9, gain: BED_NOISE_GAIN.breath, breathHz: 0.07, depth: 0.3, sweep: 40, sweepHz: 0.05 }),
+  // perron : vent bas-médium, lente modulation de gain et de centre
+  wind: (e) => noiseBand(e, { hz: 320, q: 1.6, gain: BED_NOISE_GAIN.wind, breathHz: 0.09, depth: 0.3, sweep: 70, sweepHz: 0.06 }),
+  // cimetière, nuages : composante médium discrète à côté du bourdon
+  mid: (e, r) => noiseBand(e, { hz: r.midHz ?? 300, q: 5, gain: BED_NOISE_GAIN.mid, breathHz: 0.05, depth: 0.3, sweep: 20, sweepHz: 0.04 }),
 }
 
 /** Enveloppe douce : monte, redescend exponentiellement. */
@@ -245,7 +338,7 @@ const events: Record<EventKind, (e: Env) => void> = {
   gust: (e) => swell(e, 'bandpass', rnd(380, 520), 0.6, 0.35, 1.8, 4.5, rnd(260, 360)),
   airSwell: (e) => swell(e, 'bandpass', rnd(600, 800), 0.5, 0.2, 2.5, 6, rnd(900, 1100)),
   rustle: (e) => swell(e, 'bandpass', rnd(1800, 2400), 0.8, 0.14, 0.9, 2.4),
-  twig: (e) => swell(e, 'bandpass', rnd(1100, 1500), 3, 0.3, 0.004, 0.09),
+  twig: (e) => swell(e, 'bandpass', rnd(1100, 1500), 3, 0.6, 0.004, 0.09),
   owl: (e) =>
     tones(
       e,
@@ -402,8 +495,8 @@ const rareSounds: Record<RareKind, (e: Env) => void> = {
 }
 
 /**
- * Ambiance sonore d’un lieu, synthétisée (Web Audio) : événements rares (longs silences) + éventuellement un bourdon très doux.
- * Fondu d’entrée ~1,5 s, de sortie ~0,8 s ; suit `muted` et la visibilité de l’onglet ; attend que le
+ * Ambiance sonore d’un lieu, synthétisée (Web Audio) : un lit continu très bas + événements rares (longs silences).
+ * Fondu d’entrée 2,5 s (2 s si le lieu en remplace un autre : fondu enchaîné à puissance constante), de sortie 2 s ; suit `muted` et la visibilité de l’onglet ; attend que le
  * contexte soit déverrouillé. Renvoie la fonction d’arrêt (idempotente).
  */
 export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1): (() => void) => {
@@ -415,15 +508,20 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
   let stopped = false
   let hidden = false
   let lastEventAt = -Infinity
+  const crossfade = Date.now() - lastStopAt < XFADE_WINDOW_MS
 
   const master = c.createGain()
   master.gain.value = 0
   master.connect(ambienceOut(c))
 
   const level = () => targetLevel({ muted: muted.value, hidden, stopped, ducked: ambienceDucked.value })
-  const ramp = (tc: number) => {
-    master.gain.cancelScheduledValues(c.currentTime)
-    master.gain.setTargetAtTime(level(), c.currentTime, tc)
+  // un fondu n’est relancé que si la cible change : un `statechange` du contexte ne doit pas écraser un fondu en cours (sourdine, départ)
+  let lastTarget = Number.NaN
+  const ramp = (dur: number) => {
+    const target = level()
+    if (target === lastTarget) return
+    lastTarget = target
+    fadeParam(master.gain, c.currentTime, target, dur)
   }
   const running = () => c.state === 'running' && level() > 0
 
@@ -475,11 +573,22 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
       .connect(gainNode(e, v.amp * PAD_DEPTH))
       .connect(vg.gain)
   }
+  // lits : un bus à part, ramené sous la nappe aux niveaux 2+
+  const bedBus = gainNode(e, bedGain(getLevel()))
+  bedBus.connect(master)
+  const bedEnv: Env = { ...e, out: bedBus }
+  // événements de lieu : un bus à part, surélevé pour dépasser le lit
+  const eventBus = gainNode(e, EVENT_BOOST)
+  eventBus.connect(master)
+  const eventEnv: Env = { ...e, out: eventBus }
+  const slow = (param: AudioParam, v: number) => {
+    param.cancelScheduledValues(c.currentTime)
+    param.setTargetAtTime(v, c.currentTime, TC_SUB)
+  }
   const rampSub = () => {
-    sub.gain.cancelScheduledValues(c.currentTime)
-    sub.gain.setTargetAtTime(subGain(getLevel()), c.currentTime, TC_SUB)
-    pad.gain.cancelScheduledValues(c.currentTime)
-    pad.gain.setTargetAtTime(padGain(getLevel()), c.currentTime, TC_SUB)
+    slow(sub.gain, subGain(getLevel()))
+    slow(pad.gain, padGain(getLevel()))
+    slow(bedBus.gain, bedGain(getLevel()))
   }
   rampSub()
 
@@ -515,21 +624,22 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
   armRare()
 
   scope.run(() => {
-    for (const b of RECIPES[place].beds) beds[b](e, RECIPES[place])
-    for (const ev of RECIPES[place].events) e.every(ev.min, ev.max, () => events[ev.kind](e))
+    for (const b of RECIPES[place].beds) beds[b](bedEnv, RECIPES[place])
+    for (const ev of RECIPES[place].events) e.every(ev.min, ev.max, () => events[ev.kind](eventEnv))
   })
 
-  const onState = () => ramp(TC_IN)
+  const onState = () => ramp(FADE_IN)
   c.addEventListener('statechange', onState)
-  ramp(TC_IN)
+  ramp(crossfade ? FADE_XFADE : FADE_IN)
 
   scope.run(() => {
     const visibility = useDocumentVisibility()
     watch(
       visibility,
-      (v) => {
+      (v, old) => {
         hidden = v === 'hidden'
-        ramp(hidden ? TC_OUT : TC_IN)
+        // premier appel : l’entrée (ou le fondu enchaîné) déjà programmée prime, sauf si l’onglet est caché d’emblée
+        if (old !== undefined || hidden) ramp(FADE_HIDDEN)
       },
       { immediate: true },
     )
@@ -537,8 +647,8 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
       rampSub()
       armRare()
     })
-    watch(muted, (m) => ramp(m ? TC_MUTE : TC_IN))
-    watch(ambienceDucked, (d) => ramp(d ? TC_OUT : TC_IN))
+    watch(muted, () => ramp(FADE_MUTE))
+    watch(ambienceDucked, (d) => ramp(d ? FADE_OUT : FADE_IN))
   })
 
   return () => {
@@ -547,7 +657,8 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
     stopRare()
     scope.stop()
     c.removeEventListener('statechange', onState)
-    ramp(TC_OUT)
+    lastStopAt = Date.now()
+    ramp(FADE_OUT)
     const { start } = useTimeoutFn(
       () => {
         t.dispose()
