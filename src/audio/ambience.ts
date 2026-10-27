@@ -76,8 +76,11 @@ export const RECIPES: Record<PlaceId, Recipe> = {
 /** Délai aléatoire dans [min, max] (rng ∈ [0,1[). */
 export const randomDelay = (min: number, max: number, rng: () => number = Math.random) => min + (max - min) * rng()
 
-/** Niveau cible du bus : 0 si coupé, onglet caché ou arrêté. */
-export const targetLevel = (s: { muted: boolean; hidden: boolean; stopped: boolean }) => (s.muted || s.hidden || s.stopped ? 0 : MASTER_GAIN)
+/** Mis à `true` par la finale : toutes les ambiances (y compris celles qui démarrent pendant la finale) se taisent. */
+export const ambienceDucked = ref(false)
+
+/** Niveau cible du bus : 0 si coupé, onglet caché, arrêté ou étouffé par la finale. */
+export const targetLevel = (s: { muted: boolean; hidden: boolean; stopped: boolean; ducked?: boolean }) => (s.muted || s.hidden || s.stopped || s.ducked ? 0 : MASTER_GAIN)
 
 const rnd = (a: number, b: number) => randomDelay(a, b)
 
@@ -351,7 +354,7 @@ export const startAmbience = (place: PlaceId): (() => void) => {
   master.gain.value = 0
   master.connect(c.destination)
 
-  const level = () => targetLevel({ muted: muted.value, hidden, stopped })
+  const level = () => targetLevel({ muted: muted.value, hidden, stopped, ducked: ambienceDucked.value })
   const ramp = (tc: number) => {
     master.gain.cancelScheduledValues(c.currentTime)
     master.gain.setTargetAtTime(level(), c.currentTime, tc)
@@ -410,6 +413,7 @@ export const startAmbience = (place: PlaceId): (() => void) => {
       { immediate: true },
     )
     watch(muted, (m) => ramp(m ? TC_MUTE : TC_IN))
+    watch(ambienceDucked, (d) => ramp(d ? TC_OUT : TC_IN))
   })
 
   return () => {

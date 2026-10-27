@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { CREDITS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL } from '../content/finale'
 import { focusQuietly } from '../composables/focusQuietly'
+import { startFinaleAudio } from '../audio/finale'
 
 // Finale du niveau 5 : la télé s’éteint en une ligne, l’aube se lève, le texte arrive ligne par ligne, puis le générique.
 // `collapsed` : l’écran est noir (l’app coupe le CRT et passe le lieu en aube sans qu’on le voie). `restart` : « Recommencer ».
 const emit = defineEmits<{ collapsed: []; restart: [] }>()
 const reduced = useReducedMotion()
 const collection = useCollectionStore()
+// Sons : rien en mouvement réduit (tout est affiché d’un coup, sans séquence).
+const audio = startFinaleAudio(!reduced.value)
 
 type Step = 'pre' | 'collapse' | 'black' | 'rise' | 'text' | 'credits'
 const step = ref<Step>('pre')
@@ -33,21 +36,27 @@ const delay = ref(50)
 const { start, stop } = useTimeoutFn(
   () => {
     const s = step.value
-    if (s === 'pre') [step.value, delay.value] = ['collapse', 1500]
-    else if (s === 'collapse') {
+    if (s === 'pre') {
+      ;[step.value, delay.value] = ['collapse', 1500]
+      audio.powerDown()
+    } else if (s === 'collapse') {
       ;[step.value, delay.value] = ['black', 800]
       emit('collapsed')
-    } else if (s === 'black') [step.value, delay.value] = ['rise', 2500]
-    else if (s === 'rise') {
+    } else if (s === 'black') {
+      ;[step.value, delay.value] = ['rise', 2500]
+      audio.dawn()
+    } else if (s === 'rise') {
       ;[step.value, delay.value] = ['text', 1800]
       count.value = 1
     } else if (s === 'text') {
       if (count.value >= lines.length) {
         step.value = 'credits'
+        audio.fadePad()
         focusRestart()
         return
       }
       count.value++
+      if (count.value === lines.length) audio.bell()
       delay.value = count.value === lines.length ? 4200 : count.value <= FINALE_TITLE.length ? 2200 : 3400
     }
     start()
@@ -65,6 +74,7 @@ onMounted(() => {
 const skip = () => {
   if (step.value === 'credits') return
   stop()
+  audio.stop() // coupe nappe et cloche en fondu, sans oscillateur orphelin
   if (step.value === 'pre' || step.value === 'collapse') emit('collapsed') // l’aube doit quand même se mettre en place
   count.value = lines.length
   step.value = 'credits'
@@ -74,6 +84,10 @@ const skip = () => {
 const onButton = (e: Event) => e.target instanceof Element && !!e.target.closest('button, a, [role="menuitem"]')
 useEventListener(document, 'click', (e) => onButton(e) || skip())
 useEventListener(document, 'keydown', (e) => (e.key === ' ' || e.key === 'Enter') && !onButton(e) && skip())
+onBeforeUnmount(() => {
+  stop()
+  audio.stop()
+})
 const barsClosed = computed(() => step.value !== 'pre')
 const lineOut = computed(() => ['black', 'rise', 'text', 'credits'].includes(step.value))
 const veilLifted = computed(() => ['rise', 'text', 'credits'].includes(step.value))
