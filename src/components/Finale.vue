@@ -113,7 +113,6 @@ const lineClass = (i: number) => (i < FINALE_TITLE.length ? 'font-title text-[1.
     class="w-full max-w-[34rem] max-h-[calc(100dvh-1.5rem-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
     aria-label="Finale"
   >
-    <p v-if="!showCredits" class="m-0 font-ui text-[0.95rem] opacity-70">Toucher pour tout afficher</p>
     <div v-if="showText" class="grid gap-3 justify-items-center rounded-lg px-4 py-5 bg-[rgb(25_8_40/0.4)]" role="status">
       <p v-for="(l, i) in shown" :key="l" class="m-0 finale-line" :class="lineClass(i)">{{ l }}</p>
     </div>
