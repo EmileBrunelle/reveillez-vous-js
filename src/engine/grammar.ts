@@ -4,6 +4,11 @@ export type StringTable = string[]
 export type ObjectTable = Record<string, string>[]
 export type Grammar = Record<string, StringTable | ObjectTable>
 
+/** Table de chaînes (éventuellement vide) : `{table}` en tire une au hasard. */
+export const isStringTable = (t: StringTable | ObjectTable | undefined): t is StringTable => Array.isArray(t) && t.every((x) => typeof x === 'string')
+/** Table d’entrées à champs appariés (non vide) : `{table.champ}`. */
+export const isObjectTable = (t: StringTable | ObjectTable | undefined): t is ObjectTable => Array.isArray(t) && t.length > 0 && t.every((x) => typeof x === 'object')
+
 const MAX_DEPTH = 8
 const TOKEN = /\{([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?\}/g
 
@@ -35,12 +40,12 @@ const run = (grammar: Grammar, rng: Rng, start: (resolve: Resolve, render: Rende
     const table = grammar[key]
     if (!table || table.length === 0) throw new Error(`Grammar: unknown or empty table « ${key} »`)
     let raw: string
-    if (typeof table[0] === 'string') {
-      raw = pick(table as StringTable, rng)
+    if (isStringTable(table)) {
+      raw = pick(table, rng)
     } else {
       let entry = memo.get(key)
       if (!entry) {
-        entry = pick(table as ObjectTable, rng)
+        entry = pick(table, rng)
         memo.set(key, entry)
       }
       if (!field || typeof entry[field] !== 'string') {

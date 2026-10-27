@@ -1,4 +1,4 @@
-import { expandTemplate, type Grammar } from './grammar'
+import { expandTemplate, isObjectTable, isStringTable, type Grammar } from './grammar'
 import type { Rng } from './rng'
 import { drawPersisted } from './shuffleBag'
 import { isPaquet, type Paquet } from './paquets'
@@ -26,7 +26,7 @@ export const EMPTY_ARCANE: Arcane = { numero: '0', nom: 'Le Mat', symbole: 'fool
 
 const strings = (grammar: Grammar, key: string): string[] => {
   const t = grammar[key]
-  return Array.isArray(t) && t.every((x) => typeof x === 'string') ? (t as string[]) : []
+  return isStringTable(t) ? t : []
 }
 
 /** Prophecy templates of a level: grammar key `niveau<N>` (`question|corps|verset`). */
@@ -36,9 +36,8 @@ export const doorLinesFor = (grammar: Grammar, level: number) => strings(grammar
 
 /** Draw an arcane, preferring those of `paquet` tagged for `level` (`niveaux`); then any deck's arcana of that level, then any arcane; EMPTY_ARCANE when no table. */
 export const drawArcane = (grammar: Grammar, level: number, rng: Rng, paquet?: Paquet): Arcane => {
-  const table = grammar.arcane
-  if (!Array.isArray(table) || table.length === 0 || typeof table[0] === 'string') return EMPTY_ARCANE
-  const all = table as Record<string, string>[]
+  const all = grammar.arcane
+  if (!isObjectTable(all)) return EMPTY_ARCANE
   const fit = all.filter((a) => a.niveaux?.includes(String(level)))
   const mine = paquet ? fit.filter((a) => a.paquet === paquet) : fit
   const pool = mine.length > 0 ? mine : fit.length > 0 ? fit : all
@@ -96,11 +95,11 @@ export const nextLine = (grammar: Grammar, key: string, store: Store, rng: Rng, 
 /** Nom de l’arcane d’indice `index` (voir `arcaneIndex`) dans la table `arcane`, ou null. Plusieurs cartes peuvent partager un indice (« XIII bis », « XIII ½ ») : le rng départage. */
 export const arcaneNameAt = (grammar: Grammar, index: number | null, rng: Rng, nom?: string | null): string | null => {
   const table = grammar.arcane
-  if (!Array.isArray(table) || typeof table[0] !== 'object') return null
+  if (!isObjectTable(table)) return null
   // Le nom enregistré gagne (même indice, cartes différentes) ; sinon repli sur l’indice (anciennes sauvegardes).
-  if (nom && (table as Record<string, string>[]).some((a) => a.nom === nom)) return nom
+  if (nom && table.some((a) => a.nom === nom)) return nom
   if (index === null) return null
-  const found = (table as Record<string, string>[]).filter((a) => a.nom && arcaneIndex(a.numero ?? '') === index)
+  const found = table.filter((a) => a.nom && arcaneIndex(a.numero ?? '') === index)
   return found.length > 0 ? found[Math.floor(rng() * found.length)].nom : null
 }
 

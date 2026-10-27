@@ -50,6 +50,14 @@ describe('grammar', () => {
     expect(() => expandTemplate(r, '{start}', mulberry32(1))).not.toThrow()
   })
 
+  it('au-delà de la profondeur maximale, la référence est laissée telle quelle (aucune boucle)', () => {
+    const r: Grammar = { start: ['{start}'], deep: ['a{deep}'] }
+    expect(expand(r, 'start', mulberry32(1))).toBe('{start}')
+    const out = expand(r, 'deep', mulberry32(1))
+    expect(out).toMatch(/^a+\{deep\}$/)
+    expect(out.length).toBeLessThan(40)
+  })
+
   it('throws on unknown table or field, naming it', () => {
     const g: Grammar = { start: ['{nope}'], p: [{ a: 'A' }], f: ['{p.b}'] }
     expect(() => expand(g, 'start', mulberry32(1))).toThrow(/nope/)
