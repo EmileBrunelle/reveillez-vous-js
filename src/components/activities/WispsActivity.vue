@@ -204,7 +204,7 @@ const keyboardHelpId = useId()
     <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
-    <p :id="keyboardHelpId" class="sr-only">Au clavier, activez le bouton “Attraper le feu follet”.</p>
+    <p :id="keyboardHelpId" class="sr-only">Au clavier, activez le bouton « Attraper le feu follet ».</p>
     <!-- Chemin clavier : visible seulement au focus ; Entrée ou Espace attrape le feu follet quand il est là.
          Toujours monté (sinon le focus tombe sur <body> à la 3e capture) : après l’issue il devient inerte (aria-disabled), comme « Passer ». -->
     <button

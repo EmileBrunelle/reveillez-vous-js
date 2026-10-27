@@ -287,7 +287,7 @@ const { pause } = useRafFn(({ delta }) => {
         v-for="(seg, i) in segments"
         :key="i"
         class="inline-block min-w-[1.1em] border-0 border-b-[3px] border-solid pb-1"
-        :class="[seg.end <= index ? 'border-[#d9b55a]' : seg.start <= index ? 'border-[#e8d9b0] opacity-80' : 'border-[#d9b55a]/25 opacity-40', { pop: popSeg === i }]"
+        :class="[seg.end <= index ? 'border-[#d9b55a]' : seg.start <= index ? 'border-[#e8d9b0] opacity-80' : 'border-[#d9b55a]/25 opacity-60', { pop: popSeg === i }]"
         >{{ seg.ch }}</span
       >
     </p>
