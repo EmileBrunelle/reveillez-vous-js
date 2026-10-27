@@ -20,6 +20,8 @@ struct Params {
 // No time-driven luminance term: fog and drizzle move spatially, slowly.
 
 var<private> MOON_DIR: vec3f;
+var<private> MOON_EX: vec3f;
+var<private> MOON_EY: vec3f;
 const EYE_Y: f32 = 1.45;
 const WALL_Z: f32 = 20.0;
 
@@ -171,6 +173,39 @@ fn streaks(c2: vec2f) -> f32 {
   return step(0.84, rnd) * smoothstep(0.08, 0.02, abs(f.x - o)) * smoothstep(0.0, 0.3, f.y) * smoothstep(1.0, 0.6, f.y);
 }
 
+// Rais de lune obliques : bandes de bruit étirées le long de la direction de la lune (plan perpendiculaire à MOON_DIR),
+// qui dérivent lentement avec `drift`; 0..1 = lumière lunaire reçue en q. Aucun terme de luminance rapide.
+fn moon_shafts(q: vec3f) -> f32 {
+  let u = dot(q, MOON_EX);
+  let v = dot(q, MOON_EY);
+  let w = params.drift * 0.05;
+  let n = vnoise(vec3f(u * 0.55 + w, v * 0.16, 2.0)) * 0.7 + vnoise(vec3f(u * 1.6 - w * 1.5, v * 0.5, 7.0)) * 0.3;
+  return smoothstep(0.50, 0.78, n) * exp(-max(q.y, 0.0) * 0.22);
+}
+
+// Poussière visible seulement dans les rais (3 tranches de profondeur, cellules hachées, dérive lente).
+fn moon_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
+  var g = 0.0;
+  for (var s = 0; s < 3; s++) {
+    let d = 2.5 + 4.5 * f32(s) + 1.5 * f32(s * s);
+    if (d >= tEnd) { continue; }
+    let sc = 2.6 - 0.5 * f32(s);
+    let off = vec3f(params.drift * 0.05, -params.drift * 0.03, params.drift * 0.02) * (1.0 + f32(s));
+    let pc = (ro + rd * d + off) * sc;
+    let cell = floor(pc);
+    let h = vec3f(h31(cell + f32(s) * 17.0), h31(cell.yzx + 5.3), h31(cell.zxy + 9.1));
+    if (h.x < 0.72) { continue; }
+    let m = (cell + 0.2 + 0.6 * h.yzx) / sc - off;
+    let oc = m - ro;
+    let al = dot(oc, rd);
+    if (al < 0.5 || al > tEnd) { continue; }
+    let dv = oc - rd * al;
+    let lit = moon_shafts(m);
+    g += exp(-dot(dv, dv) / (0.00005 * al * al + 0.0003)) * lit * (0.5 + 0.5 * h.z);
+  }
+  return g;
+}
+
 // A pair of eyes low in the fog, slow blink.
 fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   var g = 0.0;
@@ -197,6 +232,8 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
   let moonElev = mix(0.74, 0.56, land);
   let moonAz = mix(-0.34, 0.5, land);
   MOON_DIR = vec3f(sin(moonAz) * cos(moonElev), sin(moonElev), cos(moonAz) * cos(moonElev));
+  MOON_EX = normalize(cross(MOON_DIR, vec3f(0, 1, 0)));
+  MOON_EY = cross(MOON_EX, MOON_DIR);
   let moonR = mix(0.098, 0.072, land) * params.moon;
   let yaw = params.sway + params.px * 0.06;
   let pitch = mix(-0.10, 0.12, land) + params.swayY - params.py * 0.04;
@@ -295,10 +332,15 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
     let dens = density * (0.05 * exp(-hgt * 0.5) + exp(-hgt * 2.2) * (0.1 + 1.7 * nz));
     let sig = dens * dt * 0.14;
     let k = 1.0 - exp(-sig);
-    scat += T * k * lit;
+    // Rais de lune dans le brouillard + brume basse qui capte la lune (même facteur, pas de boucle de plus).
+    let sh = moon_shafts(q);
+    let mistLit = moonCol * params.moon * sh * (0.30 + 0.8 * pow(cm, 4.0)) * (0.6 + 0.4 * exp(-hgt * 1.5));
+    let shaftGlow = moonCol * params.moon * sh * (0.05 + 0.22 * pow(cm, 3.0)) * dt * 0.30 * density;
+    scat += T * (k * (lit + mistLit) + shaftGlow);
     T *= 1.0 - k;
   }
   col = col * T + scat;
+  col += moonCol * moon_motes(ro, rd, tEnd) * 0.5 * params.moon * T;
 
   // --- Drizzle (screen space, sparse, dim; the centre stays clear).
   let cc = length(c2 * vec2f(0.8, 0.6));
