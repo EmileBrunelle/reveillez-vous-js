@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
-import { pulse } from '../../composables/haptics'
+import { useHaptics } from '../../composables/haptics'
 import { TOUCH_GRACE_MS } from '../../composables/touchAim'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
@@ -15,6 +15,7 @@ const props = defineProps<{ level: number; rng?: Rng }>()
 // Pas de défaut de prop : Vue prendrait la fabrique secureRng comme valeur.
 const rng = orSecure(props.rng)
 const emit = defineEmits<{ done: [] }>()
+const { pulse } = useHaptics()
 
 const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'), {
   delayMs: 600,

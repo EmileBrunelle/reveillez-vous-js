@@ -5,7 +5,7 @@ import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { useReducedMotion } from '../../composables/useReducedMotion'
-import { pulse } from '../../composables/haptics'
+import { useHaptics } from '../../composables/haptics'
 import { knock } from '../../audio/sfx'
 import { knockIntensity } from '../../engine/knock'
 import { secureRng } from '../../engine/rng'
@@ -13,6 +13,7 @@ import { checkStep, hintFor, makeSequence, startInput } from '../../engine/windo
 
 const props = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
+const { pulse } = useHaptics()
 const { finish, canSkip } = useActivityDone(() => emit('done'))
 const reduced = useReducedMotion()
 

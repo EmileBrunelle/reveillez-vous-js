@@ -5,11 +5,12 @@ import ActivitySkip from './ActivitySkip.vue'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { secureRng, type Rng } from '../../engine/rng'
 import { aimPoint, TOUCH_GRACE_MS } from '../../composables/touchAim'
-import { pulse } from '../../composables/haptics'
+import { useHaptics } from '../../composables/haptics'
 import { isNear, nextWaypoint, stepCatch, stepWisp, wispTuning, type Vec } from '../../engine/wisps'
 
 const props = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
+const { pulse } = useHaptics()
 
 const { finish, canSkip, isFinished } = useActivityDone(() => emit('done'))
 const rng: Rng = secureRng()

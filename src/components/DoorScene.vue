@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { useDocumentVisibility } from '@vueuse/core'
-import { pulse } from '../composables/haptics'
+import { useHaptics } from '../composables/haptics'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
@@ -25,11 +24,8 @@ const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impac
 const quick = props.quick === true
 const reduced = useReducedMotion()
 const keyboard = useKeyboardModality()
-const visibility = useDocumentVisibility()
-// Le haptique n’est pas du mouvement : pas bloqué par « mouvement réduit », seulement onglet caché. La garde (son coupé, vibrate absent) vit dans haptics.ts.
-const haptic = (ms: number) => {
-  if (visibility.value !== 'hidden') pulse(ms)
-}
+// Le haptique n’est pas du mouvement : pas bloqué par « mouvement réduit ». Les gardes (onglet caché, vibrate absent, limiteur) vivent dans haptics.ts.
+const { pulse: haptic } = useHaptics()
 
 const stage = ref<HTMLElement>()
 const leaf = ref<HTMLElement>()
