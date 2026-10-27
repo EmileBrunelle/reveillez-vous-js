@@ -1,5 +1,5 @@
 import { nextTick, watch, type Ref } from 'vue'
-import { focusQuietly } from './focusQuietly'
+import { activeHtmlElement, focusQuietly } from './focusQuietly'
 
 /**
  * Focus d’un dialogue natif piloté par un v-model, rendu « sans anneau » (focusQuietly) hors clavier.
@@ -17,7 +17,7 @@ export const useDialogFocus = (open: Readonly<Ref<boolean>>, initial?: () => HTM
     open,
     async (o) => {
       if (!o) return
-      opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      opener = activeHtmlElement()
       await nextTick() // composant async : il peut se monter alors que le parent veut déjà ouvrir
       focusQuietly(initial?.())
     },

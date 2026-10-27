@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick, ref } from 'vue'
 
 const focusQuietly = vi.fn()
-vi.mock('../../src/composables/focusQuietly', () => ({ focusQuietly: (...a: unknown[]) => focusQuietly(...a) }))
+vi.mock('../../src/composables/focusQuietly', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/composables/focusQuietly')>()),
+  focusQuietly: (...a: unknown[]) => focusQuietly(...a),
+}))
 
 const { useDialogFocus } = await import('../../src/composables/useDialogFocus')
 

@@ -42,8 +42,8 @@ const titleLetters = Object.fromEntries(FINALE_TITLE.map((l) => [l, letters(l)])
 const CREDIT_STEP = 0.2
 const creditDelay = (i: number) => i * CREDIT_STEP
 const thanksDelay = (CREDITS_BODY.length + 2) * CREDIT_STEP + 0.3
-// En mouvement réduit : pas d’animation, tout le texte et le générique sont là d’un coup.
-// Mouvement réduit : la région live (role=status) est montée vide, puis remplie, pour que le texte soit annoncé.
+// En mouvement réduit : pas d’animation, tout le texte et le générique sont là d’un coup ;
+// la région live (role=status) est montée vide, puis remplie, pour que le texte soit annoncé.
 const liveReady = ref(false)
 const { start: readyLater } = useTimeoutFn(() => (liveReady.value = true), 150, { immediate: false })
 const showText = computed(() => (reduced.value ? liveReady.value : step.value === 'text'))
@@ -53,8 +53,7 @@ const showCredits = computed(() => reduced.value || step.value === 'credits')
 const creditsAnnounce = computed(() => (showCredits.value && (!reduced.value || liveReady.value) ? `${CREDITS_TITLE}. ${CREDITS_THANKS}` : ''))
 const showBox = computed(() => showText.value || showCredits.value)
 // Un seul conteneur pour le texte puis le générique : il entre sur un ressort (échelle + opacité) et sa hauteur suit le contenu au ressort,
-// au lieu d’apparaître d’un coup plus grand. Mouvement réduit : simple fondu, hauteur posée directement.
-// Un seul conteneur pour le texte puis le générique (entrée et hauteur au ressort : voir useFinaleBox).
+// au lieu d’apparaître d’un coup plus grand (voir useFinaleBox). Mouvement réduit : simple fondu, hauteur posée directement.
 const inner = useTemplateRef<HTMLElement>('inner')
 const boxStyle = useFinaleBox(inner, { reduced, skipped }, keep)
 // Le texte s’efface avant que le générique ne prenne sa place (la hauteur du conteneur se règle pendant ce temps).

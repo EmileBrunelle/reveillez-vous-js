@@ -1,5 +1,5 @@
 import { nextTick, ref, watch } from 'vue'
-import { focusQuietly } from './focusQuietly'
+import { activeHtmlElement, focusQuietly } from './focusQuietly'
 
 /**
  * Fenêtre à chargement paresseux : `wanted` passe à vrai à la première ouverture et le reste (le composant n’est monté,
@@ -20,7 +20,7 @@ export const useLazyWindow = ({ restoreFocus = false }: { restoreFocus?: boolean
   }
   const show = () => {
     wanted.value = true
-    if (restoreFocus) opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (restoreFocus) opener = activeHtmlElement()
     open.value = true
   }
   return { open, wanted, show }

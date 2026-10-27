@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useId, useTemplateRef } from 'vue'
-import { useElementBounding, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useElementSize, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { Motion, useMotionValue } from 'motion-v'
 import { useDeferredText } from '../../composables/useDeferredText'
 import { useReducedMotion } from '../../composables/useReducedMotion'
@@ -22,7 +22,7 @@ const rng: Rng = secureRng()
 
 const TOTAL = 3
 const stage = useTemplateRef<HTMLElement>('stage')
-const { width, height } = useElementBounding(stage)
+const { width, height } = useElementSize(stage, undefined, { box: 'border-box' })
 const tuning = computed(() => wispTuning(level, width.value, height.value)) // rayon ≥ 72 px : généreux pour le tactile
 const reduced = useReducedMotion()
 

@@ -370,13 +370,13 @@ const preview = (i: number | null) => {
   if (reduced.value) labelOnly(i)
   else setHot(i)
 }
-interface Touch {
+interface TouchState {
   id: number
   x: number
   y: number
   drag: boolean
 }
-let touch: Touch | null = null
+let touch: TouchState | null = null
 const nearestCard = (px: number) => {
   const r = deckEl.value?.getBoundingClientRect()
   if (!r) return 0
