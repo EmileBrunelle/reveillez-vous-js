@@ -45,13 +45,26 @@ const over = ref(false)
 // Indice de la chandelle soufflée (-1 : aucune) : courant d’air une seule fois, dès le niveau 3 (l’activité peut être rejouée aux niveaux suivants).
 const snuffed = ref(-1)
 
+// Chandelles « tenues » : survolées, focalisées ou touchées (pointerdown à pointerup) ; jamais soufflées.
+const hovered = reactive<boolean[]>(Array(COUNT).fill(false))
+const focused = reactive<boolean[]>(Array(COUNT).fill(false))
+const touched = reactive<boolean[]>(Array(COUNT).fill(false))
+const protectedSet = () => new Set(Array.from({ length: COUNT }, (_, i) => i).filter((i) => hovered[i] || focused[i] || touched[i]))
+const releaseTouch = () => touched.fill(false)
+useEventListener(window, 'pointerup', releaseTouch)
+useEventListener(window, 'pointercancel', releaseTouch)
+
 // Niveau 3 : une chandelle s’éteint une seule fois, juste après la troisième allumée.
 let snuffUsed = props.level < 3
 const { start: snuffLater } = useTimeoutFn(
   () => {
     if (isFinished()) return
-    const i = pickSnuffed(lit, rng)
-    if (i < 0) return
+    const i = pickSnuffed(lit, rng, protectedSet())
+    if (i < 0) {
+      // Seule allumée et tenue : on reporte le courant d’air plutôt que d’éteindre sous le curseur.
+      if (litCount.value > 0) snuffLater()
+      return
+    }
     lit[i] = false
     hold[i] = 0
     snuffed.value = i
@@ -170,6 +183,11 @@ useRafFn(({ delta }) => {
         class="candle relative bg-transparent border-0 p-0 cursor-pointer w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4"
         :class="{ pulse: snuffed === n - 1 && !reduced }"
         :aria-label="lit[n - 1] ? `Chandelle ${n} allumée` : `Allumer la chandelle ${n}`"
+        @pointerenter="hovered[n - 1] = true"
+        @pointerleave="hovered[n - 1] = false"
+        @pointerdown="touched[n - 1] = true"
+        @focus="focused[n - 1] = true"
+        @blur="focused[n - 1] = false"
         @click="light(n - 1)"
       >
         <IconChandelle class="absolute inset-0 size-full" />

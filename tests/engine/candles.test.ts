@@ -21,4 +21,12 @@ describe('candles', () => {
     for (let i = 0; i < 20; i++) expect([0, 2]).toContain(pickSnuffed([true, false, true], rng))
     expect(pickSnuffed([false, false, false], rng)).toBe(-1)
   })
+  it('n’éteint jamais une chandelle protégée', () => {
+    const rng = mulberry32(3)
+    for (let i = 0; i < 50; i++) expect(pickSnuffed([true, true, true], rng, new Set([1]))).not.toBe(1)
+    for (let i = 0; i < 50; i++) expect(pickSnuffed([true, true, true], rng, new Set([0, 2]))).toBe(1)
+  })
+  it('renvoie -1 si toutes les allumées sont protégées', () => {
+    expect(pickSnuffed([true, false, false], mulberry32(1), new Set([0]))).toBe(-1)
+  })
 })
