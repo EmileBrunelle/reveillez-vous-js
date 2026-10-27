@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import { FAN, FAN_SCALE } from './deckFan'
 import { cardDeal } from '../audio/sfx'
-import { PAQUET_NOMS, shufflePaquets, type Paquet } from '../engine/paquets'
+import { PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '../engine/paquets'
 import type { Rng } from '../engine/rng'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { focusQuietly } from '../composables/focusQuietly'
@@ -26,7 +26,6 @@ const chosen = ref<number | null>(null)
 const hot = ref<number | null>(null)
 const ready = ref(false)
 const cards = [0, 1, 2] as const
-const label = computed(() => (hot.value === null ? '' : PAQUET_NOMS[paquets[hot.value]]))
 
 // --- ressorts -------------------------------------------------------------------------------------------------------------------
 interface Spr {
@@ -49,8 +48,7 @@ const step = (p: Spr, k: number, d: number, dt: number) => {
   p.v += (k * (p.t - p.c) - d * p.v) * dt
   p.c += p.v * dt
 }
-// Boîte étroite (téléphone en paysage) : les cartes latérales s’écartent davantage pour garder une bande cliquable d’au moins ~44 px.
-const fx = (i: number) => FAN[i].x * (W < 260 ? 1.8 : 1)
+const fx = (i: number) => FAN[i].x
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 
 let W = 0 // largeur de la boîte de la carte (px)
@@ -80,7 +78,8 @@ let pickAt = 0
 let lastTs = 0
 const FINAL_S = 1 // l’élément a la largeur de la boîte : échelle 1 = la carte du tirage
 let startS = FAN_SCALE
-const OTHERS_DELAY = 90 // anticipation de la carte choisie (ms) avant la fuite des autres et l’envol
+const OTHERS_DELAY = 90 // anticipation de la carte choisie (ms) avant la fuite des autres
+const FLY_DELAY = 400 // l’envol de la carte choisie attend que les autres se soient écartées et fondues : elle ne croise jamais une autre carte
 let finished = false
 
 const apply = () => {
@@ -141,8 +140,8 @@ const tick = (now: number) => {
       c.zeta = phase === 'deal' ? 0.55 : 0.68
     } else if (chosen.value === i) {
       const rest = restOf(i, null)
-      if (now < pickAt + OTHERS_DELAY) {
-        // Anticipation : petit recul avant l’envol.
+      if (now < pickAt + FLY_DELAY) {
+        // Anticipation : petit recul pendant que les autres cartes s’écartent, puis l’envol.
         c.x.t = rest.x
         c.y.t = rest.y + 0.018 * W
         c.r.t = rest.r
@@ -170,8 +169,8 @@ const tick = (now: number) => {
         c.y.t = (f.y / 100) * W + 0.14 * W
         c.r.t = f.rot * 2.2
         c.o.t = 0
-        c.k = 110
-        c.zeta = 0.85
+        c.k = 170
+        c.zeta = 0.9
       }
       c.tx.t = 0
       c.ty.t = 0
@@ -193,7 +192,7 @@ const tick = (now: number) => {
     })
   }
   apply()
-  if (phase === 'pick' && chosen.value !== null && now > pickAt + OTHERS_DELAY + 200) {
+  if (phase === 'pick' && chosen.value !== null && now > pickAt + FLY_DELAY + 200) {
     const c = state[chosen.value]
     const settled = Math.abs(c.x.c) < 0.4 && Math.abs(c.y.c) < 0.4 && Math.abs(c.r.c) < 0.15 && Math.abs(c.s.c - FINAL_S) < 0.004 && Math.abs(c.x.v) + Math.abs(c.y.v) < 8
     if (settled) finish()
@@ -261,7 +260,7 @@ const setHot = (i: number | null) => {
   hot.value = i
 }
 const labelOnly = (i: number | null) => {
-  // Mouvement réduit : seul le nom du paquet s’affiche.
+  // Mouvement réduit : la description de la carte active est mise en valeur, sans mouvement.
   if (chosen.value === null) hot.value = i
 }
 const onEnter = (i: number, e: PointerEvent) => (e.pointerType === 'touch' ? undefined : reduced.value ? labelOnly(i) : setHot(i))
@@ -309,13 +308,18 @@ const choose = (i: number) => {
     >
       Choisissez une carte.
     </p>
-    <p
-      class="deck__label absolute inset-x-0 bottom-[6cqw] m-0 font-ui text-[5.2cqw] leading-[1.1] [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
-      :class="{ 'deck__label--on': label }"
+    <!-- Nom et présage de chaque paquet, toujours visibles sous les cartes (jamais transformés : seul le survol ou le focus clavier les met en valeur). -->
+    <div
+      v-for="i in cards"
+      :key="`l${i}`"
+      class="deck__label absolute top-[calc(50%+30cqw)] w-[34cqw] m-0 text-center font-ui [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
+      :class="{ 'deck__label--on': hot === i && chosen === null, 'deck__label--gone': chosen !== null }"
+      :style="{ left: `calc(50% + ${FAN[i].x}cqw)` }"
       aria-hidden="true"
     >
-      {{ label }}
-    </p>
+      <p class="m-0 text-[max(13px,5.2cqw)] leading-[1.05] uppercase">{{ PAQUET_NOMS[paquets[i]] }}</p>
+      <p class="m-0 mt-[1cqw] text-[max(12px,4.4cqw)] leading-[1.1] [text-wrap:balance]">{{ PAQUET_PRESAGES[paquets[i]] }}</p>
+    </div>
     <button
       v-for="i in cards"
       :key="i"
@@ -324,7 +328,7 @@ const choose = (i: number) => {
       style="opacity: 0"
       class="deck__card absolute top-1/2 left-1/2 p-0 m-0 border-0 [background:none] cursor-pointer rounded-[4cqw] will-change-transform focus-visible:[outline:0.9cqw_solid_#f3e3b3] focus-visible:outline-offset-[1.2cqw]"
       :class="{ 'z-10': chosen === i, 'z-5': hot === i && chosen === null, 'z-3': i === 1 && hot !== 1 && chosen !== 1, 'z-1': i !== 1 && hot !== i && chosen !== i, 'pointer-events-none': !ready }"
-      :aria-label="PAQUET_NOMS[paquets[i]]"
+      :aria-label="`${PAQUET_NOMS[paquets[i]]} : ${PAQUET_PRESAGES[paquets[i]]}`"
       :disabled="chosen !== null"
       @click="choose(i)"
       @pointerenter="onEnter(i, $event)"
@@ -360,12 +364,16 @@ const choose = (i: number) => {
   opacity: 1;
 }
 .deck__label {
-  text-align: center;
-  opacity: 0;
+  translate: -50% 0;
+  opacity: 0.72;
   transition: opacity 0.15s ease-out;
 }
 .deck__label--on {
   opacity: 1;
+}
+.deck__label--gone {
+  opacity: 0;
+  transition-duration: 0.2s;
 }
 .deck__glow {
   box-shadow: 0 5cqw 9cqw rgb(0 0 0 / 0.75);

@@ -4,6 +4,12 @@ import type { Rng } from './rng'
 export type Paquet = 'nuit' | 'feu' | 'brume'
 export const PAQUETS: readonly Paquet[] = ['nuit', 'feu', 'brume']
 export const PAQUET_NOMS: Record<Paquet, string> = { nuit: 'Paquet de la Nuit', feu: 'Paquet du Feu', brume: 'Paquet de la Brume' }
+// Ce que chaque paquet tend à prédire (affiché en permanence sous la carte de la coupe) : à réécrire librement, une ligne courte, apostrophe typographique.
+export const PAQUET_PRESAGES: Record<Paquet, string> = {
+  nuit: 'Ce que la nuit voit déjà de vous.',
+  feu: 'Coups du sort, éclats et tours qui tombent.',
+  brume: 'Spectres du quotidien et petits mystères.',
+}
 export const isPaquet = (v: unknown): v is Paquet => v === 'nuit' || v === 'feu' || v === 'brume'
 
 /** Ordre des trois paquets dans l’éventail, mélangé à chaque visite (Fisher-Yates avec le Rng injecté). */
