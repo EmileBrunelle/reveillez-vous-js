@@ -1,36 +1,39 @@
 # Réveillez-vous.js
 
-Une personne voyante frappe un rythme derrière une porte ; vous le répétez, la porte s’ouvre et une carte de tarot vous livre une prophétie. Plus vous revenez, plus le ton devient paranoïaque et le décor se détraque, le tout sous l’écran cathodique d’un vieux PC hanté (Windows 98). Entrée individuelle au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026.
+Une personne voyante frappe un rythme derrière une porte ; vous le répétez, la porte s’ouvre et une carte de tarot vous livre une prophétie. Plus vous revenez, plus le ton devient paranoïaque et le décor se détraque, le tout sous l’écran cathodique d’un vieux PC hanté (Windows 98), jusqu’à une finale qui rend la lumière du jour. Entrée individuelle au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026.
 
-**Jouer : https://emilebrunelle.github.io/reveillez-vous-js/** (navigateur avec WebGPU requis, voir [Technologies](#technologies))
+**Jouer : https://emilebrunelle.github.io/reveillez-vous-js/** (navigateur avec WebGPU requis, voir [Technologies](#technologies)). Une partie complète dure quelques minutes.
 
 ## Comment jouer
 
-1. Ouvrez la page : une porte apparaît. Activez-la (clic, toucher ou clavier, « Ouvrir la porte »).
-2. **La personne voyante cogne un rythme** : écoutez-le (ou suivez les points et les sous-titres à l’écran).
-3. **Reproduisez-le** en cogneant sur la porte. Après trois échecs, la porte s’ouvre quand même.
-4. Une **carte de tarot** est tirée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur ou en bougeant votre téléphone.
-5. « Fermer la porte » : une nouvelle porte, un nouveau décor, une nouvelle prophétie.
+1. Ouvrez la page : une porte apparaît. Activez-la (clic, toucher, ou Tab puis Entrée au clavier) : c’est le bouton « Ouvrir la porte ».
+2. **La personne voyante cogne un rythme** : écoutez-le (ou suivez les points, les sous-titres et la vibration sur appareil compatible).
+3. **Reproduisez-le** en cogneant sur la porte (clic, toucher, ou Entrée ou Espace au clavier). Après trois échecs, la porte s’ouvre quand même.
+4. **Dès le niveau 2, une petite activité** précède la carte ; elle s’achève d’elle-même après 20 s, ou avec le bouton pour la passer. Au fil des niveaux : attraper des feux follets, allumer des chandelles à l’allumette, épeler un mot à la planche Ouija, frapper aux fenêtres d’une maison dans l’ordre où elles s’allument, essuyer une boule de cristal.
+5. **Coupez le paquet** : trois paquets (Nuit, Feu, Brume), chacun avec son dos, sa légende et son tirage d’arcanes. Souris : survolez, puis cliquez. Clavier : Tab, puis Entrée. Tactile : un premier toucher donne un aperçu, un second choisit.
+6. Une **carte de tarot** est tirée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur, avec le doigt ou en bougeant votre téléphone. Chaque arcane vu s’ajoute à la **Collection** (menu Démarrer).
+7. « Fermer la porte » : une nouvelle porte, un nouveau lieu, une nouvelle prophétie.
 
-Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches) monte avec le nombre de visites de la session en cours (`sessionStorage` : la progression repart à zéro quand l’onglet ou le navigateur se ferme) ; il atteint le niveau 5 après sept fermetures de porte. Prophéties, répliques de la voyante, portes et décors changent avec lui. Pour recommencer à zéro : menu **Démarrer › Recommencer à zéro**, ou triple clic sur le badge.
+Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches) monte avec le nombre de visites de la session en cours (`sessionStorage` : la progression repart à zéro quand l’onglet ou le navigateur se ferme) ; il atteint le niveau 5 après sept fermetures de porte, puis vient la **finale**, avec son générique animé. Prophéties, répliques de la voyante, portes, lieux et sons changent avec lui. Pour recommencer à zéro : menu **Démarrer › Recommencer à zéro**, ou triple clic sur le badge.
 
 ## Ce qui rend le projet spécial
 
-- **Jeu de rythme à la porte** : la personne voyante cogne un motif, vous le rejouez ; jouable sans le son (points, sous-titres, vibration sur appareil compatible).
+- **Jeu de rythme à la porte** : la personne voyante cogne un motif, vous le rejouez ; jouable sans le son (points, sous-titres, vibration).
 - **Prophéties générées** par une grammaire maison de type Tracery, avec arcane et **verset génératif** (livre × référence) ; des « sacs mélangés » persistés évitent les répétitions.
-- **Escalade en 5 niveaux** : la paranoïa monte de visite en visite, jusqu’à un loup-garou qui apparaît au loin aux niveaux élevés.
-- **Décor « perron sous la lune » en raymarching WebGPU** (WGSL, avec parallaxe) et **post-effet CRT** en WebGPU (vgpu).
-- **Interface Windows 98** : barre des tâches, menu Démarrer, zone de notification (vigilance, son, horloge).
-- **Tous les sons sont synthétisés** (Web Audio), sans fichier audio.
+- **Escalade en 5 niveaux** : la paranoïa monte de visite en visite, à travers cinq lieux (perron, forêt, cimetière, rue, nuages) avec leurs variantes de météo et de portes, et cinq petites activités.
+- **Décors en raymarching WebGPU** (WGSL) et **post-effet CRT** en WebGPU (vgpu), mis à l’échelle sur grand écran.
+- **Interface Windows 98** : barre des tâches, menu Démarrer (À propos, Collection, Son, code source, plein écran), zone de notification (vigilance, son, horloge).
+- **Tous les sons sont synthétisés** (Web Audio), sans fichier audio : lits d’ambiance par lieu avec fondus, limiteur de sortie, leitmotif de trois notes (tonalité de la majeur) qui revient jusqu’à la finale, volumes réglables par catégorie.
 - Contenu en français québécois, écriture inclusive, références d’ici.
 
 ## Accessibilité
 
-- Respect de `prefers-reduced-motion` (animations, effet CRT, parallaxe).
-- Aucun changement de luminosité à 3 Hz ou plus ; l’intensité du CRT passe par des effets spatiaux, pas par du clignotement.
+- Respect de `prefers-reduced-motion` (animations, effet CRT, illusions).
+- Aucun changement de luminosité à 3 Hz ou plus ; l’intensité du CRT passe par des effets spatiaux, pas par du clignotement. Les vibrations sont de courtes impulsions espacées.
 - Jeu complet sans le son : points, sous-titres des coups, vibration.
-- Annonces `aria-live` pour la porte et la prophétie ; porte et menu Démarrer utilisables au clavier ; bouton pour couper le son.
-- Le CRT se met en pause quand l’onglet est caché.
+- Utilisable au clavier (porte, paquets, activités, menu Démarrer, fenêtres), avec un focus visible quand on navigue au clavier.
+- Annonces `aria-live` pour la porte, la prophétie et les activités ; bouton pour couper le son.
+- Zones sûres respectées sur téléphone (encoches, barre de gestes) ; le CRT se met en pause quand l’onglet est caché.
 
 ## Technologies
 
@@ -40,9 +43,10 @@ Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches)
 | Vite                     | build et serveur de dev                                                                                       | [vite.dev](https://vite.dev)                                | [vitejs/vite](https://github.com/vitejs/vite)                             |
 | TypeScript               | typage                                                                                                        | [typescriptlang.org/fr](https://www.typescriptlang.org/fr/) | [microsoft/TypeScript](https://github.com/microsoft/TypeScript)           |
 | UnoCSS                   | styles utilitaires                                                                                            | [unocss.dev](https://unocss.dev)                            | [unocss/unocss](https://github.com/unocss/unocss)                         |
-| VueUse                   | composables (écouteurs, minuteries, parallaxe, vibration)                                                     | [vueuse.org](https://vueuse.org)                            | [vueuse/vueuse](https://github.com/vueuse/vueuse)                         |
+| VueUse                   | composables (écouteurs, minuteries, vibration)                                                                | [vueuse.org](https://vueuse.org)                            | [vueuse/vueuse](https://github.com/vueuse/vueuse)                         |
 | motion-v                 | animations                                                                                                    | [motion.dev](https://motion.dev/docs/vue)                   | [motiondivision/motion-vue](https://github.com/motiondivision/motion-vue) |
 | Vuetify0 (`@vuetify/v0`) | primitives de composants sans style, à personnaliser — ici, le dialogue accessible de la fenêtre « À propos » | [0.vuetifyjs.com](https://0.vuetifyjs.com)                  | [vuetifyjs/0](https://github.com/vuetifyjs/0)                             |
+| Pinia                    | état partagé (progression, collection)                                                                        | [pinia.vuejs.org](https://pinia.vuejs.org)                  | [vuejs/pinia](https://github.com/vuejs/pinia)                             |
 | vgpu                     | WebGPU : filtre CRT et fond 3D (shaders WGSL)                                                                 | [vgpu.sh](https://vgpu.sh)                                  | [vercel-labs/vgpu](https://github.com/vercel-labs/vgpu)                   |
 | unplugin-icons + Iconify | icônes (game-icons, Simple Icons)                                                                             | [iconify.design](https://iconify.design)                    | [unplugin/unplugin-icons](https://github.com/unplugin/unplugin-icons)     |
 | Fontsource               | polices auto-hébergées                                                                                        | [fontsource.org](https://fontsource.org)                    | [fontsource/fontsource](https://github.com/fontsource/fontsource)         |
@@ -50,7 +54,7 @@ Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches)
 
 Polices (Google Fonts, licence SIL OFL) : [VT323](https://fonts.google.com/specimen/VT323), [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English), [Cinzel](https://fonts.google.com/specimen/Cinzel).
 
-**WebGPU est obligatoire** (choix assumé, pas de version de secours). Chrome ou Edge récents sont recommandés ; sinon, un écran d’accueil explique comment activer WebGPU selon le navigateur. Sur téléphone, la page doit être servie en **HTTPS** (WebGPU exige un contexte sécurisé).
+**WebGPU est obligatoire** (choix assumé, pas de version de secours). Chrome ou Edge récents sont recommandés ; sans WebGPU, un écran d’accueil l’indique. Sur téléphone, la page doit être servie en **HTTPS** (WebGPU exige un contexte sécurisé).
 
 ## Lancer en local
 
@@ -58,6 +62,8 @@ Polices (Google Fonts, licence SIL OFL) : [VT323](https://fonts.google.com/speci
 npm install
 npm run dev       # serveur de développement (`npm run dev -- --host` pour l’exposer sur le réseau local)
 npm test          # tests (vitest, dossier tests/)
+npm run lint      # ESLint, zéro avertissement
+npm run format:check  # Prettier
 npm run build     # vue-tsc -b + build de production
 npm run preview   # prévisualiser le build
 ```
@@ -68,14 +74,15 @@ Sur un téléphone, `http://<ip>:5173` n’est pas un contexte sécurisé : WebG
 
 ```
 src/
-  App.vue          enchaînement : écran WebGPU, porte, carte, « Fermer la porte »
-  engine/          grammaire, sacs mélangés, prophéties, coups, rythme, niveaux, RNG injecté
-  content/         prophéties (niveaux 1 à 5), portes et décors
-  components/      DoorScene, KnockPattern, TarotCard, Taskbar, CrtOverlay, doors/, backgrounds/…
-  effects/         crt.wgsl + crt.ts, porch.wgsl + porch.ts (perron), détection WebGPU
-  audio/           sons synthétisés
-  composables/     visites, inclinaison, mouvement réduit, stockage sûr
-tests/             engine/, content/, composables/, effects/
+  App.vue          enchaînement : écran WebGPU, porte, activité, coupe, carte, finale
+  engine/          grammaire, sacs mélangés, prophéties, coups, rythme, niveaux, activités, collection, RNG injecté
+  content/         prophéties (niveaux 1 à 5), portes, lieux, finale
+  components/      DoorScene, KnockPattern, DeckCut, TarotCard, Finale, Taskbar, CrtOverlay, activities/, backgrounds/…
+  effects/         shaders WGSL (CRT, lieux, boule de cristal) et leur code, détection WebGPU
+  audio/           sons synthétisés (ambiance, leitmotif, finale, effets)
+  stores/          progression, collection, session
+  composables/     inclinaison, toucher, vibration, mouvement réduit, stockage sûr
+tests/             engine/, content/, composables/, effects/, audio/, components/, stores/
 ```
 
 ## Crédits et licences
