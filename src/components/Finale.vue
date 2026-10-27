@@ -13,6 +13,8 @@ import { BELL_DELAY, startFinaleAudio } from '../audio/finale'
 
 // Finale du niveau 5 : la télé s’éteint en une ligne, l’aube se lève, le texte arrive ligne par ligne, puis le générique.
 // `collapsed` : l’écran est noir (l’app coupe le CRT et passe le lieu en aube sans qu’on le voie). `restart` : « Recommencer ».
+// Le gabarit est un fragment voulu (voile + section) : le voile est sous le contenu (z négatif) et ne capte jamais le pointeur,
+// les boutons restent donc utilisables pendant les effets. Aucun commentaire HTML avant la racine (voir tests/components/annonces.test.ts).
 const emit = defineEmits<{ collapsed: []; restart: [] }>()
 const reduced = useReducedMotion()
 const collection = useCollectionStore()
@@ -148,7 +150,6 @@ const lineClass = (i: number) =>
 </script>
 
 <template>
-  <!-- Le voile est sous le contenu (z négatif) et ne capte jamais le pointeur : les boutons restent utilisables pendant les effets. -->
   <div v-if="!reduced" class="fixed inset-0 -z-1 pointer-events-none transition-opacity duration-[4000ms] ease-out" :class="veilLifted ? 'opacity-0' : 'opacity-100'" aria-hidden="true">
     <div class="absolute inset-x-0 top-0 h-1/2 bg-black transition-transform duration-[1100ms] ease-in" :class="barsClosed ? 'translate-y-0' : '-translate-y-full'" />
     <div class="absolute inset-x-0 bottom-0 h-1/2 bg-black transition-transform duration-[1100ms] ease-in" :class="barsClosed ? 'translate-y-0' : 'translate-y-full'" />

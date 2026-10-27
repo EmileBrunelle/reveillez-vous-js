@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
@@ -27,10 +29,18 @@ describe('annonces uniques pour les lecteurs d’écran', () => {
     expect(sink).not.toMatch(/role=|aria-label/)
   })
 
-  it('DeckCut : aucun commentaire HTML avant la racine du gabarit (sinon, en dev, le statut est écrit deux fois)', () => {
-    const source = readFileSync(new URL('../../src/components/DeckCut.vue', import.meta.url), 'utf8')
-    const template = source.slice(source.indexOf('<template>') + '<template>'.length).trimStart()
-    expect(template.startsWith('<div')).toBe(true)
+  it('aucun .vue ne commence son gabarit par un commentaire HTML (sinon, en dev, la racine devient un fragment et le texte est écrit deux fois)', () => {
+    // Exceptions : fragments voulus qui commenceraient par un commentaire (aucune pour l’instant ; Vigilance a `inheritAttrs: false` mais ne commence pas par un commentaire).
+    const exceptions: string[] = []
+    const dir = fileURLToPath(new URL('../../src', import.meta.url))
+    const fautifs = (readdirSync(dir, { recursive: true }) as string[])
+      .filter((f) => f.endsWith('.vue') && !exceptions.includes(f))
+      .filter((f) => {
+        const source = readFileSync(join(dir, f), 'utf8')
+        const template = source.slice(source.indexOf('<template>') + '<template>'.length).trimStart()
+        return template.startsWith('<!--')
+      })
+    expect(fautifs).toEqual([])
   })
 
   it('Vigilance : la région live est présente et vide au départ (pas insérée déjà remplie)', async () => {

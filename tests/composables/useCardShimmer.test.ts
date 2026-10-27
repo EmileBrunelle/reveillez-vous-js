@@ -48,7 +48,7 @@ const env = vi.hoisted(() => {
     const batch = frames.splice(0)
     batch.forEach((cb) => cb(performance.now()))
   }
-  return { FakeElement, runFrames }
+  return { FakeElement, runFrames, pendingFrames: () => frames.length }
 })
 
 const { useCardShimmer } = await import('../../src/composables/useCardShimmer')
@@ -67,6 +67,12 @@ describe('useCardShimmer', () => {
   it('ne brille pas avant le premier reflet', async () => {
     const { shimmering, scope } = await setup()
     expect(shimmering.value).toBe(false)
+    scope.stop()
+  })
+
+  it('n’applique aucun effet avant le premier reflet (animation annulée, donc idle)', async () => {
+    const { el, scope } = await setup()
+    expect(el.animation.playState).toBe('idle')
     scope.stop()
   })
 
@@ -92,5 +98,39 @@ describe('useCardShimmer', () => {
     env.runFrames()
     expect(shimmering.value).toBe(false)
     scope.stop()
+  })
+
+  it('rejoue après la fin : brille de nouveau, puis retombe', async () => {
+    const { el, shimmer, shimmering, scope } = await setup()
+    shimmer()
+    env.runFrames()
+    el.animation.finish()
+    env.runFrames()
+    env.runFrames()
+    expect(shimmering.value).toBe(false)
+    shimmer()
+    env.runFrames()
+    expect(el.animation.playState).toBe('running')
+    expect(shimmering.value).toBe(true)
+    el.animation.finish()
+    env.runFrames()
+    env.runFrames()
+    expect(shimmering.value).toBe(false)
+    scope.stop()
+  })
+
+  it('scope.stop() en pleine lecture : animation annulée, plus aucune image planifiée', async () => {
+    const { el, shimmer, shimmering, scope } = await setup()
+    shimmer()
+    env.runFrames()
+    expect(shimmering.value).toBe(true)
+    scope.stop()
+    expect(el.animation.playState).toBe('idle')
+    env.runFrames()
+    env.runFrames()
+    // La boucle de synchronisation de VueUse est arrêtée avec le scope : `shimmering` garde sa dernière valeur (périmée) et ne bouge plus,
+    // sans conséquence puisque le composant qui le lit est détruit. L’essentiel : animation annulée et plus aucune image en attente.
+    expect(shimmering.value).toBe(true)
+    expect(env.pendingFrames()).toBe(0)
   })
 })
