@@ -62,7 +62,7 @@ const step = (p: Spr, k: number, d: number, dt: number) => {
 // Boîte étroite (téléphone en paysage) : les cartes latérales s’écartent davantage pour garder une bande cliquable d’au moins ~44 px.
 // Grand écran haut (voir la légende, posée à côté) : l’éventail grandit jusqu’à presque la hauteur de la boîte et s’étale davantage ; ses cartes dépassent la largeur de la boîte.
 // Mêmes seuils que la mise en page de .deck__side plus bas.
-const wide = useMediaQuery('(min-width: 1600px) and (min-height: 1300px)')
+const wide = useMediaQuery('(min-width: 1600px) and (min-height: 1000px) and (min-aspect-ratio: 8/5)')
 const fanScale = () => (wide.value ? 0.8 : FAN_SCALE)
 const fx = (i: number) => FAN[i].x * (wide.value ? 1.5 : W < 260 ? 1.8 : 1)
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
@@ -455,7 +455,7 @@ const choose = (i: number) => {
 .deck__side {
   display: contents;
 }
-@media (min-width: 1600px) and (min-height: 1300px) {
+@media (min-width: 1600px) and (min-height: 1000px) and (min-aspect-ratio: 8/5) {
   .deck .deck__side {
     display: flex;
     flex-direction: column;
