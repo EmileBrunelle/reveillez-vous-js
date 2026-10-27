@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
-import { useDocumentVisibility, useParallax } from '@vueuse/core'
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { useParallax } from '@vueuse/core'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { useProgressStore } from '../../stores/progress'
 import { startAmbience } from '../../audio/ambience'
 import { startMusic } from '../../audio/music'
+import type { GpuLoop } from '../../effects/gpuLoop'
 import { placeLoaders, type PlaceId } from '../../effects/places'
 
 const { place, variant = undefined, sharp } = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
 
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const failed = ref(false)
-let scene: { setPaused(paused: boolean): void; stop(): void } | null = null
+let scene: GpuLoop | null = null
 let gone = false
 const reducedMotion = useReducedMotion()
-const visibility = useDocumentVisibility()
-watch(visibility, (v) => scene?.setPaused(v === 'hidden'))
 // The paranoia level (0..1) comes straight from the progress store, read each frame by the shader params.
 const root = useTemplateRef<HTMLElement>('root')
 const { tilt, roll, source } = useParallax(root)
@@ -62,7 +61,6 @@ onMounted(async () => {
     })
     if (gone) return s.stop()
     scene = s
-    if (visibility.value === 'hidden') s.setPaused(true)
   } catch (e) {
     console.warn('Place background disabled:', e)
     failed.value = true

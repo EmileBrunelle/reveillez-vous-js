@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
-import { useDocumentVisibility } from '@vueuse/core'
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useReducedMotion } from '../composables/useReducedMotion'
+import type { GpuLoop } from '../effects/gpuLoop'
 import { hasWebGpuAdapter } from '../effects/webgpu'
 import { useSessionStore } from '../stores/session'
 
@@ -10,11 +10,10 @@ const emit = defineEmits<{ ready: []; fail: [] }>()
 
 const session = useSessionStore()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
-let crt: { setPaused(paused: boolean): void; stop(): void } | null = null
+let crt: GpuLoop | null = null
 const reducedMotion = useReducedMotion()
-const visibility = useDocumentVisibility()
-// `off` : la finale a éteint l’écran, le CRT ne rend plus rien (et ne coûte plus de GPU).
-watch([visibility, () => off], ([v, isOff]) => crt?.setPaused(v === 'hidden' || !!isOff))
+// Coup de porte : objet réutilisé à chaque image (lu par le CRT, aucune allocation par trame).
+const knockRipple = { age: 10, amp: 0 }
 let gone = false
 const lost = ref(false)
 const TIMEOUT_MS = 5000
@@ -37,24 +36,25 @@ onMounted(async () => {
   const start = (async () => {
     const { startCrt } = await import('../effects/crt')
     await new Promise((r) => requestAnimationFrame(r)) // canvas is laid out
-    return startCrt(
-      canvas.value!,
-      () => !reducedMotion.value,
-      () => paranoia,
-      () => {
+    return startCrt(canvas.value!, {
+      motion: () => !reducedMotion.value,
+      paranoia: () => paranoia,
+      ripple: () => {
         // Âge (s) depuis le dernier coup, plafonné ; amplitude légèrement modulée par la paranoïa.
         const k = session.knock
-        const age = k.seq === 0 ? 10 : Math.min(10, (performance.now() - k.at) / 1000)
-        return { age, amp: Math.min(1, k.amp * (0.7 + 0.3 * paranoia)) }
+        knockRipple.age = k.seq === 0 ? 10 : Math.min(10, (performance.now() - k.at) / 1000)
+        knockRipple.amp = Math.min(1, k.amp * (0.7 + 0.3 * paranoia))
+        return knockRipple
       },
-      () => (lost.value = true),
-    )
+      // `off` : la finale a éteint l’écran, le CRT ne rend plus rien (et ne coûte plus de GPU).
+      paused: () => !!off,
+      onLost: () => (lost.value = true),
+    })
   })()
   try {
     const s = await timeout(start, 'CRT init')
     if (gone) return s.stop()
     crt = s
-    if (visibility.value === 'hidden' || off) s.setPaused(true)
   } catch (e) {
     console.warn('CRT overlay disabled:', e)
     lost.value = true
