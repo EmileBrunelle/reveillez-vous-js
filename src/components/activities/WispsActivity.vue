@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, useTemplateRef } from 'vue'
-import { useElementSize, usePreferredReducedMotion, useRafFn, useEventListener, useTimeoutFn } from '@vueuse/core'
+import { computed, ref, useTemplateRef } from 'vue'
+import { useCssVar, useElementBounding, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { Motion, useMotionValue } from 'motion-v'
 import { useDeferredText } from '../../composables/useDeferredText'
+import { useReducedMotion } from '../../composables/useReducedMotion'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'
@@ -20,21 +22,35 @@ const rng: Rng = secureRng()
 
 const TOTAL = 3
 const stage = useTemplateRef<HTMLElement>('stage')
-const { width, height } = useElementSize(stage)
+const { left: stageLeft, top: stageTop, width, height } = useElementBounding(stage)
 const tuning = computed(() => wispTuning(level, width.value, height.value)) // rayon ≥ 72 px : généreux pour le tactile
-const reduced = usePreferredReducedMotion()
-const isReduced = computed(() => reduced.value === 'reduce')
+const reduced = useReducedMotion()
 
+// État rendu par Vue (rare : à chaque capture ou apparition).
 const caught = ref(0)
-const pos = ref<Vec>({ x: 0, y: 0 })
-const trail = shallowRef<Vec[]>([])
-const progress = ref(0)
 const blooming = ref(false)
 const visible = ref(false)
 const spawnId = ref(0)
 const hidden = ref(false) // mouvement réduit : fondu entre deux sauts
-const settled = ref(false)
 
+// État écrit à chaque image : hors de Vue. Position, traînée et progression passent par des valeurs de mouvement et une variable CSS
+// (aucun rendu, aucun nouveau tableau par image) ; le feu follet et chaque point de traînée n’ont qu’un seul maître de transform.
+const HALF = 22 // demi-taille du feu follet (44 px)
+const wispX = useMotionValue(0)
+const wispY = useMotionValue(0)
+// Un point de traînée sur deux dans l’historique des 12 dernières positions ; échelle et opacité décroissent avec l’âge (fixes).
+const HISTORY = 12
+const trailDots = Array.from({ length: HISTORY / 2 }, (_, i) => ({ x: useMotionValue(0), y: useMotionValue(0), scale: 1 - i * 0.12, opacity: 0.32 - i * 0.05 }))
+let history: Vec[] = []
+// Progression de capture (0–1) : variable CSS de la scène, lue par l’orbe (taille).
+const progressVar = useCssVar('--p', stage)
+let progress = 0
+const setProgress = (p: number) => {
+  progress = p
+  progressVar.value = p.toFixed(3)
+}
+
+let pos: Vec = { x: 0, y: 0 }
 let vel: Vec = { x: 0, y: 0 }
 let target: Vec = { x: 0, y: 0 }
 let pointer: Vec | null = null
@@ -43,16 +59,32 @@ let placed = false
 let waiting = false
 let hopWait = 0
 
+const place = (p: Vec) => {
+  pos = p
+  wispX.set(p.x - HALF)
+  wispY.set(p.y - HALF)
+}
+const pushTrail = () => {
+  history.unshift(pos)
+  history.length = HISTORY
+  trailDots.forEach((d, i) => {
+    const p = history[2 * i + 1]
+    d.x.set(p.x - HALF)
+    d.y.set(p.y - HALF)
+  })
+}
+
 const spawn = () => {
   const w = width.value
   const h = height.value
   const start = nextWaypoint(rng, w, h, { x: w / 2, y: h / 2 }, 56, 0)
-  pos.value = start
+  place(start)
+  history = Array.from({ length: HISTORY }, () => start)
+  pushTrail()
   vel = { x: 0, y: 0 }
   target = nextWaypoint(rng, w, h, start)
   untilHop = 0
-  progress.value = 0
-  trail.value = []
+  setProgress(0)
   blooming.value = false
   visible.value = true
   hidden.value = false
@@ -74,7 +106,6 @@ const catchIt = () => {
   if (blooming.value || !visible.value || isFinished()) return
   blooming.value = true
   pulse(25)
-  trail.value = []
   caught.value++
   if (caught.value >= TOTAL) {
     finish()
@@ -85,21 +116,17 @@ const catchIt = () => {
 }
 
 const { pause } = useRafFn(({ delta }) => {
-  if (isFinished()) {
-    settled.value = outcome.value === 'win'
-    pause()
-    return
-  }
+  if (isFinished()) return pause()
   if (width.value === 0) return
   const dt = Math.min(delta / 1000, 1 / 30)
   if (!placed && !waiting) spawn()
   if (!visible.value || blooming.value) return
-  if (isReduced.value) {
+  if (reduced.value) {
     // mouvement réduit : pas de glissade, un saut avec fondu (≥ 300 ms) toutes les 2,4 s
     if (hopWait > 0) {
       hopWait -= dt
       if (hopWait <= 0) {
-        pos.value = nextWaypoint(rng, width.value, height.value, pos.value)
+        place(nextWaypoint(rng, width.value, height.value, pos))
         hidden.value = false
         untilHop = 2.4
       }
@@ -110,34 +137,38 @@ const { pause } = useRafFn(({ delta }) => {
         hopWait = 0.4
       }
     }
-    progress.value = stepCatch(progress.value, !!pointer && !hidden.value && isNear(pointer, pos.value, tuning.value.radius), dt, tuning.value.hold, tuning.value.decay)
-    if (progress.value >= 1) catchIt()
+    setProgress(stepCatch(progress, !!pointer && !hidden.value && isNear(pointer, pos, tuning.value.radius), dt, tuning.value.hold, tuning.value.decay))
+    if (progress >= 1) catchIt()
     return
   }
-  const next = stepWisp({ pos: pos.value, vel, target, untilHop }, pointer, dt, rng, width.value, height.value, tuning.value)
+  const next = stepWisp({ pos, vel, target, untilHop }, pointer, dt, rng, width.value, height.value, tuning.value)
   vel = next.vel
   target = next.target
   untilHop = next.untilHop
-  pos.value = next.pos
-  trail.value = [pos.value, ...trail.value].slice(0, 12)
-  progress.value = stepCatch(progress.value, !!pointer && isNear(pointer, pos.value, tuning.value.radius), dt, tuning.value.hold, tuning.value.decay)
-  if (progress.value >= 1) catchIt()
+  place(next.pos)
+  pushTrail()
+  setProgress(stepCatch(progress, !!pointer && isNear(pointer, pos, tuning.value.radius), dt, tuning.value.hold, tuning.value.decay))
+  if (progress >= 1) catchIt()
 })
 
 // Au toucher : point de capture 40 px au-dessus du doigt (guide visible), et le doigt levé garde la prise 300 ms.
-const guide = ref<Vec | null>(null)
+const guideOn = ref(false)
+const guideX = useMotionValue(0)
+const guideY = useMotionValue(0)
 const { start: dropGrace, stop: cancelGrace } = useTimeoutFn(
   () => {
     pointer = null
-    guide.value = null
+    guideOn.value = false
   },
   TOUCH_GRACE_MS,
   { immediate: false },
 )
 const aim = (e: PointerEvent): Vec => {
   cancelGrace()
-  const p = aimPoint(e, stage.value!.getBoundingClientRect())
-  guide.value = e.pointerType === 'touch' ? p : null
+  const p = aimPoint(e, { left: stageLeft.value, top: stageTop.value })
+  guideOn.value = e.pointerType === 'touch'
+  guideX.set(p.x - 14)
+  guideY.set(p.y - 14)
   return p
 }
 useEventListener(stage, 'pointermove', (e: PointerEvent) => (pointer = aim(e)))
@@ -145,12 +176,12 @@ useEventListener(stage, 'pointerleave', (e: PointerEvent) => {
   if (e.pointerType === 'touch') return // le tactile émet pointerleave juste après pointerup : la tolérance de 300 ms s’applique
   cancelGrace()
   pointer = null
-  guide.value = null
+  guideOn.value = false
 })
 useEventListener(stage, 'pointercancel', () => {
   cancelGrace()
   pointer = null
-  guide.value = null
+  guideOn.value = false
 })
 useEventListener(stage, 'pointerup', (e: PointerEvent) => {
   if (e.pointerType === 'touch') dropGrace()
@@ -158,11 +189,10 @@ useEventListener(stage, 'pointerup', (e: PointerEvent) => {
 })
 useEventListener(stage, 'pointerdown', (e: PointerEvent) => {
   pointer = aim(e)
-  if (!hidden.value && isNear(pointer, pos.value, tuning.value.radius)) catchIt()
+  if (!hidden.value && isNear(pointer, pos, tuning.value.radius)) catchIt()
 })
 
 const prompt = useDeferredText(() => `Touchez ou cliquez sur les trois feux follets (${caught.value}/${TOTAL}).`)
-const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
 </script>
 
 <template>
@@ -170,30 +200,30 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
     <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}<span v-if="prompt" class="sr-only"> Au clavier, activez le bouton “Attraper le feu follet”.</span>
     </p>
-    <!-- Chemin clavier : visible seulement au focus ; Entrée ou Espace attrape le feu follet quand il est là. -->
+    <!-- Chemin clavier : visible seulement au focus ; Entrée ou Espace attrape le feu follet quand il est là.
+         Toujours monté (sinon le focus tombe sur <body> à la 3e capture) : après l’issue il devient inerte (aria-disabled), comme « Passer ». -->
     <button
-      v-if="outcome === 'play'"
       type="button"
       class="font-ui sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:bottom-16 focus-visible:left-1/2 focus-visible:-translate-x-1/2 focus-visible:px-4 focus-visible:py-1 focus-visible:text-xl focus-visible:text-emerald-100 focus-visible:bg-black/70 focus-visible:border-2 focus-visible:border-solid focus-visible:border-emerald-200 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-white"
+      :aria-disabled="outcome === 'play' ? undefined : 'true'"
       @click="!hidden && catchIt()"
     >
       Attraper le feu follet
     </button>
-    <p class="sr-only" role="status" aria-live="polite">{{ settled ? 'Les feux follets se sont laissé apprivoiser.' : '' }}</p>
-    <span v-if="guide" class="wisp-guide pointer-events-none absolute left-0 top-0 rounded-full" :style="{ transform: `translate3d(${guide.x - 14}px, ${guide.y - 14}px, 0)` }" aria-hidden="true" />
+    <Motion v-if="guideOn" as="span" class="wisp-guide pointer-events-none absolute left-0 top-0 rounded-full" :style="{ x: guideX, y: guideY }" aria-hidden="true" />
     <template v-if="visible">
-      <span
-        v-for="(p, i) in trailPoints"
-        :key="i"
-        class="wisp-trail pointer-events-none absolute left-0 top-0 rounded-full"
-        :style="{
-          transform: `translate3d(${p.x - 22}px, ${p.y - 22}px, 0) scale(${1 - i * 0.12})`,
-          opacity: 0.32 - i * 0.05,
-        }"
-      />
-      <span :key="spawnId" class="wisp-wrap pointer-events-none absolute left-0 top-0" :class="{ 'wisp-hidden': hidden }" :style="{ transform: `translate3d(${pos.x - 22}px, ${pos.y - 22}px, 0)` }">
-        <span class="wisp-orb block rounded-full" :class="{ 'wisp-bloom': blooming }" :style="{ '--p': progress }" />
-      </span>
+      <template v-if="!blooming && !reduced">
+        <Motion
+          v-for="(d, i) in trailDots"
+          :key="i"
+          as="span"
+          class="wisp-trail pointer-events-none absolute left-0 top-0 rounded-full"
+          :style="{ x: d.x, y: d.y, scale: d.scale, opacity: d.opacity }"
+        />
+      </template>
+      <Motion :key="spawnId" as="span" class="wisp-wrap pointer-events-none absolute left-0 top-0" :class="{ 'wisp-hidden': hidden }" :style="{ x: wispX, y: wispY }">
+        <span class="wisp-orb block rounded-full" :class="{ 'wisp-bloom': blooming }" />
+      </Motion>
     </template>
     <ActivityHud activity="wisps" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
@@ -206,6 +236,10 @@ const trailPoints = computed(() => trail.value.filter((_, i) => i % 2 === 1))
   width: 44px;
   height: 44px;
   background: radial-gradient(circle, #eafff6 0%, #7dffc8 25%, rgb(60 200 230 / 0.55) 55%, transparent 72%);
+  filter: blur(1.5px);
+}
+/* La lueur n’est dessinée que pour l’orbe : douze traînées avec drop-shadow coûtaient cher à chaque image. */
+.wisp-orb {
   filter: blur(1.5px) drop-shadow(0 0 14px rgb(90 255 200 / 0.8));
 }
 .wisp-guide {

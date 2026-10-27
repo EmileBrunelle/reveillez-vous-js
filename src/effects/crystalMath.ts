@@ -1,5 +1,13 @@
 /** Aides pures de la boule de cristal : anneau de coups de chiffon et estimation de couverture. Coordonnées : disque unité, y vers le bas. */
 
+/** Part de la boule à essuyer pour réussir. */
+export const WIN_RATIO = 0.7
+/**
+ * Pas d’une pression de flèche (disque unité). Assez grand pour qu’un serpentin au clavier atteigne WIN_RATIO en une soixantaine de pressions
+ * (≈ 4 par seconde sur 14 s, bien moins en laissant la touche enfoncée) ; à 0,14 il en fallait plus d’une centaine.
+ */
+export const KEY_STEP = 0.25
+
 /** Nombre de points transmis au shader (champs p0..p7 de l’uniforme). */
 export const RING_SIZE = 8
 

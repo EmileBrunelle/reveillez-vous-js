@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // Invite commune des activités chronométrées : un verbe géant qui surgit au ressort puis se range en bas à gauche, une barre de temps
-// qui se vide en continu (aucune variation de luminance : seule la largeur change) et l’issue (réussite ou échec) affichée environ 1 s.
+// qui se vide en continu (animation CSS : aucune variation de luminance, seule la largeur change) et l’issue (réussite ou échec) affichée environ 1 s.
+// L’issue est annoncée ici une seule fois (région role=status) : les activités ne la répètent pas.
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
-import { Progress } from '@vuetify/v0'
-import { useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '../../content/activityPrompts'
 import { durationOf, timeLeft, type Phase } from '../../engine/activityTiming'
@@ -16,17 +16,14 @@ const prompt = computed(() => ACTIVITY_PROMPTS[activity])
 const duration = computed(() => durationOf(activity))
 const reduced = useReducedMotion()
 
-// Barre : part de temps restante (0–100), mise à jour à chaque image ; elle s’arrête à l’issue.
-const left = ref(100)
-const { pause } = useRafFn(() => {
-  left.value = timeLeft(Date.now() - startedAt, duration.value) * 100
-})
+// Barre : l’animation CSS (`drain`) la vide en `duration` ms, déjà entamée si le HUD monte après le départ du chrono (délai négatif) ;
+// elle se fige à l’issue. Seule la valeur accessible (aria-valuenow) passe par l’état, deux fois par seconde.
+const elapsedAtMount = Date.now() - startedAt
+const left = ref(Math.round(timeLeft(elapsedAtMount, duration.value) * 100))
+const { pause: pauseTick } = useIntervalFn(() => (left.value = Math.round(timeLeft(Date.now() - startedAt, duration.value) * 100)), 500)
 // Jingle en cours : coupé au démontage et si le son passe en muet pendant la lecture.
 let stopStinger: () => void = () => {}
-onUnmounted(() => {
-  pause()
-  stopStinger()
-})
+onUnmounted(() => stopStinger())
 watch(muted, (m) => m && stopStinger())
 
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
@@ -56,14 +53,12 @@ watch(
   () => outcome,
   async (o) => {
     if (o === 'play') return
-    pause()
+    pauseTick()
     stopStinger = playStinger(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
     await nextTick()
     if (resultEl.value && !reduced.value) animate(resultEl.value, { scale: [0.3, 1], rotate: o === 'win' ? [-6, 0] : [4, 0] }, { type: 'spring', stiffness: 480, damping: 9 })
   },
 )
-
-const hurry = computed(() => left.value < 25 && outcome === 'play')
 </script>
 
 <template>
@@ -78,12 +73,18 @@ const hurry = computed(() => left.value < 25 && outcome === 'play')
         {{ prompt.verb }}
       </p>
     </div>
-    <!-- barre de temps : à gauche du bouton « Passer » -->
-    <Progress.Root :model-value="left" :min="0" :max="100" aria-label="Temps restant" class="absolute bottom-3 left-3 right-32 sm:right-36">
-      <Progress.Track class="h-3.5 border-2 border-solid border-black bg-black/70 p-px">
-        <Progress.Fill class="h-full" :class="hurry ? 'bg-red-500' : 'bg-amber-300'" />
-      </Progress.Track>
-    </Progress.Root>
+    <!-- barre de temps : à gauche du bouton « Passer » ; le rouge de la fin (derniers 25 %) est dans l’animation -->
+    <div
+      role="progressbar"
+      aria-label="Temps restant"
+      :aria-valuenow="left"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      :aria-valuetext="`${left} %`"
+      class="absolute bottom-3 left-3 right-32 sm:right-36 h-3.5 border-2 border-solid border-black bg-black/70 p-px"
+    >
+      <div class="drain h-full origin-left" :style="{ '--drain-ms': `${duration}ms`, '--drain-from': `${-elapsedAtMount}ms`, animationPlayState: outcome === 'play' ? 'running' : 'paused' }" />
+    </div>
     <!-- issue -->
     <div v-if="outcome !== 'play'" class="absolute inset-x-0 bottom-14 flex justify-center px-4" aria-hidden="true">
       <p
@@ -96,3 +97,32 @@ const hurry = computed(() => left.value < 25 && outcome === 'play')
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Vidage : transform seulement (compositeur), couleur fixée par paliers (ambre puis rouge à 75 % du temps écoulé). */
+.drain {
+  background-color: #fcd34d;
+  animation: drain var(--drain-ms) linear var(--drain-from) both;
+}
+@keyframes drain {
+  from {
+    transform: scaleX(1);
+  }
+  74.99% {
+    background-color: #fcd34d;
+  }
+  75% {
+    background-color: #ef4444;
+  }
+  to {
+    transform: scaleX(0);
+    background-color: #ef4444;
+  }
+}
+/* Mouvement réduit : la barre avance par paliers au lieu de glisser. */
+@media (prefers-reduced-motion: reduce) {
+  .drain {
+    animation-timing-function: steps(20, end);
+  }
+}
+</style>

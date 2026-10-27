@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, useTemplateRef } from 'vue'
-import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useElementBounding, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { Motion, useMotionValue, useSpring } from 'motion-v'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'
@@ -19,6 +20,33 @@ const { level, rng = undefined } = defineProps<{ level: number; rng?: Rng }>()
 const rand = orSecure(rng)
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
+const reduced = useReducedMotion()
+// Le cadre pulsant de la chandelle soufflée est un repère de focus : réservé au clavier, jamais après un geste du pointeur.
+const keyboard = useKeyboardModality()
+
+const COUNT = 3
+// État lu par `onFinish` et par les minuteries : déclaré avant `useActivityDone`.
+const lit = reactive<boolean[]>(Array(COUNT).fill(false))
+const hold = reactive<number[]>(Array(COUNT).fill(0))
+const litCount = computed(() => lit.filter(Boolean).length)
+const over = ref(false)
+// Indice de la chandelle soufflée (-1 : aucune) : courant d’air une seule fois, dès le niveau 3 (l’activité peut être rejouée aux niveaux suivants).
+const snuffed = ref(-1)
+
+// Sans rallumage après 4 s, la chandelle se rallume seule (douce chaleur) et l’activité se termine (`finish` n’est lu qu’à l’échéance).
+const { start: relightLater, stop: relightStop } = useTimeoutFn(
+  () => {
+    const i = snuffed.value
+    if (i < 0 || isFinished()) return
+    lit[i] = true
+    hold[i] = 1
+    snuffed.value = -1
+    over.value = true
+    finish()
+  },
+  4000,
+  { immediate: false },
+)
 
 const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('candles'),
@@ -35,26 +63,20 @@ const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() =
     over.value = o === 'win'
   },
 })
-const reduced = useReducedMotion()
-// Le cadre pulsant de la chandelle soufflée est un repère de focus : réservé au clavier, jamais après un geste du pointeur.
-const keyboard = useKeyboardModality()
 
-const COUNT = 3
 const prompt = useDeferredText(() => (over.value ? 'La pièce se réchauffe…' : snuffed.value >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles'))
 const stage = useTemplateRef<HTMLElement>('stage')
-const candleEls: (HTMLElement | null)[] = []
-const matchEl = useTemplateRef<HTMLElement>('matchEl')
-const lit = reactive<boolean[]>(Array(COUNT).fill(false))
-const hold = reactive<number[]>(Array(COUNT).fill(0))
-const litCount = computed(() => lit.filter(Boolean).length)
+const candleEls = useTemplateRef<HTMLElement[]>('candleEls')
+const { left: stageLeft, top: stageTop, width: stageWidth } = useElementBounding(stage)
 
-// Allumette : cible (pointeur) et position ressort, écrite directement dans le DOM (un seul maître du transform).
-const target = { x: 0, y: 0 }
-const pos = { x: 0, y: 0, vx: 0, vy: 0 }
+// Allumette : la cible suit le pointeur, la position la rejoint au ressort (Motion : ζ ≈ 0,7, ~5 % de dépassement, du poids sans rebond).
+// Les valeurs de mouvement alimentent le style sans rendu Vue à chaque image.
+const targetX = useMotionValue(0)
+const targetY = useMotionValue(0)
+const SPRING = { stiffness: 720, damping: 37.5 }
+const matchX = useSpring(targetX, SPRING)
+const matchY = useSpring(targetY, SPRING)
 const matchVisible = ref(false)
-const over = ref(false)
-// Indice de la chandelle soufflée (-1 : aucune) : courant d’air une seule fois, dès le niveau 3 (l’activité peut être rejouée aux niveaux suivants).
-const snuffed = ref(-1)
 
 // Chandelles « tenues » : survolées, focalisées ou touchées (pointerdown à pointerup) ; jamais soufflées.
 const hovered = reactive<boolean[]>(Array(COUNT).fill(false))
@@ -84,20 +106,6 @@ const { start: snuffLater } = useTimeoutFn(
   450,
   { immediate: false },
 )
-// Sans rallumage après 4 s, la chandelle se rallume seule (douce chaleur) et l’activité se termine.
-const { start: relightLater, stop: relightStop } = useTimeoutFn(
-  () => {
-    const i = snuffed.value
-    if (i < 0 || isFinished()) return
-    lit[i] = true
-    hold[i] = 1
-    snuffed.value = -1
-    over.value = true
-    finish()
-  },
-  4000,
-  { immediate: false },
-)
 
 const light = (i: number) => {
   if (lit[i] || outcome.value !== 'play') return
@@ -122,14 +130,14 @@ const light = (i: number) => {
 const { start: hideMatch, stop: keepMatch } = useTimeoutFn(() => (matchVisible.value = false), TOUCH_GRACE_MS, { immediate: false })
 const setTarget = (e: PointerEvent) => {
   keepMatch()
-  const r = stage.value?.getBoundingClientRect()
-  if (!r) return
-  target.x = e.clientX - r.left
-  target.y = e.clientY - r.top
-  if (!matchVisible.value) {
-    pos.x = target.x
-    pos.y = target.y
-    pos.vx = pos.vy = 0
+  const x = e.clientX - stageLeft.value
+  const y = e.clientY - stageTop.value
+  targetX.set(x)
+  targetY.set(y)
+  // Première apparition (ou mouvement réduit) : pas de glissade depuis l’ancienne position.
+  if (!matchVisible.value || reduced.value) {
+    matchX.jump(x)
+    matchY.jump(y)
   }
   matchVisible.value = true
 }
@@ -151,34 +159,25 @@ useEventListener(stage, 'pointerleave', (e: PointerEvent) => {
   matchVisible.value = false
 })
 
-const wickPoint = (i: number) => {
-  const c = candleEls[i]
-  const s = stage.value?.getBoundingClientRect()
-  if (!c || !s) return null
-  const r = c.getBoundingClientRect()
-  return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height * 0.28 }
-}
+// Mèches (repère de la scène), mesurées une seule fois par disposition : le calcul est mis en cache et ne repart que si la scène change de taille ou de place,
+// ou si le texte d’invite change (sa hauteur déplace la colonne centrée).
+const wicks = computed(() => {
+  void prompt.value
+  if (!stageWidth.value) return []
+  return (candleEls.value ?? []).map((c) => {
+    const r = c.getBoundingClientRect()
+    return { x: r.left - stageLeft.value + r.width / 2, y: r.top - stageTop.value + r.height * 0.28 }
+  })
+})
 
-useRafFn(({ delta }) => {
+const { pause } = useRafFn(({ delta }) => {
+  // Activité finie : plus rien à suivre (l’issue dure environ une seconde, la boucle ne tourne plus pour rien).
+  if (isFinished()) return pause()
   const dt = Math.min(delta, 50)
-  if (reduced.value) {
-    pos.x = target.x
-    pos.y = target.y
-  } else {
-    // Ressort presque critique (ζ ≈ 0,7, ~5 % de dépassement) : suit le pointeur avec du poids, sans rebondir.
-    pos.vx += (target.x - pos.x) * 0.012 * dt
-    pos.vy += (target.y - pos.y) * 0.012 * dt
-    const damp = Math.exp(-dt * 0.0375)
-    pos.vx *= damp
-    pos.vy *= damp
-    pos.x += pos.vx * dt * 0.06
-    pos.y += pos.vy * dt * 0.06
-  }
-  if (matchEl.value) matchEl.value.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
   for (let i = 0; i < COUNT; i++) {
     if (lit[i]) continue
-    const w = wickPoint(i)
-    const touching = matchVisible.value && !!w && isNearWick(pos.x, pos.y - 20, w.x, w.y, 44)
+    const w = wicks.value[i]
+    const touching = matchVisible.value && !!w && isNearWick(matchX.get(), matchY.get() - 20, w.x, w.y, 44)
     const p = advanceHold(hold[i], touching, dt)
     if (p !== hold[i]) hold[i] = p
     if (p >= 1) light(i)
@@ -198,7 +197,7 @@ useRafFn(({ delta }) => {
       <button
         v-for="n in COUNT"
         :key="n"
-        :ref="(el) => (candleEls[n - 1] = el as HTMLElement | null)"
+        ref="candleEls"
         type="button"
         class="candle relative bg-transparent border-0 p-0 cursor-pointer w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4 focus-visible:shadow-none"
         :class="{ pulse: snuffed === n - 1 && !reduced && keyboard }"
@@ -218,10 +217,10 @@ useRafFn(({ delta }) => {
         </span>
       </button>
     </div>
-    <span ref="matchEl" class="match absolute left-0 top-0 pointer-events-none" :class="{ shown: matchVisible, 'no-motion': reduced }" aria-hidden="true">
+    <Motion as="span" class="match absolute left-0 top-0 pointer-events-none" :class="{ shown: matchVisible, 'no-motion': reduced }" :style="{ x: matchX, y: matchY }" aria-hidden="true">
       <span class="match-flame" :class="{ 'no-motion': reduced }" />
       <span class="match-stick" />
-    </span>
+    </Motion>
     <ActivityHud activity="candles" :outcome="outcome" :started-at="startedAt" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>

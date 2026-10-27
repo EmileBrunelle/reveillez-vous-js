@@ -25,11 +25,18 @@ describe('OuijaActivity', () => {
     expect(error).not.toHaveBeenCalled()
   })
 
-  it('annonce le mot une seule fois, dans une région aria-live', async () => {
+  it('monte la région aria-live vide (le texte y entre après le montage, sinon rien n’est annoncé)', async () => {
     const html = await render()
     const live = [...html.matchAll(/<p[^>]*aria-live="polite"[^>]*>([^<]*)<\/p>/g)]
     expect(live).toHaveLength(1)
-    expect(live[0][1]).toMatch(/^Épelez le mot .+\.$/)
-    expect(html).not.toContain('Mot à épeler')
+    expect(live[0][1]).toBe('')
+  })
+
+  it('rend le mot à épeler accessible (pas d’aria-hidden sur le mot ni sur ses cases)', async () => {
+    const html = await render()
+    const word = html.match(/<p class="relative m-0 flex[^>]*>[\s\S]*?<\/p>/)
+    expect(word).not.toBeNull()
+    expect(word![0]).not.toContain('aria-hidden')
+    expect(word![0]).toMatch(/<span[^>]*>[A-ZŒ]<\/span>/)
   })
 })

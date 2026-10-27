@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { AUTO_SUCCESS_MS, SKIP_REVEAL_MS, useActivityDone } from '../../src/composables/useActivityDone'
+import { AUTO_SUCCESS_MS, POKE_THROTTLE_MS, SKIP_REVEAL_MS, useActivityDone } from '../../src/composables/useActivityDone'
 
 describe('useActivityDone', () => {
   beforeEach(() => vi.useFakeTimers())
@@ -108,5 +108,29 @@ describe('useActivityDone', () => {
     vi.advanceTimersByTime(SKIP_REVEAL_MS * 2)
     expect(api.canSkip.value).toBe(false)
     scope.stop()
+  })
+
+  it('une rafale de pointermove ne réarme pas la minuterie à chaque événement (limité), mais « Passer » reste repoussé', () => {
+    vi.stubGlobal('document', new EventTarget())
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100, autoMs: 120_000 }))!
+    const timeouts = vi.spyOn(globalThis, 'setTimeout')
+    // 1 s de pointermove à 60 Hz : 60 événements.
+    for (let i = 0; i < 60; i++) {
+      document.dispatchEvent(new Event('pointermove'))
+      vi.advanceTimersByTime(16)
+    }
+    // Sans limitation il y aurait 60 réarmements ; avec, quelques-uns (un par fenêtre de POKE_THROTTLE_MS, plus la fin de rafale).
+    expect(timeouts.mock.calls.length).toBeLessThanOrEqual(Math.ceil(1000 / POKE_THROTTLE_MS) * 2 + 2)
+    // Le mouvement continu repousse toujours « Passer » ; une fois le pointeur immobile il apparaît.
+    for (let t = 0; t < 20; t++) {
+      document.dispatchEvent(new Event('pointermove'))
+      vi.advanceTimersByTime(1000)
+    }
+    expect(api.canSkip.value).toBe(false)
+    vi.advanceTimersByTime(SKIP_REVEAL_MS + POKE_THROTTLE_MS)
+    expect(api.canSkip.value).toBe(true)
+    scope.stop()
+    vi.unstubAllGlobals()
   })
 })

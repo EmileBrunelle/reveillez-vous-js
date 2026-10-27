@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RING_SIZE, clampToDisc, createCoverage, createWipeRing, decodeCell, packCoverage, spacedStamps, stampsAlong } from '../../src/effects/crystalMath'
+import { KEY_STEP, RING_SIZE, WIN_RATIO, clampToDisc, createCoverage, createWipeRing, decodeCell, packCoverage, spacedStamps, stampsAlong } from '../../src/effects/crystalMath'
 
 describe('createWipeRing', () => {
   it('écrase le plus ancien point une fois plein', () => {
@@ -106,5 +106,29 @@ describe('packCoverage / decodeCell', () => {
     const packed = c.pack()
     expect(decodeCell(packed, 8, 8)).toBe(true)
     expect(decodeCell(packed, 0, 0)).toBe(false)
+  })
+})
+
+describe('objectif au clavier', () => {
+  it('un serpentin aux flèches atteint WIN_RATIO en moins de 70 pressions (≈ 5 par seconde sur 14 s)', () => {
+    const cov = createCoverage()
+    let x = -1
+    let y = -0.8
+    let presses = 0
+    let dir = 1
+    const press = (dx: number, dy: number) => {
+      const p = clampToDisc(x + dx * KEY_STEP, y + dy * KEY_STEP)
+      x = p.x
+      y = p.y
+      cov.mark(x, y)
+      presses++
+    }
+    while (cov.ratio() < WIN_RATIO && presses < 200) {
+      for (let k = 0; k < 8 && cov.ratio() < WIN_RATIO; k++) press(dir, 0)
+      press(0, 1)
+      dir = -dir
+    }
+    expect(cov.ratio()).toBeGreaterThanOrEqual(WIN_RATIO)
+    expect(presses).toBeLessThan(70)
   })
 })

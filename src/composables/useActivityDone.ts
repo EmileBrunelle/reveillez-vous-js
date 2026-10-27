@@ -1,4 +1,4 @@
-import { useEventListener, useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useThrottleFn, useTimeoutFn } from '@vueuse/core'
 import { ref } from 'vue'
 import { OUTCOME_MS, type Outcome, type Phase } from '../engine/activityTiming'
 
@@ -6,6 +6,8 @@ import { OUTCOME_MS, type Outcome, type Phase } from '../engine/activityTiming'
 export const AUTO_SUCCESS_MS = 20_000
 // Au bout de ce délai sans réussite ni interaction, un bouton « Passer » discret apparaît (la minuterie automatique reste le filet de sécurité).
 export const SKIP_REVEAL_MS = 12_000
+// Intervalle minimal entre deux réarmements de la minuterie de « Passer » (les mouvements du pointeur arrivent par rafales).
+export const POKE_THROTTLE_MS = 250
 
 // Fin d’activité commune : `finish` n’émet qu’une fois (réussite du joueur ou minuterie, le premier gagne)
 // `onFinish` s’exécute à cette fin, quel qu’en soit le chemin (réussite ou minuterie), et `done` attend `delayMs` pour laisser l’animation de réussite se jouer. Les minuteries meurent avec le composant.
@@ -46,11 +48,17 @@ export const useActivityDone = (
   reveal.start()
   // « Passer » dépanne qui reste bloqué : toute interaction repousse son apparition (qui joue ne le voit jamais, la réussite automatique arrive avant).
   // Une fois affiché, il reste : il ne doit pas fuir sous le doigt de qui veut l’atteindre.
-  const poke = () => {
-    if (finished || canSkip.value) return
-    reveal.stop()
-    reveal.start()
-  }
+  // `pointermove` tire des dizaines d’événements par seconde : le réarmement de la minuterie est limité (au plus un tous les 250 ms, premier événement de la fenêtre gardé),
+  // ce qui retarde l’apparition de « Passer » de 250 ms au plus.
+  const poke = useThrottleFn(
+    () => {
+      if (finished || canSkip.value) return
+      reveal.stop()
+      reveal.start()
+    },
+    POKE_THROTTLE_MS,
+    false,
+  )
   // Cible résolue à l’appel (pas de `document` en SSR ni dans les tests node).
   const doc = () => globalThis.document
   // pointermove compte aussi : certaines activités se jouent au survol (suivre les feux follets), sans aucun clic.

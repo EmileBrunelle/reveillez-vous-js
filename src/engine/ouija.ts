@@ -27,6 +27,10 @@ export const nextLetter = (word: string, index: number): string | null => (index
 /** Valide `letter` : l’indice avance si c’est la lettre attendue, sinon il reste (une mauvaise lettre est ignorée). */
 export const pressLetter = (word: string, index: number, letter: string): number => (nextLetter(word, index) === letter ? index + 1 : index)
 
+/** Annonce d’une mauvaise lettre : celle qu’on a touchée (pour que deux essais différents changent le texte) et celle qu’on attend. */
+export const wrongLetterMessage = (letter: string, expected: string | null): string =>
+  expected ? `${letter} : ce n’est pas la bonne lettre. La lettre attendue est ${expected}.` : `${letter} : ce n’est pas la bonne lettre.`
+
 /** Mot tiré au Rng parmi `words`, jamais `previous` quand il y a le choix. */
 export const pickWord = (words: readonly string[], rng: Rng, previous?: string): string => {
   const pool = words.length > 1 && previous ? words.filter((w) => w !== previous) : words

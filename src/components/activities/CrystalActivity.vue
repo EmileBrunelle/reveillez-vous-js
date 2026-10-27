@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
 import { useDeferredText } from '../../composables/useDeferredText'
 import ActivitySkip from './ActivitySkip.vue'
@@ -8,14 +8,13 @@ import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
 import { startWipeSound, type WipeSound } from '../../audio/wipe'
 import { useReducedMotion } from '../../composables/useReducedMotion'
-import { clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
+import { KEY_STEP, WIN_RATIO, clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
 
 // Niveau 5 : essuyer la boule de cristal. Brume WebGPU (canvas carré) ; si le GPU échoue, brume CSS qui s’efface quand même.
 defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
-const WIN_RATIO = 0.7
 const SPACING = 0.14
-const KEY_STEP = 0.14
+const helpId = useId()
 
 const ball = useTemplateRef<HTMLElement>('ball')
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
@@ -187,8 +186,9 @@ onUnmounted(() => {
       ref="ball"
       class="ball relative rounded-full touch-none cursor-grab focus-visible:outline-2 focus-visible:outline-offset-4"
       tabindex="0"
-      role="group"
-      aria-label="Boule de cristal embrumée. Glissez le doigt ou la souris dessus pour l’essuyer. Au clavier, les flèches déplacent le chiffon."
+      role="application"
+      aria-label="Boule de cristal embrumée"
+      :aria-describedby="helpId"
       @pointerdown="onDown"
       @pointermove="onMove"
       @pointerup="onUp"
@@ -209,6 +209,7 @@ onUnmounted(() => {
         aria-hidden="true"
       />
     </div>
+    <p :id="helpId" class="sr-only">Glissez le doigt ou la souris sur la boule pour l’essuyer. Au clavier, les flèches déplacent le chiffon.</p>
     <p class="text-xl text-center px-4" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
