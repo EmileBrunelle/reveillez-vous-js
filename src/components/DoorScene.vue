@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { useHaptics } from '../composables/haptics'
-import { computed, onMounted, onUnmounted, ref, useId, watch, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { useMotionScope } from '../composables/useMotionScope'
 import { focusQuietly } from '../composables/focusQuietly'
 import type { SceneVariant } from '../content/scenes'
-import { creak, knock, scheduleKnocks, slam, unlock, type KnockHandle } from '../audio/sfx'
+import { creak, knock, slam, unlock } from '../audio/sfx'
+import { useKnockSchedule } from '../composables/useKnockSchedule'
 import { knockIntensity } from '../engine/knock'
 import { judge, rhythmFor, toOffsets, type Gap, type Verdict } from '../engine/rhythm'
 import { nextEntrezLine, nextFailLine } from '../engine/prophecy'
@@ -45,7 +46,8 @@ const CAPTIONS = 4
 type State = 'idle' | 'opening' | 'gone'
 let state: State = 'idle'
 const isGone = () => state === 'gone'
-let knocks: KnockHandle | null = null
+// Calendrier des coups (horloge Web Audio) : annulé à `halt()` et à la destruction.
+const knocks = useKnockSchedule()
 let dustAt = 0
 const DUST = 10
 const OPEN_DEG = 72
@@ -55,7 +57,7 @@ const { go, snap, wait, halt: haltMotion } = useMotionScope()
 // Silence du joueur pendant la répétition : au bout de 1,2 s, le rythme est jugé.
 const silence = useTimeoutFn(() => evaluate(), 1200, { immediate: false })
 const halt = () => {
-  knocks?.cancel()
+  knocks.cancel()
   silence.stop()
   haltMotion()
 }
@@ -179,7 +181,7 @@ const startListen = () => {
   if (firstListen) said.value = line
   firstListen = false
   announce.value = `${intro}Ça cogne de l’intérieur : ${describe(pattern.value)}`
-  knocks = scheduleKnocks(toOffsets(pattern.value, level), intensity(), seerHit)
+  knocks.schedule(toOffsets(pattern.value, level), intensity(), seerHit)
 }
 
 const seerHit = (i: number, force: number) => {
@@ -276,8 +278,6 @@ onMounted(() => {
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
   nudgeTimer.start()
 })
-// Exception : annule l’horloge audio des coups (Web Audio, hors VueUse) ; animations et minuteries s’arrêtent seules avec le scope.
-onUnmounted(() => knocks?.cancel())
 
 const open = async () => {
   if (state === 'opening') return finish()

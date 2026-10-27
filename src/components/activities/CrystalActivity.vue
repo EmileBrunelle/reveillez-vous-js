@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, useId, useTemplateRef } from 'vue'
+import { computed, ref, useId, useTemplateRef } from 'vue'
 import { useDeferredText } from '../../composables/useDeferredText'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '../../engine/activityTiming'
 import { useActivityDone } from '../../composables/useActivityDone'
-import { startWipeSound, type WipeSound } from '../../audio/wipe'
-import { nextFrame } from '../../composables/nextFrame'
+import { useGpuEffect } from '../../composables/useGpuEffect'
+import { useWipeSound } from '../../composables/useWipeSound'
 import { useReducedMotion } from '../../composables/useReducedMotion'
-import type { GpuLoop } from '../../effects/gpuLoop'
 import { KEY_STEP, WIN_RATIO, clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
 
 // Niveau 5 : essuyer la boule de cristal. Brume WebGPU (canvas carré) ; si le GPU échoue, brume CSS qui s’efface quand même.
@@ -19,7 +18,6 @@ const helpId = useId()
 
 const ball = useTemplateRef<HTMLElement>('ball')
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
-const failed = ref(false)
 
 const now = () => performance.now() / 1000
 const ring = createWipeRing()
@@ -36,8 +34,7 @@ const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done
   durationMs: durationOf('crystal'),
   // Expiration (échec) : on arrête le frottement, la brume reste.
   onFinish: (o) => {
-    wipe?.stop()
-    wipe = null
+    wipe.stop()
     if (o === 'fail') return
     cleared.value = true
     clearedAt.value = now()
@@ -45,18 +42,17 @@ const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done
 })
 const seed = Math.random() * 10 // bruit cosmétique : Math.random suffit
 let last: { x: number; y: number } | null = null
-// Son de frottement : créé au premier geste (geste utilisateur), coupé à la fin de l’activité.
-let wipe: WipeSound | null = null
+// Son de frottement : créé au premier geste (geste utilisateur), coupé à la fin de l’activité et à la destruction.
+const wipe = useWipeSound()
 let prevPt: { x: number; y: number } | null = null
 const rub = (p: { x: number; y: number }) => {
   if (cleared.value || outcome.value !== 'play') return
-  wipe ??= startWipeSound()
   wipe.move(prevPt ? Math.hypot(p.x - prevPt.x, p.y - prevPt.y) : 0)
   prevPt = p
 }
 const rubEnd = () => {
   prevPt = null
-  wipe?.rest()
+  wipe.rest()
 }
 
 const wipeAt = (x: number, y: number) => {
@@ -76,7 +72,6 @@ const wipeAt = (x: number, y: number) => {
 const doneAmount = () => (cleared.value ? (reducedMotion.value ? 1 : Math.min(1, (now() - clearedAt.value) / 0.8)) : 0)
 
 // Pointeur (souris et tactile) : glisser pour essuyer.
-let captured: { el: HTMLElement; id: number } | null = null
 const toBall = (e: PointerEvent) => {
   const el = ball.value
   if (!el) return null
@@ -86,7 +81,6 @@ const toBall = (e: PointerEvent) => {
 const onDown = (e: PointerEvent) => {
   const el = e.currentTarget as HTMLElement
   el.setPointerCapture?.(e.pointerId)
-  captured = { el, id: e.pointerId }
   last = null
   prevPt = null
   const p = toBall(e)
@@ -106,7 +100,6 @@ const onMove = (e: PointerEvent) => {
 const onUp = () => {
   rubEnd()
   last = null
-  captured = null
 }
 
 // Clavier : les flèches déplacent le chiffon (et essuient en chemin).
@@ -140,44 +133,22 @@ const fallbackStyle = computed(() => {
   return style
 })
 
-// WebGPU : import dynamique + périphérique ; chaque await revérifie que le composant est encore monté.
-let scene: GpuLoop | null = null
-let gone = false
-onMounted(async () => {
-  try {
+// WebGPU : import dynamique + périphérique, cycle de vie dans useGpuEffect ; en cas d’échec, `failed` active la brume CSS.
+const { lost: failed } = useGpuEffect(
+  canvas,
+  async (el, onLost) => {
     const { createCrystal } = await import('../../effects/crystal')
-    await nextFrame() // canevas mis en page
-    if (gone || !canvas.value) return
-    const s = await createCrystal(canvas.value, {
+    return createCrystal(el, {
       motion: () => !reducedMotion.value,
       points: () => ring.pack(now()),
       grid: () => coverage.pack(),
       done: doneAmount,
       seed,
-      onLost: () => (failed.value = true),
+      onLost,
     })
-    if (gone) return s.stop()
-    scene = s
-  } catch (e) {
-    console.warn('Crystal ball: CSS fallback:', e)
-    failed.value = true
-  }
-})
-// Exception : libère le GPU et la capture du pointeur (WebGPU et API pointeur, hors VueUse) ; `gone` interrompt l’init asynchrone en cours.
-onUnmounted(() => {
-  gone = true
-  last = null
-  wipe?.stop()
-  wipe = null
-  try {
-    if (captured?.el.hasPointerCapture?.(captured.id)) captured.el.releasePointerCapture(captured.id)
-  } catch {
-    // élément déjà détaché : la capture est déjà relâchée
-  }
-  captured = null
-  scene?.stop()
-  scene = null
-})
+  },
+  { warning: 'Boule de cristal : brume CSS :' },
+)
 </script>
 
 <template>

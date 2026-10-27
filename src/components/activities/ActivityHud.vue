@@ -2,14 +2,13 @@
 // Invite commune des activités chronométrées : un verbe géant qui surgit au ressort puis se range en bas à gauche, une barre de temps
 // qui se vide en continu (animation CSS : aucune variation de luminance, seule la largeur change) et l’issue (réussite ou échec) affichée environ 1 s.
 // L’issue est annoncée ici une seule fois (région role=status) : les activités ne la répètent pas.
-import { computed, nextTick, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue'
+import { computed, nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '../../content/activityPrompts'
 import { durationOf, outcomeText, timeLeft, type Phase } from '../../engine/activityTiming'
-import { playStinger } from '../../audio/stinger'
-import { muted } from '../../audio/sfx'
+import { useStinger } from '../../composables/useStinger'
 
 const { activity, outcome, startedAt } = defineProps<{ activity: TimedActivity; outcome: Phase; startedAt: number }>()
 const prompt = computed(() => ACTIVITY_PROMPTS[activity])
@@ -26,10 +25,7 @@ const drainFrom = `${-elapsedAtMount}ms`
 const left = ref(Math.round(timeLeft(elapsedAtMount, duration.value) * 100))
 const { pause: pauseTick } = useIntervalFn(() => (left.value = Math.round(timeLeft(Date.now() - startedAt, duration.value) * 100)), 500)
 // Jingle en cours : coupé au démontage et si le son passe en muet pendant la lecture.
-let stopStinger: () => void = () => {}
-// Exception : coupe un jingle Web Audio (ressource audio, hors VueUse).
-onUnmounted(() => stopStinger())
-watch(muted, (m) => m && stopStinger())
+const stinger = useStinger()
 
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
 const verbEl = useTemplateRef<HTMLElement>('verbEl')
@@ -59,7 +55,7 @@ watch(
   async (o) => {
     if (o === 'play') return
     pauseTick()
-    stopStinger = playStinger(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
+    stinger.play(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
     await nextTick()
     if (resultEl.value && !reduced.value) animate(resultEl.value, { scale: [0.3, 1], rotate: o === 'win' ? [-6, 0] : [4, 0] }, { type: 'spring', stiffness: 480, damping: 9 })
   },
