@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
 import { FAN, FAN_SCALE } from './deckFan'
+import { isDrag, nearestIndex, tapOutcome } from './deckTouch'
 import { cardDeal } from '../audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '../audio/cards'
 import { PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '../engine/paquets'
@@ -35,6 +36,7 @@ const zClass = (i: number) => {
   return z === 10 ? 'z-10' : z === 3 ? 'z-3' : 'z-1'
 }
 const ready = ref(false)
+const TOUCH_HINT = 'Touchez de nouveau pour choisir.'
 const cards = [0, 1, 2] as const
 const EMBLEMS: Record<Paquet, string> = { nuit: 'moon', feu: 'flame', brume: 'ghost' }
 
@@ -322,7 +324,7 @@ const onEnter = (i: number, e: PointerEvent) => {
   if (ready.value && chosen.value === null && hot.value !== i) cardHover() // pas de mouvement en mouvement réduit : pas de frôlement
   setHot(i)
 }
-const onLeave = (i: number) => (hot.value === i ? (reduced.value ? labelOnly(null) : setHot(null)) : undefined)
+const onLeave = (i: number, e?: PointerEvent) => (e?.pointerType === 'touch' ? undefined : hot.value === i ? (reduced.value ? labelOnly(null) : setHot(null)) : undefined)
 const onMove = (i: number, e: PointerEvent) => {
   if (hot.value !== i || e.pointerType === 'touch' || reduced.value || !deckEl.value) return
   const r = deckEl.value.getBoundingClientRect()
@@ -333,7 +335,66 @@ const onMove = (i: number, e: PointerEvent) => {
   nx = clamp((e.clientX - cx) / (cardW / 2), -1, 1)
   ny = clamp((e.clientY - cy) / ((cardW * 12) / 7 / 2), -1, 1)
 }
-const onDown = (i: number, e: PointerEvent) => (e.pointerType === 'touch' ? setHot(i) : undefined)
+// Toucher : un premier tap (ou un glissement) met un paquet en aperçu, un second tap sur ce paquet le choisit ; un tap hors des cartes annule l’aperçu.
+// La carte visée est la plus proche du point de contact en X (pas l’élément du dessus). Le `click` synthétisé du toucher est ignoré (voir onClick).
+const coarse = useMediaQuery('(pointer: coarse)')
+const touchUsed = ref(false)
+const preview = (i: number | null) => {
+  if (i !== null && hot.value !== i && !reduced.value) cardHover()
+  if (reduced.value) labelOnly(i)
+  else setHot(i)
+}
+interface Touch {
+  id: number
+  x: number
+  y: number
+  drag: boolean
+}
+let touch: Touch | null = null
+const nearestCard = (px: number) => {
+  const r = deckEl.value?.getBoundingClientRect()
+  if (!r) return 0
+  return nearestIndex(
+    px,
+    cards.map((i) => r.left + r.width / 2 + (fx(i) / 100) * r.width),
+  )
+}
+useEventListener(window, 'pointerdown', (e: PointerEvent) => {
+  if (e.pointerType !== 'touch') return
+  touchUsed.value = true
+  if (!ready.value || chosen.value !== null || touch) return
+  const onCard = e.target instanceof Element && !!e.target.closest('.deck__card') && !!deckEl.value?.contains(e.target)
+  if (!onCard) {
+    if (hot.value !== null) preview(null)
+    return
+  }
+  touch = { id: e.pointerId, x: e.clientX, y: e.clientY, drag: false }
+})
+useEventListener(window, 'pointermove', (e: PointerEvent) => {
+  if (!touch || e.pointerId !== touch.id || chosen.value !== null) return
+  if (!touch.drag && isDrag(e.clientX - touch.x, e.clientY - touch.y)) touch.drag = true
+  if (touch.drag) preview(nearestCard(e.clientX))
+})
+useEventListener(window, 'pointerup', (e: PointerEvent) => {
+  if (!touch || e.pointerId !== touch.id) return
+  const t = touch
+  touch = null
+  if (t.drag || chosen.value !== null) return // après un glissement, l’aperçu reste ; il faudra un tap
+  const i = nearestCard(t.x)
+  if (tapOutcome(hot.value, i) === 'choose') choose(i)
+  else preview(i)
+})
+useEventListener(window, 'pointercancel', (e: PointerEvent) => {
+  if (touch && e.pointerId === touch.id) touch = null
+})
+const onClick = (i: number, e: MouseEvent) => ((e as PointerEvent).pointerType === 'touch' ? undefined : choose(i))
+
+// Annonce aux lecteurs d’écran : la légende visible est aria-hidden, l’aperçu tactile (et sa consigne) passe donc ici, une seule fois.
+const status = computed(() => {
+  if (chosen.value !== null) return 'Carte choisie.'
+  if (touchUsed.value && hot.value !== null) return `${PAQUET_NOMS[paquets[hot.value]]} : ${PAQUET_PRESAGES[paquets[hot.value]]} ${TOUCH_HINT}`
+  return ''
+})
 const onFocus = (i: number, e: FocusEvent) => ((e.target as HTMLElement).matches(':focus-visible') ? (reduced.value ? labelOnly(i) : setHot(i)) : undefined)
 
 const { start: startFallback } = useTimeoutFn(() => finish(), 1800, { immediate: false }) // filet indépendant de la boucle rAF (onglet masqué, largeur nulle…)
@@ -361,7 +422,7 @@ const choose = (i: number) => {
 <template>
   <!-- La section et la rangée « Fermer la porte » sont dans App.vue (communes à la coupe et à la lecture). -->
   <div ref="deckEl" tabindex="-1" class="deck relative outline-none aspect-[7/12]" role="group" aria-labelledby="deck-prompt">
-    <p class="absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ chosen !== null ? 'Carte choisie.' : '' }}</p>
+    <p class="absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ status }}</p>
     <!-- Invite et légende : sans effet de mise en page sauf sur grand écran haut, où elles forment une colonne à droite de l’éventail. -->
     <div class="deck__side">
       <p
@@ -384,6 +445,15 @@ const choose = (i: number) => {
           >
         </li>
       </ul>
+      <!-- Consigne tactile, sous la légende : visible seulement pendant un aperçu (annoncée par la zone de statut, donc aria-hidden ici). -->
+      <p
+        v-if="coarse"
+        class="deck__hint absolute inset-x-[4cqw] bottom-[-6cqw] m-0 font-ui text-[4.2cqw] leading-[1.1] text-left [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
+        :class="{ 'deck__hint--on': touchUsed && hot !== null && chosen === null }"
+        aria-hidden="true"
+      >
+        {{ TOUCH_HINT }}
+      </p>
     </div>
     <button
       v-for="i in cards"
@@ -395,11 +465,10 @@ const choose = (i: number) => {
       :class="[zClass(i), { 'pointer-events-none': !ready }]"
       :aria-label="`${PAQUET_NOMS[paquets[i]]} : ${PAQUET_PRESAGES[paquets[i]]}`"
       :disabled="chosen !== null"
-      @click="choose(i)"
+      @click="onClick(i, $event)"
       @pointerenter="onEnter(i, $event)"
-      @pointerleave="onLeave(i)"
+      @pointerleave="onLeave(i, $event)"
       @pointermove="onMove(i, $event)"
-      @pointerdown="onDown(i, $event)"
       @focus="onFocus(i, $event)"
       @blur="onLeave(i)"
     >
@@ -414,6 +483,7 @@ const choose = (i: number) => {
 .deck {
   width: min(100cqw, calc(100cqh * 7 / 12));
   container-type: inline-size;
+  touch-action: pan-y; /* un glissement horizontal fait suivre l’aperçu au doigt ; le défilement vertical reste au navigateur */
 }
 .deck__card {
   width: 100cqw; /* échelle de repos = FAN_SCALE, échelle 1 = carte du tirage */
@@ -456,6 +526,13 @@ const choose = (i: number) => {
   filter: blur(2.5cqw);
   pointer-events: none;
 }
+.deck__hint {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+.deck__hint--on {
+  opacity: 1;
+}
 .deck__legend--gone {
   opacity: 0;
   transition-duration: 0.2s;
@@ -486,6 +563,7 @@ const choose = (i: number) => {
     font-size: 4.8cqw;
   }
   .deck .deck__prompt,
+  .deck .deck__hint,
   .deck .deck__legend {
     position: relative; /* le voile de la légende s’y ancre ; inset auto = aucun décalage */
     inset: auto;
@@ -495,6 +573,7 @@ const choose = (i: number) => {
 @media (prefers-reduced-motion: reduce) {
   .deck__prompt,
   .deck__legend,
+  .deck__hint,
   .deck__line {
     transition: none;
   }
