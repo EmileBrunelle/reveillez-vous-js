@@ -7,6 +7,7 @@ import { safeSessionStorage, safeStorage } from '../composables/safeStorage'
 
 export const VISITS_KEY = 'rvj-visits'
 export const MEMORY_KEY = 'rvj-memory'
+export const KNOCKED_KEY = 'rvj-knocked'
 
 export interface Memory {
   lastArcane: number | null
@@ -39,6 +40,7 @@ const visitsSerializer = {
   },
   write: (v: number): string => String(v),
 }
+const knockedSerializer = { read: (raw: string): boolean => raw === '1', write: (v: boolean): string => (v ? '1' : '0') }
 const intOrNull = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) ? v : null)
 const memorySerializer = {
   read: (raw: string): Memory => {
@@ -59,6 +61,8 @@ export const useProgressStore = defineStore('progress', () => {
   // Migration : l’ancien compteur persistant (localStorage) est supprimé sans être importé, tout le monde repart au niveau 1.
   safeStorage().removeItem(VISITS_KEY)
   const visits = useStorage(VISITS_KEY, 0, safeSessionStorage(), { ...opts, serializer: visitsSerializer })
+  // Le rituel de cogner a été réussi au moins une fois dans la session : les visites suivantes n’exigent qu’un toucher.
+  const knocked = useStorage(KNOCKED_KEY, false, safeSessionStorage(), { ...opts, serializer: knockedSerializer })
   const memory = useStorage(MEMORY_KEY, defaultMemory(), safeStorage(), { ...opts, serializer: memorySerializer })
 
   const level = computed(() => paranoiaLevel(visits.value))
@@ -69,6 +73,11 @@ export const useProgressStore = defineStore('progress', () => {
   /** Retour à 0 visite (niveau 1). Sacs de tirage et mémoire (localStorage) restent intacts. */
   const reset = () => {
     visits.value = 0
+    knocked.value = false
+  }
+  /** Le rituel de cogner vient d’être réussi : la porte se contentera d’un toucher jusqu’à la réinitialisation. */
+  const markKnocked = () => {
+    knocked.value = true
   }
   const remember = (arcane: string | number | null, lvl: number, nom: string | null = null) => {
     memory.value = { ...memory.value, lastArcane: typeof arcane === 'string' ? arcaneIndex(arcane) : arcane, lastNom: nom, lastLevel: lvl }
@@ -84,5 +93,5 @@ export const useProgressStore = defineStore('progress', () => {
     finish()
   }
 
-  return { visits, memory, level, paranoia, bump, reset, remember, finish, completeFinale }
+  return { visits, knocked, memory, level, paranoia, bump, reset, markKnocked, remember, finish, completeFinale }
 })
