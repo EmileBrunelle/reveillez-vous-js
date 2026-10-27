@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
-import { onClickOutside, useIntervalFn, useTimeoutFn } from '@vueuse/core'
+import { onClickOutside, useFullscreen, useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
 import { loadAbout, loadCollection, loadReset, prefetch } from '../lazy'
@@ -8,6 +8,8 @@ import Vigilance from './Vigilance.vue'
 import IconStart from '~icons/rvj/demarrer'
 import IconSound from '~icons/rvj/son'
 import IconSoundOff from '~icons/rvj/son-coupe'
+import IconFullscreen from '~icons/rvj/fullscreen'
+import IconFullscreenExit from '~icons/rvj/fullscreen-quitter'
 import IconGithub from '~icons/simple-icons/github'
 import { focusQuietly } from '../composables/focusQuietly'
 
@@ -31,6 +33,14 @@ const toggle = async () => {
     await nextTick()
     focusQuietly(items()[0])
   }
+}
+// Plein écran sur la page entière ; absent (isSupported faux, p. ex. Safari iPhone) : ni icône ni entrée de menu.
+const { isSupported: canFullscreen, isFullscreen, toggle: toggleFullscreen } = useFullscreen(typeof document === 'undefined' ? undefined : document.documentElement)
+const fullscreenLabel = computed(() => (isFullscreen.value ? 'Quitter le plein écran' : 'Passer en plein écran'))
+const switchFullscreen = () => void toggleFullscreen().catch(() => {})
+const chooseFullscreen = () => {
+  close(true)
+  switchFullscreen()
 }
 const choose = (e: 'about' | 'collection' | 'reset') => {
   close(e === 'collection') // le focus revient sur « Démarrer » avant l’ouverture : c’est là que la fenêtre le rendra
@@ -139,6 +149,9 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
             <IconGithub class="w-4 h-4 flex-none" aria-hidden="true" />
             Code source
           </a>
+          <button v-if="canFullscreen" :class="item" type="button" role="menuitem" tabindex="-1" @click="chooseFullscreen">
+            {{ isFullscreen ? 'Quitter le plein écran' : 'Plein écran' }}
+          </button>
           <template v-if="level > 1">
             <hr class="my-[3px] mx-[2px] border-0 h-[2px] bg-transparent shadow-[inset_0_1px_grey,inset_0_-1px_#fff]" role="separator" />
             <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('reset')">Recommencer à zéro</button>
@@ -183,6 +196,18 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
       >
         <IconSoundOff v-if="muted" class="w-4 h-4" />
         <IconSound v-else class="w-4 h-4" />
+      </button>
+      <button
+        v-if="canFullscreen"
+        class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-4px]"
+        type="button"
+        :aria-label="fullscreenLabel"
+        :aria-pressed="isFullscreen"
+        :title="fullscreenLabel"
+        @click="switchFullscreen"
+      >
+        <IconFullscreenExit v-if="isFullscreen" class="w-4 h-4" />
+        <IconFullscreen v-else class="w-4 h-4" />
       </button>
       <time class="self-center px-1 tabular-nums" :datetime="new Date(nowMs).toISOString()">{{ hhmm() }}</time>
     </div>
