@@ -344,7 +344,7 @@ const onFinaleRestart = () => {
       <main
         v-else-if="DoorScene"
         ref="mainEl"
-        class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[0.75rem] px-[1rem] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip"
+        class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[var(--pad-t)] pr-[var(--pad-x-r)] pl-[var(--pad-x-l)] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip"
         :class="{ 'app--reading': phase === 'reading' || phase === 'cut' }"
       >
         <AnimatePresence mode="wait">
@@ -377,7 +377,7 @@ const onFinaleRestart = () => {
           <Motion
             v-else-if="phase === 'activity' && Activity"
             key="activity"
-            class="relative w-full max-w-[36rem] min-[1600px]:max-w-[90rem] h-[calc(100dvh-1.5rem-var(--taskbar-h))] min-h-[22rem] grid"
+            class="relative w-full max-w-[36rem] min-[1600px]:max-w-[90rem] h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] min-h-[22rem] grid"
             :initial="{ opacity: 0 }"
             :animate="{ opacity: 1 }"
             :exit="{ opacity: 0 }"

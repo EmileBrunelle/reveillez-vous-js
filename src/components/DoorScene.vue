@@ -355,7 +355,7 @@ const onSceneClick = (e: MouseEvent) => {
 
 <template>
   <section
-    class="scene grid-rows-[minmax(0,1fr)_auto] [--stage-cap:clamp(10rem,45dvh,28rem)] max-sm:portrait:[--stage-cap:clamp(10rem,54dvh,30rem)] h-[min(calc(100dvh_-_var(--taskbar-h)_-_1.5rem),calc(var(--stage-cap)_+_11rem))]"
+    class="scene grid-rows-[minmax(0,1fr)_auto] [--stage-cap:clamp(10rem,45dvh,28rem)] max-sm:portrait:[--stage-cap:clamp(10rem,54dvh,30rem)] h-[min(calc(100dvh_-_var(--taskbar-h)_-_0.75rem_-_var(--pad-t)),calc(var(--stage-cap)_+_11rem))]"
     @click="onSceneClick"
   >
     <div
@@ -437,7 +437,7 @@ const onSceneClick = (e: MouseEvent) => {
 }
 @media (max-height: 30rem) and (orientation: landscape) {
   [data-stage] {
-    height: min(var(--stage-cap), calc(100dvh - var(--taskbar-h) - 1.5rem));
+    height: min(var(--stage-cap), calc(100dvh - var(--taskbar-h) - 0.75rem - var(--pad-t)));
   }
 }
 .door-hit::after {

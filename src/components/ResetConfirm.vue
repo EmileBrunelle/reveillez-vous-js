@@ -42,7 +42,7 @@ const btn =
 <template>
   <dialog
     ref="dlg"
-    class="m-auto p-0 w-[26rem] max-w-[calc(100vw-1rem)] bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_170/0.75)] animate-[reset-in_0.2s_ease-out] motion-reduce:animate-none"
+    class="m-auto p-0 w-[26rem] max-w-[calc(100vw-1rem-var(--safe-l)-var(--safe-r))] max-h-[calc(100dvh-1rem-var(--safe-t)-var(--safe-b))] top-[var(--safe-t)] right-[var(--safe-r)] bottom-[var(--safe-b)] left-[var(--safe-l)] bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:rgb(0_0_170/0.75)] animate-[reset-in_0.2s_ease-out] motion-reduce:animate-none"
     aria-labelledby="reset-title"
     aria-describedby="reset-desc"
     @close="onClose"

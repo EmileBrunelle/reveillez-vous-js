@@ -126,7 +126,7 @@ const skip = () => {
 <template>
   <Dialog.Root :model-value="shown" @update:model-value="request">
     <Dialog.Content
-      class="m-auto p-0 w-[35.5556rem] max-w-[100vw] max-h-[100dvh] overflow-auto bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:#0000aa] backdrop:animate-[about-bd_0.3s_ease-out] motion-reduce:backdrop:animate-none"
+      class="m-auto p-0 w-[35.5556rem] max-w-[calc(100vw-var(--safe-l)-var(--safe-r))] max-h-[calc(100dvh-var(--safe-t)-var(--safe-b))] top-[var(--safe-t)] right-[var(--safe-r)] bottom-[var(--safe-b)] left-[var(--safe-l)] overflow-auto bg-white text-[#0000aa] border-4 border-solid border-[#0000aa] font-ui text-[0.8889rem] leading-normal text-left backdrop:[background:#0000aa] backdrop:animate-[about-bd_0.3s_ease-out] motion-reduce:backdrop:animate-none"
       @cancel="onCancel"
       @click="skip"
     >
