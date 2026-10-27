@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
-import { useCssVar, useElementBounding, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useElementBounding, useEventListener, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { Motion, useMotionValue, useSpring } from 'motion-v'
 import { useRovingFocus } from '@vuetify/v0'
 import ActivitySkip from './ActivitySkip.vue'
@@ -52,6 +52,7 @@ let driftUsed = false
 
 // État lu par `onFinish` et par les minuteries : déclaré avant `useActivityDone`.
 const stage = useTemplateRef<HTMLElement>('stage')
+const board = useTemplateRef<HTMLElement>('board')
 const index = ref(0)
 let dwell = 0
 const farewell = ref(false)
@@ -63,9 +64,10 @@ const message = ref(`Épelez le mot ${shown}.`)
 const status = useDeferredText(() => message.value)
 // Case que la goutte rejoint d’elle-même (dérive vers NON, puis AU REVOIR) ; sinon elle suit le pointeur.
 let override: string | null = null
-// Variables CSS posées sur la scène (aucun rendu Vue à chaque image) : progression du survol (anneau de la lettre attendue) et chaleur de la goutte.
-const dwellVar = useCssVar('--dwell', stage)
-const warmVar = useCssVar('--warm', stage)
+// Valeurs lues par le CSS via `v-bind()` (variables sur la racine du composant, aucun rendu du gabarit à chaque image) :
+// progression du survol (anneau de la lettre attendue) et chaleur de la goutte.
+const dwellCss = ref('0')
+const warmCss = ref('0')
 
 const { start: driftLater, stop: driftStop } = useTimeoutFn(
   () => {
@@ -101,9 +103,14 @@ const setEl = (key: string) => {
   return f
 }
 
-// Mesure de la scène (ResizeObserver + défilement de VueUse) ; les cases en sont déduites une seule fois par disposition.
+// Mesure de la scène (ResizeObserver + défilement de VueUse) ; les cases en sont déduites une fois par disposition.
+// Le cache repart quand la scène ou la planche changent de taille (fenêtre, chargement de la police, cases `cqh`). Une animation `pop` en cours
+// déplace un bord d’au plus quelques pixels (le centre ne bouge pas) : la tolérance de 4 px du survol l’absorbe.
 const { left: stageLeft, top: stageTop, width: stageWidth, height: stageHeight } = useElementBounding(stage)
+const layoutVersion = ref(0)
+useResizeObserver(board, () => layoutVersion.value++)
 const centers = computed(() => {
+  void layoutVersion.value
   const map = new Map<string, { x: number; y: number; left: number; right: number; top: number; bottom: number }>()
   if (!stageWidth.value) return map
   for (const [key, el] of Object.entries(els)) {
@@ -148,7 +155,7 @@ const validate = (letter: string) => {
   }
   index.value = next
   dwell = 0
-  dwellVar.value = '0'
+  dwellCss.value = '0'
   popLetter.value = reduced.value ? '' : letter
   popClear()
   popSeg.value = reduced.value ? -1 : segments.findIndex((sg) => sg.end === next)
@@ -170,8 +177,9 @@ const validate = (letter: string) => {
 }
 
 const setTarget = (e: PointerEvent) => {
+  // Mesure faite au moment de l’événement, sur l’élément qui le reçoit : jamais périmée (transforms, défilement, police).
   // Au toucher, la goutte se tient 40 px au-dessus du doigt.
-  const p = aimPoint(e, { left: stageLeft.value, top: stageTop.value })
+  const p = aimPoint(e, (e.currentTarget as HTMLElement).getBoundingClientRect())
   target.x = p.x
   target.y = p.y
 }
@@ -205,7 +213,6 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
 // Tabulation « itinérante » (v0 useRovingFocus, mode grille de 7 colonnes) : un seul arrêt pour la planche, flèches, Début et Fin entre les lettres.
 // OUI, NON et AU REVOIR restent hors du parcours : ils ne réagissent à rien (décor de la planche).
 const LETTERS = OUIJA_ROWS.flatMap((r) => [...r])
-const board = useTemplateRef<HTMLElement>('board')
 const { isTabbable, focus: focusLetter } = useRovingFocus(() => LETTERS.map((l) => ({ id: l, el: () => els[l] })), { target: board, columns: OUIJA_ROWS[0].length })
 const expected = computed(() => nextLetter(word, index.value))
 
@@ -268,9 +275,9 @@ const { pause } = useRafFn(({ delta }) => {
   const over = !!c && px >= c.left - 4 && px <= c.right + 4 && py >= c.top - 4 && py <= c.bottom + 4
   const p = advanceDwell(dwell, over, dt)
   // Anneau de survol et chaleur : variables CSS de la scène, écrites seulement quand la valeur change.
-  if (p !== dwell) dwellVar.value = String(p)
+  if (p !== dwell) dwellCss.value = String(p)
   dwell = p
-  warmVar.value = p.toFixed(3)
+  warmCss.value = p.toFixed(3)
   if (p >= 1 && letter) validate(letter)
   // Activité finie et goutte arrivée : plus rien à animer, la boucle s’arrête (pendant l’issue elle continue, la goutte rejoint AU REVOIR).
   if (isFinished() && Math.abs(springX.getVelocity()) + Math.abs(springY.getVelocity()) < 1 && Math.abs(px - tx) < 0.5 && Math.abs(py - ty) < 0.5) pause()
@@ -388,9 +395,9 @@ const { pause } = useRafFn(({ delta }) => {
   background: #f1d98a;
   box-shadow: 0 0 22px 6px rgb(241 217 138 / 0.55);
 }
-/* Lettre attendue : un anneau d’or se remplit pendant le survol (progression pilotée par --dwell, pas de clignotement). */
+/* Lettre attendue : un anneau d’or se remplit pendant le survol (progression pilotée par dwellCss, pas de clignotement). */
 .letter.next {
-  background: radial-gradient(circle, rgb(217 181 90 / calc(var(--dwell, 0) * 0.55)) 0 calc(var(--dwell, 0) * 75%), transparent calc(var(--dwell, 0) * 75% + 1px));
+  background: radial-gradient(circle, rgb(217 181 90 / calc(v-bind(dwellCss) * 0.55)) 0 calc(v-bind(dwellCss) * 75%), transparent calc(v-bind(dwellCss) * 75% + 1px));
   box-shadow: inset 0 0 0 2px rgb(217 181 90 / 0.45);
 }
 @media (min-width: 640px) {
@@ -410,8 +417,8 @@ const { pause } = useRafFn(({ delta }) => {
   top: -34px;
   width: 40px;
   height: 52px;
-  /* --warm (0–1) écrite par la boucle sur la scène : la lentille se réchauffe pendant le survol. */
-  filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.55)) drop-shadow(0 0 calc(var(--warm, 0) * 10px) rgb(255 190 90 / calc(var(--warm, 0) * 0.85))) brightness(calc(1 + var(--warm, 0) * 0.25));
+  /* warmCss (0–1) écrite par la boucle : la lentille se réchauffe pendant le survol. */
+  filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.55)) drop-shadow(0 0 calc(v-bind(warmCss) * 10px) rgb(255 190 90 / calc(v-bind(warmCss) * 0.85))) brightness(calc(1 + v-bind(warmCss) * 0.25));
 }
 /* Validation : un seul pop (≈ 1,2 → 1, léger dépassement de ressort) et une lueur chaude qui retombe, sans clignotement. */
 .pop {

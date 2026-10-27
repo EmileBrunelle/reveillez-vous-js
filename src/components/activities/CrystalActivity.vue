@@ -28,7 +28,8 @@ const ratio = ref(0)
 const ringVersion = ref(0) // repousse le recalcul du masque CSS de secours
 const cleared = ref(false)
 const clearedAt = ref(0)
-const prompt = useDeferredText(() => (cleared.value ? 'La brume se dissipe…' : 'Essuyez la boule de cristal'))
+// À l’issue la région se vide : le HUD annonce seul le résultat.
+const prompt = useDeferredText(() => (outcome.value !== 'play' ? '' : 'Essuyez la boule de cristal'))
 // Réussite (joueur ou minuterie) : `onFinish` règle la dissipation ; en mouvement réduit la brume disparaît d’un coup.
 const reducedMotion = useReducedMotion()
 const { finish, canSkip, outcome, startedAt } = useActivityDone(() => emit('done'), {

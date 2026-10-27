@@ -17,5 +17,8 @@ export const outcomeAt = (elapsedMs: number, durationMs: number, won: boolean): 
 /** Durée d’affichage de l’issue d’une activité (ms). */
 export const outcomeMsOf = (id: TimedActivity): number => ACTIVITY_PROMPTS[id].outcomeMs ?? OUTCOME_MS
 
+/** Texte de l’issue (annoncé et affiché par le HUD) : vide tant que l’activité se joue, donc une seule mise à jour de la région d’annonce, à l’issue. */
+export const outcomeText = (id: TimedActivity, phase: Phase): string => (phase === 'win' ? ACTIVITY_PROMPTS[id].win : phase === 'fail' ? ACTIVITY_PROMPTS[id].fail : '')
+
 /** Part de temps restante, de 1 (début) à 0 (fin). */
 export const timeLeft = (elapsedMs: number, durationMs: number): number => (durationMs <= 0 ? 0 : Math.min(1, Math.max(0, 1 - elapsedMs / durationMs)))

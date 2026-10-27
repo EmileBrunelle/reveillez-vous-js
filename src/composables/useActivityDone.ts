@@ -48,17 +48,13 @@ export const useActivityDone = (
   reveal.start()
   // « Passer » dépanne qui reste bloqué : toute interaction repousse son apparition (qui joue ne le voit jamais, la réussite automatique arrive avant).
   // Une fois affiché, il reste : il ne doit pas fuir sous le doigt de qui veut l’atteindre.
-  // `pointermove` tire des dizaines d’événements par seconde : le réarmement de la minuterie est limité (au plus un tous les 250 ms, premier événement de la fenêtre gardé),
+  // `pointermove` tire des dizaines d’événements par seconde : le réarmement de la minuterie est limité (au plus un tous les 250 ms, et le dernier événement d’une rafale réarme quand même après la fenêtre, jamais avant),
   // ce qui retarde l’apparition de « Passer » de 250 ms au plus.
-  const poke = useThrottleFn(
-    () => {
-      if (finished || canSkip.value) return
-      reveal.stop()
-      reveal.start()
-    },
-    POKE_THROTTLE_MS,
-    false,
-  )
+  const poke = useThrottleFn(() => {
+    if (finished || canSkip.value) return
+    reveal.stop()
+    reveal.start()
+  }, POKE_THROTTLE_MS)
   // Cible résolue à l’appel (pas de `document` en SSR ni dans les tests node).
   const doc = () => globalThis.document
   // pointermove compte aussi : certaines activités se jouent au survol (suivre les feux follets), sans aucun clic.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, useTemplateRef } from 'vue'
-import { useElementBounding, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { Motion, useMotionValue, useSpring } from 'motion-v'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -29,7 +29,6 @@ const COUNT = 3
 const lit = reactive<boolean[]>(Array(COUNT).fill(false))
 const hold = reactive<number[]>(Array(COUNT).fill(0))
 const litCount = computed(() => lit.filter(Boolean).length)
-const over = ref(false)
 // Indice de la chandelle soufflée (-1 : aucune) : courant d’air une seule fois, dès le niveau 3 (l’activité peut être rejouée aux niveaux suivants).
 const snuffed = ref(-1)
 
@@ -41,7 +40,6 @@ const { start: relightLater, stop: relightStop } = useTimeoutFn(
     lit[i] = true
     hold[i] = 1
     snuffed.value = -1
-    over.value = true
     finish()
   },
   4000,
@@ -60,14 +58,13 @@ const { finish, canSkip, isFinished, outcome, startedAt } = useActivityDone(() =
       snuffed.value = -1
     }
     relightStop()
-    over.value = o === 'win'
   },
 })
 
-const prompt = useDeferredText(() => (over.value ? 'La pièce se réchauffe…' : snuffed.value >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles'))
+// À l’issue la région se vide : le HUD annonce seul le résultat.
+const prompt = useDeferredText(() => (outcome.value !== 'play' ? '' : snuffed.value >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles'))
 const stage = useTemplateRef<HTMLElement>('stage')
 const candleEls = useTemplateRef<HTMLElement[]>('candleEls')
-const { left: stageLeft, top: stageTop, width: stageWidth } = useElementBounding(stage)
 
 // Allumette : la cible suit le pointeur, la position la rejoint au ressort (Motion : ζ ≈ 0,7, ~5 % de dépassement, du poids sans rebond).
 // Les valeurs de mouvement alimentent le style sans rendu Vue à chaque image.
@@ -122,7 +119,6 @@ const light = (i: number) => {
     snuffLater()
     return
   }
-  over.value = true
   finish()
 }
 
@@ -130,8 +126,11 @@ const light = (i: number) => {
 const { start: hideMatch, stop: keepMatch } = useTimeoutFn(() => (matchVisible.value = false), TOUCH_GRACE_MS, { immediate: false })
 const setTarget = (e: PointerEvent) => {
   keepMatch()
-  const x = e.clientX - stageLeft.value
-  const y = e.clientY - stageTop.value
+  // Mesure faite au moment de l’événement, sur l’élément qui le reçoit : jamais périmée (transforms, défilement, police).
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  measureWicks(rect)
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
   targetX.set(x)
   targetY.set(y)
   // Première apparition (ou mouvement réduit) : pas de glissade depuis l’ancienne position.
@@ -159,16 +158,16 @@ useEventListener(stage, 'pointerleave', (e: PointerEvent) => {
   matchVisible.value = false
 })
 
-// Mèches (repère de la scène), mesurées une seule fois par disposition : le calcul est mis en cache et ne repart que si la scène change de taille ou de place,
-// ou si le texte d’invite change (sa hauteur déplace la colonne centrée).
-const wicks = computed(() => {
-  void prompt.value
-  if (!stageWidth.value) return []
-  return (candleEls.value ?? []).map((c) => {
-    const r = c.getBoundingClientRect()
-    return { x: r.left - stageLeft.value + r.width / 2, y: r.top - stageTop.value + r.height * 0.28 }
-  })
-})
+// Mèches (repère de la scène), mesurées à chaque geste du pointeur (trois rectangles, rien dans la boucle d’images) : la place des chandelles
+// change avec la fenêtre, la police ou la hauteur du texte d’invite, aucun cache ne reste périmé.
+// Le tableau des éléments suit l’ordre du rendu sans que Vue le garantisse : on trie par abscisse (les chandelles sont en rangée, de gauche à droite).
+let wicks: { x: number; y: number }[] = []
+const measureWicks = (stageRect: DOMRect) => {
+  wicks = (candleEls.value ?? [])
+    .map((c) => c.getBoundingClientRect())
+    .sort((a, b) => a.left - b.left)
+    .map((r) => ({ x: r.left - stageRect.left + r.width / 2, y: r.top - stageRect.top + r.height * 0.28 }))
+}
 
 const { pause } = useRafFn(({ delta }) => {
   // Activité finie : plus rien à suivre (l’issue dure environ une seconde, la boucle ne tourne plus pour rien).
@@ -176,7 +175,7 @@ const { pause } = useRafFn(({ delta }) => {
   const dt = Math.min(delta, 50)
   for (let i = 0; i < COUNT; i++) {
     if (lit[i]) continue
-    const w = wicks.value[i]
+    const w = wicks[i]
     const touching = matchVisible.value && !!w && isNearWick(matchX.get(), matchY.get() - 20, w.x, w.y, 44)
     const p = advanceHold(hold[i], touching, dt)
     if (p !== hold[i]) hold[i] = p

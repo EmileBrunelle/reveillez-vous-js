@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '../../src/content/activityPrompts'
 import { stingerDuration } from '../../src/audio/stinger'
-import { MAX_ACTIVITY_MS, OUTCOME_MS, durationOf, outcomeAt, outcomeMsOf, timeLeft } from '../../src/engine/activityTiming'
+import { MAX_ACTIVITY_MS, OUTCOME_MS, durationOf, outcomeAt, outcomeMsOf, outcomeText, timeLeft } from '../../src/engine/activityTiming'
 
 const ids = Object.keys(ACTIVITY_PROMPTS) as TimedActivity[]
 
@@ -46,5 +46,16 @@ describe('activityTiming', () => {
 
   it('chaque verbe est un impératif en capitales terminé par « ! »', () => {
     for (const id of ids) expect(ACTIVITY_PROMPTS[id].verb, id).toMatch(/^[A-ZÉÈÀÂÊÎÔÛÇ’ ]+ !$/u)
+  })
+})
+
+describe('outcomeText', () => {
+  it('reste vide pendant le jeu et ne change qu’une fois, à l’issue (une seule annonce du HUD)', () => {
+    // Suite des phases d’une partie gagnée : le texte de la région d’annonce ne change qu’au passage à « win ».
+    const texts = (['play', 'play', 'play', 'win', 'win'] as const).map((p) => outcomeText('candles', p))
+    const changes = texts.filter((t, i) => i > 0 && t !== texts[i - 1])
+    expect(texts[0]).toBe('')
+    expect(changes).toEqual([ACTIVITY_PROMPTS.candles.win])
+    expect(outcomeText('wisps', 'fail')).toBe(ACTIVITY_PROMPTS.wisps.fail)
   })
 })

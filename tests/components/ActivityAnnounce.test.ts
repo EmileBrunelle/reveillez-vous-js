@@ -39,11 +39,16 @@ describe('annonces des activités', () => {
     expect(liveTexts(html).every((t) => !t.includes('Regardez bien'))).toBe(true)
   })
 
-  it('Feux follets : le bouton clavier est présent et actif pendant le jeu, et aucune région supplémentaire ne double le HUD', async () => {
+  it('Feux follets : bouton clavier actif et décrit hors de la région live, qui ne contient plus que l’état (rien au repos)', async () => {
     const html = await render(WispsActivity, { level: 1 })
     const button = html.match(/<button[^>]*>\s*Attraper le feu follet/)
     expect(button).not.toBeNull()
     expect(button![0]).not.toContain('aria-disabled')
+    const id = button![0].match(/aria-describedby="([^"]+)"/)?.[1]
+    expect(id).toBeTruthy()
+    expect(html).toMatch(new RegExp(`<p id="${id}" class="sr-only"[^>]*>Au clavier`))
+    // La consigne n’est dans aucune région aria-live.
+    expect(liveTexts(html).some((t) => t.includes('Au clavier'))).toBe(false)
     expect(html).not.toContain('apprivoiser')
   })
 

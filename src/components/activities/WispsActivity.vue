@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef } from 'vue'
-import { useCssVar, useElementBounding, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { computed, ref, useId, useTemplateRef } from 'vue'
+import { useElementBounding, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { Motion, useMotionValue } from 'motion-v'
 import { useDeferredText } from '../../composables/useDeferredText'
 import { useReducedMotion } from '../../composables/useReducedMotion'
@@ -22,7 +22,7 @@ const rng: Rng = secureRng()
 
 const TOTAL = 3
 const stage = useTemplateRef<HTMLElement>('stage')
-const { left: stageLeft, top: stageTop, width, height } = useElementBounding(stage)
+const { width, height } = useElementBounding(stage)
 const tuning = computed(() => wispTuning(level, width.value, height.value)) // rayon ≥ 72 px : généreux pour le tactile
 const reduced = useReducedMotion()
 
@@ -42,12 +42,12 @@ const wispY = useMotionValue(0)
 const HISTORY = 12
 const trailDots = Array.from({ length: HISTORY / 2 }, (_, i) => ({ x: useMotionValue(0), y: useMotionValue(0), scale: 1 - i * 0.12, opacity: 0.32 - i * 0.05 }))
 let history: Vec[] = []
-// Progression de capture (0–1) : variable CSS de la scène, lue par l’orbe (taille).
-const progressVar = useCssVar('--p', stage)
+// Progression de capture (0–1) : lue par l’orbe (taille) via `v-bind()` dans le style, sans rendu du gabarit.
+const progressCss = ref('0')
 let progress = 0
 const setProgress = (p: number) => {
   progress = p
-  progressVar.value = p.toFixed(3)
+  progressCss.value = p.toFixed(3)
 }
 
 let pos: Vec = { x: 0, y: 0 }
@@ -165,7 +165,8 @@ const { start: dropGrace, stop: cancelGrace } = useTimeoutFn(
 )
 const aim = (e: PointerEvent): Vec => {
   cancelGrace()
-  const p = aimPoint(e, { left: stageLeft.value, top: stageTop.value })
+  // Mesure faite au moment de l’événement, sur l’élément qui le reçoit : jamais périmée.
+  const p = aimPoint(e, (e.currentTarget as HTMLElement).getBoundingClientRect())
   guideOn.value = e.pointerType === 'touch'
   guideX.set(p.x - 14)
   guideY.set(p.y - 14)
@@ -192,20 +193,25 @@ useEventListener(stage, 'pointerdown', (e: PointerEvent) => {
   if (!hidden.value && isNear(pointer, pos, tuning.value.radius)) catchIt()
 })
 
-const prompt = useDeferredText(() => `Touchez ou cliquez sur les trois feux follets (${caught.value}/${TOTAL}).`)
+// À l’issue la région se vide (le HUD annonce seul le résultat : pas de « 3/3 » juste avant lui).
+const prompt = useDeferredText(() => (outcome.value === 'play' ? `Touchez ou cliquez sur les trois feux follets (${caught.value}/${TOTAL}).` : ''))
+// La consigne clavier vit hors de la région live (relue à chaque capture sinon) : elle décrit le bouton.
+const keyboardHelpId = useId()
 </script>
 
 <template>
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
     <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
-      {{ prompt }}<span v-if="prompt" class="sr-only"> Au clavier, activez le bouton “Attraper le feu follet”.</span>
+      {{ prompt }}
     </p>
+    <p :id="keyboardHelpId" class="sr-only">Au clavier, activez le bouton “Attraper le feu follet”.</p>
     <!-- Chemin clavier : visible seulement au focus ; Entrée ou Espace attrape le feu follet quand il est là.
          Toujours monté (sinon le focus tombe sur <body> à la 3e capture) : après l’issue il devient inerte (aria-disabled), comme « Passer ». -->
     <button
       type="button"
       class="font-ui sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:bottom-16 focus-visible:left-1/2 focus-visible:-translate-x-1/2 focus-visible:px-4 focus-visible:py-1 focus-visible:text-xl focus-visible:text-emerald-100 focus-visible:bg-black/70 focus-visible:border-2 focus-visible:border-solid focus-visible:border-emerald-200 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-white"
       :aria-disabled="outcome === 'play' ? undefined : 'true'"
+      :aria-describedby="keyboardHelpId"
       @click="!hidden && catchIt()"
     >
       Attraper le feu follet
@@ -261,7 +267,7 @@ const prompt = useDeferredText(() => `Touchez ou cliquez sur les trois feux foll
   }
 }
 .wisp-orb {
-  transform: scale(calc(1 + var(--p, 0) * 0.35));
+  transform: scale(calc(1 + v-bind(progressCss) * 0.35));
   transition:
     transform 0.55s cubic-bezier(0.2, 1.6, 0.4, 1),
     opacity 0.55s ease-out;
