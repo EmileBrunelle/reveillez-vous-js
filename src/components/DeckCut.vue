@@ -438,7 +438,7 @@ const choose = (i: number) => {
         :class="{ 'deck__legend--gone': chosen !== null }"
         aria-hidden="true"
       >
-        <li v-for="i in cards" :key="i" class="deck__line flex items-start gap-[2cqw]" :class="{ 'deck__line--on': hot === i, 'deck__line--dim': hot !== null && hot !== i }">
+        <li v-for="i in cards" :key="i" class="deck__line relative flex items-start gap-[2cqw]" :class="{ 'deck__line--on': hot === i, 'deck__line--dim': hot !== null && hot !== i }">
           <span class="block shrink-0 size-[5.5cqw] [color:#b9821a]" aria-hidden="true"><TarotEmblem :symbole="EMBLEMS[paquets[i]]" /></span>
           <span
             ><b class="font-normal uppercase">{{ PAQUET_NOMS[paquets[i]] }}</b> : {{ PAQUET_PRESAGES[paquets[i]] }}</span
@@ -502,8 +502,34 @@ const choose = (i: number) => {
 .deck__line {
   transition: opacity 0.15s ease-out;
 }
+.deck__line {
+  transition:
+    opacity 0.15s ease-out,
+    color 0.15s ease-out,
+    translate 0.15s ease-out;
+}
+/* Ligne active : texte blanc, repère « ▸ » ambre (couleur de survol des portes) dans la marge, légère mise en retrait et nom souligné en ambre. */
 .deck__line--on {
-  color: #fff3c8;
+  color: #fff;
+  translate: 1.6cqw 0;
+}
+.deck__line::before {
+  content: '▸';
+  position: absolute;
+  left: -3.6cqw;
+  top: 0;
+  color: #e8a850;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+.deck__line--on::before {
+  opacity: 1;
+}
+.deck__line--on b {
+  text-decoration: underline;
+  text-decoration-color: #e8a850;
+  text-decoration-thickness: 0.5cqw;
+  text-underline-offset: 0.7cqw;
 }
 /* Paquets non ciblés : un ton plus sourd (et non une opacité basse, qui laisse passer la brume du décor) ; le voile du .deck__legend garantit le contraste. */
 .deck__line--dim {
@@ -574,7 +600,8 @@ const choose = (i: number) => {
   .deck__prompt,
   .deck__legend,
   .deck__hint,
-  .deck__line {
+  .deck__line,
+  .deck__line::before {
     transition: none;
   }
 }
