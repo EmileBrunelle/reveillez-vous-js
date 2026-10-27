@@ -52,7 +52,7 @@ const chooseFullscreen = () => {
   switchFullscreen()
 }
 const choose = (e: 'about' | 'collection' | 'sound' | 'reset') => {
-  close(e === 'collection' || e === 'sound') // le focus revient sur « Démarrer » avant l’ouverture : c’est là que la fenêtre le rendra
+  close(true) // le focus revient sur « Démarrer » avant l’ouverture (l’entrée de menu va disparaître) : c’est là que la fenêtre le rendra
   if (e === 'about') emit('about')
   else if (e === 'collection') emit('collection')
   else if (e === 'sound') emit('sound')
