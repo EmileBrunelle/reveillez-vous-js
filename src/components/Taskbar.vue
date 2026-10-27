@@ -115,7 +115,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     <div class="relative flex">
       <button
         ref="startBtn"
-        class="win-btn flex items-center gap-[0.35rem] min-w-10 min-h-10 px-2 py-0 font-bold [font:inherit] font-bold border-0 focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-5px]"
+        class="win-btn flex items-center gap-[0.35rem] min-w-10 min-h-10 px-2 py-0 font-bold [font:inherit] font-bold border-0"
         :class="open ? 'shadow-[inset_-1px_-1px_#fff,inset_1px_1px_#0a0a0a,inset_-2px_-2px_#dfdfdf,inset_2px_2px_grey]' : ''"
         type="button"
         aria-haspopup="menu"
@@ -174,7 +174,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         <strong v-if="balloon.title" class="flex-1 min-w-0 truncate">{{ balloon.title }}</strong>
         <span v-else class="flex-1" />
         <button
-          class="flex-none grid place-items-center w-6 h-6 p-0 border-0 bg-transparent text-black cursor-pointer text-[1rem] leading-none hover:bg-[#c0c0c0] focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black"
+          class="flex-none grid place-items-center w-6 h-6 p-0 border-0 bg-transparent text-black cursor-pointer text-[1rem] leading-none hover:bg-[#c0c0c0]"
           type="button"
           aria-label="Fermer la notification"
           @click="session.dismiss(balloon.id)"
@@ -189,7 +189,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     <div class="flex items-stretch gap-1 pl-1 pr-1 bg-[#c0c0c0]" :class="inset">
       <Vigilance :level="level" class="flex items-center min-h-10 min-w-10 justify-center" @reset="emit('resetLevel')" />
       <button
-        class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-4px]"
+        class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black"
         type="button"
         aria-label="Couper le son"
         :aria-pressed="muted"
@@ -201,7 +201,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
       </button>
       <button
         v-if="canFullscreen"
-        class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black focus-visible:outline-offset-[-4px]"
+        class="grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black"
         type="button"
         :aria-label="fullscreenLabel"
         :aria-pressed="isFullscreen"

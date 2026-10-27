@@ -68,6 +68,26 @@ body {
   transform-origin: center;
 }
 
+/* Focus clavier (jamais au clic) : double anneau noir + blanc, lisible sur fond clair (carte, barre grise) comme sombre.
+   :where() = spécificité nulle, donc les styles de focus déjà soignés (utilitaires, scoped) gardent le dessus ;
+   les éléments qui suppriment leur contour (outline-none) ont leur propre repère et sont exclus. */
+:where(:focus-visible:not([class*='outline-none'], [tabindex='-1'])) {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #fff;
+}
+/* Les boutons Windows 98 gardent leur biseau : l’anneau blanc s’ajoute au biseau, et le contour plein remplace le pointillé fin (invisible sur le gris). */
+.win-btn:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+  box-shadow:
+    inset -1px -1px #0a0a0a,
+    inset 1px 1px #fff,
+    inset -2px -2px grey,
+    inset 2px 2px #dfdfdf,
+    0 0 0 2px #fff;
+}
+
 /* Anti-surlignage : surfaces interactives non sélectionnables, texte utile sélectionnable */
 html,
 body,
