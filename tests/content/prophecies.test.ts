@@ -216,3 +216,9 @@ describe('versets (livre + référence)', () => {
     expect(all.filter((t) => t.includes('Café Campus')).length).toBeGreaterThanOrEqual(3)
   })
 })
+
+describe('spécialités régionales', () => {
+  it.each(['Tadoussac', 'Lac-Saint-Jean', 'cipaille'])('le contenu mentionne « %s »', (mot) => {
+    expect(raw).toContain(mot)
+  })
+})
