@@ -1,6 +1,7 @@
 import { watch } from 'vue'
 import { ac, finaleOut, muted } from './sfx'
 import { ambienceDucked } from './ambience'
+import { playMotif } from './motif'
 
 // Sons de la finale, synthétisés (Web Audio). Un seul bus `master` par finale : muet, « passer » et
 // « Recommencer » ramènent ce bus à 0 puis arrêtent et déconnectent toutes les sources (aucun oscillateur orphelin).
@@ -8,7 +9,10 @@ export const FINALE_LEVEL = 0.5
 const PAD_PEAK = 0.16
 const BELL_PEAK = 0.1
 const WHINE_PEAK = 0.06
-const PAD_HZ = [130.81, 164.81, 196, 261.63, 329.63] // do majeur : C3 E3 G3 C4 E4
+export const PAD_HZ = [110, 138.59, 164.81, 220, 277.18] // la majeur : A2 C♯3 E3 A3 C♯4
+/** « Bonjour » : le motif de l’aube (une octave plus haut, sinus pur, tempo ×1,3) précède la cloche de ~0,3 s. Le bus `master` est à FINALE_LEVEL : on compense pour viser ≈ -20 dBFS crête en sortie. */
+export const BELL_DELAY = 0.3
+export const BONJOUR_MOTIF_DB = -27
 export const PAD_RISE = 3.5
 export const PAD_FALL = 4
 
@@ -114,7 +118,8 @@ export const startFinaleAudio = (enabled = true): FinaleAudio => {
     },
     bell() {
       if (!live()) return
-      const t = c.currentTime
+      const t = c.currentTime + BELL_DELAY
+      playMotif(c, master, { variant: 'aube', octave: 1, pure: true, slow: 1 / 1.3, peakDb: BONJOUR_MOTIF_DB + 20 * Math.log10(1 / FINALE_LEVEL) })
       // partiels de cloche, chacun avec sa décroissance exponentielle
       const partials: [number, number, number][] = [
         [880, 1, 3.2],

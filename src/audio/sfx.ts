@@ -1,5 +1,6 @@
 import { reactive, ref } from 'vue'
 import { safeStorage } from '../composables/safeStorage'
+import { playMotif } from './motif'
 
 export const muted = ref(false)
 
@@ -260,11 +261,18 @@ export const slam = () => {
   thump(c, t, 0.7, 0.21)
 }
 
+/** Hymne de la révélation, en la (tonalité commune). */
+export const HYMN_HZ = [220, 277.18, 329.63, 440, 329.63]
+/** Le motif ouvre la révélation, l’hymne le suit ~0,9 s plus tard ; chacun baissé pour que la somme reste ≈ -18 dBFS crête. */
+export const HYMN_DELAY = 0.9
+export const HYMN_GAIN = 0.088
+export const REVEAL_MOTIF_DB = -25
 export const hymn = () => {
   const c = ac()
   if (!c || muted.value) return
-  const notes = [262, 330, 392, 523, 392]
-  const t = c.currentTime
+  const notes = HYMN_HZ
+  const t = c.currentTime + HYMN_DELAY
+  playMotif(c, effetsOut(c), { variant: 'mystere', peakDb: REVEAL_MOTIF_DB })
   notes.forEach((hz, i) => {
     const o = c.createOscillator()
     o.type = 'square'
@@ -272,12 +280,12 @@ export const hymn = () => {
     const g = c.createGain()
     const s = t + i * 0.2
     g.gain.setValueAtTime(0.0001, s)
-    g.gain.linearRampToValueAtTime(0.12, s + 0.008)
-    g.gain.setValueAtTime(0.12, s + 0.17)
+    g.gain.linearRampToValueAtTime(HYMN_GAIN, s + 0.008)
+    g.gain.setValueAtTime(HYMN_GAIN, s + 0.17)
     g.gain.linearRampToValueAtTime(0.0001, s + 0.18)
     o.connect(g).connect(effetsOut(c))
-    o.start(t + i * 0.2)
-    o.stop(t + i * 0.2 + 0.2)
+    o.start(s)
+    o.stop(s + 0.2)
   })
 }
 
@@ -302,6 +310,7 @@ export const cardDeal = () => {
 }
 
 /** Card flips: a papery snap and a small bright blip on the landing. */
+export const FLIP_BLIP_HZ = 554.37
 export const cardFlip = () => {
   const c = ac()
   if (!c || muted.value) return
@@ -309,7 +318,7 @@ export const cardFlip = () => {
   burst(c, t, 0.08, 6000, 0.14)
   const o = c.createOscillator()
   o.type = 'triangle'
-  o.frequency.setValueAtTime(520, t + 0.16)
+  o.frequency.setValueAtTime(FLIP_BLIP_HZ, t + 0.16)
   o.frequency.exponentialRampToValueAtTime(880, t + 0.26)
   const g = c.createGain()
   g.gain.setValueAtTime(0.0001, t)
@@ -356,13 +365,11 @@ const beep = (c: AudioContext, at: number, from: number, to: number, dur: number
   o.stop(at + dur + 0.01)
 }
 
-/** About opens: two short PC-speaker style beeps, rising (old program booting). */
+/** About opens: the leitmotif, short and high, no echo (replaces the old two beeps). */
 export const aboutOpen = () => {
   const c = ac()
   if (!c || muted.value) return
-  const t = c.currentTime
-  beep(c, t, 440, 440, 0.07, 0.05)
-  beep(c, t + 0.1, 880, 880, 0.09, 0.05)
+  playMotif(c, effetsOut(c), { variant: 'mystere', slow: 0.6, octave: 1, echo: false, peakDb: -24 })
 }
 
 /** Aperçu à la sortie du curseur « Effets » : le bip d’ouverture (court, discret). */
