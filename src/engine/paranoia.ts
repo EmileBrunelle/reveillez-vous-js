@@ -1,12 +1,12 @@
 export type ParanoiaLevel = 1 | 2 | 3 | 4 | 5
 
 /**
- * Maps the number of times the door was reopened in this browser to a paranoia level.
+ * Associe le nombre de réouvertures de la porte dans ce navigateur à un niveau de paranoïa.
  *
- * Contract:
- * - `visits` is the count of « Fermer la porte » clicks persisted in this browser; integer, >= 0.
- * - Must return an integer in 1..5 for every `visits` >= 0.
- * - Expected default: monotonic non-decreasing (the tract never gets calmer as visits grow).
+ * Contrat :
+ * - `visits` est le nombre de clics sur « Fermer la porte » conservés dans ce navigateur ; entier, >= 0.
+ * - Doit retourner un entier de 1 à 5 pour tout `visits` >= 0.
+ * - Comportement attendu par défaut : monotone non décroissant (le niveau ne baisse jamais quand les visites augmentent).
  */
 // Visites nécessaires pour atteindre chaque niveau (index 0 = niveau 1).
 // Montée plus lente : N1 aux visites 0-1, N2 à la 2, N3 aux 3-4, N4 aux 5-6, N5 à la 7, puis la finale.

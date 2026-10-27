@@ -4,11 +4,11 @@ export interface Gated {
   id: string
   /** Niveau minimal de paranoïa (défaut 1). */
   minLevel?: number
-  /** Relative pick weight (default 1). */
+  /** Poids de tirage relatif (défaut 1). */
   weight?: number
 }
 
-/** Random variant allowed at `level`, avoiding `lastId` unless it is the only choice. Honors `weight` (0 = never picked unless nothing else). */
+/** Variante aléatoire permise au `level`, en évitant `lastId` sauf si c’est le seul choix. Respecte `weight` (0 = jamais choisie sauf s’il n’y a rien d’autre). */
 export const pickVariant = <T extends Gated>(list: readonly T[], level: number, lastId: string | null, rng: Rng): T => {
   const allowed = list.filter((v) => (v.minLevel ?? 1) <= level)
   // Poids 0 = jamais tiré tant qu’une autre variante est possible (forcée par id ailleurs).

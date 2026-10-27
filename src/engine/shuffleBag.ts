@@ -1,6 +1,6 @@
 import type { Rng } from './rng'
 
-/** `order` is a permutation of 0..size-1; `pos` is how many of them were already drawn. */
+/** `order` est une permutation de 0..size-1 ; `pos` est le nombre d’éléments déjà tirés. */
 export interface Bag {
   order: number[]
   pos: number
@@ -8,7 +8,7 @@ export interface Bag {
 
 export const BAGS_KEY = 'rvj-bags'
 
-/** Fisher-Yates with the supplied rng. */
+/** Fisher-Yates avec le rng fourni. */
 export const shuffled = (size: number, rng: Rng): number[] => {
   const a = Array.from({ length: size }, (_, i) => i)
   for (let i = size - 1; i > 0; i--) {
@@ -28,11 +28,11 @@ const valid = (bag: unknown, size: number): bag is Bag => {
 }
 
 /**
- * Draw the next template index. Every index is used once before the bag is reshuffled.
- * A stale/corrupt bag (or one for a different `size`) is discarded. On reshuffle, the first
- * draw never equals the last one of the previous round (when size > 1).
- * `allowed` restricts this draw to some indices: the first allowed one still in the bag is swapped forward
- * (a new round starts if none is left; the filter is ignored if no index is allowed at all).
+ * Tire l’indice de gabarit suivant. Chaque indice sert une fois avant que le sac soit remélangé.
+ * Un sac périmé ou corrompu (ou fait pour une autre `size`) est écarté. Au remélange, le premier
+ * tirage n’est jamais égal au dernier de la ronde précédente (quand size > 1).
+ * `allowed` restreint ce tirage à certains indices : le premier indice permis encore dans le sac est amené en avant
+ * (une nouvelle ronde commence s’il n’en reste aucun ; le filtre est ignoré si aucun indice n’est permis).
  */
 export const draw = (bag: Bag | undefined | null, size: number, rng: Rng, allowed?: (index: number) => boolean): { index: number; bag: Bag } => {
   if (size <= 0) throw new Error('shuffleBag: size must be > 0')
@@ -71,7 +71,7 @@ const load = (storage: Store, key: string): Record<string, Bag> => {
   }
 }
 
-/** Draw from the persisted bag named `id` (e.g. `niveau3`), saving the new state. Storage failures are non-fatal. */
+/** Tire du sac persistant nommé `id` (p. ex. `niveau3`) et sauvegarde le nouvel état. Les échecs de stockage ne sont pas fatals. */
 export const drawPersisted = (storage: Store, id: string, size: number, rng: Rng, allowed?: (index: number) => boolean): number => {
   const bags = load(storage, BAGS_KEY)
   const { index, bag } = draw(bags[id], size, rng, allowed)

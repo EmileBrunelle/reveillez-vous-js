@@ -1,7 +1,7 @@
-/** Float in [0, 1). Injected everywhere so tests can pass a deterministic one. */
+/** Flottant dans [0, 1). Injecté partout pour que les tests puissent en passer un déterministe. */
 export type Rng = () => number
 
-/** Production randomness: crypto.getRandomValues-backed. */
+/** Aléa de production : appuyé sur crypto.getRandomValues. */
 export const secureRng = (): Rng => {
   const buf = new Uint32Array(1)
   return () => {
@@ -13,7 +13,7 @@ export const secureRng = (): Rng => {
 /** Rng injecté, ou production par défaut (à appeler une fois ; jamais en défaut de prop Vue, qui prendrait la fabrique pour la valeur). */
 export const orSecure = (rng?: Rng): Rng => rng ?? secureRng()
 
-/** mulberry32: small seeded PRNG, for tests only. */
+/** mulberry32 : petit PRNG à graine, pour les tests seulement. */
 export const mulberry32 = (seed: number): Rng => {
   let a = seed >>> 0
   return () => {

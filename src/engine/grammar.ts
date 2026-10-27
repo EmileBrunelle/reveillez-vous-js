@@ -19,15 +19,15 @@ const pick = <T>(items: T[], rng: Rng): T => {
 }
 
 /**
- * Expand `startKey` (a string table) into text.
- * `{table}` -> random string; `{table.field}` -> field of an object entry.
- * Object entries are picked once per expansion (memoized) so fields stay paired.
+ * Développe `startKey` (une table de chaînes) en texte.
+ * `{table}` -> chaîne aléatoire ; `{table.field}` -> champ d’une entrée objet.
+ * Les entrées objet sont tirées une seule fois par expansion (mémoïsées) pour que les champs restent appariés.
  */
 export const expand = (grammar: Grammar, startKey: string, rng: Rng): string => {
   return run(grammar, rng, (resolve) => resolve(startKey, undefined, 0))
 }
 
-/** Expand a template string (may reference tables of `grammar`) with the same rules as `expand`. */
+/** Développe une chaîne gabarit (qui peut référencer des tables de `grammar`) avec les mêmes règles que `expand`. */
 export const expandTemplate = (grammar: Grammar, template: string, rng: Rng): string => {
   return run(grammar, rng, (_, render) => render(template, 0))
 }

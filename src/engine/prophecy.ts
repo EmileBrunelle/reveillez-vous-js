@@ -6,10 +6,10 @@ import { returnGrammar } from '../content/finale'
 import { arcaneIndex } from '../stores/progress'
 
 export interface Arcane {
-  /** Roman numeral (« XVIII », « XIII bis »). */
+  /** Chiffre romain (« XVIII », « XIII bis »). */
   numero: string
   nom: string
-  /** Emblem id understood by TarotEmblem (unknown = fallback eye). */
+  /** Identifiant d’emblème compris par TarotEmblem (inconnu = œil par défaut). */
   symbole: string
   /** Paquet de la coupe auquel la carte appartient. */
   paquet: Paquet
@@ -29,12 +29,12 @@ const strings = (grammar: Grammar, key: string): string[] => {
   return isStringTable(t) ? t : []
 }
 
-/** Prophecy templates of a level: grammar key `niveau<N>` (`question|corps|verset`). */
+/** Gabarits de prophétie d’un niveau : clé de grammaire `niveau<N>` (`question|corps|verset`). */
 export const templatesFor = (grammar: Grammar, level: number) => strings(grammar, `niveau${level}`)
-/** Door knock lines of a level: grammar key `porte<N>`. */
+/** Répliques de coup à la porte d’un niveau : clé de grammaire `porte<N>`. */
 export const doorLinesFor = (grammar: Grammar, level: number) => strings(grammar, `porte${level}`)
 
-/** Draw an arcane, preferring those of `paquet` tagged for `level` (`niveaux`); then any deck's arcana of that level, then any arcane; EMPTY_ARCANE when no table. */
+/** Tire un arcane, en préférant ceux de `paquet` marqués pour `level` (`niveaux`) ; puis les arcanes de n’importe quel paquet de ce niveau, puis n’importe quel arcane ; EMPTY_ARCANE s’il n’y a pas de table. */
 export const drawArcane = (grammar: Grammar, level: number, rng: Rng, paquet?: Paquet): Arcane => {
   const all = grammar.arcane
   if (!isObjectTable(all)) return EMPTY_ARCANE
@@ -55,7 +55,7 @@ export const secheFor = (grammar: Grammar, level: number) => strings(grammar, `s
 /** Prophéties permises pour la toute première lecture d’une session : table `premiere1`, sous-ensemble de `niveau1`. */
 export const premiereFor = (grammar: Grammar) => strings(grammar, 'premiere1')
 
-/** Draw the next prophecy of `level` (arcane taken from the chosen `paquet`) through the persisted shuffle bag, and expand it. Environ 1 lecture sur 8 (SECHE_CHANCE) vient plutôt de la table `seche<N>`, avec son propre sac. */
+/** Tire la prochaine prophétie de `level` (arcane pris dans le `paquet` choisi) par le sac mélangé persistant, puis la développe. Environ 1 lecture sur 8 (SECHE_CHANCE) vient plutôt de la table `seche<N>`, avec son propre sac. */
 export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng: Rng, paquet?: Paquet, premiere = false): Prophecy => {
   const templates = templatesFor(grammar, level)
   if (templates.length === 0) return { question: '', body: '', verse: '', arcane: EMPTY_ARCANE }
@@ -85,7 +85,7 @@ export const nextProphecy = (grammar: Grammar, level: number, store: Store, rng:
   return { question, body, verse, arcane: drawArcane(grammar, level, rng, paquet) }
 }
 
-/** Next line of table `key` (shuffle bag, expanded), or `fallback` when the table is missing. */
+/** Prochaine réplique de la table `key` (sac mélangé, développée), ou `fallback` si la table est absente. */
 export const nextLine = (grammar: Grammar, key: string, store: Store, rng: Rng, fallback: string): string => {
   const lines = strings(grammar, key)
   if (lines.length === 0) return fallback
@@ -113,7 +113,7 @@ export const carteTables = (nom: string): Grammar => ({ carte: [lowerArticle(nom
 export const RAPPEL_CHANCE = 0.5
 
 /**
- * Next door knock line of `level` (shuffle bag), or `fallback` when the key is missing.
+ * Prochaine réplique de coup à la porte de `level` (sac mélangé), ou `fallback` si la clé est absente.
  * Avec une mémoire (`lastArcane` connu, niveau ≥ 2), environ une fois sur deux la ligne vient de `rappel<N>`,
  * où `{carte}` (+ `_maj`, `_caps`) est le nom de la carte précédente.
  */
@@ -175,8 +175,8 @@ export const nextFakeError = (grammar: Grammar, level: number, store: Store, rng
   return { title, text: rest.join('|'), icon: icons.length > 0 ? pickOf(icons, rng) : 'stop', buttons }
 }
 
-/** Mockery after a failed rhythm (table `rate<N>`). */
+/** Moquerie après un rythme raté (table `rate<N>`). */
 export const nextFailLine = (grammar: Grammar, level: number, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, `rate${level}`, store, rng, fallback)
 
-/** Give-up line after three failures (table `entrez`). */
+/** Réplique d’abandon après trois échecs (table `entrez`). */
 export const nextEntrezLine = (grammar: Grammar, store: Store, rng: Rng, fallback: string): string => nextLine(grammar, 'entrez', store, rng, fallback)

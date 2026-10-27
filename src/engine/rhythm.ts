@@ -1,6 +1,6 @@
 import type { Rng } from './rng'
 
-/** Pause between two knocks: short (« toc toc ») or long (« toc — toc »). */
+/** Pause entre deux coups : courte (« toc toc ») ou longue (« toc — toc »). */
 export type Gap = 'court' | 'long'
 
 const clampLevel = (level: number) => Math.min(5, Math.max(1, Math.round(level)))
@@ -20,9 +20,9 @@ const validPatterns = (n: number): Gap[][] => {
 }
 
 /**
- * Pattern the seer knocks: the pauses BETWEEN knocks (knocks = gaps.length + 1).
- * Knock count varies within a level; the pattern is drawn uniformly among the valid ones
- * (≥ 1 court — it gives the player's tempo —, ≥ 1 long, never two long in a row). Deterministic given `rng`.
+ * Motif que la voyante frappe : les pauses ENTRE les coups (coups = gaps.length + 1).
+ * Le nombre de coups varie au sein d’un niveau ; le motif est tiré uniformément parmi les valides
+ * (≥ 1 court — il donne le tempo de la personne —, ≥ 1 long, jamais deux longs de suite). Déterministe selon `rng`.
  */
 export const rhythmFor = (level: number, rng: Rng): Gap[] => {
   const counts = KNOCK_COUNTS[clampLevel(level)]
@@ -31,13 +31,13 @@ export const rhythmFor = (level: number, rng: Rng): Gap[] => {
   return patterns[Math.floor(rng() * patterns.length)]
 }
 
-/** Short gap in seconds: 0.30 s at level 1 down to 0.20 s at level 5. */
+/** Pause courte en secondes : 0,30 s au niveau 1, jusqu’à 0,20 s au niveau 5. */
 export const shortGap = (level: number): number => 0.3 - 0.025 * (clampLevel(level) - 1)
 
-/** Long gap = 2.2× the short one. */
+/** Pause longue = 2,2 × la courte. */
 export const LONG_RATIO = 2.2
 
-/** Seconds from the first knock (first = 0) for each knock of the pattern. */
+/** Secondes depuis le premier coup (premier = 0) pour chaque coup du motif. */
 export const toOffsets = (gaps: Gap[], level: number): number[] => {
   const s = shortGap(level)
   const out = [0]
@@ -46,15 +46,15 @@ export const toOffsets = (gaps: Gap[], level: number): number[] => {
 }
 
 /**
- * Decides which measured pauses are long and which are short.
+ * Détermine quelles pauses mesurées sont longues et lesquelles sont courtes.
  *
- * The problem: the player taps on a touchpad or a finger, so timings are imprecise. A pause meant as « court »
- * can be 250–380 ms, and a « long » one can come out anywhere from ~1.6× to ~3× the short ones. There is no
- * fixed millisecond threshold that works: the player's own tempo has to be inferred from the taps themselves
- * (e.g. relative to the shortest/median pauses), and when all pauses look alike they are all « court ».
+ * Le problème : la personne tape sur un pavé tactile ou avec un doigt, donc les durées sont imprécises. Une pause
+ * voulue « court » peut durer de 250 à 380 ms, et une « long » peut sortir entre ~1,6 × et ~3 × les courtes. Aucun
+ * seuil fixe en millisecondes ne fonctionne : il faut déduire le tempo de la personne à partir des tapes elles-mêmes
+ * (p. ex. par rapport aux pauses les plus courtes/médianes), et quand toutes les pauses se ressemblent, elles sont toutes « court ».
  *
- * @param gaps measured pauses in milliseconds between consecutive taps (length = taps - 1)
- * @returns one Gap per input pause, same order
+ * @param gaps pauses mesurées en millisecondes entre des tapes consécutives (longueur = tapes - 1)
+ * @returns un Gap par pause en entrée, dans le même ordre
  */
 export const classifyGaps = (gaps: number[]): Gap[] => {
   // Deux groupes (courts / longs) : on coupe au plus grand saut de ratio entre pauses triées.
@@ -73,10 +73,10 @@ export const classifyGaps = (gaps: number[]): Gap[] => {
   return gaps.map((g) => (g >= threshold ? 'long' : 'court'))
 }
 
-/** Outcome of an attempt: right, too few taps, too many taps, or right count but wrong rhythm. */
+/** Résultat d’un essai : juste, trop peu de tapes, trop de tapes, ou bon nombre mais mauvais rythme. */
 export type Verdict = 'ok' | 'trop-peu' | 'trop' | 'rythme'
 
-/** Compares the player's taps (ms, performance.now values) with the seer's pattern. */
+/** Compare les tapes de la personne (ms, valeurs de performance.now) au motif de la voyante. */
 export const judge = (pattern: Gap[], tapTimes: number[]): Verdict => {
   const expected = pattern.length + 1
   if (tapTimes.length < expected) return 'trop-peu'
