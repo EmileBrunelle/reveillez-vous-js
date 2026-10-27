@@ -46,6 +46,7 @@ export const prophecies: Grammar = {
     '{question1}|Les cartes voient votre fin de session : 76 tasses de café. Elles voient aussi la 77ᵉ. Elles vous déconseillent la 78ᵉ.|{verset}',
     '{question1}|Les astres vous voient entrer au Café Campus pour prendre un café. Vous en ressortirez à 3 h du matin, sans avoir vu une seule tasse.|{verset}',
     '{question1}|Dans la boule de cristal, une tasse fumante apparaît dans votre avenir. Ce ne sera pas au Café Campus. Il y a des limites à la voyance.|{verset}',
+    '{question1}|Les cartes voient du bleu dans votre avenir. Pas le ciel : des bleuets du Lac-Saint-Jean, sur vos doigts, jusqu’à la fin d’août.|{verset}',
   ],
 
   // ---- Première lecture de la session (visites = 0) : pure voyance/Halloween, jamais de clin d’œil complotiste -------
@@ -70,6 +71,7 @@ export const prophecies: Grammar = {
     '{question2}|Trois chats noirs, deux fantômes, un seul fournisseur de {bonbon}. Mon tarot en tire une conclusion : vous passerez la nuit du 31 octobre à compter vos bonbons.|{verset}',
     '{question2}|Ce soir, à minuit, {objet.nom} va changer de couleur. Si vous ne le voyez pas, c’est que vous en faites partie.|{verset}',
     '{question2}|Vous avez rouvert la porte. Avant même que je frappe, {objet.nom} l’avait annoncé. J’ai noté l’heure. Vous aussi, je pense.|{verset}',
+    '{question2}|Votre boule de cristal montre une tourtière. Au Lac-Saint-Jean, on vous dira que ce n’en est pas une : la vraie est un grand pâté de viandes en cubes, cuit longtemps. La voyance ne tranchera pas ce débat.|{verset}',
     '{question2}|Ce soir, vous remettrez une araignée dehors au lieu de l’écraser. Vous vous sentirez sage. Elle mourra d’hypothermie. Les cartes ne jugent pas.|{verset}',
     '{question2}|En vous, il y a deux loups. L’un veut du Paris Pâté. L’autre veut des sardines. Les cartes savent lequel gagnera demain matin. Elles ne le diront pas.|{verset}',
     '{question2}|Les cartes sont formelles : les Nordiques reviendront. Les Expos aussi. Les cartes disent ça depuis 1995. Elles sont patientes.|{verset}',
@@ -79,6 +81,7 @@ export const prophecies: Grammar = {
     '{question2}|Le Café Campus n’a jamais servi de café. Les cartes le savent et se demandent ce qu’on y sert vraiment, et pourquoi vous y retournez jeudi.|{verset}',
     '{question2}|Une personne en visite vous demandera où est « le vrai Québec ». Vous pointerez au loin. Cette personne aura tort. Vous aussi.|{verset}',
     '{question2}|Ce temps des fêtes, vous recevrez une bouteille de whisky à l’érable. Vous l’offrirez à une autre personne l’an prochain. Les cartes ont vu son voyage : elle circule depuis 2014.|{verset}',
+    '{question2}|Le cipaille gaspésien de votre prochain réveillon a déjà six étages. Les astres en ont compté un septième, sous la croûte.|{verset}',
   ],
 
   // ---- Niveau 3 · Conviction : fausses fêtes, Big Citrouille dans l’ombre ---------------------
@@ -99,6 +102,8 @@ export const prophecies: Grammar = {
     '{question3}|Pleine lune sur la Belle Province. Quelque chose hurlera dans votre rue. Ne lui ouvrez pas : il a déjà le rythme.|{verset}',
     '{question3}|Cet hiver, par −30, vous direz que vous aimez l’hiver. Avec un chapeau de poil et un café. Les cartes savent que vous mentez. Elles mentent aussi.|{verset}',
     '{question3}|Votre vocation : mener une carriole sous la pleine lune. Demain matin, vous ouvrirez Teams. Les cartes compatissent.|{verset}',
+    '{question3}|Un béluga de Tadoussac vous a vu passer sur le traversier. Il ne dira rien. Les bélugas savent garder un secret, mais celui-là a pris des notes.|{verset}',
+    '{question3}|Au large de Tadoussac, un béluga vous regarde depuis ce matin. Il connaît votre horaire. Ne lui faites pas de signe : il pourrait répondre.|{verset}',
   ],
 
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
