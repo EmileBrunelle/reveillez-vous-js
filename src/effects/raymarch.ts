@@ -1,8 +1,8 @@
 import { paramsKey } from './paramsKey'
 import { clock, effect, frameLoop, init, surface } from 'vgpu'
 
-/** Internal resolution: ~0.5x CSS px, long side capped (mobile budget); the canvas is upscaled by CSS (linear). */
-const MAX_LONG = 540
+import { placeDpr } from './resolution'
+
 const FPS_CAP = 30
 
 export type Shader = Parameters<typeof effect>[1]
@@ -29,6 +29,8 @@ export interface RaymarchOptions {
   /** Valeurs de l’uniforme `Params` du shader (noms = champs de la struct). */
   params: (s: RaymarchState) => Record<string, number>
   motion: () => boolean
+  /** Vrai = CRT éteint (finale) : résolution relevée (voir `placeDpr`) ; sinon rendu basse résolution voulu sous CRT. */
+  sharp?: () => boolean
   /** 0..1 ; adouci ici. */
   paranoia: () => number
   /** Décalage cible de la caméra dans [-1, 1]² ; lissé ici (lerp), ignoré en mouvement réduit. */
@@ -47,7 +49,7 @@ export const createRaymarch = async (canvas: HTMLCanvasElement, opts: RaymarchOp
   void gpu.lost.then(() => {
     if (!stopped) opts.onLost?.()
   })
-  const dprFor = () => Math.min(0.5, MAX_LONG / Math.max(canvas.clientWidth, canvas.clientHeight, 1))
+  const dprFor = () => placeDpr(canvas.clientWidth, canvas.clientHeight, opts.sharp?.() ?? false, window.devicePixelRatio || 1)
   let p = paranoia()
   let drift = 0
   let px = 0
@@ -74,6 +76,12 @@ export const createRaymarch = async (canvas: HTMLCanvasElement, opts: RaymarchOp
     frameLoop(gpu, (frame) => {
       const dt = Math.min(time.deltaTime, 0.1)
       p += (paranoia() - p) * (1 - Math.pow(0.97, dt * 60))
+      // CRT éteint/rallumé : la surface est recréée à la nouvelle résolution (l’écran est noir à ce moment-là, en finale).
+      const want = dprFor()
+      if (Math.abs(want - surf.dpr) > 1e-6) {
+        surf.dispose()
+        surf = surface(gpu, canvas, { dpr: want, clearColor: [0, 0, 0, 1] })
+      }
       const animated = motion()
       // En image statique, la clé inclut les paramètres de la variante (hors `time`) : changer de variante sans remontage redessine.
       const key = `${canvas.width}x${canvas.height}|${p.toFixed(3)}|${animated}` + (animated ? '' : `|${paramsKey(params(0))}`)
