@@ -1,70 +1,62 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, markRaw, nextTick, ref, shallowRef, watch, watchEffect, type Component } from 'vue'
+import { nextTick, ref, watch, watchEffect } from 'vue'
 import { AnimatePresence, Motion, MotionConfig, animate } from 'motion-v'
+import { storeToRefs } from 'pinia'
 import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
 import Taskbar from './components/Taskbar.vue'
 import FakeErrors from './components/FakeErrors.vue'
 import BgPlace from './components/backgrounds/BgPlace.vue'
 import { useProgressStore } from './stores/progress'
-import { useSessionStore } from './stores/session'
 import { useCollectionStore } from './stores/collection'
-import { useTabTitle } from './composables/useTabTitle'
-import { doors, pickDoor, pickPlaceVariant, placeForLevel, places } from './content/scenes'
-import { prophecies } from './content/prophecies'
-import { nextClockLine } from './engine/horloge'
-import { nextDoorLine, nextProphecy, nextReturnLine, nextTitled, type Prophecy, EMPTY_ARCANE } from './engine/prophecy'
-import { secureRng } from './engine/rng'
-import type { Paquet } from './engine/paquets'
 import { isQuickKnock } from './engine/paranoia'
-import { storeToRefs } from 'pinia'
-import { useMediaQuery, useTimeoutFn } from '@vueuse/core'
+import { useTabTitle } from './composables/useTabTitle'
 import { useReducedMotion } from './composables/useReducedMotion'
 import { requestOrientationPermission } from './composables/useTilt'
-import { safeSessionStorage, safeStorage } from './composables/safeStorage'
-import { LAST_ACTIVITY_KEY, PLAYED_ACTIVITIES_KEY, parseActivityId, parsePlayed, pickActivity, type ActivityId } from './engine/activityPick'
-import { hymn, unlock } from './audio/sfx'
-import { finaleActive } from './engine/finaleFlow'
+import { useTimeoutFn } from '@vueuse/core'
+import { unlock } from './audio/sfx'
 import { WAKE_LABEL } from './content/finale'
-import { activityFor, loadAbout, loadCollection, loadDeckCut, loadDoorScene, loadFinale, loadReset, loadSound, loadTarotCard, prefetch } from './lazy'
 import { focusQuietly } from './composables/focusQuietly'
 import { createFocusOnce } from './composables/focusOnce'
+import { useLazyScenes } from './composables/useLazyScenes'
+import { useGameFlow } from './composables/useGameFlow'
 
-// Hors du premier écran : chargés à la demande, préchargés dès que possible (voir plus bas).
-// La carte du tirage est chargée avant la fin de la coupe (jamais de substitut) : on ne la rend qu’une fois le chunk là.
-const TarotCard = shallowRef<Component | null>(null)
-const tarotFailed = ref(false) // le chunk n’a pas pu se charger : lecture de secours en texte, le jeu ne reste jamais bloqué
-const loadTarotOnce = () => loadTarotCard().then((m) => void (TarotCard.value = markRaw(m.default)))
-const timeout = (ms: number) => new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
-// Pas de retour anticipé : si le chunk arrive après un échec, tarotFailed doit retomber, sinon la lecture de secours (testée avant TarotCard dans le gabarit) resterait jusqu’à la fin de la session.
-const ensureTarot = async () => {
-  for (let n = 0; n < 2 && !TarotCard.value; n++) await Promise.race([loadTarotOnce(), timeout(3000)]).catch(() => undefined)
-  tarotFailed.value = !TarotCard.value
-}
-const About = defineAsyncComponent(loadAbout)
-const ResetConfirm = defineAsyncComponent(loadReset)
-const CollectionWindow = defineAsyncComponent(loadCollection)
-const SoundWindow = defineAsyncComponent(loadSound)
-const DeckCut = defineAsyncComponent(loadDeckCut)
-const Finale = defineAsyncComponent(loadFinale)
-// La scène de la porte s’affiche après « Approchez-vous » : on garde ce bouton tant que son chunk n’est pas là (pas de substitut, donc pas de saut).
-const DoorScene = shallowRef<Component | null>(null)
-let doorLoad: Promise<unknown> | null = null
-const ensureDoor = () =>
-  (doorLoad ??= loadDoorScene().then(
-    (m) => {
-      DoorScene.value = markRaw(m.default)
-      prefetch(loadTarotCard) // la carte se tire après les coups : on la réchauffe pendant que la porte s’affiche
-    },
-    (e) => {
-      doorLoad = null // réseau coupé : le prochain clic réessaie
-      throw e
-    },
-  ))
+// Hors du premier écran : chargés à la demande, préchargés dès que possible (voir useLazyScenes).
+const { tarotFailed, ensureTarot, TarotCard, DoorScene, ensureDoor, About, ResetConfirm, CollectionWindow, SoundWindow, DeckCut, Finale } = useLazyScenes()
 
-type Phase = 'door' | 'activity' | 'cut' | 'reading' | 'finale'
-const rng = secureRng()
-const FALLBACK_LINE = 'Toc toc toc… Avez-vous un moment pour parler de votre avenir ?'
+// Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
+// Ref fonction rappelée à chaque rendu : createFocusOnce ne focalise qu’une fois par élément (une réapparition de l’overlay = nouvel élément).
+const focusOverlay = createFocusOnce()
+const closeBtn = ref<HTMLButtonElement>()
+const readingEl = ref<HTMLElement>()
+
+// Phases d’une visite (porte -> activité -> coupe -> lecture -> finale) : voir useGameFlow.
+const {
+  rng,
+  phase,
+  closing,
+  listening,
+  sceneKey,
+  door,
+  place,
+  placeVariant,
+  doorLine,
+  crtOff,
+  pickedPaquet,
+  prophecy,
+  cardSettled,
+  Activity,
+  startBubble,
+  resetLevel,
+  onDone,
+  onActivityDone,
+  onPick,
+  onFlipped,
+  onClose,
+  onClosed,
+  onCollapsed,
+  onFinaleRestart,
+} = useGameFlow({ ensureTarot, tarotFailed, closeBtn, readingEl })
 
 // 'checking' until the CRT overlay got a WebGPU device; nothing of the experience renders before that.
 const gpu = ref<'checking' | 'ok' | 'blocked'>('checking')
@@ -109,41 +101,12 @@ const forgetAll = () => {
   resetLevel()
 }
 const { level, paranoia } = storeToRefs(progress)
-const session = useSessionStore()
 useTabTitle(level)
-// Activité de la visite (tirée à l’ouverture de la porte ; null au niveau 1).
-const activityId = ref<ActivityId | null>(parseActivityId(safeSessionStorage().getItem(LAST_ACTIVITY_KEY))) // relue : un rechargement ne rejoue pas la même
-// Efface la mémoire d’activités (dernière jouée et liste des jouées) : nouvelle partie.
-const forgetActivities = () => {
-  safeSessionStorage().removeItem(LAST_ACTIVITY_KEY)
-  safeSessionStorage().removeItem(PLAYED_ACTIVITIES_KEY)
-}
-const Activity = computed(() => {
-  const loader = activityFor(activityId.value)
-  return loader ? defineAsyncComponent(loader) : null
-})
 watchEffect(() => document.documentElement.style.setProperty('--paranoia', String(paranoia.value)))
 
 const resetOpen = ref(false)
 watch(resetOpen, (o) => o && (resetWanted.value = true))
-// « Recommencer à zéro » : on repart tout de suite au niveau 1, sans compter la visite en cours.
-const clearBubbles = () => session.notifications.forEach((n) => session.dismiss(n.id))
-const resetLevel = () => {
-  progress.reset()
-  forgetActivities()
-  stopBubble()
-  clearBubbles()
-  if (phase.value === 'finale')
-    enterDoor() // finale interrompue : retour direct à la porte du niveau 1
-  else if (phase.value === 'door') {
-    if (!closing.value) enterDoor() // porte pas encore ouverte : on retire porte, réplique et lieu pour le niveau 1
-  } else leave(false)
-}
 
-const listening = ref(false)
-const phase = ref<Phase>('door')
-const closing = ref(false)
-const sceneKey = ref(0)
 const reduced = useReducedMotion()
 const mainEl = ref<HTMLElement>()
 const shake = (amp: number) => {
@@ -151,96 +114,6 @@ const shake = (amp: number) => {
   const a = 10 * amp
   animate(mainEl.value, { x: [0, -a, a * 0.8, -a * 0.5, a * 0.3, 0], y: [0, a * 0.4, -a * 0.5, a * 0.2, 0] }, { duration: 0.35 })
 }
-const door = shallowRef(doors[0])
-const place = shallowRef(placeForLevel(level.value))
-const placeVariant = shallowRef(place.value.variants[0])
-let variantSeen = false // la toute première visite n’a pas de décor précédent à éviter
-const pickedPaquet = ref<Paquet>('nuit')
-const cardSettled = ref(false) // la carte est retournée : les fausses erreurs peuvent se mesurer
-const doorLine = ref(FALLBACK_LINE)
-const crtOff = ref(false) // finale : la télé est éteinte
-// Au retour après une finale, la toute première porte salue la personne (une fois par départ, y compris après « Recommencer »).
-let returnGreeted = false
-const prophecy = ref<Prophecy>({ question: '', body: '', verse: '', arcane: EMPTY_ARCANE })
-
-const enterDoor = () => {
-  place.value = placeForLevel(level.value)
-  door.value = pickDoor(place.value.id, rng)
-  placeVariant.value = pickPlaceVariant(place.value, variantSeen ? placeVariant.value.id : null, rng)
-  variantSeen = true
-  crtOff.value = false
-  const greet = progress.memory.finished && level.value === 1 && !returnGreeted
-  returnGreeted = true
-  doorLine.value = greet ? nextReturnLine(safeStorage(), rng, FALLBACK_LINE) : nextDoorLine(prophecies, level.value, safeStorage(), rng, FALLBACK_LINE, progress.memory)
-  // La voyante remarque parfois l’heure locale (une fois par session ; pas au niveau 5, dont les répliques sont en capitales).
-  if (!greet && level.value < 5) doorLine.value = nextClockLine(new Date(), rng, safeSessionStorage()) ?? doorLine.value
-  const played = parsePlayed(safeSessionStorage().getItem(PLAYED_ACTIVITIES_KEY))
-  activityId.value = pickActivity(progress.visits, activityId.value, safeStorage(), rng, played)
-  if (activityId.value) {
-    safeSessionStorage().setItem(LAST_ACTIVITY_KEY, activityId.value)
-    safeSessionStorage().setItem(PLAYED_ACTIVITIES_KEY, JSON.stringify([...new Set([...played, activityId.value])]))
-  } else forgetActivities()
-  const loadActivity = activityFor(activityId.value)
-  if (loadActivity) prefetch(loadActivity) // on réchauffe celle qui sera vraiment jouée
-  phase.value = 'door'
-  listening.value = false
-  closing.value = false
-  sceneKey.value++
-}
-enterDoor()
-
-// Dev seulement (exclu du build de prod) : ?phase=deck, ?phase=card ou ?phase=finale saute la porte et les activités, pour tester la mise en page.
-const devPhase = import.meta.env.DEV ? new URLSearchParams(location.search).get('phase') : null
-
-// Une visite : la porte s’ouvre -> activité (niveau 2+) -> coupe du paquet -> lecture. La prophétie est tirée une fois, à l’ouverture.
-const onDone = () => {
-  prefetch(loadTarotCard)
-  phase.value = activityId.value ? 'activity' : 'cut'
-  listening.value = false
-}
-const onActivityDone = () => {
-  // Un `done` tardif (activité en sortie après « Recommencer à zéro » ou « Fermer la porte ») ne doit rien relancer.
-  if (phase.value !== 'activity' || closing.value) return
-  phase.value = 'cut'
-}
-// Une bulle de la barre des tâches par visite (niveau 2+), peu après l’arrivée à la porte. Sur écran étroit, elle ne reste pas au-delà de la porte (elle couvrirait la carte ou « Fermer la porte »).
-const { start: startBubble, stop: stopBubble } = useTimeoutFn(
-  () => {
-    const b = level.value >= 2 ? nextTitled(prophecies, `bulle${level.value}`, safeStorage(), rng) : null
-    if (b) session.notify(`${b.title}|${b.text}`)
-  },
-  2500,
-  { immediate: false },
-)
-// La prophétie est tirée ici, une fois par visite : l’arcane vient du paquet choisi.
-const onPick = async (paquet: Paquet) => {
-  if (phase.value !== 'cut' || closing.value) return // « Recommencer à zéro » pendant le vol : on ne rouvre pas une lecture
-  await ensureTarot()
-  if (phase.value !== 'cut' || closing.value) return
-  pickedPaquet.value = paquet
-  prophecy.value = nextProphecy(prophecies, level.value, safeStorage(), rng, paquet, progress.visits === 0)
-  progress.remember(prophecy.value.arcane.numero, level.value, prophecy.value.arcane.nom)
-  cardSettled.value = false
-  phase.value = 'reading'
-  hymn()
-  void nextTick(() => focusQuietly(tarotFailed.value ? closeBtn.value : readingEl.value, { preventScroll: true })) // la coupe disparaît : le focus reste sur la lecture jusqu’à « Fermer la porte »
-}
-if (devPhase === 'finale') phase.value = 'finale'
-if (devPhase === 'deck' || devPhase === 'card') {
-  phase.value = 'cut'
-  if (devPhase === 'card') void onPick('nuit')
-}
-const leave = (count: boolean) => {
-  if (closing.value) return
-  stopBubble()
-  closing.value = true
-  unlock()
-  if (count) progress.bump()
-  // The open door slams first; the next variant is picked once it is shut (see onClosed).
-  sceneKey.value++
-  phase.value = 'door'
-}
-const restart = () => leave(true)
 
 // Browsers keep the AudioContext suspended until a user gesture; without one, the first knocks would be silent.
 const awaiting = ref(!navigator.userActivation?.hasBeenActive)
@@ -252,11 +125,6 @@ const approach = () => {
   ensureDoor().then(startAwaitEnd, () => undefined)
 }
 
-// Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
-// Ref fonction rappelée à chaque rendu : createFocusOnce ne focalise qu’une fois par élément (une réapparition de l’overlay = nouvel élément).
-const focusOverlay = createFocusOnce()
-const closeBtn = ref<HTMLButtonElement>()
-const readingEl = ref<HTMLElement>()
 const focusSoon = (find: () => HTMLElement | null | undefined) => {
   let n = 0
   const t = () => {
@@ -265,16 +133,6 @@ const focusSoon = (find: () => HTMLElement | null | undefined) => {
     if (n++ < 60) requestAnimationFrame(t)
   }
   requestAnimationFrame(t)
-}
-const onFlipped = () => {
-  collection.record(prophecy.value.arcane.nom)
-  cardSettled.value = true
-  // Première lecture de la session : une bulle discrète annonce que la suite existe (pas sur écran étroit : elle couvrirait la carte).
-  if (progress.visits === 0 && !narrow.value) {
-    const b = nextTitled(prophecies, 'bulle1', safeStorage(), rng)
-    if (b) session.notify(`${b.title}|${b.text}`)
-  }
-  void nextTick(() => focusQuietly(closeBtn.value, { preventScroll: true }))
 }
 // A phase unmounting drops focus to <body>: send it to the door button of the next door.
 watch(
@@ -287,36 +145,6 @@ watch(
   },
   { flush: 'post' },
 )
-// Une bulle appartient à la porte : dès qu’on la quitte, la bulle en attente est annulée ; l’affichée est retirée sur écran étroit (elle couvrirait la carte).
-const narrow = useMediaQuery('(max-width: 900px)')
-watch(phase, (p) => {
-  if (p === 'door') return
-  stopBubble()
-  if (narrow.value) clearBubbles()
-})
-const onClosed = () => {
-  enterDoor()
-}
-// Niveau 5 : « Fermer la porte » passe par la finale, puis reprend le chemin habituel.
-const onClose = () => (level.value >= 5 ? (phase.value = 'finale') : restart())
-// L’écran est noir : le CRT s’éteint et le lieu passe à l’aube sans qu’on le voie.
-const onCollapsed = () => {
-  if (!finaleActive(phase.value)) return // Finale encore montée pendant sa sortie : un collapsed tardif ne touche plus la porte
-  progress.markFinaleSeen() // point de non-retour : un rechargement repart au niveau 1
-  crtOff.value = true
-  place.value = places.find((p) => p.id === 'nuages') ?? place.value
-  placeVariant.value = place.value.variants.find((v) => v.id === 'aube') ?? placeVariant.value
-}
-// « Recommencer » : visites et sacs à zéro, finale marquée, retour à la porte du niveau 1.
-const onFinaleRestart = () => {
-  if (!finaleActive(phase.value)) return // double clic pendant la sortie : un seul « Recommencer »
-  progress.completeFinale()
-  forgetActivities()
-  returnGreeted = false
-  stopBubble()
-  clearBubbles()
-  enterDoor()
-}
 </script>
 
 <template>
