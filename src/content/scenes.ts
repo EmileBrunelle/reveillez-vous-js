@@ -5,6 +5,7 @@ import DoorPorch from '~icons/rvj/porte-perron'
 import DoorCabin from '~icons/rvj/porte-cabane'
 import DoorMausoleum from '~icons/rvj/porte-mausolee'
 import DoorHouse from '~icons/rvj/porte-maison'
+import FrameHouse from '~icons/rvj/porte-maison-cadre'
 import DoorClouds from '~icons/rvj/porte-nuages'
 import maskPorch from '../assets/masks/perron.svg?no-inline'
 import maskCabin from '../assets/masks/cabane.svg?no-inline'
@@ -25,6 +26,8 @@ export interface SceneVariant {
   id: string
   label: string
   component: Component
+  /** Cadre fixe (chambranle, imposte, seuil) dessiné sous le battant : il ne tourne pas avec lui. */
+  frame?: Component
   /** Silhouette extérieure de la porte (même viewBox 120×190 que son SVG), utilisée comme masque de l’embrasure lumineuse : à garder alignée sur le cadre. */
   mask: string
   place?: PlaceId
@@ -41,7 +44,7 @@ export const doors: SceneVariant[] = [
   { id: 'perron', place: 'perron', weight: PRIMARY_WEIGHT, label: 'porte de perron avec contre-porte', component: DoorPorch, mask: maskPorch },
   { id: 'cabane', place: 'foret', weight: PRIMARY_WEIGHT, label: 'porte de cabane en planches', component: DoorCabin, mask: maskCabin },
   { id: 'mausolee', place: 'cimetiere', weight: PRIMARY_WEIGHT, label: 'porte de mausolée en fer', component: DoorMausoleum, mask: maskMausoleum },
-  { id: 'maison', place: 'rue', weight: PRIMARY_WEIGHT, label: 'porte de maison avec imposte', component: DoorHouse, mask: maskHouse },
+  { id: 'maison', place: 'rue', weight: PRIMARY_WEIGHT, label: 'porte de maison avec imposte', component: DoorHouse, frame: FrameHouse, mask: maskHouse },
   { id: 'nuages', place: 'nuages', weight: PRIMARY_WEIGHT, label: 'cadre de porte flottant dans les nuages', component: DoorClouds, mask: maskClouds },
   { id: 'garde-robe', label: 'porte de garde-robe', component: DoorCloset, mask: maskCloset },
   { id: 'frigo', label: 'porte de frigo géante', component: DoorFridge, mask: maskFridge },

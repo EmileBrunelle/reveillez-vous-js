@@ -376,6 +376,7 @@ const onSceneClick = (e: MouseEvent) => {
         class="absolute -left-[45%] -right-[45%] top-[60%] h-[80%] opacity-0 origin-[50%_0] [clip-path:polygon(33%_0,67%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0),rgb(255_226_140/0.6)_14%,rgb(255_226_140/0))] blur-[7px] pointer-events-none"
         aria-hidden="true"
       />
+      <component :is="door.frame" v-if="door.frame" class="absolute inset-0 block w-full h-full pointer-events-none" />
       <div
         ref="leaf"
         data-leaf
