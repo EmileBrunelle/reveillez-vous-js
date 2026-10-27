@@ -8,6 +8,7 @@ import type { Arcane } from '../engine/prophecy'
 import type { Paquet } from '../engine/paquets'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { createLanding } from '../composables/cardLanding'
+import { useCardShimmer } from '../composables/useCardShimmer'
 import { useCardGlitch } from '../composables/useCardGlitch'
 import { useCardTilt } from '../composables/useCardTilt'
 import { useMotionScope } from '../composables/useMotionScope'
@@ -21,30 +22,14 @@ const reduced = useReducedMotion()
 const session = useSessionStore()
 const shimmerEl = useTemplateRef<HTMLElement>('shimmerEl')
 // `will-change` seulement pendant le reflet : une couche GPU permanente pour une animation de 750 ms coûte de la mémoire pour rien.
-const shimmering = ref(false)
+const { shimmer, shimmering } = useCardShimmer(shimmerEl)
 // Pose de la carte, une seule fois par retournement : bruit sourd (toujours), ondulation CRT et reflet (jamais en mouvement réduit).
 // Le reflet anime son propre élément (`.tarot__shimmer`) : ni `deal`, ni `tilt`, ni `flip` ne sont touchés, donc aucun transform partagé avec l’inclinaison.
 const landing = createLanding({
   reduced: () => reduced.value,
   thud: cardThud,
   ripple: (amp) => session.pulse(amp),
-  shimmer: () => {
-    const a = shimmerEl.value?.animate(
-      [
-        { transform: 'translateX(-130%)', opacity: 0 },
-        { opacity: 1, offset: 0.25 },
-        { opacity: 1, offset: 0.7 },
-        { transform: 'translateX(130%)', opacity: 0 },
-      ],
-      { duration: 750, easing: 'ease-in-out' },
-    )
-    if (!a) return
-    shimmering.value = true
-    void a.finished.then(
-      () => (shimmering.value = false),
-      () => (shimmering.value = false),
-    )
-  },
+  shimmer,
 })
 
 const root = useTemplateRef<HTMLElement>('root')
