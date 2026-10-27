@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
-import { onClickOutside, useEventListener, useIntervalFn, useNow, useTimeoutFn } from '@vueuse/core'
+import { computed, useId, useTemplateRef, watch } from 'vue'
+import { onClickOutside, useIntervalFn, useNow, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '../stores/session'
 import { muted } from '../audio/sfx'
 import { REPO_URL } from '../content/finale'
@@ -12,42 +12,23 @@ import IconSoundOff from '~icons/rvj/son-coupe'
 import IconFullscreen from '~icons/rvj/fullscreen'
 import IconFullscreenExit from '~icons/rvj/fullscreen-quitter'
 import IconGithub from '~icons/simple-icons/github'
-import { focusQuietly } from '../composables/focusQuietly'
+import { useFullscreenToggle } from '../composables/useFullscreenToggle'
+import { useMenuFocus } from '../composables/useMenuFocus'
 
 defineProps<{ level: number }>()
 const emit = defineEmits<{ about: []; collection: []; sound: []; reset: []; resetLevel: [] }>()
 
-const open = ref(false)
 const menuId = useId()
 const warm = () => prefetch(loadAbout, loadCollection, loadReset, loadSound) // les boîtes de dialogue sont des chunks à part
 const startBtn = useTemplateRef<HTMLButtonElement>('startBtn')
 const menu = useTemplateRef<HTMLElement>('menu')
-const items = () => Array.from(menu.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
-
-const close = (refocus = false) => {
-  open.value = false
-  if (refocus) focusQuietly(startBtn.value)
-}
-const toggle = async () => {
+const { open, toggle: toggleMenu, close, onKeydown: onMenuKey } = useMenuFocus(menu, startBtn)
+const toggle = () => {
   warm()
-  open.value = !open.value
-  if (open.value) {
-    await nextTick()
-    focusQuietly(items()[0])
-  }
+  return toggleMenu()
 }
 // Plein écran sur la page entière ; API absente (p. ex. Safari iPhone) : ni icône ni entrée de menu.
-// État lu sur document.fullscreenElement : useFullscreen de VueUse se fie à webkitIsFullScreen dans Chromium, qui peut se dire actif sans élément plein écran.
-const canFullscreen = ref(false)
-const isFullscreen = ref(false)
-const syncFullscreen = () => (isFullscreen.value = !!document.fullscreenElement)
-onMounted(() => {
-  canFullscreen.value = document.fullscreenEnabled === true
-  syncFullscreen()
-})
-useEventListener(() => globalThis.document, 'fullscreenchange', syncFullscreen)
-const fullscreenLabel = computed(() => (isFullscreen.value ? 'Quitter le plein écran' : 'Passer en plein écran'))
-const switchFullscreen = () => void (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {})
+const { supported: canFullscreen, isFullscreen, label: fullscreenLabel, toggle: switchFullscreen } = useFullscreenToggle()
 const chooseFullscreen = () => {
   close(true)
   switchFullscreen()
@@ -60,28 +41,6 @@ const choose = (e: 'about' | 'collection' | 'sound' | 'reset') => {
   else emit('reset')
 }
 onClickOutside(menu, () => close(), { ignore: [startBtn] })
-
-const onMenuKey = (e: KeyboardEvent) => {
-  const list = items()
-  const i = list.indexOf(document.activeElement as HTMLElement)
-  if (e.key === 'Escape') {
-    e.preventDefault()
-    e.stopPropagation()
-    close(true)
-  } else if (e.key === 'ArrowDown') {
-    e.preventDefault()
-    list[(i + 1) % list.length]?.focus()
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault()
-    list[(i - 1 + list.length) % list.length]?.focus()
-  } else if (e.key === 'Home') {
-    e.preventDefault()
-    list[0]?.focus()
-  } else if (e.key === 'End') {
-    e.preventDefault()
-    list[list.length - 1]?.focus()
-  } else if (e.key === 'Tab') close()
-}
 
 // Bulle de notification (une à la fois, file d’attente) : « Titre|Texte », disparaît seule après 7 s.
 const session = useSessionStore()
