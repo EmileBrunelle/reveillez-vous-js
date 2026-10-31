@@ -43,6 +43,7 @@ export const niveau3: ContenuNiveau = {
     'Au dépanneur, la tablette du lait évaporé sera vide. Ne vous inquiétez pas : le produit fonctionne exactement comme annoncé. Les esprits, eux, savent où est passée la personne partie en chercher il y a vingt ans.',
     'Vous passerez l’hiver en Floride, comme tout le monde. En vacances, c’est un château. Pour y vivre, c’est un sous-sol humide où une souris géante vous attend dans le noir.',
     'Au port de Montréal, un conteneur éventré vous attendra. Vous passerez la tête par la fente, juste pour voir. Ce n’est pas un conteneur Docker, et ce qui vit dedans vous regarde aussi.',
+    'Vous direz, à voix haute, qu’on n’a pas besoin des maths pour faire de l’apprentissage profond. Un vieil arbre hanté vous entendra. Les cartes ne savent pas jusqu’où il vous lancera, mais c’est loin.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
