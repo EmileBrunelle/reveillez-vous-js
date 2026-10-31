@@ -32,6 +32,9 @@ export default defineConfig({
     // Node 25+ expose un `localStorage` global qui avertit (ExperimentalWarning) sans `--localstorage-file` ; les tests utilisent
     // le stockage de happy-dom ou leurs propres doublures, donc on le désactive (option acceptée aussi par Node 22 et 24).
     execArgv: ['--no-experimental-webstorage'],
+    // Sur l’exécuteur GitHub seulement, un fichier produit des blocs « stderr » vides (cause non reproduite en local) :
+    // un journal sans contenu n’est pas affiché ; tout journal qui contient du texte reste visible.
+    onConsoleLog: (log) => (log.trim() === '' ? false : undefined),
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,vue}'],
