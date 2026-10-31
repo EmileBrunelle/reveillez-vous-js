@@ -36,6 +36,13 @@ export const niveau4: ContenuNiveau = {
     'Ce soir, la flamme de votre chandelle descendra s’asseoir à votre table, entourée de chiens, et dira en sirotant votre café : « Tout va bien. » Les cartes notent que, pour une fois, ce n’est pas vous qui brûlez.',
     'Sur le miroir embué de la salle de bain, un doigt invisible écrira « JE SUIS MORT ». Vous reculerez, puis la buée s’étendra : « … DE RIRE EN VOYANT VOTRE COIFFURE ».',
     'Sur la planche Ouija, vous demanderez : « Êtes-vous un vrai esprit ? » La goutte glissera vers OUI. Vous insisterez. Elle glissera encore vers OUI. Les cartes, prudentes, vous déconseillent de lui donner votre NIP.',
+    'Quelqu’un vous annoncera, très calmement, avoir engagé un esprit invisible pour vous tordre le cou. Le lendemain matin, vous vous réveillerez avec un torticolis. Les cartes refusent de dire si c’était l’oreiller.',
+    'Pour chasser le fantôme caché dans votre code, vous écrirez console.log() à chaque ligne. Dans un coin, le débogueur attendra qu’on l’invite. Il attend depuis l’installation.',
+    'On vous livrera une pizza coupée en pointes de toutes les tailles, sans aucune logique. N’y touchez pas tout de suite : les cartes y lisent votre avenir, et il est mal découpé.',
+    'Au petit matin, vous tendrez la main vers le croissant posé sur la table. Il ouvrira un œil. Les cartes vous conseillent de déjeuner ailleurs.',
+    'Vous devrez modifier le code d’une autre équipe. Vous avancerez sur la pointe des pieds, comme entre des tombes. Ne réveillez rien : certaines fonctions dorment là depuis 2014.',
+    'Vous scruterez la boule de cristal avec une concentration parfaite. Ce que vous cherchez se tient pourtant juste derrière votre épaule gauche.',
+    'Un loup-garou montera dans votre voiture et fixera longuement votre sac de croustilles au fromage. Ne bougez pas. Les cartes ignorent si c’est vous ou le sac qui l’intéresse.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
