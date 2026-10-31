@@ -6,6 +6,7 @@ import { muted } from '@/audio/sfx'
 import { REPO_URL } from '@/content/finale'
 import { loadAbout, loadCollection, loadReset, loadSound, prefetch } from '@/lazy'
 import Vigilance from './Vigilance.vue'
+import TaskbarWindows from './TaskbarWindows.vue'
 import IconStart from '~icons/rvj/demarrer'
 import IconSound from '~icons/rvj/son'
 import IconSoundOff from '~icons/rvj/son-coupe'
@@ -55,19 +56,19 @@ const holdApplied = ref(session.balloonsHeld)
 let shownAt: number | null = null
 const holdDelay = ref(0)
 const { start: startHold, stop: stopHold } = useTimeoutFn(() => (holdApplied.value = true), holdDelay, { immediate: false })
-watch(
-  () => session.balloonsHeld,
-  (held) => {
-    stopHold()
-    if (!held) {
-      holdApplied.value = false
-      return
-    }
-    holdDelay.value = shownAt !== null && !holdApplied.value ? Math.max(0, MIN_VISIBLE_MS - (performance.now() - shownAt)) : 0
-    if (holdDelay.value > 0) startHold()
-    else holdApplied.value = true
-  },
-)
+// (Re)lance la retenue : le délai restant se calcule depuis l’affichage de la bulle COURANTE, et toute minuterie déjà lancée est remplacée
+// (une bulle fermée puis remplacée pendant l’attente ne doit pas hériter du délai de la précédente).
+const armHold = () => {
+  stopHold()
+  if (!session.balloonsHeld) {
+    holdApplied.value = false
+    return
+  }
+  holdDelay.value = shownAt !== null && !holdApplied.value ? Math.max(0, MIN_VISIBLE_MS - (performance.now() - shownAt)) : 0
+  if (holdDelay.value > 0) startHold()
+  else holdApplied.value = true
+}
+watch(() => session.balloonsHeld, armHold)
 const balloon = computed(() => (holdApplied.value ? null : (session.notifications[0] ?? null)))
 // Texte lu par la région d’annonce : vide entre deux bulles, pour que la suivante soit annoncée comme un changement.
 const balloonAnnounce = computed(() => (balloon.value ? [balloon.value.title, balloon.value.text].filter(Boolean).join(' : ') : ''))
@@ -78,6 +79,7 @@ watch(
     shownAt = id === undefined ? null : performance.now()
     if (id === undefined) stopBalloonTimer()
     else startBalloonTimer()
+    if (session.balloonsHeld && !holdApplied.value) armHold()
   },
   { immediate: true },
 )
@@ -97,7 +99,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     ref="rootEl"
     class="taskbar fixed bottom-0 inset-x-0 z-30 flex items-stretch justify-between gap-2 bg-[#c0c0c0] text-black text-[0.85rem] pt-[2px] pl-[max(2px,var(--safe-l))] pr-[max(2px,var(--safe-r))] pb-[max(2px,var(--safe-b))] box-border shadow-[inset_0_1px_#dfdfdf,inset_0_2px_#fff] select-none [-webkit-tap-highlight-color:transparent] touch-manipulation"
   >
-    <div class="relative flex">
+    <div class="relative flex shrink-0">
       <button
         ref="startBtn"
         class="win-btn relative before:content-[''] before:absolute before:-inset-[2px] flex items-center gap-[0.35rem] min-w-10 min-h-10 px-2 py-0 font-bold [font:inherit] font-bold border-0"
@@ -186,7 +188,10 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
       </div>
     </Transition>
 
-    <div class="flex items-stretch gap-1 pl-1 pr-1 bg-[#c0c0c0]" :class="inset">
+    <!-- Une fenêtre non modale ouverte = un bouton ; la zone prend la place restante et coupe : la zone de notification ne bouge jamais. -->
+    <TaskbarWindows />
+
+    <div class="flex shrink-0 items-stretch gap-1 pl-1 pr-1 bg-[#c0c0c0]" :class="inset">
       <Vigilance :level="level" class="flex items-center min-h-10 min-w-10 justify-center" @reset="emit('resetLevel')" />
       <button
         class="relative before:content-[''] before:absolute before:-inset-[2px] grid place-items-center w-10 min-h-10 p-0 border-0 bg-transparent cursor-pointer text-black"

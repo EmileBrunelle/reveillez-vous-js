@@ -9,6 +9,7 @@ import Taskbar from './components/Taskbar.vue'
 import FakeErrors from './components/FakeErrors.vue'
 import BgPlace from './components/backgrounds/BgPlace.vue'
 import { useProgressStore } from './stores/progress'
+import { useWindowsStore } from './stores/windows'
 import { useCollectionStore } from './stores/collection'
 import { isFinaleVisit, isQuickKnock } from './engine/paranoia'
 import { useTabTitle } from './composables/useTabTitle'
@@ -137,6 +138,9 @@ watch(
   },
   { flush: 'sync' },
 )
+// Les fausses fenêtres (gestionnaire non modal) n’existent que pendant la lecture : tout est vidé dès que la phase la quitte.
+const windows = useWindowsStore()
+watch(phase, (p) => p !== 'reading' && windows.clear())
 const layout = provideLayoutRefs()
 registerLayoutEl(layout.mainEl, mainEl)
 // Menu contextuel du navigateur coupé sur la surface du jeu : un clic droit ou un appui long (téléphone) pendant une activité

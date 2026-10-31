@@ -93,5 +93,5 @@ export const useWinDrag = (
   useResizeObserver(() => (handle.value ? host(handle.value) : null), reclamp) // taille de la fenêtre elle-même
 
   const style = computed(() => (offset.value.x || offset.value.y ? { translate: `${offset.value.x}px ${offset.value.y}px` } : undefined))
-  return { style, isDragging, narrow }
+  return { style, offset, isDragging, narrow }
 }
