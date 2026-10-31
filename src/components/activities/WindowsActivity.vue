@@ -65,7 +65,8 @@ const { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft, pause, 
   // Fin : les fenêtres se verrouillent (plus de frappe pendant l’issue) ; seule la réussite affiche la fin réussie.
   onFinish: (o) => {
     stopTicks()
-    lit.value = null
+    // Réussite : la dernière fenêtre cliquée garde sa lumière (`unflash` l’éteint après 450 ms) ; sinon, tout s’éteint.
+    if (o !== 'win') lit.value = null
     hint.value = null
     phase.value = o === 'win' ? 'won' : 'play'
   },

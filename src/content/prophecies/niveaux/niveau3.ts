@@ -41,7 +41,7 @@ export const niveau3: ContenuNiveau = {
     'Cette nuit, les fantômes de 2009 reviendront hanter votre fenêtre : un visage de troll vous sourira dans le noir, et un autre murmurera « Me gusta » en vous regardant dormir. Un problème ?',
     'À la poissonnerie, vous demanderez un sac de plastique. On vous répondra avec un sourire : « Pas besoin, il est déjà dedans. » Les esprits de la mer ne pardonnent pas.',
     'Au dépanneur, la tablette du lait évaporé sera vide. Ne vous inquiétez pas : le produit fonctionne exactement comme annoncé. Les esprits, eux, savent où est passée la personne partie en chercher il y a vingt ans.',
-    'Vous passerez l’hiver en Floride, comme tout le monde. En vacances, c’est un château. Pour y vivre, c’est un sous-sol humide où une souris géante vous attend dans le noir.',
+    'Vous rêverez d’un hiver en Floride. En vacances, c’est un château. Pour y vivre, c’est un sous-sol humide où une souris géante vous attend dans le noir.',
     'Au port de Montréal, un conteneur éventré vous attendra. Vous passerez la tête par la fente, juste pour voir. Ce n’est pas un conteneur Docker, et ce qui vit dedans vous regarde aussi.',
     'Vous direz, à voix haute, qu’on n’a pas besoin des maths pour faire de l’apprentissage profond. Un vieil arbre hanté vous entendra. Les cartes ne savent pas jusqu’où il vous lancera, mais c’est loin.',
     'jQuery est mort depuis des années, mais il ne le sait pas encore. Cette nuit, un vieux site gouvernemental chargera 4 Mo de ses modules sous vos yeux. Quelque part, un dragon en JavaScript pur vous fixe.',

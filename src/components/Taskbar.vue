@@ -65,7 +65,7 @@ const pad = (n: number) => String(n).padStart(2, '0')
 const hhmm = () => `${pad(now.value.getHours())}:${pad(now.value.getMinutes())}`
 
 const item =
-  'flex items-center gap-2 w-full min-h-[max(2.5rem,44px)] px-3 text-[0.9rem] text-black no-underline text-left cursor-pointer border-0 bg-transparent [font:inherit] hover:bg-[#000080] hover:text-white focus:bg-[#000080] focus:text-white focus:outline-none sm:min-h-8'
+  'flex items-center gap-2 w-full min-h-[max(2.5rem,44px)] px-3 text-[0.9rem] text-black no-underline text-left cursor-pointer border-0 bg-transparent [font:inherit] hover:bg-[#000080] hover:text-white focus-visible:bg-[#000080] focus-visible:text-white focus:outline-none sm:min-h-8'
 const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
 </script>
 

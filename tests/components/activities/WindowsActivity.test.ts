@@ -130,6 +130,16 @@ describe('WindowsActivity : saisie', () => {
     expect(allumee(w)).toBe(-1)
   })
 
+  it('la dernière fenêtre de l’ordre s’allume aussi, malgré la réussite immédiate', async () => {
+    const w = await monter()
+    await regarderDemo(w)
+    const ordre = sequence(w)
+    for (const i of ordre) await fenetres(w)[i].trigger('click')
+    expect(allumee(w)).toBe(ordre.at(-1))
+    await avancer(500)
+    expect(allumee(w)).toBe(-1)
+  })
+
   it('une faute secoue la maison, verrouille la saisie et rejoue la démonstration', async () => {
     const w = await monter()
     await regarderDemo(w)

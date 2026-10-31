@@ -22,7 +22,7 @@ export const niveau4: ContenuNiveau = {
     'La montgolfière de Saint-Jean plane au-dessus de votre maison. Elle sourit. Elle ne redescendra pas avant le 31.',
     'Réveillez-vous. Montréal n’a jamais existé. Regardez une carte : c’est le Grand Lac Saint-Laurent. On a tout peint.',
     'Les cartes voient une petite décision : une tablette achetée en solde. Puis un chalet. Puis un lac. Puis plus rien.',
-    'Réveillez-vous. La Floride était une région du Québec. Cette année, vos grands-parents ont passé l’hiver à Saint-Sauveur. Les cartes ont tout redessiné.',
+    'Réveillez-vous. La Floride n’a jamais existé : vos grands-parents passaient l’hiver dans un sous-sol de Saint-Sauveur, sous une lampe solaire. Les cartes ont tout vu.',
     'À la Place des Arts, une personne jouera de la flûte à bec. Vous reconnaîtrez l’air : c’est celui que vous fredonnez en dormant. Au pavillon des sciences, la même mélodie vous attendra dans l’ascenseur.',
     'Au camp de vacances, l’équipe des Verts reviendra du bois avec l’histoire la plus tordue de l’été. Tout le monde rira autour du feu. Puis on recomptera l’équipe : il y aura une personne de plus que ce matin.',
     'Un matin de brouillard, sur les plaines d’Abraham, un officier en tricorne vous demandera l’heure. Il semblera confiant, presque serein. Ne lui dites pas qu’il est bientôt 10 h.',

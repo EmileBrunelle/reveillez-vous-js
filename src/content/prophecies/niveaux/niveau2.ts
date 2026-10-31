@@ -41,7 +41,7 @@ export const niveau2: ContenuNiveau = {
     'Les cartes vous promettent une relation stable avec votre compilateur. Il vous dira exactement où est le problème : ligne 1, dans un fichier que vous n’avez jamais ouvert, sur 400 lignes que personne n’a jamais lues jusqu’au bout.',
     'Un profil vous écrira ce soir. Sa photo montre encore la barre d’adresse du navigateur et le titre de l’article : « Les 30 plus belles personnes de France ». Les cartes ne jugent pas. Les cartes notent seulement que l’esprit qui vous drague ne sait pas recadrer.',
     'Une banque d’images vous choisira pour illustrer « l’ingénierie ». On vous tendra un fer à souder par le bout qui chauffe, et vous sourirez quand même. Les cartes voient une carrière brillante et une main pansée.',
-    'Les cartes l’annoncent : à votre prochaine soirée, une personne vous confiera, sans que quiconque l’ait demandé, qu’elle utilise Arch, d’ailleurs. Même les esprits ont quitté la pièce.',
+    'Les cartes l’annoncent : à votre prochaine soirée, une personne vous confiera, sans que quiconque l’ait demandé, qu’elle utilise Arch Linux, d’ailleurs. Même les esprits ont quitté la pièce.',
     'Les cartes voient un manoir à 1 $ sur un site de vente en ligne. Vous cliquerez. Il arrivera dans huit semaines : quatre centimètres de haut, et hanté quand même.',
     'Une personne cessera de vous répondre du jour au lendemain. Ne lui en voulez pas : c’est un fantôme, c’est dans sa nature. Remerciez-la plutôt pour l’essai gratuit de 15 jours.',
     'À la cafétéria, une salière contiendra des cure-dents au lieu du sel. Vous en saupoudrerez quand même votre soupe. C’est l’épice interdite : même les sorcières n’y touchent pas.',
