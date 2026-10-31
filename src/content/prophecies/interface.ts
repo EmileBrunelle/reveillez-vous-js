@@ -62,6 +62,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'Installation', texte: 'Une soupe de sorcière s’installe. Ne fermez pas la session.' },
     { titre: 'Cône orange', texte: 'Détour obligatoire. L’erreur 511 est en travaux jusqu’en 2041.' },
     { titre: 'Lecteur A:', texte: 'Impossible de lire la carte. Insérez un tarot valide.' },
+    { titre: 'Période d’essai', texte: 'Votre période d’essai de 40 jours a expiré il y a 6 000 jours. Continuez quand même. Personne n’a jamais payé.' },
   ],
   erreur4: [
     { titre: 'Avertissement', texte: 'Le fichier FIL_ROUGE.DLL est utilisé par un autre programme. Ce programme, c’est vous.' },

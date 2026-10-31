@@ -194,6 +194,18 @@ export const niveaux: Grammar = {
         'Les cartes vous promettent une relation stable avec votre compilateur. Il vous dira exactement où est le problème : ligne 1, dans un fichier que vous n’avez jamais ouvert, sur 400 lignes que personne n’a jamais lues jusqu’au bout.',
       verset: '{verset}',
     },
+    {
+      question: '{question2}',
+      corps:
+        'Un profil vous écrira ce soir. Sa photo montre encore la barre d’adresse du navigateur et le titre de l’article : « Les 30 plus belles personnes de France ». Les cartes ne jugent pas. Les cartes notent seulement que l’esprit qui vous drague ne sait pas recadrer.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question2}',
+      corps:
+        'Une banque d’images vous choisira pour illustrer « l’ingénierie ». On vous tendra un fer à souder par le bout qui chauffe, et vous sourirez quand même. Les cartes voient une carrière brillante et une main pansée.',
+      verset: '{verset}',
+    },
   ],
 
   // ---- Niveau 3 · Conviction : fausses fêtes, Big Citrouille dans l’ombre ---------------------
@@ -289,6 +301,18 @@ export const niveaux: Grammar = {
       question: '{question3}',
       corps:
         'Cette nuit d’Halloween, les morts reviendront. Pas en fantômes : au dernier point de sauvegarde. Vous croiserez quelqu’un en chandail « On ne meurt pas, on réaparaît ». La faute est d’origine.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question3}',
+      corps:
+        'Dans le congélateur de vos grands-parents, un pot de crème glacée vous fera de l’œil. Ce sera de la sauce à spaghetti, comme toujours. Les cartes vous conseillent : coupez-le au couteau avant d’y croire, plus rien n’est fiable.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question3}',
+      corps:
+        'Les esprits vous préviennent : dans un laboratoire du pavillon PK, une prise électrique portera l’étiquette « Nettoyeur de clés ». Elle est déjà noircie. N’y croyez pas : les farces de l’au-delà sont toujours à 120 volts.',
       verset: '{verset}',
     },
   ],
