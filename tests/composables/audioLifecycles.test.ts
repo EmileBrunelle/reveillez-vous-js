@@ -81,6 +81,16 @@ describe('useKnockSchedule', () => {
     scope.stop()
     expect(mocks.cancel).toHaveBeenCalledOnce()
   })
+  it('un nouveau calendrier annule le précédent ; tout est arrêté à la destruction, une seule fois', () => {
+    const scope = effectScope()
+    const k = scope.run(() => useKnockSchedule())!
+    k.schedule([0, 1], 0.5, () => {})
+    k.schedule([0, 2], 0.5, () => {})
+    expect(mocks.cancel).toHaveBeenCalledOnce()
+    k.cancel()
+    scope.stop()
+    expect(mocks.cancel).toHaveBeenCalledTimes(2)
+  })
   it('sans calendrier, cancel ne fait rien', () => {
     const scope = effectScope()
     scope.run(() => useKnockSchedule())
@@ -95,6 +105,15 @@ describe('useStinger', () => {
     s.play('win', 0)
     scope.stop()
     expect(mocks.stopStinger).toHaveBeenCalledOnce()
+  })
+  it('un nouveau jingle coupe le précédent ; aucun arrêt en double à la destruction', () => {
+    const scope = effectScope()
+    const s = scope.run(() => useStinger())!
+    s.play('fail', 0)
+    s.play('win', 0)
+    expect(mocks.stopStinger).toHaveBeenCalledOnce()
+    scope.stop()
+    expect(mocks.stopStinger).toHaveBeenCalledTimes(2)
   })
   it('coupe le jingle si le son passe en muet', async () => {
     const scope = effectScope()
