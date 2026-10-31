@@ -83,6 +83,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'CHAT_NOIR.SYS', texte: 'Le chat noir d’à côté a changé votre mot de passe. Il le connaissait déjà.' },
     { titre: 'Explorateur', texte: 'Le dossier MINUIT est vide. Il se remplit pendant que vous lisez.' },
     { titre: 'Alerte', texte: 'Un cône orange se déplace tout seul sur votre bureau.' },
+    { titre: 'Mot de passe faible', texte: 'Votre mot de passe se sent vulnérable. Serrez votre ordinateur dans vos bras : vous l’êtes tout autant.' },
   ],
   erreur5: [
     { titre: 'ERREUR FATALE', texte: 'Une exception 0E a eu lieu à 31:10:00. Elle vous attendait.' },
