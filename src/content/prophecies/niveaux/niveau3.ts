@@ -48,6 +48,16 @@ export const niveau3: ContenuNiveau = {
     'Ce soir, vous remplacerez un if/else de cinq lignes par un seul ternaire, puis vous ajusterez votre nœud papillon devant le miroir. Le fantôme qui relira votre code demain n’aura pas la même élégance.',
     'Lors d’une séance, un fantôme vous expliquera longuement qu’il ne veut pas hanter, il veut avoir hanté. Sur le perron, le livreur de pizza attendra seulement que vous signiez.',
     'En classe, on annoncera une coquille dans le devoir : il fallait « réveiller les mots », pas « réveiller les morts ». Au cimetière, toute votre équipe se regardera en silence. Derrière, quelque chose gratte la terre.',
+    'Un esprit vous avouera qu’il ne hante que le côté serveur. Vous prononcerez seulement « CSS », et une bordure rouge apparaîtra autour de lui, comme une aura de peur.',
+    'Sur le mur d’une crypte, quelqu’un aura écrit : « Pour passer du bon temps, appelez. » Vous appellerez. Un squelette viendra vous pousser sur la balançoire du cimetière jusqu’à l’aube. Les cartes trouvent ça plutôt sain.',
+    'Quand on vous confiera un malheur, vous répondrez d’abord « Ça me fait de la peine », puis « Aïe », puis « F ». Votre réponse la plus évoluée sera une partie de billard. La boule numéro 8 l’avait prédit.',
+    'Pendant que vous flatterez trois canetons, un canard blanc fouillera votre sac et repartira avec votre portefeuille. Les cartes ignorent pour qui il travaille, mais il connaissait déjà votre adresse.',
+    'Un fantôme vous avouera qu’il vous hante en secret depuis trois ans. Vous finirez par accepter sa présence. Trois semaines plus tard, il déménagera dans l’appartement d’en face. Un instant : toute cette hantise, c’était son idée.',
+    'Un esprit vous écrira « mdr ». Les cartes traduisent : mort, déterré, revenu.',
+    'Un jeune esprit essaiera de vous piéger avec un vieux tour de planche Ouija. Vous répondrez calmement : « Ne me citez pas la magie ancienne. J’étais là quand elle a été écrite. » Les cartes notent que vous avez pris un coup de vieux.',
+    'L’au-delà vous suggérera une vidéo : « Devenir une meilleure personne en cinq minutes ». Vous choisirez « Ça ne m’intéresse pas ». Les cartes respectent ce choix, et le notent quelque part.',
+    'Votre téléviseur tombera du foyer, tablette comprise. Vous accuserez une vis mal serrée. Les cartes connaissent le vrai coupable : il hante ce foyer depuis bien avant les écrans plats.',
+    'Un esprit vous dira que le sarcasme ne mène nulle part. Vous répondrez qu’il vous a valu une place au championnat mondial de sarcasme, à Rimouski, en 1998. « Vraiment ? » « Non. » Pour une fois, les cartes ont ri.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
