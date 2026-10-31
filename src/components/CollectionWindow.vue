@@ -1,29 +1,32 @@
 <script setup lang="ts">
-import { nextTick, ref, useId, watch, useTemplateRef, type ComponentPublicInstance } from 'vue'
-import { unrefElement } from '@vueuse/core'
+import { nextTick, ref, shallowRef, useId, watch, useTemplateRef, type ComponentPublicInstance } from 'vue'
 import { Dialog } from '@vuetify/v0'
 import { animate } from 'motion-v'
-import { useReducedMotion } from '../composables/useReducedMotion'
-import { useDialogFocus } from '../composables/useDialogFocus'
-import { useCollectionStore } from '../stores/collection'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { useDialogFocus } from '@/composables/useDialogFocus'
+import { useCollectionStore } from '@/stores/collection'
 import TarotEmblem from './TarotEmblem.vue'
-import { cardCollect } from '../audio/cards'
+import { cardCollect } from '@/audio/cards'
 
 // v-model du parent = « veut ouvert ». Dialog de v0 (<dialog> natif) : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
 // Clic sur le fond = fermeture : défaut de v0 (`closeOnClickOutside`), gardé exprès, comme À propos.
 const id = useId()
 const titleId = `${id}-title` // convention de Dialog.Root : `${id}-title`
-const closeBtn = useTemplateRef<ComponentPublicInstance>('closeBtn') // Dialog.Close n’expose pas `element` (seul Atom le fait) : unrefElement donne l’élément
-const { restore } = useDialogFocus(open, () => unrefElement(closeBtn))
+// Dialog.Close en mode renderless : c’est notre <button> qui reçoit ses attributs, donc le ref donne directement l’élément (v0 1.3 n’expose pas `element` sur Dialog.Close).
+const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
+const { restore } = useDialogFocus(open, () => closeBtn.value)
 const collection = useCollectionStore()
 const reduced = useReducedMotion()
 
 // Le « nouveau » est figé à l’ouverture (la fermeture l’efface du stockage) : mis en évidence une seule fois.
 const highlight = ref<string | null>(null)
-const cells: Record<string, HTMLElement> = {}
-const setCell = (nom: string, el: unknown) => {
-  if (el instanceof HTMLElement) cells[nom] = el
+// Seule la case mise en évidence sert (défilement + ressort) : on ne garde qu’elle.
+// Ref fonction et non useTemplateRef : dans un v-for, ce dernier donne un tableau dont l’ordre ne suit pas la liste.
+const fresh = shallowRef<HTMLElement | null>(null)
+// Vue rappelle le ref avec null au démontage ou au changement de fonction : seule la case du « nouveau » écrit, null compris.
+const keepFresh = (nom: string) => (el: Element | ComponentPublicInstance | null) => {
+  if (nom === highlight.value) fresh.value = el instanceof HTMLElement ? el : null
 }
 
 watch(
@@ -33,7 +36,7 @@ watch(
     highlight.value = collection.fresh
     cardCollect(highlight.value !== null)
     await nextTick()
-    const el = highlight.value ? cells[highlight.value] : undefined
+    const el = highlight.value ? fresh.value : null
     if (el) {
       el.scrollIntoView({ block: 'nearest' })
       // Un seul ressort léger sur la transformation : pas de changement de luminance, rien en mouvement réduit.
@@ -72,7 +75,7 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
           <li
             v-for="e in collection.inventory"
             :key="e.nom"
-            :ref="(el) => setCell(e.nom, el)"
+            :ref="keepFresh(e.nom)"
             class="relative aspect-[7/12] shrink-0 min-w-0 box-border overflow-hidden rounded-[0.4rem] border-2 border-solid text-center [container-type:inline-size]"
             :class="[
               collection.seen.has(e.nom) ? 'bg-[#f0e4c8] text-[#2a1450] border-[#2a1450]' : 'bg-[#3a1f66] text-[#b9821a] border-[#1f1038]',
@@ -93,7 +96,9 @@ const btn = 'win-btn select-none touch-manipulation [font:inherit] border-0 focu
           </li>
         </ul>
         <div class="px-3 pb-3 flex justify-end">
-          <Dialog.Close ref="closeBtn" :class="btn">Fermer</Dialog.Close>
+          <Dialog.Close v-slot="{ attrs }" renderless>
+            <button ref="closeBtn" v-bind="attrs" :class="btn">Fermer</button>
+          </Dialog.Close>
         </div>
       </div>
     </Dialog.Content>

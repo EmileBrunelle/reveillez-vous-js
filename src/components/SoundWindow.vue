@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { useId, useTemplateRef, type ComponentPublicInstance } from 'vue'
-import { unrefElement } from '@vueuse/core'
+import { useId, useTemplateRef } from 'vue'
 import { Dialog } from '@vuetify/v0'
-import { useDialogFocus } from '../composables/useDialogFocus'
-import { previewEffects } from '../audio/sfx'
-import { useAudioStore, type VolumeKey } from '../stores/audio'
+import { useDialogFocus } from '@/composables/useDialogFocus'
+import { previewEffects } from '@/audio/sfx'
+import { useAudioStore, type VolumeKey } from '@/stores/audio'
 
 // v-model du parent = « veut ouvert ». Dialog de v0 (<dialog> natif) : Échap, piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })
 // Clic sur le fond = fermeture : défaut de v0 (`closeOnClickOutside`), gardé exprès, comme À propos.
 const uid = useId()
-const closeBtn = useTemplateRef<ComponentPublicInstance>('closeBtn') // Dialog.Close n’expose pas `element` (seul Atom le fait) : unrefElement donne l’élément
-const { restore } = useDialogFocus(open, () => unrefElement(closeBtn))
+// Dialog.Close en mode renderless : c’est notre <button> qui reçoit ses attributs, donc le ref donne directement l’élément (v0 1.3 n’expose pas `element` sur Dialog.Close).
+const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
+const { restore } = useDialogFocus(open, () => closeBtn.value)
 
 const sliders: { key: VolumeKey; label: string }[] = [
   { key: 'general', label: 'Volume général' },
@@ -62,7 +62,9 @@ const btn = `win-btn select-none touch-manipulation [font:inherit] border-0 min-
           </div>
           <div class="flex justify-end gap-2 pt-1">
             <button :class="btn" type="button" @click="audio.resetVolumes">Valeurs par défaut</button>
-            <Dialog.Close ref="closeBtn" :class="btn">Fermer</Dialog.Close>
+            <Dialog.Close v-slot="{ attrs }" renderless>
+              <button ref="closeBtn" v-bind="attrs" :class="btn">Fermer</button>
+            </Dialog.Close>
           </div>
         </div>
       </div>
