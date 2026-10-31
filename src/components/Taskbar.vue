@@ -131,7 +131,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
     >
       <div class="flex items-center gap-1 min-h-6">
         <span class="flex-none grid place-items-center w-4 h-4 rounded-full bg-[#000080] text-white text-[0.7rem] font-bold leading-none" aria-hidden="true">i</span>
-        <strong v-if="balloon.title" class="flex-1 min-w-0 truncate">{{ balloon.title }}</strong>
+        <strong v-if="balloon.title" class="flex-1 min-w-0 break-words leading-tight">{{ balloon.title }}</strong>
         <span v-else class="flex-1" />
         <button
           class="relative before:content-[''] before:absolute before:-inset-[10px] flex-none grid place-items-center w-6 h-6 p-0 border-0 bg-transparent text-black cursor-pointer text-[1rem] leading-none hover:bg-[#c0c0c0]"
