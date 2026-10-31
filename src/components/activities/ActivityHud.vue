@@ -2,9 +2,11 @@
 // Invite commune des activités chronométrées : un verbe géant qui surgit au ressort puis s’efface, une barre de temps
 // qui se vide en continu (animation CSS : aucune variation de luminance, seule la largeur change) et l’issue (réussite ou échec) affichée environ 1 s.
 // L’issue est annoncée ici une seule fois (région role=status) : les activités ne la répètent pas.
-import { computed, nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
+import { computed, inject, nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
-import { tryOnScopeDispose, useIntervalFn, useTimeoutFn } from '@vueuse/core'
+import { tryOnScopeDispose, useIntervalFn, useTimeoutFn, useWindowFocus } from '@vueuse/core'
+import { AWAY_KEY } from '@/composables/useActivityDone'
+import { focusQuietly } from '@/composables/focusQuietly'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '@/content/activityPrompts'
 import { ACTIVITY_GRACE_MS, durationOf, outcomeText, timeLeft, type Phase } from '@/engine/activityTiming'
@@ -57,6 +59,23 @@ tryOnScopeDispose(() => outcome === 'play' && releaseMusicTension())
 // Jingle en cours : coupé au démontage et si le son passe en muet pendant la lecture.
 const stinger = useStinger()
 
+// Fenêtre sans focus : useActivityDone suspend la minuterie et ne la relance qu’au bouton « Reprendre » (le temps de se préparer).
+// Contrôleur fourni par useActivityDone ; sans lui (HUD monté seul, tests), repli inerte : jamais de voile.
+const { away, resumeAway } = inject(AWAY_KEY, { away: ref(false), resumeAway: () => {} })
+const focused = useWindowFocus()
+const showPause = computed(() => away.value && outcome === 'play')
+const resumeEl = useTemplateRef<HTMLElement>('resumeEl')
+// Focus revenu : le bouton prend le focus (Entrée ou Espace reprend), sans anneau si la souris ou le doigt a ramené la fenêtre.
+watch(
+  [focused, showPause],
+  async ([f, s]) => {
+    if (!f || !s) return
+    await nextTick()
+    focusQuietly(resumeEl.value)
+  },
+  { flush: 'post' },
+)
+const pauseAnnouncement = computed(() => (showPause.value ? 'Jeu en pause.' : ''))
 const verbEl = useTemplateRef<HTMLElement>('verbEl')
 const resultEl = useTemplateRef<HTMLElement>('resultEl')
 // Retrait : le verbe géant, centré, s’efface en fondu (léger grossissement) au lieu de se ranger en bas à gauche.
@@ -92,7 +111,7 @@ watch(
 
 <template>
   <div class="pointer-events-none absolute inset-0 z-20 select-none" data-testid="activity-hud">
-    <p class="sr-only" role="status">{{ announcement }}</p>
+    <p class="sr-only" role="status">{{ pauseAnnouncement || announcement }}</p>
     <!-- verbe : plein centre à l’apparition, puis effacé en fondu -->
     <div class="absolute inset-0 flex items-center justify-center" :class="{ invisible: outcome !== 'play' }" aria-hidden="true">
       <p
@@ -115,6 +134,12 @@ watch(
       class="absolute bottom-3 left-3 right-32 sm:right-36 h-3.5 border-2 border-solid border-black bg-black/70 p-px"
     >
       <div :key="barKey" class="drain h-full origin-left" :style="{ animationDelay: drainFrom }" :class="{ paused: paused || outcome !== 'play' }" />
+    </div>
+    <!-- pause : la fenêtre a perdu le focus ; le voile capte les pointeurs (le clic qui ramène le focus ne touche pas le jeu), texte fixe, aucun clignotement -->
+    <div v-if="showPause" class="pointer-events-auto absolute inset-0 grid place-content-center justify-items-center gap-3 bg-black/60 text-center">
+      <p class="m-0 font-title font-bold text-[clamp(1.8rem,9vw,3.2rem)] leading-none text-amber-200 [text-shadow:0_3px_0_#000]">EN PAUSE</p>
+      <p v-if="!focused" class="m-0 font-ui text-lg text-amber-100/80">Revenez dans la fenêtre.</p>
+      <button ref="resumeEl" type="button" class="win-btn min-h-11 min-w-32 font-ui text-xl" @click="resumeAway">Reprendre</button>
     </div>
     <!-- issue -->
     <div v-if="outcome !== 'play'" class="absolute inset-x-0 bottom-14 flex justify-center px-4" aria-hidden="true">

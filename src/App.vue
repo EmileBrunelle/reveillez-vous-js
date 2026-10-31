@@ -17,7 +17,7 @@ import { ACTIVITY_PROMPTS } from './content/activityPrompts'
 import { createFocusOnce } from './composables/focusOnce'
 import { useLazyScenes } from './composables/useLazyScenes'
 import { useGameFlow } from './composables/useGameFlow'
-import { useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from './composables/useReducedMotion'
 import { useDeferredText } from './composables/useDeferredText'
 import { useLazyWindow } from './composables/useLazyWindow'
@@ -139,6 +139,11 @@ watch(
 )
 const layout = provideLayoutRefs()
 registerLayoutEl(layout.mainEl, mainEl)
+// Menu contextuel du navigateur coupé sur la surface du jeu : un clic droit ou un appui long (téléphone) pendant une activité
+// l’ouvrait par accident. Les liens gardent le leur (copier, ouvrir) ; dialogues et barre des tâches sont hors de `.app`.
+useEventListener(mainEl, 'contextmenu', (e: MouseEvent) => {
+  if (!(e.target instanceof Element && e.target.closest('a[href]'))) e.preventDefault()
+})
 const shakeApp = useShake(mainEl, { rotate: true })
 // La barre des tâches est hors de `.app` (fixe) : on la secoue aussi, plus doucement, pour que le claquement ébranle tout l’écran.
 // (Avant, elle tremblait par accident : les barres de défilement créées par la secousse déplaçaient le bas du viewport.)

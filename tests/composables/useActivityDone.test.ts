@@ -6,7 +6,8 @@ import { effectScope } from 'vue'
 const env = vi.hoisted(() => {
   const target = new EventTarget()
   // Le document est aussi un EventTarget : `useDocumentVisibility` y écoute `visibilitychange`.
-  const doc = Object.assign(new EventTarget(), { hidden: false, visibilityState: 'visible', createElement: () => ({}) })
+  // `hasFocus` : lu par `useWindowFocus` (pause quand la fenêtre perd le focus, signalé par `blur`/`focus` sur `window`).
+  const doc = Object.assign(new EventTarget(), { hidden: false, visibilityState: 'visible', createElement: () => ({}), hasFocus: () => true })
   Object.assign(target, { document: doc })
   Object.assign(globalThis, { window: target, document: doc })
   return { win: target, doc }
@@ -156,6 +157,42 @@ describe('useActivityDone', () => {
     expect(api.outcome.value).toBe('play')
     vi.advanceTimersByTime(1)
     expect(api.outcome.value).toBe('fail')
+    scope.stop()
+  })
+
+  it('une fenêtre sans focus met en pause : le retour du focus ne reprend pas, « Reprendre » oui avec le temps restant gardé', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 5000 }))!
+    vi.advanceTimersByTime(ACTIVITY_GRACE_MS + 2000)
+    win.dispatchEvent(new Event('blur'))
+    expect(api.paused.value).toBe(true)
+    expect(api.away.value).toBe(true)
+    vi.advanceTimersByTime(120_000)
+    expect(api.outcome.value).toBe('play')
+    win.dispatchEvent(new Event('focus'))
+    expect(api.paused.value).toBe(true)
+    expect(api.away.value).toBe(true)
+    vi.advanceTimersByTime(120_000)
+    expect(api.outcome.value).toBe('play')
+    api.resumeAway()
+    expect(api.paused.value).toBe(false)
+    expect(api.away.value).toBe(false)
+    vi.advanceTimersByTime(2999)
+    expect(api.outcome.value).toBe('play')
+    vi.advanceTimersByTime(1)
+    expect(api.outcome.value).toBe('fail')
+    scope.stop()
+  })
+
+  it('resumeAway sans pause « absent » ne fait rien (une pause manuelle reste en place)', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 5000 }))!
+    api.resumeAway()
+    expect(api.paused.value).toBe(false)
+    api.pause()
+    api.resumeAway()
+    expect(api.paused.value).toBe(true)
+    expect(api.away.value).toBe(false)
     scope.stop()
   })
 
