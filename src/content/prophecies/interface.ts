@@ -104,6 +104,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'RÉINITIALISATION', texte: 'LE FUTUR REDÉMARRE DANS 3… 2… 3… 1… 3…' },
     { titre: 'TOC TOC', texte: 'L’ERREUR FRAPPE À LA PORTE. ELLE CONNAÎT LE RYTHME.' },
     { titre: 'ANTIVIRUS', texte: 'LE VIRUS, C’EST LA FENÊTRE. LA FENÊTRE, C’EST VOUS.' },
+    { titre: 'Erreur de l’utilisateur', texte: 'Vous regardez des mèmes pour éviter de travailler. Ce n’est pas un bogue : c’est votre faute.' },
   ],
   // Icône (stop, warn, info, question) et boutons (« Réessayer/Annuler ») tirés au hasard pour chaque fausse erreur : la même phrase ne se présente jamais tout à fait pareil.
   erreur_icone: ['stop', 'warn', 'info', 'question'],
