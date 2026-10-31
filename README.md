@@ -3,12 +3,21 @@
 [![Jouer](https://img.shields.io/badge/jouer-en_ligne-8a2be2?style=flat-square)](https://emilebrunelle.github.io/reveillez-vous-js/)
 [![Déploiement](https://img.shields.io/github/actions/workflow/status/EmileBrunelle/reveillez-vous-js/deploy.yml?branch=main&style=flat-square&label=d%C3%A9ploiement)](https://github.com/EmileBrunelle/reveillez-vous-js/actions/workflows/deploy.yml)
 ![WebGPU requis](https://img.shields.io/badge/WebGPU-requis-005a9c?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-709_r%C3%A9ussis-brightgreen?style=flat-square)
+![Couverture](https://img.shields.io/badge/couverture-60%25-yellow?style=flat-square)
 ![Vue 3 et TypeScript](https://img.shields.io/badge/Vue_3-TypeScript-42b883?style=flat-square&logo=vuedotjs&logoColor=white)
 [![Défi Fortune.js](https://img.shields.io/badge/d%C3%A9fi-Fortune.js_%C2%B7_AGEEI-ff7518?style=flat-square)](https://ageei.org/calendrier#event-638e0f24-afd5-4d20-b8e2-c76e02931e1c)
 
-Une personne voyante frappe un rythme derrière une porte ; vous le répétez, la porte s’ouvre et une carte de tarot vous livre une prophétie. Plus vous revenez, plus le ton devient paranoïaque et le décor se détraque, le tout sous l’écran cathodique d’un vieux PC hanté (Windows 98), jusqu’à une finale qui rend la lumière du jour. Entrée individuelle au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026.
+> Frappez le bon rythme, ouvrez la porte, recevez votre prophétie.
 
-**Jouer : https://emilebrunelle.github.io/reveillez-vous-js/** (navigateur avec WebGPU requis, voir [Technologies](#technologies)). Une partie complète dure quelques minutes.
+**[Jouer en ligne](https://emilebrunelle.github.io/reveillez-vous-js/)** : une partie complète dure quelques minutes. Navigateur avec WebGPU requis (Chrome ou Edge récents recommandés, voir [Technologies](#technologies)).
+
+## En bref
+
+- Une personne voyante frappe un rythme derrière une porte ; vous le répétez, la porte s’ouvre et une carte de tarot vous livre une prophétie.
+- Plus vous revenez, plus le ton devient paranoïaque et le décor se détraque (niveaux 1 à 5), jusqu’à une finale qui rend la lumière du jour.
+- Le tout sous l’écran cathodique d’un vieux PC hanté (Windows 98), avec post-effet CRT en WebGPU.
+- Entrée individuelle au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026.
 
 ## Comment jouer
 
@@ -62,12 +71,23 @@ Polices (Google Fonts, licence SIL OFL) : [VT323](https://fonts.google.com/speci
 
 **WebGPU est obligatoire** (choix assumé, pas de version de secours). Chrome ou Edge récents sont recommandés ; sans WebGPU, un écran d’accueil l’indique. Sur téléphone, la page doit être servie en **HTTPS** (WebGPU exige un contexte sécurisé).
 
+## Qualité
+
+709 tests (94 fichiers, Vitest) couvrent le moteur, le contenu, l’audio, les stores et les composants. Couverture mesurée avec `npm run test:coverage` (v8, `src/`) :
+
+| Instructions | Branches | Fonctions | Lignes |
+| ------------ | -------- | --------- | ------ |
+| 59,6 %       | 47,1 %   | 60,3 %    | 60,0 % |
+
+Contrôles à passer avant toute livraison : `npx vitest run`, `npx vue-tsc -b`, `npm run lint` (ESLint, zéro avertissement), `npm run format:check` (Prettier) et `npm run build`.
+
 ## Lancer en local
 
 ```bash
 npm install
 npm run dev       # serveur de développement (`npm run dev -- --host` pour l’exposer sur le réseau local)
 npm test          # tests (vitest, dossier tests/)
+npm run test:coverage  # tests avec rapport de couverture (v8)
 npm run lint      # ESLint, zéro avertissement
 npm run format:check  # Prettier
 npm run build     # vue-tsc -b + build de production
