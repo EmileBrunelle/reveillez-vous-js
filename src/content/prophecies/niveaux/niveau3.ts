@@ -46,6 +46,8 @@ export const niveau3: ContenuNiveau = {
     'Vous direz, à voix haute, qu’on n’a pas besoin des maths pour faire de l’apprentissage profond. Un vieil arbre hanté vous entendra. Les cartes ne savent pas jusqu’où il vous lancera, mais c’est loin.',
     'jQuery est mort depuis des années, mais il ne le sait pas encore. Cette nuit, un vieux site gouvernemental chargera 4 Mo de ses modules sous vos yeux. Quelque part, un dragon en JavaScript pur vous fixe.',
     'Ce soir, vous remplacerez un if/else de cinq lignes par un seul ternaire, puis vous ajusterez votre nœud papillon devant le miroir. Le fantôme qui relira votre code demain n’aura pas la même élégance.',
+    'Lors d’une séance, un fantôme vous expliquera longuement qu’il ne veut pas hanter, il veut avoir hanté. Sur le perron, le livreur de pizza attendra seulement que vous signiez.',
+    'En classe, on annoncera une coquille dans le devoir : il fallait « réveiller les mots », pas « réveiller les morts ». Au cimetière, toute votre équipe se regardera en silence. Derrière, quelque chose gratte la terre.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
