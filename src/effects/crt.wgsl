@@ -72,7 +72,9 @@ fn sd_round(p: vec2f, b: vec2f, r: f32) -> f32 {
   let c = vec2f((uv.x - 0.5) * aspect, uv.y - 0.5);
   let sd = sd_round(c, vec2f(0.5 * aspect, 0.5), rr);
   let bezel = mix(smoothstep(-0.05, 0.0, sd_new), smoothstep(-0.30, 0.0, sd), land);
-  dark = dark + bezel * (0.38 + 0.22 * p);
+  // Lunette atténuée en bas au centre : le bouton principal (« Fermer la porte », « Réveillez-vous ») y reste lisible à tous les niveaux.
+  let bz = bezel * (1.0 - 0.7 * smoothstep(0.30, 0.15, abs(uv.x - 0.5)) * smoothstep(0.55, 0.8, uv.y));
+  dark = dark + bz * (0.38 + 0.22 * p);
   let c2 = uv - vec2f(0.5);
   let vig = mix(smoothstep(0.16 - 0.04 * p, 0.55, dot(c2, c2)), smoothstep(0.10 - 0.05 * p, 0.55, dot(c2, c2)), land);
   dark = dark + vig * (0.30 + 0.20 * p);
