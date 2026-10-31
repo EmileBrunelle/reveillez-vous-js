@@ -149,7 +149,7 @@ const skip = () => {
         </div>
         <div ref="body" class="p-4 min-h-[21.1111rem] select-text">
           <Dialog.Description as="p" class="[margin:0_0_0.9rem]">
-            <strong>Réveillez-vous.js</strong> : un jeu de voyance où l’on ouvre la porte, se concentre et tire une carte de tarot, pendant que la paranoïa monte.
+            <strong translate="no">Réveillez-vous.js</strong> : un jeu de voyance où l’on ouvre la porte, se concentre et tire une carte de tarot, pendant que la paranoïa monte.
           </Dialog.Description>
           <p class="[margin:0_0_0.9rem]">Par Émile Brunelle, pour le défi Fortune.js de l’AGEEI (UQAM), 2026.</p>
           <p class="[margin:0_0_0.9rem]">

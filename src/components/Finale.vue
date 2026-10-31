@@ -69,6 +69,21 @@ const showBox = computed(() => showText.value || showCredits.value)
 // au lieu d’apparaître d’un coup plus grand (voir useFinaleBox). Mouvement réduit : simple fondu, hauteur posée directement.
 const inner = useTemplateRef<HTMLElement>('inner')
 const boxStyle = useFinaleBox(inner, { reduced, skipped }, keep)
+// Pendant l’entrée du conteneur (échelle + décalage sur ressort), la section ne doit pas défiler : une transformation qui déborde compte dans
+// le défilement et faisait surgir des barres pendant environ une seconde. `overflow-clip` jusqu’à ce que le ressort se pose, puis `overflow-auto`
+// (le générique peut encore défiler sur petit écran). Mouvement réduit ou saut : pas de transformation, donc rien à attendre.
+const settling = ref(false)
+const { start: settleLater, stop: settleStop } = useTimeoutFn(() => (settling.value = false), 1500, { immediate: false })
+watch(showBox, (on) => {
+  if (!on || reduced.value || skipped.value) return
+  settling.value = true
+  settleLater()
+})
+watch(skipped, (on) => {
+  if (!on) return
+  settleStop()
+  settling.value = false
+})
 // Le texte s’efface avant que le générique ne prenne sa place (la hauteur du conteneur se règle pendant ce temps).
 const { leaveText, finishLeaving } = useTextLeave({ reduced, skipped })
 // Le focus arrive sur le conteneur nommé « Finale » dès l’entrée (App.vue, via focusTarget), puis sur « Recommencer » quand il apparaît.
@@ -180,7 +195,8 @@ const lineClass = (i: number) =>
   </div>
   <section
     ref="rootEl"
-    class="w-full max-w-[34rem] max-h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] overflow-auto grid gap-3 justify-items-center text-center text-white outline-none [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
+    class="w-full max-w-[34rem] max-h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] grid gap-3 justify-items-center text-center text-white outline-none [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
+    :class="settling ? 'overflow-clip' : 'overflow-auto'"
     tabindex="-1"
     aria-label="Finale"
   >
@@ -218,7 +234,7 @@ const lineClass = (i: number) =>
               </template>
             </div>
             <div v-if="showCredits" class="grid gap-3 justify-items-center">
-              <h2 v-rise="{ d: creditDelay(0) }" class="font-title m-0 text-[1.6rem] tracking-[0.06em]">{{ CREDITS_TITLE }}</h2>
+              <h2 v-rise="{ d: creditDelay(0) }" class="font-title m-0 text-[1.6rem] tracking-[0.06em]" translate="no">{{ CREDITS_TITLE }}</h2>
               <p v-for="(c, ci) in CREDITS_BODY" :key="c" v-rise="{ d: creditDelay(ci + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">{{ c }}</p>
               <p v-rise="{ d: creditDelay(CREDITS_BODY.length + 1) }" class="m-0 font-card text-[1.05rem] leading-snug">
                 {{ README_PREFIX
