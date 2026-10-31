@@ -1,11 +1,13 @@
 import { computed, defineAsyncComponent, defineComponent, h, ref, shallowRef, watch, type Component } from 'vue'
 import ChunkFailed from '../components/ChunkFailed.vue'
+import { tryAutoReload } from './chunkReload'
 
 type Loader = () => Promise<{ default: Component }>
 type Focusable = { focus?: () => void }
 
 /**
- * Scène chargée à la demande qui ne bloque jamais la partie : si le chunk échoue, le repli `ChunkFailed` s’affiche
+ * Scène chargée à la demande qui ne bloque jamais la partie : si le chunk échoue, la page se recharge d’elle-même une fois (voir chunkReload) ;
+ * sinon (hors ligne, échec répété), le repli `ChunkFailed` s’affiche
  * (« Réessayer » recharge la page, « Passer » appelle `skip`, s’il est fourni).
  * Pas de nouvel essai en place : le navigateur garde en cache un `import()` échoué pour la même URL, un retry rappellerait l’échec ;
  * un rechargement (recette Vite pour `vite:preloadError`) repart d’un cache propre, et la partie survit (visites en sessionStorage, sacs en localStorage).
@@ -20,6 +22,7 @@ export const lazyScene = (loader: Loader, skip?: () => void) => {
       const Async = defineAsyncComponent({
         loader,
         onError: (_error, _retry, fail) => {
+          if (tryAutoReload()) return fail()
           failed.value = true // l’enveloppe affiche le repli elle-même (pour garder sa ref)
           fail()
         },
