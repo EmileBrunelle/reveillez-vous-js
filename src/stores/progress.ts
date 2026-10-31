@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
 import { paranoiaLevel } from '@/engine/paranoia'
+import { LAST_ACTIVITY_KEY, PLAYED_ACTIVITIES_KEY } from '@/engine/activityPick'
 import { BAGS_KEY } from '@/engine/shuffleBag'
 import { safeSessionStorage, safeStorage } from '@/composables/safeStorage'
 
@@ -71,8 +72,10 @@ export const useProgressStore = defineStore('progress', () => {
 
   /** Une porte rouverte de plus ; renvoie le nouveau nombre de visites. */
   const bump = () => ++visits.value
-  /** Retour à 0 visite (niveau 1). Sacs de tirage et mémoire (localStorage) restent intacts. */
+  /** Retour à 0 visite (niveau 1), activités jouées oubliées. Sacs de tirage et mémoire (localStorage) restent intacts. */
   const reset = () => {
+    safeSessionStorage().removeItem(LAST_ACTIVITY_KEY)
+    safeSessionStorage().removeItem(PLAYED_ACTIVITIES_KEY)
     visits.value = 0
     knocked.value = false
     finaleSeen.value = false

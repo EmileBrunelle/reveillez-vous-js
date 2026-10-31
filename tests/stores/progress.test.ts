@@ -4,6 +4,7 @@ import { purgeLegacyVisits } from '@/migrations'
 import { arcaneIndex, FINALE_KEY, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '@/stores/progress'
 import { isQuickKnock } from '@/engine/paranoia'
 import { BAGS_KEY } from '@/engine/shuffleBag'
+import { LAST_ACTIVITY_KEY, PLAYED_ACTIVITIES_KEY } from '@/engine/activityPick'
 
 const m = new Map<string, string>()
 const ss = new Map<string, string>()
@@ -118,6 +119,25 @@ describe('progress store', () => {
     expect(JSON.parse(m.get(MEMORY_KEY)!)).toEqual({ lastArcane: 0, lastNom: null, lastLevel: 1, finished: false })
     s.finish()
     expect(fresh().memory.finished).toBe(true)
+  })
+
+  it('reset et completeFinale oublient les activités jouées (sessionStorage)', () => {
+    ss.set(LAST_ACTIVITY_KEY, 'ouija')
+    ss.set(PLAYED_ACTIVITIES_KEY, '["wisps","ouija"]')
+    fresh().reset()
+    expect(ss.has(LAST_ACTIVITY_KEY) || ss.has(PLAYED_ACTIVITIES_KEY)).toBe(false)
+    ss.set(LAST_ACTIVITY_KEY, 'crystal')
+    ss.set(PLAYED_ACTIVITIES_KEY, '["crystal"]')
+    fresh().completeFinale()
+    expect(ss.has(LAST_ACTIVITY_KEY) || ss.has(PLAYED_ACTIVITIES_KEY)).toBe(false)
+  })
+
+  it('rechargement après le point de non-retour : les activités jouées sont oubliées au démarrage', () => {
+    ss.set(FINALE_KEY, '1')
+    ss.set(LAST_ACTIVITY_KEY, 'crystal')
+    ss.set(PLAYED_ACTIVITIES_KEY, '["crystal"]')
+    fresh()
+    expect(ss.has(LAST_ACTIVITY_KEY) || ss.has(PLAYED_ACTIVITIES_KEY)).toBe(false)
   })
 
   it('completeFinale zeroes visits and bags, keeps the memory and marks finished', () => {

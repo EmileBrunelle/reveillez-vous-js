@@ -88,3 +88,12 @@ export const resetSafeStorageCache = () => {
   local.reset()
   session.reset()
 }
+
+/** Vrai si le vrai `sessionStorage` (pas la Map de repli) contient bien cette valeur, donc qu’elle survivrait à un rechargement. */
+export const realSessionHolds = (key: string, value: string): boolean => {
+  try {
+    return globalThis.sessionStorage.getItem(key) === value
+  } catch {
+    return false
+  }
+}
