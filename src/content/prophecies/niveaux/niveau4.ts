@@ -35,6 +35,7 @@ export const niveau4: ContenuNiveau = {
     'Les astres l’annoncent : un nouveau cadriciel JavaScript sortira demain. Vous réécrirez tout votre projet, et il sera périmé avant la fin de la réécriture. Ce jeu-ci est en Vue. Pour l’instant.',
     'Ce soir, la flamme de votre chandelle descendra s’asseoir à votre table, entourée de chiens, et dira en sirotant votre café : « Tout va bien. » Les cartes notent que, pour une fois, ce n’est pas vous qui brûlez.',
     'Sur le miroir embué de la salle de bain, un doigt invisible écrira « JE SUIS MORT ». Vous reculerez, puis la buée s’étendra : « … DE RIRE EN VOYANT VOTRE COIFFURE ».',
+    'Sur la planche Ouija, vous demanderez : « Êtes-vous un vrai esprit ? » La goutte glissera vers OUI. Vous insisterez. Elle glissera encore vers OUI. Les cartes, prudentes, vous déconseillent de lui donner votre NIP.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.

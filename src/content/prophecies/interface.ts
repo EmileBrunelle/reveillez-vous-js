@@ -40,6 +40,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'Avertissement de sécurité', texte: 'Un fantôme demande l’accès à vos fichiers.' },
     { titre: 'Programme inconnu', texte: 'Ça tourne en arrière-plan depuis le 1er octobre.' },
     { titre: 'Protection en temps réel', texte: 'Une menace a été détectée. Votre antivirus a pris la fuite.' },
+    { titre: 'Appel entrant', texte: 'L’au-delà tente de vous joindre. Il sait que vous préférez les textos. Il appelle quand même.' },
   ],
   bulle5: [
     { titre: 'Dernier avertissement', texte: 'Il n’y a plus de barre des tâches. Il n’y en a jamais eu.' },
