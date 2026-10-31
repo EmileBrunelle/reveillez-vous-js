@@ -33,6 +33,8 @@ export const niveau4: ContenuNiveau = {
     'Les cartes vous donnent un nombre : 70323. Ne le jouez pas à la loterie. Ce n’est pas un numéro chanceux : c’est votre futur matricule.',
     'Vous corrigerez le même bogue chaque lundi, et il reviendra chaque mardi. Les cartes citent Camus : « Il faut imaginer Sisyphe heureux. » La roche, dans votre cas, c’est le fichier package-lock.json.',
     'Les astres l’annoncent : un nouveau cadriciel JavaScript sortira demain. Vous réécrirez tout votre projet, et il sera périmé avant la fin de la réécriture. Ce jeu-ci est en Vue. Pour l’instant.',
+    'Ce soir, la flamme de votre chandelle descendra s’asseoir à votre table, entourée de chiens, et dira en sirotant votre café : « Tout va bien. » Les cartes notent que, pour une fois, ce n’est pas vous qui brûlez.',
+    'Sur le miroir embué de la salle de bain, un doigt invisible écrira « JE SUIS MORT ». Vous reculerez, puis la buée s’étendra : « … DE RIRE EN VOYANT VOTRE COIFFURE ».',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
