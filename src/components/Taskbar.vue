@@ -50,6 +50,8 @@ const session = useSessionStore()
 const BALLOON_MS = 7000
 // Retenue pendant une activité (voir le store de session).
 const balloon = computed(() => (session.balloonsHeld ? null : (session.notifications[0] ?? null)))
+// Texte lu par la région d’annonce : vide entre deux bulles, pour que la suivante soit annoncée comme un changement.
+const balloonAnnounce = computed(() => (balloon.value ? [balloon.value.title, balloon.value.text].filter(Boolean).join(' : ') : ''))
 const { start: startBalloonTimer, stop: stopBalloonTimer } = useTimeoutFn(() => balloon.value && session.dismiss(balloon.value.id), BALLOON_MS, { immediate: false })
 watch(
   () => balloon.value?.id,
@@ -104,7 +106,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
           Réveillez-vous&nbsp;<span class="font-normal">98</span>
         </div>
         <div class="flex-1 min-w-0 py-[2px]">
-          <button class="" :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
+          <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
           <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('collection')">Collection</button>
           <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('sound')">Son…</button>
           <a :class="item" :href="REPO_URL" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1" aria-label="Code source sur GitHub (nouvel onglet)" @click="close()">
@@ -122,12 +124,12 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
       </div>
     </div>
 
+    <!-- Région d’annonce toujours montée : une région aria-live insérée déjà remplie n’est souvent pas lue par les lecteurs d’écran. -->
+    <p class="sr-only" role="status" aria-live="polite">{{ balloonAnnounce }}</p>
     <div
       v-if="balloon"
       :key="balloon.id"
       class="balloon box-border absolute bottom-full right-[max(0.25rem,var(--safe-r))] mb-[10px] w-[min(18rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] max-sm:w-64 bg-[#ffffe1] text-black text-[0.85rem] border border-solid border-black p-[3px] shadow-[2px_2px_0_rgb(0_0_0/0.35)] motion-safe:animate-[balloon-in_0.2s_ease-out_both]"
-      role="status"
-      aria-live="polite"
     >
       <div class="flex items-center gap-1 min-h-6">
         <span class="flex-none grid place-items-center w-4 h-4 rounded-full bg-[#000080] text-white text-[0.7rem] font-bold leading-none" aria-hidden="true">i</span>
