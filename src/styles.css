@@ -99,7 +99,8 @@ body {
     0 0 0 2px #fff;
 }
 
-/* Anti-surlignage : surfaces interactives non sélectionnables, texte utile sélectionnable */
+/* Anti-surlignage : rien n’est sélectionnable dans le jeu, carte comprise (au toucher, un tap ou un double-tap pendant le
+   retournement surlignait un mot de la prophétie) */
 html,
 body,
 .app,
@@ -118,14 +119,6 @@ canvas {
 .scene,
 .app {
   touch-action: manipulation;
-}
-.tarot__title,
-.tarot__body,
-.tarot__verse,
-.tarot__banner,
-.tarot__numero {
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 /* Phase de lecture : tout l’écran tient dans la fenêtre (pas de défilement de page). Petit remplissage haut/bas (plus aucun
