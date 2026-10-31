@@ -30,12 +30,14 @@ export const interfaceTextes: Grammar = {
     { titre: 'Avertissement', texte: 'Un chat noir a traversé votre bureau.' },
     { titre: 'Nouveau matériel détecté', texte: 'Une carte de tarot a été installée sans votre accord.' },
     { titre: 'Rappel', texte: 'Le fil rouge est branché. Ne le débranchez pas.' },
+    { titre: 'Antivirus', texte: 'Le virus donnéebase a été hautdaté.' },
   ],
   bulle4: [
     { titre: 'Connexion à distance', texte: 'On s’est connecté à votre avenir.' },
     { titre: 'Espace disque faible', texte: 'Il reste très peu de destin sur le disque C:.' },
     { titre: 'Avertissement de sécurité', texte: 'Un fantôme demande l’accès à vos fichiers.' },
     { titre: 'Programme inconnu', texte: 'Ça tourne en arrière-plan depuis le 1er octobre.' },
+    { titre: 'Protection en temps réel', texte: 'Une menace a été détectée. Votre antivirus a pris la fuite.' },
   ],
   bulle5: [
     { titre: 'Dernier avertissement', texte: 'Il n’y a plus de barre des tâches. Il n’y en a jamais eu.' },

@@ -80,6 +80,24 @@ export const niveaux: Grammar = {
       corps: 'Ce soir, vous danserez pieds nus dans la cuisine sur de l’Angine de Poitrine. Les voisins parleront d’une transe ; les cartes, d’un rendez-vous avec le destin en sept temps.',
       verset: '{verset}',
     },
+    {
+      question: '{question1}',
+      corps:
+        'Les astres sont formels : quelque part, un bébé de six mois lit « HTML pour les bébés ». Dans vingt ans, cet enfant examinera votre candidature et la refusera : « expérience insuffisante ».',
+      verset: '{verset}',
+    },
+    {
+      question: '{question1}',
+      corps:
+        'Les cartes ont reconnu les trois esprits qui vous suivent depuis votre premier cours de programmation : NullPointer, IndexOutOfBounds et FileNotFound. Chaque fois qu’un malheur arrive, ce sont toujours les trois mêmes.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question1}',
+      corps:
+        'Cette nuit, l’enfant que vous étiez reviendra vous hanter. Pas pour se venger : seulement pour demander, une dernière fois, la permission de jouer à Minecraft. Les esprits observent une minute de silence.',
+      verset: '{verset}',
+    },
   ],
 
   // ---- Première lecture de la session (visites = 0) : pure voyance/Halloween, jamais de clin d’œil complotiste -------
@@ -206,6 +224,21 @@ export const niveaux: Grammar = {
         'Une banque d’images vous choisira pour illustrer « l’ingénierie ». On vous tendra un fer à souder par le bout qui chauffe, et vous sourirez quand même. Les cartes voient une carrière brillante et une main pansée.',
       verset: '{verset}',
     },
+    {
+      question: '{question2}',
+      corps: 'Les cartes l’annoncent : à votre prochaine soirée, une personne vous confiera, sans que quiconque l’ait demandé, qu’elle utilise Arch, d’ailleurs. Même les esprits ont quitté la pièce.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question2}',
+      corps: 'Les cartes voient un manoir à 1 $ sur un site de vente en ligne. Vous cliquerez. Il arrivera dans huit semaines : quatre centimètres de haut, et hanté quand même.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question2}',
+      corps: 'Une personne cessera de vous répondre du jour au lendemain. Ne lui en voulez pas : c’est un fantôme, c’est dans sa nature. Remerciez-la plutôt pour l’essai gratuit de 15 jours.',
+      verset: '{verset}',
+    },
   ],
 
   // ---- Niveau 3 · Conviction : fausses fêtes, Big Citrouille dans l’ombre ---------------------
@@ -315,6 +348,12 @@ export const niveaux: Grammar = {
         'Les esprits vous préviennent : dans un laboratoire du pavillon PK, une prise électrique portera l’étiquette « Nettoyeur de clés ». Elle est déjà noircie. N’y croyez pas : les farces de l’au-delà sont toujours à 120 volts.',
       verset: '{verset}',
     },
+    {
+      question: '{question3}',
+      corps:
+        'Cette nuit, les fantômes de 2009 reviendront hanter votre fenêtre : un visage de troll vous sourira dans le noir, et un autre murmurera « Me gusta » en vous regardant dormir. Un problème ?',
+      verset: '{verset}',
+    },
   ],
 
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
@@ -384,7 +423,13 @@ export const niveaux: Grammar = {
     },
     {
       question: '{question4}',
-      corps: 'Un message vocal de sept secondes vous arrivera d’un numéro inconnu. Ne l’écoutez pas : votre belle musique s’arrêterait, et ce qui parle dedans n’a pas une belle voix.',
+      corps:
+        'Les cartes vous préviennent : un message vocal de sept secondes vous arrivera d’un numéro inconnu. Ne l’écoutez pas : la musique s’arrêterait, et ce qui parle dedans n’a pas une belle voix.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question4}',
+      corps: 'Les cartes vous donnent un nombre : 70323. Ne le jouez pas à la loterie. Ce n’est pas un numéro chanceux : c’est votre futur matricule.',
       verset: '{verset}',
     },
   ],
