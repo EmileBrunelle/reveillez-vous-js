@@ -20,6 +20,9 @@ L’IA avait écrit « ILS LE SAVENT » pour désigner des personnes indétermin
 **Texte d’interface qui contredit l’action demandée** (27 et 31 octobre 2026)
 Deux fois, Émile a relevé une consigne à l’écran qui disait le contraire de ce qu’il fallait faire : « Ça dit « Suivez les follets » alors qu’il faut cliquer dessus » (27 octobre) et « Ça dit « Frappez » quand il faut retenir l’ordre » (31 octobre). Résultat : consigne des feux follets corrigée (« toucher ou cliquer », commit b6ad84b) et consignes distinctes selon que les fenêtres s’allument ou que c’est le tour de la personne (commit 1058bfc).
 
+**Floride : une incohérence, puis un texte jugé délicat** (31 octobre 2026)
+Émile a relevé une contradiction entre deux prophéties : « Pour la Floride, y’a une incohérence où ça dit que les grands-parents ne vont plus là-bas, mais une autre que ça dit de passer l’hiver en Floride ». L’IA a corrigé la première et recommandé, deux fois, de garder la seconde, une allusion à l’actualité des hivers passés aux États-Unis. Émile : « Donc on continue avec le texte controversé sur l’hiver en Floride ? ». Résultat : l’allusion d’actualité a été retirée au profit d’un faux complot absurde, cohérent avec l’autre niveau (commit a493c28).
+
 ### Technique et architecture
 
 **Piano de fond : « un enfant de 5 ans qui se pratique »** (27 octobre 2026)
@@ -56,6 +59,9 @@ L’IA avait réalisé l’allumage de l’écran cathodique par une ligne qui s
 **L’écran « WebGPU requis » sans mode d’emploi** (26 octobre 2026)
 L’IA avait écrit des instructions d’activation propres à chaque navigateur, et défendu la détection du navigateur avec des arguments techniques valables. Émile a tranché sur le produit : « On peut juste dire qu’il faut WebGPU sans dire comment faire pour l’activer ». Résultat : écran réduit au message, au bouton « Réessayer » et au pied de page, et suppression de la détection de navigateur (commit 807ebd4).
 
+**Bannière du README : l’image d’aperçu plutôt qu’une capture** (31 octobre 2026)
+Pour la bannière du README, l’IA avait lancé un agent chargé de capturer le jeu dans un navigateur avec le GPU. Émile : « Je pensais plus une bannière un peu comme l’image de preview du SEO ». L’IA a arrêté la capture et réutilisé l’image d’aperçu existante : une seule image pour le dépôt et les partages sur les réseaux sociaux, sans nouveau fichier à maintenir (commit 5f8b356).
+
 ## 2. Qui a décidé quoi
 
 Trois valeurs seulement. « IA » signifie qu’aucune demande ou validation explicite d’Émile n’a été trouvée dans les transcriptions.
@@ -83,6 +89,7 @@ Trois valeurs seulement. « IA » signifie qu’aucune demande ou validation exp
 | Commentaires du code en français                                                                   | Émile                  | 27 oct. : « Les commentaires dans le code doivent être en français »                                                                                                                                                   |
 | `Math.random` permis pour l’effet purement cosmétique                                              | Émile                  | 14 oct. : « Ouais, je ne tiens pas spécialement à secureRng » (les tirages de jeu restent injectables, décision de l’IA conservée)                                                                                     |
 | Polices auto-hébergées (Fontsource) plutôt que CDN                                                 | IA                     | 14 oct. : aucune demande d’Émile trouvée (il se disait « pas contre » un CDN) ; commit 3cee44d                                                                                                                         |
+| Couverture des tests visée au-delà de 90 %                                                         | Émile                  | 31 oct. : « Je pense que 90% tu y arriverais », contre l’avis de l’IA ; commit 5f8b356                                                                                                                                 |
 | Aucun déploiement sans l’accord d’Émile                                                            | IA                     | 14 oct. : l’IA écrit « Je ne déploierai rien sans ton accord » ; aucune demande d’Émile trouvée ; il pousse lui-même ou dit « Pousse » (31 oct.)                                                                       |
 
 ## 3. Ce que ça montre
