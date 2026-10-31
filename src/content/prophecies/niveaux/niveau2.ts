@@ -48,6 +48,7 @@ export const niveau2: ContenuNiveau = {
     'Un de vos parents vous ajoutera sur vos réseaux sociaux. Dès ce soir, vos publications ne montreront plus que des cours, des tisanes et un coucher à 21 h 13. Les esprits, eux, connaissent la vérité.',
     'Les cartes ne mentent jamais. Sauf celle du monde, accrochée dans votre classe et centrée sur le Pacifique : vous y chercherez le Québec pendant dix minutes, et le Portugal sera de l’autre bord de la planète.',
     'Cette nuit, sur votre table de chevet, « La nef des sorcières » s’ouvrira toute seule. Les monologues se liront à voix haute, chacun son tour. Les cartes vous conseillent d’écouter jusqu’au bout : on n’interrompt pas des sorcières.',
+    'Pour savoir si un nombre est négatif, vous écrirez d’abord x < 0. À minuit, votre cerveau s’illuminera : le signe, la division, la chaîne de caractères, puis les octets bruts. Les esprits, éblouis, n’oseront pas vous dire que la première version marchait.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
