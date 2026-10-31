@@ -25,6 +25,8 @@ export const interfaceTextes: Grammar = {
     { titre: 'Rappel', texte: 'Vous avez rendez-vous avec le 31 octobre.' },
     { titre: 'Barre des tâches', texte: 'La porte a été ouverte avant vous.' },
     { titre: 'Connexion non sécurisée', texte: 'Êtes-vous en HTTP ? Parce que ://' },
+    { titre: 'Avis de l’au-delà', texte: 'Vous utilisez peut-être vos données mobiles. Les esprits ne paient pas votre forfait.' },
+    { titre: 'Note de service', texte: 'Pas de Comic Sans : nous sommes une voyance Fortune.js, pas un kiosque à limonade.' },
   ],
   bulle3: [
     { titre: 'Connexion détectée', texte: 'Une personne consulte votre horoscope en ce moment.' },
@@ -33,6 +35,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'Rappel', texte: 'Le fil rouge est branché. Ne le débranchez pas.' },
     { titre: 'Antivirus', texte: 'Le virus donnéebase a été hautdaté.' },
     { titre: 'Fantôme aux oignons', texte: 'Suis-je encore « Fantôme aux oignons » dans votre téléphone ?' },
+    { titre: 'Caisse populaire de l’au-delà', texte: 'Votre âme est suspendue. Touchez le lien hanté ci-dessous pour la réactiver.' },
   ],
   bulle4: [
     { titre: 'Connexion à distance', texte: 'On s’est connecté à votre avenir.' },
@@ -108,6 +111,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'TOC TOC', texte: 'L’ERREUR FRAPPE À LA PORTE. ELLE CONNAÎT LE RYTHME.' },
     { titre: 'ANTIVIRUS', texte: 'LE VIRUS, C’EST LA FENÊTRE. LA FENÊTRE, C’EST VOUS.' },
     { titre: 'Erreur de l’utilisateur', texte: 'Vous regardez des mèmes pour éviter de travailler. Ce n’est pas un bogue : c’est votre faute.' },
+    { titre: 'Fermeture incorrecte', texte: 'L’au-delà ne s’est pas fermé correctement à votre dernière visite. Vérification des âmes en cours.' },
   ],
   // Icône (stop, warn, info, question) et boutons (« Réessayer/Annuler ») tirés au hasard pour chaque fausse erreur : la même phrase ne se présente jamais tout à fait pareil.
   erreur_icone: ['stop', 'warn', 'info', 'question'],

@@ -63,6 +63,8 @@ export const niveau1: ContenuNiveau = {
     'Votre maison sera hantée. Plutôt que d’appeler quelqu’un pour un exorcisme, vous installerez un deuxième fantôme pour s’occuper du premier. Les cartes appellent ça une solution moderne.',
     'Vous laisserez la porte de la consultation ouverte. Une voix venue de très loin prendra une immense inspiration, puis hurlera : « FERME LA PORTE, LES MOUCHES VONT RENTRER ! » Les cartes reconnaissent l’au-delà de votre enfance.',
     'Un squelette ira chez le dentiste. Il montrera fièrement ses dents du haut. Quand on lui demandera celles du bas, il se souviendra qu’il a égaré sa mâchoire en 1912.',
+    'Faute d’eau, vous ferez bouillir vos pâtes dans une boisson sportive bleue. Résultat : des pâtes vert sorcière. Les cartes rappellent qu’un chaudron, ça ne s’improvise pas.',
+    'Vous briserez un miroir en mille morceaux. Sept ans de malchance, annonceront les cartes. Un esprit serviable vous demandera si vous avez essayé de mettre le miroir dans le riz.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.

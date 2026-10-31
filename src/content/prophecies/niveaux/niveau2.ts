@@ -61,6 +61,7 @@ export const niveau2: ContenuNiveau = {
     'Un matin, le fantôme de votre appartement vous laissera un gâteau sur le comptoir. Au glaçage, on lira : « MERCI DE ME TOLÉRER ». Les cartes trouvent que c’est la meilleure colocation de votre vie.',
     'Dans les corridors de l’au-delà, une voix du service de garde vous rattrapera : « En rang deux par deux, pis ça presse ! On court pas dans les corridors ! » Les cartes confirment que, même après la mort, elle en a son voyage.',
     'Vous sculpterez la citrouille la plus terrifiante du quartier : une pile à 2 %. Les enfants passeront leur chemin sans comprendre. Les adultes, eux, chercheront un chargeur en tremblant.',
+    'Le 28 octobre 2034, un vaisseau décollera de Rawdon pour trouver une planète habitable à six milliards de Tatas. Les cartes vous voient à bord, et le voyage ne s’annonce pas reposant.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
