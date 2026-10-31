@@ -130,6 +130,9 @@ const burst = (c: AudioContext, at: number, dur: number, freq: number, gain: num
   return [src]
 }
 
+/** Rappel d’un coup entendu : son rang dans le motif et sa force. */
+export type KnockHit = (i: number, intensity: number) => void
+
 export interface KnockHandle {
   /** Instants des coups sur l’horloge lue par `now()` (l’horloge de l’AudioContext quand il tourne). */
   times: number[]
@@ -186,7 +189,7 @@ export const knock = (intensity: number) => {
  * que l’image et le son partagent une seule base de temps. Avant le déverrouillage audio (aucun contexte actif), le même
  * calendrier s’exécute en silence sur performance.now().
  */
-export const scheduleKnocks = (offsets: number[], intensity: number, onHit: (i: number, intensity: number) => void): KnockHandle => {
+export const scheduleKnocks = (offsets: number[], intensity: number, onHit: KnockHit): KnockHandle => {
   const live = ctx !== null && ctx.state === 'running'
   const now = live ? () => ctx!.currentTime : () => performance.now() / 1000
   const t0 = now() + 0.05
