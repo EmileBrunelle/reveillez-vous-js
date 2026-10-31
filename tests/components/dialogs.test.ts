@@ -72,17 +72,23 @@ describe('dialogues v0 : rôle et nom accessible', () => {
 })
 
 describe('dialogues v0 : conventions dont dépendent nos composants', () => {
-  it('Dialog.Root id="x" donne un titre d’id « x-title » (CollectionWindow.vue construit cet id)', async () => {
+  it('Dialog.Root id="x" donne un titre d’id « x-title » (WinDialog.vue construit cet id et le passe au slot en `titleId`)', async () => {
     const app = createSSRApp({
       render: () => h(Dialog.Root, { id: 'x' }, () => h(Dialog.Content, null, () => h(Dialog.Title, null, () => 'T'))),
     })
     expect(await renderToString(app)).toContain('<h2 id="x-title"')
   })
-  it('clic sur le fond : Dialog.Content le ferme par défaut et ni Son ni Collection ne le désactivent', () => {
+  it('clic sur le fond : Dialog.Content le ferme par défaut et WinDialog (donc Son et Collection) ne le désactive pas', () => {
     const def = (Dialog.Content as unknown as { props: { closeOnClickOutside: { default: boolean } } }).props.closeOnClickOutside.default
     expect(def).toBe(true)
+    const winDialog = readFileSync('src/components/WinDialog.vue', 'utf8')
+    // Garde contre un test vide : c’est WinDialog qui porte Dialog.Content, et les deux fenêtres passent par lui.
+    expect(winDialog).toContain('<Dialog.Content')
+    expect(winDialog).not.toMatch(/close-on-click-outside|closeOnClickOutside\s*=/)
     for (const f of ['SoundWindow', 'CollectionWindow']) {
-      expect(readFileSync(`src/components/${f}.vue`, 'utf8')).not.toMatch(/close-on-click-outside|closeOnClickOutside="?false/)
+      const src = readFileSync(`src/components/${f}.vue`, 'utf8')
+      expect(src).toContain('<WinDialog')
+      expect(src).not.toMatch(/<Dialog\.Content|close-on-click-outside|closeOnClickOutside\s*=/)
     }
   })
 })
