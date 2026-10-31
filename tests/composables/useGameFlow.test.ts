@@ -83,8 +83,18 @@ describe('useGameFlow : focusTarget', () => {
     scope.stop()
   })
 
-  it('niveau 5 : « Fermer la porte » mène à la finale, qui reçoit le focus', async () => {
+  it('niveau 5, première visite : « Fermer la porte » ramène encore à la porte', async () => {
     const { flow, scope } = make(7)
+    flow.onDone()
+    if (flow.phase.value === 'activity') flow.onActivityDone()
+    await flow.onPick('nuit')
+    flow.onClose()
+    expect(flow.phase.value).toBe('door')
+    scope.stop()
+  })
+
+  it('niveau 5, dernière visite : « Fermer la porte » mène à la finale, qui reçoit le focus', async () => {
+    const { flow, scope } = make(8)
     flow.onDone()
     if (flow.phase.value === 'activity') flow.onActivityDone()
     await flow.onPick('nuit')

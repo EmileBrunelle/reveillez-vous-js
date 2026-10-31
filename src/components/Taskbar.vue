@@ -87,7 +87,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         @pointerenter="warm"
         @focus="warm"
       >
-        <IconStart class="w-4 h-4" />
+        <IconStart class="w-6 h-[1.0625rem]" />
         <span>Démarrer</span>
       </button>
       <div
@@ -155,8 +155,9 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         type="button"
         aria-label="Couper le son"
         :aria-pressed="muted"
-        :title="muted ? 'Son coupé' : 'Son actif'"
+        :title="`${muted ? 'Son coupé' : 'Son actif'} (clic droit : réglages)`"
         @click="muted = !muted"
+        @contextmenu.prevent="emit('sound')"
       >
         <IconSoundOff v-if="muted" class="w-4 h-4" />
         <IconSound v-else class="w-4 h-4" />

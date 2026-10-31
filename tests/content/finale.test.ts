@@ -32,8 +32,8 @@ describe('contenu de la finale et du retour', () => {
     }
   })
 
-  it('le salut final est « Bonjour. » et le bouton de la porte « Réveillez-vous »', () => {
-    expect(FINALE_GREETING).toBe('Bonjour.')
+  it('le salut final est « Bonne journée. » et le bouton de la porte « Réveillez-vous »', () => {
+    expect(FINALE_GREETING).toBe('Bonne journée.')
     expect(WAKE_LABEL).toBe('Réveillez-vous')
     expect(FINALE_STORY).toHaveLength(5)
   })

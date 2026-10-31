@@ -11,7 +11,7 @@ const PAD_PEAK = 0.16
 const BELL_PEAK = 0.1
 const WHINE_PEAK = 0.06
 export const PAD_HZ = [110, 138.59, 164.81, 220, 277.18] // la majeur : A2 C♯3 E3 A3 C♯4
-/** « Bonjour » : le motif de l’aube (une octave plus haut, sinus pur, tempo ×1,3) précède la cloche de ~0,3 s. Le bus `master` est à FINALE_LEVEL : on compense pour viser ≈ -20 dBFS crête en sortie. */
+/** « Bonne journée » : le motif de l’aube (une octave plus haut, sinus pur, tempo ×1,3) précède la cloche de ~0,3 s. Le bus `master` est à FINALE_LEVEL : on compense pour viser ≈ -20 dBFS crête en sortie. */
 export const BELL_DELAY = 0.3
 export const BONJOUR_MOTIF_DB = -27
 export const PAD_RISE = 3.5
@@ -24,7 +24,7 @@ export interface FinaleAudio {
   dawn: () => void
   /** Le générique arrive : la nappe s’éteint doucement. */
   fadePad: () => void
-  /** Une cloche douce sur « Bonjour. ». */
+  /** Une cloche douce sur « Bonne journée. ». */
   bell: () => void
   /** Coupe tout en fondu (passer, Recommencer, démontage) ; idempotent. `releaseDuck` à false (saut de séquence) : les ambiances restent étouffées jusqu’au prochain arrêt complet. */
   stop: (releaseDuck?: boolean) => void

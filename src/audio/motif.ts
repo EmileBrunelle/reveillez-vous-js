@@ -5,7 +5,7 @@ import { muted } from './sfx'
 // vibrato tardif, passe-bas) et un écho de deux répétitions. Uniquement oscillateurs, gains et filtres biquad.
 export type MotifVariant = 'mystere' | 'aube'
 
-/** « mystère » : mi – la – si♭ (quarte juste puis demi-ton : 4/3 puis 16/15). « aube » : mi – la – do♯ (« Bonjour » seulement). */
+/** « mystère » : mi – la – si♭ (quarte juste puis demi-ton : 4/3 puis 16/15). « aube » : mi – la – do♯ (« Bonne journée » seulement). */
 export const MOTIF: Record<MotifVariant, { hz: readonly number[]; ms: readonly number[] }> = {
   mystere: { hz: [329.63, 440, 466.16], ms: [170, 170, 600] },
   aube: { hz: [329.63, 440, 554.37], ms: [170, 170, 900] },

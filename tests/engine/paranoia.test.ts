@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isQuickKnock, paranoiaLevel } from '@/engine/paranoia'
+import { FINALE_VISIT, isFinaleVisit, isQuickKnock, paranoiaLevel } from '@/engine/paranoia'
 
 describe('paranoiaLevel', () => {
   it('returns an integer 1..5 for 0..100 and never decreases', () => {
@@ -26,5 +26,13 @@ describe('isQuickKnock', () => {
   })
   it('never quick before the first knock', () => {
     for (const v of [0, 2, 7]) expect(isQuickKnock(false, paranoiaLevel(v))).toBe(false)
+  })
+
+  it('le niveau 5 dure deux visites avant la finale', () => {
+    expect(paranoiaLevel(7)).toBe(5)
+    expect(isFinaleVisit(7)).toBe(false)
+    expect(paranoiaLevel(8)).toBe(5)
+    expect(isFinaleVisit(8)).toBe(true)
+    expect(FINALE_VISIT).toBe(8)
   })
 })

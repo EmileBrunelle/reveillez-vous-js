@@ -12,7 +12,7 @@ export const FINALE_STORY = [
   'Votre avenir n’est écrit nulle part. C’est plutôt une bonne nouvelle.',
 ] as const
 
-export const FINALE_GREETING = 'Bonjour.'
+export const FINALE_GREETING = 'Bonne journée.'
 
 /** Générique : un titre, puis des lignes (la dernière est le remerciement). */
 export const CREDITS_TITLE = 'Réveillez-vous.js'

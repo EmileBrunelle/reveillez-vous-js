@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -76,6 +76,10 @@ pause('démonstration')
 const turnOrder = `fenêtres ${seq.map((n) => n + 1).join(', ')}`
 const status = useDeferredText(() => (outcome.value !== 'play' ? '' : phase.value === 'input' ? `À vous : ${turnOrder}.` : missed.value ? 'Ce n’était pas celle-là. On recommence.' : 'Regardez bien…'))
 
+// Consigne visible, qui suit la phase : regarder pendant la démonstration, frapper au tour du joueur.
+// Doublon visuel de la région aria-live (masqué aux lecteurs d’écran, qui ont déjà `status`).
+const guide = computed(() => (phase.value === 'input' ? 'À vous ! Frappez dans le même ordre.' : missed.value ? 'Ce n’était pas celle-là. Regardez encore…' : 'Regardez bien l’ordre des fenêtres…'))
+
 const startPlay = () => {
   if (outcome.value !== 'play') return
   phase.value = 'play'
@@ -121,7 +125,13 @@ const hit = (i: number) => {
 <template>
   <div class="size-full flex flex-col items-center justify-center gap-4 px-4 pb-2 select-none">
     <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>
-    <p class="font-ui text-xl text-center text-amber-100/90 max-w-[22ch]" :class="{ invisible: outcome !== 'play' }">Frappez aux fenêtres dans l’ordre où elles s’allument</p>
+    <p
+      class="font-ui text-xl text-center max-w-[22ch] min-h-[2lh] transition-colors duration-300"
+      :class="[{ invisible: outcome !== 'play' }, phase === 'input' ? 'text-amber-200' : 'text-amber-100/70']"
+      aria-hidden="true"
+    >
+      {{ guide }}
+    </p>
     <div ref="house" class="relative w-[min(78vw,300px)]">
       <div class="h-[70px] bg-[#0b0a10] [clip-path:polygon(50%_0,100%_100%,0_100%)]" aria-hidden="true" />
       <div class="grid grid-cols-2 gap-4 p-4 bg-[#0b0a10]">
@@ -131,8 +141,11 @@ const hit = (i: number) => {
           type="button"
           :aria-label="`Fenêtre ${i}`"
           :aria-disabled="phase !== 'input'"
-          class="aspect-[4/3] border-4 border-[#1d1a26] cursor-pointer transition-[background-color,box-shadow] duration-350 ease-in-out focus-visible:outline-3 focus-visible:outline-amber-200"
-          :class="lit === i - 1 ? 'bg-amber-300 shadow-[0_0_28px_8px_rgba(252,211,77,0.55)]' : hint === i - 1 ? 'bg-amber-900/50 shadow-[0_0_12px_2px_rgba(252,211,77,0.15)]' : 'bg-[#15131c]'"
+          class="aspect-[4/3] border-4 border-[#1d1a26] transition-[background-color,box-shadow] duration-350 ease-in-out focus-visible:outline-3 focus-visible:outline-amber-200"
+          :class="[
+            phase === 'input' ? 'cursor-pointer' : 'cursor-default',
+            lit === i - 1 ? 'bg-amber-300 shadow-[0_0_28px_8px_rgba(252,211,77,0.55)]' : hint === i - 1 ? 'bg-amber-900/50 shadow-[0_0_12px_2px_rgba(252,211,77,0.15)]' : 'bg-[#15131c]',
+          ]"
           @click="hit(i - 1)"
         />
       </div>

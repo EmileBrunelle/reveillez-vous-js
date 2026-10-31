@@ -22,6 +22,7 @@ import { secureRng } from '@/engine/rng'
 import { PAQUETS, type Paquet } from '@/engine/paquets'
 import { LAST_ACTIVITY_KEY, PLAYED_ACTIVITIES_KEY, parseActivityId, parsePlayed, pickActivity, type ActivityId } from '@/engine/activityPick'
 import { finaleActive } from '@/engine/finaleFlow'
+import { isFinaleVisit } from '@/engine/paranoia'
 import { hymn, unlock } from '@/audio/sfx'
 import { activityFor, loadFinale, loadTarotCard, prefetch } from '@/lazy'
 import { useProgressStore } from '@/stores/progress'
@@ -73,7 +74,7 @@ export const useGameFlow = () => {
 
   // Activité de la visite (tirée à l’ouverture de la porte ; null au niveau 1).
   const activityId = ref<ActivityId | null>(parseActivityId(safeSessionStorage().getItem(LAST_ACTIVITY_KEY))) // relue : un rechargement ne rejoue pas la même
-  // Efface la mémoire d’activités (dernière jouée et liste des jouées) : nouvelle partie.
+  // Efface la mémoire d’activités (dernière jouée et liste des jouées) : niveau 1 sans activité (`progress.reset()` fait de même au retour à zéro).
   const forgetActivities = () => {
     safeSessionStorage().removeItem(LAST_ACTIVITY_KEY)
     safeSessionStorage().removeItem(PLAYED_ACTIVITIES_KEY)
@@ -85,8 +86,7 @@ export const useGameFlow = () => {
 
   // « Recommencer à zéro » : on repart tout de suite au niveau 1, sans compter la visite en cours.
   const resetLevel = () => {
-    progress.reset()
-    forgetActivities()
+    progress.reset() // oublie aussi les activités jouées
     stopBubble()
     clearBubbles()
     if (phase.value === 'finale')
@@ -202,9 +202,9 @@ export const useGameFlow = () => {
   const onClosed = () => {
     enterDoor()
   }
-  // Niveau 5 : « Fermer la porte » passe par la finale, puis reprend le chemin habituel.
+  // Dernière visite du niveau 5 : « Fermer la porte » passe par la finale, puis reprend le chemin habituel.
   const onClose = () => {
-    if (level.value < 5) return leave(true)
+    if (!isFinaleVisit(progress.visits)) return leave(true)
     phase.value = 'finale'
     focusTarget.value = 'finale'
   }
@@ -222,7 +222,6 @@ export const useGameFlow = () => {
   const onFinaleRestart = () => {
     if (!finaleActive(phase.value)) return // double clic pendant la sortie : un seul « Recommencer »
     progress.completeFinale()
-    forgetActivities()
     returnGreeted = false
     stopBubble()
     clearBubbles()

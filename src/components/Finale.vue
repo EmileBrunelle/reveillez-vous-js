@@ -210,7 +210,7 @@ const lineClass = (i: number) =>
                   </template>
                 </p>
                 <template v-else-if="i === lines.length - 1">
-                  <!-- Le salut : une courte pause (filet) après le récit, puis « Bonjour. » à l’heure de la cloche, sur un ressort lent. -->
+                  <!-- Le salut : une courte pause (filet) après le récit, puis « Bonne journée. » à l’heure de la cloche, sur un ressort lent. -->
                   <span v-rise="{ y: 0, d: BELL_DELAY - 0.1 }" class="mt-2 h-px w-10 bg-white/50" aria-hidden="true" />
                   <p v-rise="{ d: BELL_DELAY, y: 6, soft: true }" class="m-0" :class="lineClass(i)">{{ l }}</p>
                 </template>
