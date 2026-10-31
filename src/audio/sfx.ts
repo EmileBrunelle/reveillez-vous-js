@@ -3,6 +3,7 @@ import { useDocumentVisibility, useEventListener, useRafFn } from '@vueuse/core'
 import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '@/stores/audio'
 import { startNoise } from './noise'
 import { playMotif } from './motif'
+import { activated, hasGestured, markGestured } from './unlock'
 
 /** Sourdine : miroir du store, sans cache (résolu à chaque lecture, jamais à l’import : pinia doit être actif). */
 export const muted = customRef<boolean>(() => ({
@@ -62,10 +63,8 @@ export const finaleOut = (c: AudioContext) => bus(c, 'finale')
 const resumeIfStopped = () => {
   if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume()
 }
-/** Vrai dès qu’un geste a eu lieu : avant, reprendre le contexte au retour de l’onglet déclencherait l’avertissement d’autoplay. */
-let gestured = false
 const onGesture = () => {
-  gestured = true
+  markGestured()
   resumeIfStopped()
 }
 
@@ -83,7 +82,7 @@ const watchContext = () => {
   volumeScope.run(() => {
     const visibility = useDocumentVisibility()
     watch(visibility, (v) => {
-      if (v === 'visible' && gestured) resumeIfStopped()
+      if (v === 'visible' && hasGestured()) resumeIfStopped()
     })
     // `pointerup` et `keydown` sont des gestes d’activation (Chrome tactile n’active pas l’audio sur `pointerdown`, et le clavier compte)
     useEventListener(['pointerup', 'keydown'], onGesture, { passive: true })
@@ -101,6 +100,8 @@ const watchContext = () => {
 let ctx: AudioContext | null = null
 export const ac = (): AudioContext | null => {
   if (ctx?.state === 'closed') ctx = null
+  // Avant le premier geste : aucun contexte (Chrome refuse de le démarrer et avertit à chaque tentative) ; les sons demandés restent muets.
+  if (!ctx && !activated()) return null
   if (!ctx) {
     const C = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!C) return null
@@ -113,7 +114,7 @@ export const ac = (): AudioContext | null => {
 }
 
 export const unlock = () => {
-  gestured = true
+  markGestured()
   if (ac()) resumeIfStopped()
 }
 
