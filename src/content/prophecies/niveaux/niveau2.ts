@@ -1,0 +1,63 @@
+// Niveau 2 · Soupçon : les liens apparaissent.
+import type { ContenuNiveau } from './index'
+
+export const niveau2: ContenuNiveau = {
+  questions: [
+    'Coïncidence ? Pas selon mon tarot.',
+    'Vous ne trouvez pas ça étrange, vous aussi ?',
+    'Encore vous, à la porte ? Les cartes l’avaient dit.',
+    'Et si votre horoscope vous cachait quelque chose ?',
+    'Avez-vous vu la pleine lune hier soir ? Elle, elle vous regardait.',
+    'Pourquoi les chats noirs évitent-ils votre regard ?',
+  ],
+  propheties: [
+    'Ma boule de cristal annonce que {futur} {moment}. Exactement comme je l’avais prédit. Exactement comme on l’avait prévu.',
+    '{objet.nom_maj} montre un chat noir, puis un fantôme, puis un sac de {bonbon}. Dans cet ordre. Pour vous. Le 31 octobre.',
+    'Mon tarot est clair : {futur} {moment}. Je ne crois pas aux coïncidences, je lis les cartes.',
+    '{industrie.inventeur_maj} {industrie.produit} pour nous vendre plus de {industrie.cible}. Et par hasard, la pleine lune vous annonce un achat de {industrie.cible} {moment}. Coïncidence ?',
+    'Saint-Clin-Clin-des-Meuh-Meuh est sur ma carte. Ma carte date de 1987. Vous y déménagerez le 1er juillet, sans camion.',
+    'On vous aperçoit {lieu}, en costume de citrouille, {moment}. Non, ne niez pas : c’est dans votre horoscope.',
+    'Trois chats noirs, deux fantômes, un seul fournisseur de {bonbon}. Mon tarot en tire une conclusion : vous passerez la nuit du 31 octobre à compter vos bonbons.',
+    'Ce soir, à minuit, {objet.nom} va changer de couleur. Si vous ne le voyez pas, c’est que vous en faites partie.',
+    'Vous avez rouvert la porte. Avant même que je frappe, {objet.nom} l’avait annoncé. J’ai noté l’heure. Vous aussi, je pense.',
+    'Votre boule de cristal montre une tourtière. Au Lac-Saint-Jean, on vous dira que ce n’en est pas une. La voyance ne tranchera pas ce débat.',
+    'Ce soir, vous remettrez une araignée dehors au lieu de l’écraser. Vous vous sentirez sage. Elle mourra d’hypothermie. Les cartes ne jugent pas.',
+    'En vous, il y a deux loups. L’un veut du Paris Pâté. L’autre veut des sardines. Les cartes savent lequel gagnera demain matin. Elles ne le diront pas.',
+    'Les cartes sont formelles : les Nordiques reviendront. Les Expos aussi. Les cartes disent ça depuis 1995. Elles sont patientes.',
+    'Une malédiction pèse sur vous : le chili du Tim, avec le p’tit pain et les deux beurres. Vous y retournerez demain. Les cartes ne peuvent rien pour vous.',
+    'Votre carte est le Magicien du Québec. Dès que quelque chose arrive dans votre vie, vous lancez un sort. Le sort s’appelle « Tabarnouche ». Il est très efficace.',
+    'En entrevue, on vous demandera d’expliquer le trou de trois ans dans votre CV. Répondez : « J’étais en consultation de voyance. » C’est la vérité.',
+    'Le Café Campus n’a jamais servi de café. Les cartes le savent et se demandent ce qu’on y sert vraiment, et pourquoi vous y retournez jeudi.',
+    'Une personne en visite vous demandera où est « le vrai Québec ». Vous pointerez au loin. Cette personne aura tort. Vous aussi.',
+    'Ce temps des fêtes, vous recevrez une bouteille de whisky à l’érable. Vous l’offrirez à une autre personne l’an prochain. Les cartes ont vu son voyage : elle circule depuis 2014.',
+    'Le cipaille gaspésien de votre prochain réveillon a déjà six étages. Les astres en ont compté un septième, sous la croûte.',
+    'D’ici 2028, votre ancienne école deviendra une sandwicherie. Vous y commanderez un sous-marin sans savoir pourquoi votre cœur se serre devant le comptoir à condiments.',
+    'Vous achèterez une commode sur Marketplace à quelqu’un dont la photo de profil est un doré tenu à bout de bras. Ne posez pas de questions : le poisson, lui, vous a déjà vu venir.',
+    'Quelqu’un vous aime en secret : votre grand-mère, depuis l’au-delà. Elle trouve que vous ne mangez pas assez et vous laissera un pot de cretons sur le perron.',
+    'Cette semaine, vous remettrez votre démission chez Tim Hortons. Vous n’y avez jamais travaillé. Le gérant l’acceptera quand même, les larmes aux yeux, avec un double-double.',
+    'On vous l’avait dit : les maths fortes ouvrent des portes. Celle-ci, par exemple. Vous auriez peut-être dû la laisser fermée.',
+    'À votre premier rendez-vous, la personne en face de vous avouera préférer le Benny au St-Hubert. Les cartes se taisent. Quelque part, une sauce brune refroidit en signe de deuil.',
+    'Les esprits vous préviennent : dans les toilettes du pavillon SH, un chien chaud vous attendra sur le réservoir, avec un papillon « Gratuit ! ». Ne le mangez pas. Ce n’est pas un cadeau : c’est un test, et quelqu’un note les résultats.',
+    'Les cartes vous promettent une relation stable avec votre compilateur. Il vous dira exactement où est le problème : ligne 1, dans un fichier que vous n’avez jamais ouvert, sur 400 lignes que personne n’a jamais lues jusqu’au bout.',
+    'Un profil vous écrira ce soir. Sa photo montre encore la barre d’adresse du navigateur et le titre de l’article : « Les 30 plus belles personnes de France ». Les cartes ne jugent pas. Les cartes notent seulement que l’esprit qui vous drague ne sait pas recadrer.',
+    'Une banque d’images vous choisira pour illustrer « l’ingénierie ». On vous tendra un fer à souder par le bout qui chauffe, et vous sourirez quand même. Les cartes voient une carrière brillante et une main pansée.',
+    'Les cartes l’annoncent : à votre prochaine soirée, une personne vous confiera, sans que quiconque l’ait demandé, qu’elle utilise Arch, d’ailleurs. Même les esprits ont quitté la pièce.',
+    'Les cartes voient un manoir à 1 $ sur un site de vente en ligne. Vous cliquerez. Il arrivera dans huit semaines : quatre centimètres de haut, et hanté quand même.',
+    'Une personne cessera de vous répondre du jour au lendemain. Ne lui en voulez pas : c’est un fantôme, c’est dans sa nature. Remerciez-la plutôt pour l’essai gratuit de 15 jours.',
+  ],
+  // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
+  // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
+  seches: [
+    'Vous irez à un souper de famille. Ça se passera mal. On parlera de politique. Un fantôme apportera le dessert et sauvera la soirée.',
+    'Vous traverserez le pont Jacques-Cartier à minuit. Ça se passera mal. Il y aura des cônes orange. Un fantôme vous offrira du covoiturage. Vous accepterez.',
+  ],
+  // Rappel de la carte précédente (`{carte}`, `{carte_maj}`, `{carte_caps}`).
+  rappels: [
+    'La dernière fois, vous avez tiré {carte}. Je m’en souviens très bien.',
+    'Vous revoilà. {carte_maj}, c’était la dernière fois. Je l’ai noté quelque part.',
+    'Après {carte}, je me doutais que vous reviendriez.',
+    'Je repense à votre tirage : {carte}. Vous aussi, je parie.',
+    'Alors, {carte} ? Ça a fait son effet depuis ?',
+    'Toc toc. Vous avez tiré {carte} et vous voilà de retour. Les cartes aiment avoir raison.',
+  ],
+}

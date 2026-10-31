@@ -5,7 +5,7 @@ import { prophecies, tableKey } from '../../src/content/prophecies'
 import { BANNED, CONTRACTIONS, RELIGION, bannedRe } from './rules'
 
 /** Tout le code source du contenu (chaque fichier du dossier), pour les balayages de mots interdits. */
-const raw = Object.values(import.meta.glob('../../src/content/prophecies/*.ts', { query: '?raw', eager: true, import: 'default' })).join('\n')
+const raw = Object.values(import.meta.glob('../../src/content/prophecies/**/*.ts', { query: '?raw', eager: true, import: 'default' })).join('\n')
 
 const SEEDS = 60
 const levels = [1, 2, 3, 4, 5] as const
