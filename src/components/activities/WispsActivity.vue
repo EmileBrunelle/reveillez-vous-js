@@ -17,7 +17,7 @@ const { level } = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
-const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), { durationMs: durationOf('wisps') })
+const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), { durationMs: durationOf('wisps') })
 const rng: Rng = secureRng()
 
 const TOTAL = 3
@@ -94,10 +94,11 @@ const spawn = () => {
 }
 
 const { start: nextWisp } = useTimeoutFn(
-  () => {
-    waiting = false
-    spawn()
-  },
+  () =>
+    afterPause(() => {
+      waiting = false
+      spawn()
+    }),
   700,
   { immediate: false },
 )
@@ -117,7 +118,8 @@ const catchIt = () => {
 
 const { pause } = useRafFn(({ delta }) => {
   if (isFinished()) return pause()
-  if (width.value === 0) return
+  // En pause (onglet caché, fenêtre sans focus) : le feu follet se fige, la boucle reste armée pour la reprise.
+  if (paused.value || width.value === 0) return
   const dt = Math.min(delta / 1000, 1 / 30)
   if (!placed && !waiting) spawn()
   if (!visible.value || blooming.value) return

@@ -7,7 +7,7 @@ const env = vi.hoisted(() => {
   const target = new EventTarget()
   // Le document est aussi un EventTarget : `useDocumentVisibility` y écoute `visibilitychange`.
   // `hasFocus` : lu par `useWindowFocus` (pause quand la fenêtre perd le focus, signalé par `blur`/`focus` sur `window`).
-  const doc = Object.assign(new EventTarget(), { hidden: false, visibilityState: 'visible', createElement: () => ({}), hasFocus: () => true })
+  const doc = Object.assign(new EventTarget(), { hidden: false, visibilityState: 'visible', createElement: () => ({}), hasFocus: (): boolean => true })
   Object.assign(target, { document: doc })
   Object.assign(globalThis, { window: target, document: doc })
   return { win: target, doc }
@@ -160,6 +160,20 @@ describe('useActivityDone', () => {
     scope.stop()
   })
 
+  it('une activité qui démarre sans focus (fenêtre quittée pendant la transition) démarre en pause', () => {
+    doc.hasFocus = () => false
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 5000 }))!
+    doc.hasFocus = () => true
+    expect(api.paused.value).toBe(true)
+    expect(api.away.value).toBe(true)
+    vi.advanceTimersByTime(120_000)
+    expect(api.outcome.value).toBe('play')
+    api.resumeAway()
+    expect(api.paused.value).toBe(false)
+    scope.stop()
+  })
+
   it('une fenêtre sans focus met en pause : le retour du focus ne reprend pas, « Reprendre » oui avec le temps restant gardé', () => {
     const scope = effectScope()
     const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 5000 }))!
@@ -217,6 +231,62 @@ describe('useActivityDone', () => {
     expect(api.canSkip.value).toBe(true)
     api.pause('démonstration')
     expect(api.canSkip.value).toBe(false)
+    scope.stop()
+  })
+  it('afterPause exécute tout de suite hors pause', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn()))!
+    const fn = vi.fn()
+    api.afterPause(fn)
+    expect(fn).toHaveBeenCalledTimes(1)
+    scope.stop()
+  })
+
+  it('afterPause attend la reprise, une seule fois, et ignore une activité finie', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn()))!
+    win.dispatchEvent(new Event('blur'))
+    const fn = vi.fn()
+    api.afterPause(fn)
+    expect(fn).not.toHaveBeenCalled()
+    api.resumeAway()
+    expect(fn).toHaveBeenCalledTimes(1)
+    // Une seconde pause puis reprise ne rejoue pas la fonction (le focus revient d’abord, sinon `blur` ne change rien).
+    win.dispatchEvent(new Event('focus'))
+    win.dispatchEvent(new Event('blur'))
+    api.resumeAway()
+    expect(fn).toHaveBeenCalledTimes(1)
+    // Fin d’activité pendant la pause : la fonction en attente est ignorée.
+    win.dispatchEvent(new Event('focus'))
+    win.dispatchEvent(new Event('blur'))
+    const tard = vi.fn()
+    api.afterPause(tard)
+    api.finish()
+    api.resumeAway()
+    expect(tard).not.toHaveBeenCalled()
+    scope.stop()
+  })
+
+  it('afterPause : une activité démontée pendant la pause n’exécute plus rien à la reprise', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn()))!
+    win.dispatchEvent(new Event('blur'))
+    const fn = vi.fn()
+    // Appel hors de la portée, comme depuis une minuterie.
+    api.afterPause(fn)
+    scope.stop()
+    api.resumeAway()
+    expect(fn).not.toHaveBeenCalled()
+    win.dispatchEvent(new Event('focus'))
+  })
+
+  it('afterPause n’attend pas la pause « démonstration » voulue par l’activité', () => {
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn()))!
+    api.pause('démonstration')
+    const fn = vi.fn()
+    api.afterPause(fn)
+    expect(fn).toHaveBeenCalledTimes(1)
     scope.stop()
   })
 })

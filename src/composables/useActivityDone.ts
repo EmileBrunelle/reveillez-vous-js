@@ -1,5 +1,5 @@
 import { throttleFilter, useDocumentVisibility, useIdle, useTimeoutFn, useWindowFocus } from '@vueuse/core'
-import { getCurrentInstance, provide, ref, watch, type InjectionKey, type Ref } from 'vue'
+import { getCurrentInstance, getCurrentScope, provide, ref, watch, type InjectionKey, type Ref } from 'vue'
 import { ACTIVITY_GRACE_MS, OUTCOME_MS, type Outcome, type Phase } from '@/engine/activityTiming'
 
 // Délai de réussite automatique : une activité se réussit toujours, même sans y toucher.
@@ -87,24 +87,31 @@ export const useActivityDone = (
     if (mustPause) canSkip.value = false
   }
   const away = ref(false)
+  // `halted` = pause subie (onglet caché ou fenêtre quittée), à l’exclusion des pauses voulues par l’activité (ex. démonstration) :
+  // c’est elle que les minuteries de jeu doivent respecter.
+  const halted = ref(false)
+  const refreshReasons = () => {
+    away.value = reasons.has(AWAY)
+    halted.value = away.value || reasons.has(HIDDEN)
+    sync()
+  }
   const pause = (reason = MANUAL) => {
     reasons.add(reason)
-    away.value = reasons.has(AWAY)
-    sync()
+    refreshReasons()
   }
   const resume = (reason = MANUAL) => {
     if (!reasons.delete(reason)) return
-    away.value = reasons.has(AWAY)
-    sync()
+    refreshReasons()
   }
   // Pause automatique quand le document est caché.
   const visibility = useDocumentVisibility()
   watch(visibility, (v) => (v === 'hidden' ? pause(HIDDEN) : resume(HIDDEN)), { flush: 'sync', immediate: true })
   // Pause aussi quand la fenêtre perd le focus (clic dans une autre application, onglet toujours visible) : le temps ne file pas
   // pendant qu’on ne joue pas. Au retour du focus, pas de reprise automatique : `resumeAway` (bouton du HUD) la décide.
-  // Sur la perte seulement (pas `immediate`) : une page chargée sans focus (test automatisé, ouverture en arrière-plan) ne démarre pas en pause.
+  // Vérifié dès le départ (`immediate`) : une activité démarre toujours après un clic, donc une fenêtre sans focus à ce moment
+  // veut dire qu’on l’a quittée pendant la transition (fondu, chargement du morceau) ; l’activité démarre alors en pause.
   const focused = useWindowFocus()
-  watch(focused, (f) => !f && pause(AWAY), { flush: 'sync' })
+  watch(focused, (f) => !f && pause(AWAY), { flush: 'sync', immediate: true })
   const resumeAway = () => resume(AWAY)
   // Hors composant (tests de la logique seule), `provide` n’a pas de sens : le HUD retombe alors sur son repli inerte.
   if (getCurrentInstance()) provide(AWAY_KEY, { away, resumeAway })
@@ -132,5 +139,22 @@ export const useActivityDone = (
     { flush: 'sync' },
   )
   watch(paused, (p) => !p && !finished && resetIdle(), { flush: 'sync' })
-  return { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft, pause, resume, away, resumeAway, isFinished: () => finished }
+  // Exécute `fn` tout de suite hors pause ; en pause (`halted`, pas la démonstration d’une activité), une seule fois à la reprise (ignoré si l’activité est finie entre-temps).
+  // Sert aux minuteries de jeu qui ne doivent pas agir derrière le voile « EN PAUSE ».
+  // L’attente est rattachée à la portée de l’activité (appel depuis une minuterie = hors composant) : démontée pendant la pause, elle disparaît avec elle.
+  const scope = getCurrentScope()
+  const afterPause = (fn: () => void) => {
+    if (!halted.value) return fn()
+    const wait = () =>
+      watch(
+        halted,
+        () => {
+          if (!finished) fn()
+        },
+        { flush: 'sync', once: true },
+      )
+    if (scope) scope.run(wait)
+    else wait()
+  }
+  return { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft, pause, resume, away, halted, resumeAway, afterPause, isFinished: () => finished }
 }

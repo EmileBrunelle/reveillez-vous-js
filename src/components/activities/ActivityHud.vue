@@ -136,7 +136,7 @@ watch(
       <div :key="barKey" class="drain h-full origin-left" :style="{ animationDelay: drainFrom }" :class="{ paused: paused || outcome !== 'play' }" />
     </div>
     <!-- pause : la fenêtre a perdu le focus ; le voile capte les pointeurs (le clic qui ramène le focus ne touche pas le jeu), texte fixe, aucun clignotement -->
-    <div v-if="showPause" class="pointer-events-auto absolute inset-0 grid place-content-center justify-items-center gap-3 bg-black/60 text-center">
+    <div v-if="showPause" class="pointer-events-auto absolute inset-0 grid place-content-center justify-items-center gap-3 bg-black/60 text-center" @pointermove.stop @pointerdown.stop @pointerup.stop>
       <p class="m-0 font-title font-bold text-[clamp(1.8rem,9vw,3.2rem)] leading-none text-amber-200 [text-shadow:0_3px_0_#000]">EN PAUSE</p>
       <p v-if="!focused" class="m-0 font-ui text-lg text-amber-100/80">Revenez dans la fenêtre.</p>
       <button ref="resumeEl" type="button" class="win-btn min-h-11 min-w-32 font-ui text-xl" @click="resumeAway">Reprendre</button>

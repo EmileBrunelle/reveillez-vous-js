@@ -34,19 +34,20 @@ const snuffed = ref(-1)
 
 // Sans rallumage après 4 s, la chandelle se rallume seule (douce chaleur) et l’activité se termine (`finish` n’est lu qu’à l’échéance).
 const { start: relightLater, stop: relightStop } = useTimeoutFn(
-  () => {
-    const i = snuffed.value
-    if (i < 0 || isFinished()) return
-    lit[i] = true
-    hold[i] = 1
-    snuffed.value = -1
-    finish()
-  },
+  () =>
+    afterPause(() => {
+      const i = snuffed.value
+      if (i < 0 || isFinished()) return
+      lit[i] = true
+      hold[i] = 1
+      snuffed.value = -1
+      finish()
+    }),
   4000,
   { immediate: false },
 )
 
-const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('candles'),
   // Fin par n’importe quel chemin (dont les 20 s) : la chandelle soufflée se rallume, rien ne reste sombre.
   // Expiration (échec) : rien ne se rallume, les chandelles restent comme elles sont.
@@ -87,19 +88,20 @@ useEventListener(window, 'pointercancel', releaseTouch)
 // Niveau 3 : une chandelle s’éteint une seule fois, juste après la troisième allumée.
 let snuffUsed = level < 3
 const { start: snuffLater } = useTimeoutFn(
-  () => {
-    if (isFinished()) return
-    const i = pickSnuffed(lit, rand, protectedSet())
-    if (i < 0) {
-      // Seule allumée et tenue : on reporte le courant d’air plutôt que d’éteindre sous le curseur.
-      if (litCount.value > 0) snuffLater()
-      return
-    }
-    lit[i] = false
-    hold[i] = 0
-    snuffed.value = i
-    relightLater()
-  },
+  () =>
+    afterPause(() => {
+      if (isFinished()) return
+      const i = pickSnuffed(lit, rand, protectedSet())
+      if (i < 0) {
+        // Seule allumée et tenue : on reporte le courant d’air plutôt que d’éteindre sous le curseur.
+        if (litCount.value > 0) snuffLater()
+        return
+      }
+      lit[i] = false
+      hold[i] = 0
+      snuffed.value = i
+      relightLater()
+    }),
   450,
   { immediate: false },
 )
@@ -172,6 +174,8 @@ const measureWicks = (stageRect: DOMRect) => {
 const { pause } = useRafFn(({ delta }) => {
   // Activité finie : plus rien à suivre (l’issue dure environ une seconde, la boucle ne tourne plus pour rien).
   if (isFinished()) return pause()
+  // En pause (onglet caché, fenêtre sans focus) : l’allumette et les mèches se figent, la boucle reste armée pour la reprise.
+  if (paused.value) return
   const dt = Math.min(delta, 50)
   for (let i = 0; i < COUNT; i++) {
     if (lit[i]) continue

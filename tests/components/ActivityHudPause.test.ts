@@ -48,4 +48,24 @@ describe('ActivityHud : pause « absent »', () => {
     expect(wrapper.text()).not.toContain('EN PAUSE')
     wrapper.unmount()
   })
+
+  it('le voile arrête les pointeurs : la scène derrière ne les reçoit pas', async () => {
+    const parent: string[] = []
+    const scene = document.createElement('div')
+    document.body.append(scene)
+    for (const type of ['pointermove', 'pointerdown', 'pointerup']) scene.addEventListener(type, () => parent.push(type))
+    const absent = ref(true)
+    const wrapper = mount(ActivityHud, {
+      props: { activity: 'ouija', outcome: 'play', startedAt: Date.now() },
+      attachTo: scene,
+      global: { plugins: [createPinia()], provide: { [AWAY_KEY as symbol]: { away: absent, resumeAway: () => (absent.value = false) } } },
+    })
+    const voile = wrapper.find('.bg-black\\/60')
+    await voile.trigger('pointermove')
+    await voile.trigger('pointerdown')
+    await voile.trigger('pointerup')
+    expect(parent).toEqual([])
+    wrapper.unmount()
+    scene.remove()
+  })
 })

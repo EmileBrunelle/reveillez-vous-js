@@ -71,10 +71,11 @@ const dwellCss = ref('0')
 const warmCss = ref('0')
 
 const { start: driftLater, stop: driftStop } = useTimeoutFn(
-  () => {
-    override = null
-    message.value = 'La goutte revient vers vous.'
-  },
+  () =>
+    afterPause(() => {
+      override = null
+      message.value = 'La goutte revient vers vous.'
+    }),
   1700,
   { immediate: false },
 )
@@ -84,7 +85,7 @@ const KEY =
   'key relative border-0 border-none border-current rounded-[8px] [background:transparent] text-[#d9b55a] font-[inherit] cursor-pointer focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-2'
 const ANSWER = 'answer px-2 py-0 min-h-[calc(var(--cell)*1.1)] font-bold tracking-[0.12em]'
 
-const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('ouija'),
   delayMs: outcomeMsOf('ouija'),
   // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
@@ -199,6 +200,8 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
   if (e.repeat || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return
   // Une fenêtre ou un menu est ouvert (Collection, À propos, Démarrer, réinitialisation) : la touche ne lui appartient pas.
   if (overlay.active) return
+  // Jeu en pause (voile « EN PAUSE ») : les lettres tapées ne comptent pas.
+  if (paused.value) return
   const letter = normalizeKey(e.key)
   if (!letter) return
   const before = index.value
@@ -273,7 +276,8 @@ const { pause } = useRafFn(({ delta }) => {
   const letter = expected.value
   const c = letter && !override && !isFinished() ? centers.value.get(letter) : undefined
   const over = !!c && px >= c.left - 4 && px <= c.right + 4 && py >= c.top - 4 && py <= c.bottom + 4
-  const p = advanceDwell(dwell, over, dt)
+  // Pendant la pause, le survol est gelé (le ressort cosmétique, lui, peut finir sa course).
+  const p = paused.value ? dwell : advanceDwell(dwell, over, dt)
   // Anneau de survol et chaleur : variables CSS de la scène, écrites seulement quand la valeur change.
   if (p !== dwell) dwellCss.value = String(p)
   dwell = p

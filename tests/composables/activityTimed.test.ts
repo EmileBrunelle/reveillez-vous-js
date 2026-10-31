@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { effectScope, ref } from 'vue'
 import { useActivityDone } from '@/composables/useActivityDone'
 import { ACTIVITY_GRACE_MS } from '@/engine/activityTiming'
+
+// Sans `window` (environnement node), `useWindowFocus` répond « pas de focus » et l’activité démarrerait en pause :
+// ici la fenêtre a toujours le focus (la pause pour absence est couverte par useActivityDone.test.ts).
+vi.mock('@vueuse/core', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@vueuse/core')>()),
+  useWindowFocus: () => ref(true),
+}))
 
 const G = ACTIVITY_GRACE_MS
 

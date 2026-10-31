@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
@@ -38,7 +38,11 @@ const { go: shakeHouse, halt: haltShake } = useMotionScope()
 
 const { start: unlight } = useTimeoutFn(() => (lit.value = null), LIT_MS, { immediate: false })
 const { start: unflash } = useTimeoutFn(() => (lit.value = null), 450, { immediate: false })
-const { pause: stopTicks, resume: resumeTicks } = useIntervalFn(
+const {
+  pause: stopTicks,
+  resume: resumeTicks,
+  isActive: ticking,
+} = useIntervalFn(
   () => {
     if (playIdx >= seq.length) {
       stopTicks()
@@ -56,7 +60,7 @@ const { pause: stopTicks, resume: resumeTicks } = useIntervalFn(
   { immediate: false, immediateCallback: true },
 )
 
-const { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft, pause, resume } = useActivityDone(() => emit('done'), {
+const { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft, pause, resume, halted, afterPause, isFinished } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('windows'),
   // Fin : les fenêtres se verrouillent (plus de frappe pendant l’issue) ; seule la réussite affiche la fin réussie.
   onFinish: (o) => {
@@ -89,8 +93,29 @@ const startPlay = () => {
   playIdx = 0
   resumeTicks()
 }
-const { start: replayLater } = useTimeoutFn(startPlay, 700, { immediate: false })
-const { start: introLater } = useTimeoutFn(startPlay, 700, { immediate: false })
+const { start: replayLater } = useTimeoutFn(() => afterPause(startPlay), 700, { immediate: false })
+const { start: introLater } = useTimeoutFn(() => afterPause(startPlay), 700, { immediate: false })
+
+// Pause subie (onglet caché, fenêtre quittée) : la démonstration en cours se suspend et ne reprend qu’avec la personne,
+// seulement si elle était en cours (la pause « démonstration » de la minuterie de jeu n’est pas concernée).
+let suspendedTicks = false
+watch(
+  halted,
+  (h) => {
+    if (h) {
+      if (!ticking.value) return
+      suspendedTicks = true
+      stopTicks()
+      // La fenêtre allumée à cet instant sera remontrée à la reprise.
+      if (lit.value !== null && playIdx > 0) playIdx--
+      lit.value = null
+    } else if (suspendedTicks) {
+      suspendedTicks = false
+      if (!isFinished()) resumeTicks()
+    }
+  },
+  { flush: 'sync' },
+)
 onMounted(introLater)
 
 const hit = (i: number) => {
@@ -123,7 +148,7 @@ const hit = (i: number) => {
 </script>
 
 <template>
-  <div class="size-full flex flex-col items-center justify-center gap-4 px-4 pb-2 select-none">
+  <div class="relative size-full flex flex-col items-center justify-center gap-4 px-4 pb-2 select-none">
     <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>
     <p
       class="font-ui text-xl text-center max-w-[22ch] min-h-[2lh] transition-colors duration-300"
