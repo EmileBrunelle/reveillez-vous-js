@@ -66,6 +66,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'Cône orange', texte: 'Détour obligatoire. L’erreur 511 est en travaux jusqu’en 2041.' },
     { titre: 'Lecteur A:', texte: 'Impossible de lire la carte. Insérez un tarot valide.' },
     { titre: 'Période d’essai', texte: 'Votre période d’essai de 40 jours a expiré il y a 6 000 jours. Continuez quand même. Personne n’a jamais payé.' },
+    { titre: 'Compilation', texte: 'Le code a compilé du premier coup. Vos pupilles viennent de s’agrandir de 45 %. Méfiez-vous : ça n’arrive jamais.' },
   ],
   erreur4: [
     { titre: 'Avertissement', texte: 'Le fichier FIL_ROUGE.DLL est utilisé par un autre programme. Ce programme, c’est vous.' },
