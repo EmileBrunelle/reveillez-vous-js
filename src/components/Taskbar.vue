@@ -13,6 +13,7 @@ import IconFullscreen from '~icons/rvj/fullscreen'
 import IconFullscreenExit from '~icons/rvj/fullscreen-quitter'
 import IconGithub from '~icons/simple-icons/github'
 import { useFullscreenToggle } from '../composables/useFullscreenToggle'
+import { registerLayoutEl, useLayoutRefs } from '../composables/layoutRefs'
 import { useMenuFocus } from '../composables/useMenuFocus'
 
 defineProps<{ level: number }>()
@@ -20,6 +21,8 @@ const emit = defineEmits<{ about: []; collection: []; sound: []; reset: []; rese
 
 const menuId = useId()
 const warm = () => prefetch(loadAbout, loadCollection, loadReset, loadSound) // les boîtes de dialogue sont des chunks à part
+const rootEl = useTemplateRef<HTMLElement>('rootEl')
+registerLayoutEl(useLayoutRefs().taskbarEl, rootEl)
 const startBtn = useTemplateRef<HTMLButtonElement>('startBtn')
 const menu = useTemplateRef<HTMLElement>('menu')
 const { open, toggle: toggleMenu, close, onKeydown: onMenuKey } = useMenuFocus(menu, startBtn)
@@ -70,6 +73,7 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
 
 <template>
   <div
+    ref="rootEl"
     class="taskbar fixed bottom-0 inset-x-0 z-30 flex items-stretch justify-between gap-2 bg-[#c0c0c0] text-black text-[0.85rem] pt-[2px] pl-[max(2px,var(--safe-l))] pr-[max(2px,var(--safe-r))] pb-[max(2px,var(--safe-b))] box-border shadow-[inset_0_1px_#dfdfdf,inset_0_2px_#fff] select-none [-webkit-tap-highlight-color:transparent] touch-manipulation"
   >
     <div class="relative flex">

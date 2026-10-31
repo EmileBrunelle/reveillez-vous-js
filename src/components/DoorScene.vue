@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useHaptics } from '../composables/haptics'
-import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, shallowRef, useId, watch, useTemplateRef } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { useMotionScope } from '../composables/useMotionScope'
@@ -73,6 +73,10 @@ const dust = (n: number) => {
   })
 }
 
+// La poignée vit dans un SVG en ligne (composant de variante) : pas de ref de gabarit possible, d’où une requête dans notre propre sous-arbre,
+// faite une seule fois après le montage (et non à chaque coup).
+const doorHandles = shallowRef<NodeListOf<Element> | null>(null)
+
 /** Bascule la porte sous un coup de la voyante ou du joueur. */
 const jitter = (intensity: number) => {
   const el = leaf.value
@@ -81,8 +85,8 @@ const jitter = (intensity: number) => {
   const amp = 2 + 5 * intensity
   snap(el, { x: dir * amp, rotateZ: dir * (0.6 + 1.4 * intensity) })
   go(el, { x: 0, rotateZ: 0 }, { type: 'spring', stiffness: 700, damping: 11 })
-  const handles = el.querySelectorAll('.door-handle')
-  if (handles.length) {
+  const handles = doorHandles.value
+  if (handles?.length) {
     snap(handles, { rotate: 25 * dir })
     go(handles, { rotate: 0 }, { type: 'spring', stiffness: 500, damping: 6 })
   }
@@ -274,6 +278,7 @@ const onDoorMousedown = (e: MouseEvent) => {
 }
 
 onMounted(() => {
+  doorHandles.value = leaf.value?.querySelectorAll('.door-handle') ?? null
   if (closing) return void slamShut()
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
   nudgeTimer.start()
@@ -410,7 +415,8 @@ const onSceneClick = (e: MouseEvent) => {
         <span v-for="n in 10" :key="n" class="absolute top-0 left-0 w-[3px] h-[3px] bg-[#c9b79a] opacity-0" />
       </div>
     </div>
-    <div v-if="!closing" ref="ui" class="scene scene--ui content-start gap-3 grid-rows-[auto_1.25rem_2.5rem]">
+    <!-- Pendant la fermeture, la zone de texte garde sa place (invisible, inerte) : la porte qui claque reste à la hauteur de la suivante. -->
+    <div ref="ui" class="scene scene--ui content-start gap-3 grid-rows-[auto_1.25rem_2.5rem]" :class="{ invisible: closing }" :inert="closing">
       <!-- Phrase + fantômes invisibles (toutes les phrases possibles de la visite) dans la même cellule : la hauteur réservée est celle de la plus longue, la scène ne bouge pas entre les phases. -->
       <div class="grid grid-cols-[minmax(0,1fr)] justify-items-center w-full">
         <p :id="saidId" class="lead max-w-full [text-wrap:balance] [overflow-wrap:anywhere] max-sm:text-[clamp(1.3rem,6vw,1.7rem)] [grid-area:1/1]">{{ said }}</p>

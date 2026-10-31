@@ -5,14 +5,19 @@ import { animate } from 'motion-v'
 import { useReducedMotion } from '../composables/useReducedMotion'
 import { useMotionScope } from '../composables/useMotionScope'
 import { finishAnimations, type Stoppable } from '../composables/finishAnimations'
+import { useLayoutRefs } from '../composables/layoutRefs'
 import { aboutClose, aboutOpen } from '../audio/sfx'
 import { REPO_URL } from '../content/finale'
+import { useOverlayRegistration } from '../stores/overlay'
 
 // v-model du parent = « veut ouvert ». `shown` est ce que le dialogue natif voit vraiment : l’animation de
 // fermeture peut ainsi jouer avant la fermeture réelle. DOM et motion seulement : aucune dépendance à WebGPU.
 const open = defineModel<boolean>({ default: false })
 const shown = ref(false)
+// Dialogue natif sans useDialogFocus : il s’inscrit lui-même, sinon le clavier écrirait dans le ouija pendant la lecture.
+useOverlayRegistration(shown)
 const reduced = useReducedMotion()
+const { mainEl } = useLayoutRefs()
 const win = useTemplateRef<HTMLElement>('win')
 const bar = useTemplateRef<HTMLElement>('bar')
 const title = useTemplateRef<HTMLElement>('title')
@@ -44,7 +49,7 @@ const rest = () => {
 }
 // Le monde CRT s’assombrit et recule tant que la fenêtre est ouverte.
 const zoomWorld = (on: boolean) => {
-  const app = document.querySelector<HTMLElement>('.app')
+  const app = mainEl.value
   if (!app || reduced.value) return
   void run(app, { scale: on ? 0.95 : 1, opacity: on ? 0.45 : 1 }, { duration: on ? 0.4 : 0.2, ease: 'easeOut' })
 }

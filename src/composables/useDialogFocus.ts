@@ -1,4 +1,5 @@
 import { nextTick, watch, type Ref } from 'vue'
+import { useOverlayRegistration } from '../stores/overlay'
 import { activeHtmlElement, focusQuietly } from './focusQuietly'
 
 /**
@@ -12,6 +13,7 @@ import { activeHtmlElement, focusQuietly } from './focusQuietly'
  *   l’élément déjà focalisé (sans effet), et un filet quand la restauration native n’a pas eu lieu.
  */
 export const useDialogFocus = (open: Readonly<Ref<boolean>>, initial?: () => HTMLElement | SVGElement | null | undefined) => {
+  useOverlayRegistration(open) // un dialogue ouvert a la main sur le clavier (ex. épellation de la planche Ouija)
   let opener: HTMLElement | null = null
   watch(
     open,

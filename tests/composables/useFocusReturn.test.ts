@@ -41,7 +41,7 @@ describe('useFocusReturn', () => {
     const win = new dom.FakeEl()
     const next = new dom.FakeEl()
     root.children = [win, next]
-    const close = effectScope().run(() => useFocusReturn(ref(root as unknown as HTMLElement), '.btn'))!
+    const close = effectScope().run(() => useFocusReturn(ref(root as unknown as HTMLElement), () => root.querySelector() as unknown as HTMLElement | undefined))!
     await focusOn(win)
     const remove = vi.fn()
     await close(remove)
@@ -54,7 +54,7 @@ describe('useFocusReturn', () => {
     const root = new dom.FakeEl()
     const win = new dom.FakeEl()
     const outside = new dom.FakeEl()
-    const close = effectScope().run(() => useFocusReturn(ref(root as unknown as HTMLElement), '.btn'))!
+    const close = effectScope().run(() => useFocusReturn(ref(root as unknown as HTMLElement), () => root.querySelector() as unknown as HTMLElement | undefined))!
     await focusOn(outside)
     root.children = [win]
     await focusOn(win)
@@ -65,7 +65,7 @@ describe('useFocusReturn', () => {
   it('si le focus n’était pas dans la fenêtre, rien ne bouge', async () => {
     const root = new dom.FakeEl()
     const outside = new dom.FakeEl()
-    const close = effectScope().run(() => useFocusReturn(ref(root as unknown as HTMLElement), '.btn'))!
+    const close = effectScope().run(() => useFocusReturn(ref(root as unknown as HTMLElement), () => root.querySelector() as unknown as HTMLElement | undefined))!
     await focusOn(outside)
     await close(() => undefined)
     expect(outside.focus).not.toHaveBeenCalled()

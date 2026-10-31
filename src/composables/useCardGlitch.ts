@@ -6,21 +6,22 @@ import { secureRng } from '../engine/rng'
 // N4 : 1 par lecture, N5 : 1 ou 2. Jamais dans les 2 s qui suivent le retournement ; coupé en mouvement réduit.
 // Jamais le corps de la prophétie : seuls numéro, emblème, titre, vers et bandeau bougent ; aucun changement de luminance.
 type Options = {
-  root: Readonly<Ref<HTMLElement | null>>
+  targets: () => (HTMLElement | null | undefined)[] // éléments qui bougent (numéro, emblème, titre, vers, bandeau)
+  content: Readonly<Ref<HTMLElement | null>> // bloc dont l’ombre du texte se sépare en rouge et cyan
   level: () => number
   faceUp: Readonly<Ref<boolean>> // armé quand la face devient visible
   reduced: Readonly<Ref<boolean>>
 }
 
-export const useCardGlitch = ({ root, level, faceUp, reduced }: Options) => {
+export const useCardGlitch = ({ targets, content: contentEl, level, faceUp, reduced }: Options) => {
   const rng = secureRng()
   let armed = false
   const pending: number[] = [] // délais (ms) des hoquets restants, chacun compté depuis le précédent
   const delay = ref(0)
   const glitch = () => {
-    const bands = root.value?.querySelectorAll<HTMLElement>('.tarot__numero, .tarot__emblem, .tarot__title, .tarot__verse, .tarot__banner')
-    const content = root.value?.querySelector<HTMLElement>('.tarot__content')
-    if (bands?.length && content) {
+    const bands = targets().filter((el) => !!el)
+    const content = contentEl.value
+    if (bands.length && content) {
       const dur = 80 + rng() * 70
       const dx = (2 + rng() * 4) * (rng() < 0.5 ? -1 : 1)
       const split = 1 + rng() * 2

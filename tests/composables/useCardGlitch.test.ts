@@ -2,24 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick, ref } from 'vue'
 import { useCardGlitch } from '../../src/composables/useCardGlitch'
 
-// Racine factice : seul ce que le composable touche (querySelector*, animate).
-const fakeRoot = () => {
+// Éléments factices : seul ce que le composable touche (animate).
+const fakeEl = () => {
   const animate = vi.fn()
-  const root = {
-    querySelectorAll: () => [{ animate }],
-    querySelector: () => ({ animate }),
-  } as unknown as HTMLElement
-  return { root, animate }
+  return { el: { animate } as unknown as HTMLElement, animate }
 }
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
 
 const setup = async (level: number, reduced = false) => {
-  const { root, animate } = fakeRoot()
+  const { el, animate } = fakeEl()
   const faceUp = ref(false)
   const scope = effectScope()
-  scope.run(() => useCardGlitch({ root: ref(root), level: () => level, faceUp, reduced: ref(reduced) }))
+  scope.run(() => useCardGlitch({ targets: () => [el], content: ref(el), level: () => level, faceUp, reduced: ref(reduced) }))
   faceUp.value = true
   await nextTick()
   return { animate, scope }

@@ -13,6 +13,7 @@ import { useCardGlitch } from '../composables/useCardGlitch'
 import { useCardTilt } from '../composables/useCardTilt'
 import { useMotionScope } from '../composables/useMotionScope'
 import { useFitBody } from '../composables/useFitBody'
+import { registerLayoutEl, useLayoutRefs } from '../composables/layoutRefs'
 import { useSessionStore } from '../stores/session'
 
 // La carte arrive de la coupe (DeckCut) déjà en place, dos visible, identique : rien à poser, on la retourne tout de suite (voir deal).
@@ -51,7 +52,15 @@ const titleSize = computed(() => {
 })
 const { bodyPx, emblem } = useFitBody({ root, panel: panelEl, body: bodyEl, sources: [() => body, () => title] })
 const { releasing, onTouchDown, wasDrag } = useCardTilt({ root, tilt: tiltEl, settled, reduced })
-useCardGlitch({ root, level: () => level, faceUp, reduced })
+const contentEl = useTemplateRef<HTMLElement>('contentEl')
+const numeroEl = useTemplateRef<HTMLElement>('numeroEl')
+const emblemEl = useTemplateRef<HTMLElement>('emblemEl')
+const titleEl = useTemplateRef<HTMLElement>('titleEl')
+const verseEl = useTemplateRef<HTMLElement>('verseEl')
+const bannerEl = useTemplateRef<HTMLElement>('bannerEl')
+useCardGlitch({ targets: () => [numeroEl.value, emblemEl.value, titleEl.value, verseEl.value, bannerEl.value], content: contentEl, level: () => level, faceUp, reduced })
+// La carte s’enregistre dans la mise en page partagée (zones libres des fausses fenêtres).
+registerLayoutEl(useLayoutRefs().tarotEl, root)
 
 // Les quatre coins dorés (losanges posés sur les angles du cadre).
 const CORNERS = ['top-[-1.5cqw] left-[-1.5cqw]', 'top-[-1.5cqw] right-[-1.5cqw]', 'bottom-[-1.5cqw] left-[-1.5cqw]', 'bottom-[-1.5cqw] right-[-1.5cqw]']
@@ -134,13 +143,16 @@ onMounted(() => void deal())
               :aria-hidden="!faceUp"
             >
               <div
+                ref="contentEl"
                 class="tarot__content absolute inset-[1.6cqw] [border:0.6cqw_solid_var(--tarot-gold)] [outline:0.5cqw_solid_var(--tarot-ink)] [outline-offset:-2.2cqw] flex flex-col items-center [padding:3.4cqw_4.6cqw_0] gap-[1.6cqw] font-card"
                 :style="{ '--title': `${titleSize}cqw` }"
               >
                 <span v-for="c in CORNERS" :key="c" class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)]" :class="c" />
-                <div class="tarot__numero font-title text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">{{ arcane.numero }}</div>
-                <div class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]" :style="{ '--emblem-mask': maskUrl }"><TarotEmblem :symbole="arcane.symbole" /></div>
-                <h2 class="tarot__title font-title m-0 [font-size:var(--title)] leading-[1.15] text-center uppercase [overflow-wrap:anywhere]" :data-text="title">{{ title }}</h2>
+                <div ref="numeroEl" class="tarot__numero font-title text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">
+                  {{ arcane.numero }}
+                </div>
+                <div ref="emblemEl" class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]" :style="{ '--emblem-mask': maskUrl }"><TarotEmblem :symbole="arcane.symbole" /></div>
+                <h2 ref="titleEl" class="tarot__title font-title m-0 [font-size:var(--title)] leading-[1.15] text-center uppercase [overflow-wrap:anywhere]" :data-text="title">{{ title }}</h2>
                 <div
                   ref="panelEl"
                   class="tarot__panel [flex:1_1_0] min-h-0 w-full overflow-hidden flex [background:rgb(255_249_228/0.6)] [border:0.5cqw_solid_var(--tarot-gold)] [padding:2cqw_2.4cqw]"
@@ -149,8 +161,9 @@ onMounted(() => void deal())
                     {{ body }}
                   </p>
                 </div>
-                <p class="tarot__verse m-0 text-[3.8cqw] italic text-right self-stretch">— {{ verse }}</p>
+                <p ref="verseEl" class="tarot__verse m-0 text-[3.8cqw] italic text-right self-stretch">— {{ verse }}</p>
                 <div
+                  ref="bannerEl"
                   class="tarot__banner font-title self-stretch [margin:0_-4.6cqw] [padding:1.8cqw_2cqw] [background:var(--tarot-ink)] [color:var(--tarot-paper)] text-center text-[4.2cqw] font-bold uppercase tracking-[0.06em] [overflow-wrap:anywhere] leading-[1.15]"
                 >
                   {{ arcane.nom }}

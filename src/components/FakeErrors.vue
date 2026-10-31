@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref, useTemplateRef } from 'vue'
-import { useEventListener, useMediaQuery, useTimeoutFn } from '@vueuse/core'
+import { ref, useTemplateRef } from 'vue'
+import { useEventListener, useMediaQuery, useTemplateRefsList, useTimeoutFn } from '@vueuse/core'
 import { prophecies } from '../content/prophecies'
 import { nextFakeError, type ErrorIcon } from '../engine/prophecy'
 import { secureRng } from '../engine/rng'
@@ -52,7 +52,8 @@ const spawn = () => {
 }
 // Retour du focus à la fermeture d’une fenêtre (voir useFocusReturn).
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
-const closeWith = useFocusReturn(rootEl, '.fake-error button')
+const closeBtns = useTemplateRefsList<HTMLButtonElement>()
+const closeWith = useFocusReturn(rootEl, () => closeBtns.value[0])
 const close = (id: number) => closeWith(() => (wins.value = wins.value.filter((w) => w.id !== id)))
 
 // Une fenêtre qui se retrouve sur quelque chose (redimensionnement, carte qui change) disparaît.
@@ -71,8 +72,7 @@ const recheck = () => {
 useEventListener(window, 'resize', recheck)
 const settle = useTimeoutFn(recheck, 700, { immediate: false })
 const count = level >= 5 ? 3 : level === 4 ? 1 + Math.floor(rng() * 2) : 1
-const timers = Array.from({ length: level >= 3 ? count : 0 }, (_, i) => useTimeoutFn(spawn, 3500 + i * 2500, { immediate: false }))
-onMounted(() => timers.forEach((t) => t.start()))
+Array.from({ length: level >= 3 ? count : 0 }, (_, i) => useTimeoutFn(spawn, 3500 + i * 2500))
 </script>
 
 <template>
@@ -87,7 +87,15 @@ onMounted(() => timers.forEach((t) => t.start()))
     >
       <div class="flex items-center justify-between gap-2 px-[3px] min-h-6 text-white font-bold bg-gradient-to-r from-[#000080] to-[#1084d0]">
         <span class="truncate">{{ w.title }}</span>
-        <button class="win-btn grid place-items-center min-w-6 min-h-6 p-0 leading-none border-0 text-[1rem]" type="button" aria-label="Fermer la fausse erreur" @click="close(w.id)">×</button>
+        <button
+          :ref="closeBtns.set"
+          class="win-btn grid place-items-center min-w-6 min-h-6 p-0 leading-none border-0 text-[1rem]"
+          type="button"
+          aria-label="Fermer la fausse erreur"
+          @click="close(w.id)"
+        >
+          ×
+        </button>
       </div>
       <div class="flex items-start gap-3 px-3 pt-4 pb-3">
         <span class="flex-none grid place-items-center w-8 h-8 font-bold text-[1.2rem] leading-none" :class="ICON[w.icon].cls" aria-hidden="true">{{ ICON[w.icon].glyph }}</span>

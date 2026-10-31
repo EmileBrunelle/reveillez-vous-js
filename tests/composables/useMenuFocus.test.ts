@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick, shallowRef } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // focusQuietly dépend de la modalité clavier (écouteurs globaux) : on le remplace par un focus simple.
 vi.mock('../../src/composables/focusQuietly', () => ({ focusQuietly: (el: { focus: () => void } | null) => el?.focus() }))
@@ -22,6 +23,7 @@ describe('useMenuFocus', () => {
     return { api, declencheur, envoyer }
   }
   beforeEach(() => {
+    setActivePinia(createPinia())
     ;[a, b, c].forEach((e) => e.focus.mockClear())
     actif = null
   })

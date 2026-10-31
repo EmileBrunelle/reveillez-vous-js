@@ -20,6 +20,7 @@ import { useGameFlow } from './composables/useGameFlow'
 import { useDeferredText } from './composables/useDeferredText'
 import { useLazyWindow } from './composables/useLazyWindow'
 import { useFocusTarget } from './composables/useFocusTarget'
+import { provideLayoutRefs, registerLayoutEl } from './composables/layoutRefs'
 import { useShake } from './composables/useShake'
 import { useApproach } from './composables/useApproach'
 
@@ -97,6 +98,7 @@ useTabTitle(level)
 
 const activityLabel = computed(() => (activityId.value ? ACTIVITY_PROMPTS[activityId.value].verb : 'Activité'))
 const mainEl = useTemplateRef<HTMLElement>('mainEl')
+registerLayoutEl(provideLayoutRefs().mainEl, mainEl)
 const shake = useShake(mainEl)
 const { awaiting, approach } = useApproach(() => ensureDoor())
 

@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import OuijaActivity from '../../src/components/activities/OuijaActivity.vue'
+import { useOverlayStore } from '../../src/stores/overlay'
 import { mulberry32 } from '../../src/engine/rng'
 
 let wrapper: VueWrapper | undefined
@@ -15,7 +16,9 @@ afterEach(() => {
 })
 
 const monter = () => {
-  wrapper = mount(OuijaActivity, { props: { level: 1, rng: mulberry32(42) }, attachTo: document.body, global: { plugins: [createPinia()] } })
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  wrapper = mount(OuijaActivity, { props: { level: 1, rng: mulberry32(42) }, attachTo: document.body, global: { plugins: [pinia] } })
   return wrapper
 }
 const annonce = (w: VueWrapper) => w.get('p[aria-live="polite"]')
@@ -45,14 +48,13 @@ describe('OuijaActivity : interactions', () => {
     const w = monter()
     await vi.advanceTimersByTimeAsync(200)
     const avant = annonce(w).text()
-    const dialogue = document.createElement('dialog')
-    dialogue.setAttribute('open', '')
-    document.body.append(dialogue)
+    const id = 999
+    useOverlayStore().register(id)
     frapper(premiereLettre(w).toLowerCase())
     await vi.advanceTimersByTimeAsync(0)
     expect(annonce(w).text()).toBe(avant)
 
-    dialogue.remove()
+    useOverlayStore().unregister(id)
     frapper(premiereLettre(w).toLowerCase())
     await vi.advanceTimersByTimeAsync(0)
     expect(annonce(w).text()).toMatch(/^Lettre /)

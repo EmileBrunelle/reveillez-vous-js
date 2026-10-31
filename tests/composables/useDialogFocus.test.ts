@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 const focusQuietly = vi.fn()
 vi.mock('../../src/composables/focusQuietly', async (importOriginal) => ({
@@ -16,6 +17,7 @@ class FakeEl {
 const doc = { activeElement: null as FakeEl | null }
 
 beforeEach(() => {
+  setActivePinia(createPinia())
   vi.stubGlobal('HTMLElement', FakeEl)
   vi.stubGlobal('document', doc)
   focusQuietly.mockClear()

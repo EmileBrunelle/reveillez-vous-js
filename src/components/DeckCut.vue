@@ -379,9 +379,14 @@ interface TouchState {
   drag: boolean
 }
 let touch: TouchState | null = null
+// Éléments des cartes, dans l’ordre du v-for (ref fonction : le composant Motion expose son élément racine via `$el`).
+const cardEls: Array<Element | null> = []
+const setCard = (i: number, c: unknown) => {
+  cardEls[i] = c instanceof Element ? c : ((c as { $el?: Element } | null)?.$el ?? null)
+}
 const cardAt = (el: Element | null | undefined) => {
-  const b = el?.closest<HTMLElement>('.deck__card')
-  return b && deckEl.value?.contains(b) ? Number(b.dataset.card) : null
+  const i = cardEls.findIndex((b) => !!b && !!el && b.contains(el))
+  return i >= 0 ? i : null
 }
 const cardUnder = (x: number, y: number) => cardAt(document.elementFromPoint?.(x, y))
 useEventListener(window, 'pointerdown', (e: PointerEvent) => {
@@ -488,13 +493,13 @@ const choose = (i: number) => {
     <Motion
       v-for="i in cards"
       :key="i"
+      :ref="(c: unknown) => setCard(i, c)"
       as="button"
       type="button"
       :style="{ x: state[i].mv.x, y: state[i].mv.y, rotate: state[i].mv.rotate, scale: state[i].mv.scale, opacity: state[i].mv.opacity }"
       class="deck__card absolute top-1/2 left-1/2 p-0 m-0 border-0 [background:none] cursor-pointer rounded-[4cqw] will-change-transform focus-visible:[outline:0.9cqw_solid_#f3e3b3] focus-visible:outline-offset-[1.2cqw]"
       :class="[zClass(i), { 'pointer-events-none': !ready }]"
       :aria-label="`${PAQUET_NOMS[paquets[i]]} : ${PAQUET_PRESAGES[paquets[i]]}`"
-      :data-card="i"
       :disabled="chosen !== null"
       @click="onClick(i, $event)"
       @pointerenter="onEnter(i, $event)"

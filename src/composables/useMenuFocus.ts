@@ -1,4 +1,5 @@
 import { nextTick, ref, type Ref } from 'vue'
+import { useOverlayRegistration } from '../stores/overlay'
 import { focusQuietly } from './focusQuietly'
 
 /**
@@ -8,6 +9,7 @@ import { focusQuietly } from './focusQuietly'
  */
 export const useMenuFocus = (menu: Readonly<Ref<HTMLElement | null>>, trigger: Readonly<Ref<HTMLElement | null>>, active: () => Element | null = () => globalThis.document?.activeElement ?? null) => {
   const open = ref(false)
+  useOverlayRegistration(open) // menu ouvert = a la main sur le clavier
   const items = () => Array.from(menu.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
 
   const close = (refocus = false) => {
