@@ -8,13 +8,13 @@ Une personne voyante frappe un rythme derrière une porte ; vous le répétez, l
 
 1. Ouvrez la page : une porte apparaît. Activez-la (clic, toucher, ou Tab puis Entrée au clavier) : c’est le bouton « Cogner à la porte ».
 2. **La personne voyante cogne un rythme** : écoutez-le (ou suivez les points, les sous-titres et la vibration sur appareil compatible).
-3. **Reproduisez-le** en cogneant sur la porte (clic, toucher, ou Entrée ou Espace au clavier). Après trois échecs, la porte s’ouvre quand même.
-4. **Dès le niveau 2, une petite activité** précède la carte ; elle s’achève d’elle-même après 20 s, ou avec le bouton pour la passer. Au fil des niveaux : attraper des feux follets, allumer des chandelles à l’allumette, épeler un mot à la planche Ouija, frapper aux fenêtres d’une maison dans l’ordre où elles s’allument, essuyer une boule de cristal.
+3. **Reproduisez-le** en cognant sur la porte (clic, toucher, ou Entrée ou Espace au clavier). Après trois échecs, la porte s’ouvre quand même.
+4. **Dès le niveau 2, une petite activité** précède la carte ; elle s’achève d’elle-même après 16 à 20 s, ou avec le bouton pour la passer. Au fil des niveaux : attraper des feux follets, allumer des chandelles à l’allumette, épeler un mot à la planche Ouija, frapper aux fenêtres d’une maison dans l’ordre où elles s’allument, essuyer une boule de cristal.
 5. **Coupez le paquet** : trois paquets (Nuit, Feu, Brume), chacun avec son dos, sa légende et son tirage d’arcanes. Souris : survolez, puis cliquez. Clavier : Tab, puis Entrée. Tactile : un premier toucher donne un aperçu, un second choisit.
 6. Une **carte de tarot** est tirée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur, avec le doigt ou en bougeant votre téléphone. Chaque arcane vu s’ajoute à la **Collection** (menu Démarrer).
 7. « Fermer la porte » : une nouvelle porte, un nouveau lieu, une nouvelle prophétie.
 
-Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches) monte avec le nombre de visites de la session en cours (`sessionStorage` : la progression repart à zéro quand l’onglet ou le navigateur se ferme) ; il atteint le niveau 5 après sept fermetures de porte, puis vient la **finale**, avec son générique animé. Prophéties, répliques de la voyante, portes, lieux et sons changent avec lui. Pour recommencer à zéro : menu **Démarrer › Recommencer à zéro**, ou triple clic sur le badge.
+Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches) monte avec le nombre de visites de la session en cours (`sessionStorage` : la progression repart à zéro quand l’onglet ou le navigateur se ferme) ; il atteint le niveau 5 après sept fermetures de porte, puis vient la **finale**, avec son générique animé. Prophéties, répliques de la voyante, portes, lieux et sons changent avec lui. Pour recommencer à zéro : menu **Démarrer › Recommencer à zéro**, ou triple-clic sur le badge.
 
 ## Ce qui rend le projet spécial
 
@@ -40,7 +40,7 @@ Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches)
 | Projet                   | Rôle                                                                                                          | Site                                                        | Dépôt                                                                     |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Vue 3                    | interface                                                                                                     | [fr.vuejs.org](https://fr.vuejs.org)                        | [vuejs/core](https://github.com/vuejs/core)                               |
-| Vite                     | build et serveur de dev                                                                                       | [vite.dev](https://vite.dev)                                | [vitejs/vite](https://github.com/vitejs/vite)                             |
+| Vite                     | compilation et serveur de développement                                                                       | [vite.dev](https://vite.dev)                                | [vitejs/vite](https://github.com/vitejs/vite)                             |
 | TypeScript               | typage                                                                                                        | [typescriptlang.org/fr](https://www.typescriptlang.org/fr/) | [microsoft/TypeScript](https://github.com/microsoft/TypeScript)           |
 | UnoCSS                   | styles utilitaires                                                                                            | [unocss.dev](https://unocss.dev)                            | [unocss/unocss](https://github.com/unocss/unocss)                         |
 | VueUse                   | composables (écouteurs, minuteries, vibration)                                                                | [vueuse.org](https://vueuse.org)                            | [vueuse/vueuse](https://github.com/vueuse/vueuse)                         |
@@ -109,7 +109,7 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 - le concept, la direction artistique et le ton (vieux PC hanté, carte de tarot, montée du mystère) ;
 - toutes les décisions de conception : WebGPU obligatoire, cartes plutôt que dépliant, porte fermée où l’on cogne un rythme à reproduire (règles de réussite et d’échec), pas de partage ni de graine ;
 - les règles de contenu : écriture inclusive, références québécoises, blagues qui visent des lieux et jamais des personnes, exclusions ;
-- les tests à la main dans le navigateur et les retours sur ce qui n’allait pas (taille de la carte, glitchs trop visibles, porte trop petite…) ;
+- les tests à la main dans le navigateur et les retours sur ce qui n’allait pas (taille de la carte, pépins visuels trop voyants, porte trop petite…) ;
 - certaines blagues (dont l’Australie qui devient l’Argentine).
 
 ## Défi

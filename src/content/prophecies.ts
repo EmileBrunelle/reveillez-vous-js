@@ -153,7 +153,7 @@ export const prophecies: Grammar = {
     '{question5}|LA PLEINE LUNE A QUATRE CÔTÉS ET QUATRE JOURS EN UN SEUL JOUR. LE CUBE DE CITROUILLE EST LE TEMPS. LE 31 OCTOBRE, VOUS SEREZ UN CUBE. RÉVEILLEZ-VOUS, LES MOUTONS !|{verset}',
     '{question5}|IL NE FAUT PAS FERMER LA PORTE. IL NE FAUT PAS OUVRIR LA PORTE. À MINUIT, IL FAUDRA ÊTRE LA PORTE. {objet.nom_caps} A DIT OUI.|{verset}',
     '{question5}|JE VOIS DANS LE CHAUDRON QUE {futur_caps} {moment_caps}. JE VOIS AUSSI LE CHAUDRON. LE CHAUDRON ME VOIT. LE CHAUD—|{verset}',
-    '{question5}|JE SUIS LE MESSAGER. JE SUIS LE MESSAGE. JE SUIS LA PRÉDICTION. LE COUPABLE, C’EST {industrie.nom_caps}. VOUS ACHÈTEREZ DES {industrie.cible_caps} {moment_caps}. LA BOULE A DIT.|{verset}',
+    '{question5}|JE SUIS LE MESSAGER. JE SUIS LE MESSAGE. JE SUIS LA PRÉDICTION. LE COUPABLE : {industrie.nom_caps}. VOUS ACHÈTEREZ DES {industrie.cible_caps} {moment_caps}. LA BOULE A DIT.|{verset}',
     '{question5}|ON A GREFFÉ DES YEUX SUR LES CÔNES ORANGE. LA BOULE DE CRIS— OUI. ELLE A TOUT VU. ELLE VOIT VOTRE 31 OCTOBRE. ELLE A TOUJOURS ÉTÉ AU COUR—|{verset}',
     '{question5}|LES OISEAUX SONT DES DRONES ! LES CHAUVES-SOURIS SONT DES DRONES DÉGUISÉS ! CE SOIR À MINUIT, LA PLEINE LUNE VA PARLER ET VOUS SEREZ LE PUBLIC !|{verset}',
     '{question5}|ON DÉTESTAIT LE VRAI PARCE QU’IL PARLAIT FORT. VOUS LE LIREZ À MINUIT. VOUS LE DIREZ À VOTRE TOUR.|{verset}',
@@ -435,7 +435,7 @@ export const prophecies: Grammar = {
     'Avez-vous une minute pour votre horoscope ?',
     'Savez-vous ce que la pleine lune vous réserve ?',
     'Voulez-vous que je tire une carte pour vous ?',
-    'Vous êtes-vous déjà demandé ce que dit votre boule de cristal ?',
+    'Vous demandez-vous parfois ce que dit votre boule de cristal ?',
     'Avez-vous prévu un costume pour le 31 octobre ?',
   ],
   question2: [

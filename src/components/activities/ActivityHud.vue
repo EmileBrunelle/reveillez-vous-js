@@ -75,6 +75,8 @@ watch(
   () => outcome,
   async (o) => {
     if (o === 'play') return
+    // Valeur finale exacte avant de figer la minuterie : sans cela, aria-valuenow garderait la dernière mesure (jusqu’à 500 ms de retard).
+    left.value = o === 'fail' ? 0 : Math.round(timeLeft(playedMs(), duration.value) * 100)
     pauseTick()
     stinger.play(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
     await nextTick()
