@@ -1,5 +1,5 @@
-import { onMounted, shallowRef, watch } from 'vue'
-import { useMediaQuery, useResizeObserver } from '@vueuse/core'
+import { onMounted, shallowRef } from 'vue'
+import { useResizeObserver, useScreenSafeArea } from '@vueuse/core'
 import type { Box } from '../engine/freeZones'
 
 const boxOf = (el: Element): Box => {
@@ -18,25 +18,15 @@ export const useFreeZones = (onChange: () => void) => {
     boxes.push({ left: window.innerWidth - 20 * 16, top: window.innerHeight - 10 * 16, right: window.innerWidth, bottom: window.innerHeight })
     return boxes
   }
-  // Zone sûre (encoche, coins arrondis) : mesurée une seule fois, à la première utilisation ; le cache est invalidé à chaque rotation de l’écran
-  // (l’encoche change de côté). Exception à « pas de style à la main » : une sonde éphémère lit les variables --safe-* résolues (env()), qu’aucun état Vue ne porte.
-  let safeInsets: { t: number; r: number; l: number } | null = null
-  const safe = () => {
-    if (safeInsets) return safeInsets
-    const probe = document.createElement('div')
-    probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--safe-t) var(--safe-r) 0 var(--safe-l)'
-    document.body.appendChild(probe)
-    const cs = getComputedStyle(probe)
-    safeInsets = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, l: parseFloat(cs.paddingLeft) || 0 }
-    probe.remove()
-    return safeInsets
-  }
-  const portrait = useMediaQuery('(orientation: portrait)')
-  watch(portrait, () => (safeInsets = null))
-  const area = (): Box => {
-    const s = safe()
-    return { left: s.l, top: s.t, right: window.innerWidth - s.r, bottom: document.querySelector('.taskbar')?.getBoundingClientRect().top ?? window.innerHeight }
-  }
+  // Zone sûre (encoche, coins arrondis) : VueUse relit les env(safe-area-inset-*) résolus à chaque redimensionnement, rotation comprise.
+  const insets = useScreenSafeArea()
+  const px = (v: string) => parseFloat(v) || 0
+  const area = (): Box => ({
+    left: px(insets.left.value),
+    top: px(insets.top.value),
+    right: window.innerWidth - px(insets.right.value),
+    bottom: document.querySelector('.taskbar')?.getBoundingClientRect().top ?? window.innerHeight,
+  })
   // La carte et la colonne changent de taille (retournement, polices, orientation) : on prévient à chaque changement.
   const tarotEl = shallowRef<HTMLElement | null>(null)
   const mainEl = shallowRef<HTMLElement | null>(null)
