@@ -18,6 +18,9 @@ import {
   phraseDuration,
   phraseGain,
   planPhrase,
+  TENSION_MIN_HZ,
+  TENSION_OPEN_HZ,
+  tensionCutoff,
   realize,
   releaseBusy,
   resumeDelay,
@@ -272,4 +275,33 @@ describe('resumeDelay', () => {
 describe('releaseBusy', () => {
   it('rabaisse sa propre valeur', () => expect(releaseBusy(30, 30, 5)).toBe(5))
   it('ne rabaisse jamais la valeur d’un autre', () => expect(releaseBusy(42, 30, 5)).toBe(42))
+})
+
+describe('filtre de tension', () => {
+  it('s’ouvre au début et se ferme à la fin, sur les bornes réglables', () => {
+    expect(tensionCutoff(0)).toBeCloseTo(TENSION_OPEN_HZ, 6)
+    expect(tensionCutoff(1)).toBeCloseTo(TENSION_MIN_HZ, 6)
+  })
+
+  it('décroît de façon monotone et reste toujours strictement positif', () => {
+    let prev = Infinity
+    for (let i = 0; i <= 100; i++) {
+      const f = tensionCutoff(i / 100)
+      expect(f).toBeGreaterThan(0)
+      expect(f).toBeLessThanOrEqual(prev)
+      prev = f
+    }
+  })
+
+  it('est exponentielle : mi-parcours sous la moyenne arithmétique des bornes', () => {
+    expect(tensionCutoff(0.5)).toBeLessThan((TENSION_OPEN_HZ + TENSION_MIN_HZ) / 2)
+  })
+
+  it('borne les entrées hors de [0 ; 1] et traite NaN comme ouvert', () => {
+    expect(tensionCutoff(-3)).toBe(tensionCutoff(0))
+    expect(tensionCutoff(7)).toBe(tensionCutoff(1))
+    expect(tensionCutoff(Infinity)).toBe(tensionCutoff(1))
+    expect(tensionCutoff(-Infinity)).toBe(tensionCutoff(0))
+    expect(tensionCutoff(Number.NaN)).toBe(tensionCutoff(0))
+  })
 })

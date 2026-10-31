@@ -315,3 +315,20 @@ export const resumeDelay = (rng: Rng): number => RESUME_MIN + rng() * (RESUME_MA
 
 /** Valeur d’occupation après une coupure anticipée : on ne rabaisse que ce qu’on a posé soi-même (`current === mine`), jamais la valeur d’un autre. */
 export const releaseBusy = (current: number, mine: number, previous: number): number => (current === mine ? previous : current)
+
+/** Fréquence de coupure (Hz) du filtre de tension quand il est ouvert : au-dessus des partiels utiles du piano, donc quasi transparent. */
+export const TENSION_OPEN_HZ = 18000
+/** Fréquence de coupure (Hz) atteinte quand le temps est écoulé : le piano devient sourd, étouffé. À régler à l’oreille (700–900). */
+export const TENSION_MIN_HZ = 800
+/** Courbure de la tension : 1 = fermeture régulière (en octaves), > 1 = le gros de la fermeture arrive vers la fin du temps. */
+export const TENSION_CURVE = 1.5
+
+/**
+ * Coupure (Hz) du filtre passe-bas de la musique pour une tension `t` (0 = début, 1 = fin du temps). Interpolation exponentielle
+ * (linéaire en octaves, donc régulière à l’oreille) ; monotone décroissante, toujours dans [TENSION_MIN_HZ ; TENSION_OPEN_HZ], donc jamais ≤ 0.
+ * Une entrée hors de [0 ; 1] est bornée ; NaN vaut 0 (ouvert).
+ */
+export const tensionCutoff = (t: number): number => {
+  const x = Number.isFinite(t) ? Math.min(1, Math.max(0, t)) : t === Infinity ? 1 : 0
+  return TENSION_OPEN_HZ * (TENSION_MIN_HZ / TENSION_OPEN_HZ) ** (x ** TENSION_CURVE)
+}

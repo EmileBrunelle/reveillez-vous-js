@@ -1,14 +1,15 @@
 <script setup lang="ts">
-// Invite commune des activités chronométrées : un verbe géant qui surgit au ressort puis se range en bas à gauche, une barre de temps
+// Invite commune des activités chronométrées : un verbe géant qui surgit au ressort puis s’efface, une barre de temps
 // qui se vide en continu (animation CSS : aucune variation de luminance, seule la largeur change) et l’issue (réussite ou échec) affichée environ 1 s.
 // L’issue est annoncée ici une seule fois (région role=status) : les activités ne la répètent pas.
 import { computed, nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
-import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
+import { tryOnScopeDispose, useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '@/content/activityPrompts'
 import { ACTIVITY_GRACE_MS, durationOf, outcomeText, timeLeft, type Phase } from '@/engine/activityTiming'
 import { useStinger } from '@/composables/useStinger'
+import { releaseMusicTension, setMusicTension } from '@/audio/music'
 
 // `paused` fige la barre (minuterie suspendue) ; `elapsed` donne le temps de jeu écoulé depuis la fin de la grâce (ms), pause comprise.
 const {
@@ -44,28 +45,31 @@ watch(
   },
   { flush: 'sync' },
 )
-const { pause: pauseTick } = useIntervalFn(() => (left.value = Math.round(timeLeft(playedMs(), duration.value) * 100)), 500)
+// Tension de la musique (filtre passe-bas qui se ferme avec le temps) : suit la même mesure, au même rythme ; figée pendant une pause (`playedMs` ne bouge plus).
+const updateTension = () => outcome === 'play' && setMusicTension(1 - timeLeft(playedMs(), duration.value))
+const { pause: pauseTick } = useIntervalFn(() => {
+  left.value = Math.round(timeLeft(playedMs(), duration.value) * 100)
+  updateTension()
+}, 500)
+updateTension()
+// Abandon en cours de jeu (sortie de la porte) : retour doux à l’ouvert ; après une issue, la réouverture déjà programmée suit son cours.
+tryOnScopeDispose(() => outcome === 'play' && releaseMusicTension())
 // Jingle en cours : coupé au démontage et si le son passe en muet pendant la lecture.
 const stinger = useStinger()
 
-const rootEl = useTemplateRef<HTMLElement>('rootEl')
 const verbEl = useTemplateRef<HTMLElement>('verbEl')
 const resultEl = useTemplateRef<HTMLElement>('resultEl')
-const SCALE_DOCKED = 0.34
-// Rangement : le verbe géant, centré, se réduit puis se pose en bas à gauche, au-dessus de la barre. Un seul maître du transform : animate.
+// Retrait : le verbe géant, centré, s’efface en fondu (léger grossissement) au lieu de se ranger en bas à gauche.
+// Rangé, il restait loin du jeu sur grand écran et contredisait la consigne des fenêtres (« RETENEZ ! » pendant « À vous ! »).
+// Un seul maître du transform : animate. Mouvement réduit : simple disparition, sans grossissement.
 const dock = () => {
-  const root = rootEl.value
   const el = verbEl.value
-  if (!root || !el) return
-  const w = el.offsetWidth
-  const h = el.offsetHeight
-  const x = 12 + (w * SCALE_DOCKED) / 2 - root.offsetWidth / 2
-  const y = root.offsetHeight - 40 - (h * SCALE_DOCKED) / 2 - root.offsetHeight / 2
-  animate(el, { scale: SCALE_DOCKED, x, y }, reduced.value ? { duration: 0 } : { type: 'spring', stiffness: 220, damping: 22 })
+  if (!el) return
+  animate(el, reduced.value ? { opacity: 0 } : { opacity: 0, scale: 1.08 }, { duration: reduced.value ? 0.2 : 0.45, ease: 'easeIn' })
 }
 const { start: dockLater } = useTimeoutFn(dock, 800, { immediate: false })
 onMounted(() => {
-  if (reduced.value) return dock()
+  if (reduced.value) return dockLater()
   if (verbEl.value) animate(verbEl.value, { scale: [0.2, 1], opacity: [0, 1] }, { type: 'spring', stiffness: 520, damping: 11 })
   dockLater()
 })
@@ -78,6 +82,7 @@ watch(
     // Valeur finale exacte avant de figer la minuterie : sans cela, aria-valuenow garderait la dernière mesure (jusqu’à 500 ms de retard).
     left.value = o === 'fail' ? 0 : Math.round(timeLeft(playedMs(), duration.value) * 100)
     pauseTick()
+    releaseMusicTension(o)
     stinger.play(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
     await nextTick()
     if (resultEl.value && !reduced.value) animate(resultEl.value, { scale: [0.3, 1], rotate: o === 'win' ? [-6, 0] : [4, 0] }, { type: 'spring', stiffness: 480, damping: 9 })
@@ -86,9 +91,9 @@ watch(
 </script>
 
 <template>
-  <div ref="rootEl" class="pointer-events-none absolute inset-0 z-20 select-none" data-testid="activity-hud">
+  <div class="pointer-events-none absolute inset-0 z-20 select-none" data-testid="activity-hud">
     <p class="sr-only" role="status">{{ announcement }}</p>
-    <!-- verbe : plein centre à l’apparition, puis rangé en bas à gauche -->
+    <!-- verbe : plein centre à l’apparition, puis effacé en fondu -->
     <div class="absolute inset-0 flex items-center justify-center" :class="{ invisible: outcome !== 'play' }" aria-hidden="true">
       <p
         ref="verbEl"
