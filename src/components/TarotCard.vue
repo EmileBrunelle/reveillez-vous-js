@@ -148,10 +148,12 @@ onMounted(() => void deal())
                 :style="{ '--title': `${titleSize}cqw` }"
               >
                 <span v-for="c in CORNERS" :key="c" class="tarot__corner absolute size-[3.4cqw] [background:var(--tarot-gold)] [transform:rotate(45deg)]" :class="c" />
-                <div ref="numeroEl" class="tarot__numero font-title text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">
+                <div ref="numeroEl" class="tarot__numero relative font-title text-[6cqw] font-bold tracking-[0.15em] leading-none [padding:0.6cqw_4cqw] [border-block:0.5cqw_solid_var(--tarot-gold)]">
                   {{ arcane.numero }}
                 </div>
-                <div ref="emblemEl" class="tarot__emblem [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]" :style="{ '--emblem-mask': maskUrl }"><TarotEmblem :symbole="arcane.symbole" /></div>
+                <div ref="emblemEl" class="tarot__emblem relative [flex:0_0_24cqw] w-[24cqw] [color:var(--tarot-ink)]" :style="{ '--emblem-mask': maskUrl }">
+                  <TarotEmblem :symbole="arcane.symbole" />
+                </div>
                 <h2 ref="titleEl" class="tarot__title font-title m-0 [font-size:var(--title)] leading-[1.15] text-center uppercase [overflow-wrap:anywhere]" :data-text="title">{{ title }}</h2>
                 <div
                   ref="panelEl"
@@ -297,9 +299,6 @@ onMounted(() => void deal())
 .tarot__corner::after {
   inset: 0;
 }
-.tarot__numero {
-  position: relative;
-}
 .tarot__numero::after {
   inset: -0.5cqw 0;
   padding: 0.5cqw 0;
@@ -307,9 +306,6 @@ onMounted(() => void deal())
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   mask-composite: exclude;
-}
-.tarot__emblem {
-  position: relative;
 }
 .tarot__emblem::after {
   inset: 0;

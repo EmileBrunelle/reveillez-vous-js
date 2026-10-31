@@ -155,7 +155,7 @@ const { lost: failed } = useGpuEffect(
   <div class="relative w-full h-full flex flex-col items-center justify-center gap-4 font-ui select-none">
     <div
       ref="ball"
-      class="ball relative rounded-full touch-none cursor-grab focus-visible:outline-2 focus-visible:outline-offset-4"
+      class="ball relative rounded-full touch-none cursor-grab aspect-square w-[min(17.7778rem,78vw,calc(100dvh-var(--taskbar-h)-7rem))] focus-visible:outline-2 focus-visible:outline-offset-4"
       tabindex="0"
       role="application"
       aria-label="Boule de cristal embrumée"
@@ -191,8 +191,6 @@ const { lost: failed } = useGpuEffect(
 
 <style scoped>
 .ball {
-  width: min(320px, 78vw, calc(100dvh - var(--taskbar-h) - 7rem));
-  aspect-ratio: 1;
   box-shadow: 0 0 40px rgb(120 90 200 / 0.35);
 }
 .fb-glass {
