@@ -354,6 +354,11 @@ export const niveaux: Grammar = {
         'Cette nuit, les fantômes de 2009 reviendront hanter votre fenêtre : un visage de troll vous sourira dans le noir, et un autre murmurera « Me gusta » en vous regardant dormir. Un problème ?',
       verset: '{verset}',
     },
+    {
+      question: '{question3}',
+      corps: 'À la poissonnerie, vous demanderez un sac de plastique. On vous répondra avec un sourire : « Pas besoin, il est déjà dedans. » Les esprits de la mer ne pardonnent pas.',
+      verset: '{verset}',
+    },
   ],
 
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
