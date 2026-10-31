@@ -4,7 +4,7 @@
 [![Déploiement](https://img.shields.io/github/actions/workflow/status/EmileBrunelle/reveillez-vous-js/deploy.yml?branch=main&style=flat-square&label=d%C3%A9ploiement)](https://github.com/EmileBrunelle/reveillez-vous-js/actions/workflows/deploy.yml)
 ![WebGPU requis](https://img.shields.io/badge/WebGPU-requis-005a9c?style=flat-square)
 ![Vue 3 et TypeScript](https://img.shields.io/badge/Vue_3-TypeScript-42b883?style=flat-square&logo=vuedotjs&logoColor=white)
-[![Défi Fortune.js](https://img.shields.io/badge/d%C3%A9fi-Fortune.js_%C2%B7_AGEEI-ff7518?style=flat-square)](https://www.instagram.com/p/Deuvq8vvrXv/)
+[![Défi Fortune.js](https://img.shields.io/badge/d%C3%A9fi-Fortune.js_%C2%B7_AGEEI-ff7518?style=flat-square)](https://ageei.org/calendrier#event-638e0f24-afd5-4d20-b8e2-c76e02931e1c)
 
 Une personne voyante frappe un rythme derrière une porte ; vous le répétez, la porte s’ouvre et une carte de tarot vous livre une prophétie. Plus vous revenez, plus le ton devient paranoïaque et le décor se détraque, le tout sous l’écran cathodique d’un vieux PC hanté (Windows 98), jusqu’à une finale qui rend la lumière du jour. Entrée individuelle au défi Fortune.js de l’AGEEI (UQAM), Halloween 2026.
 
@@ -120,4 +120,4 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 
 ## Défi
 
-Projet créé spécifiquement pour le [défi Fortune.js](https://www.instagram.com/p/Deuvq8vvrXv/) de l’AGEEI (UQAM), participation individuelle.
+Projet créé spécifiquement pour le [défi Fortune.js](https://ageei.org/calendrier#event-638e0f24-afd5-4d20-b8e2-c76e02931e1c) de l’AGEEI (UQAM), participation individuelle.
