@@ -45,6 +45,7 @@ export const niveau2: ContenuNiveau = {
     'Les cartes voient un manoir à 1 $ sur un site de vente en ligne. Vous cliquerez. Il arrivera dans huit semaines : quatre centimètres de haut, et hanté quand même.',
     'Une personne cessera de vous répondre du jour au lendemain. Ne lui en voulez pas : c’est un fantôme, c’est dans sa nature. Remerciez-la plutôt pour l’essai gratuit de 15 jours.',
     'À la cafétéria, une salière contiendra des cure-dents au lieu du sel. Vous en saupoudrerez quand même votre soupe. C’est l’épice interdite : même les sorcières n’y touchent pas.',
+    'Un de vos parents vous ajoutera sur vos réseaux sociaux. Dès ce soir, vos publications ne montreront plus que des cours, des tisanes et un coucher à 21 h 13. Les esprits, eux, connaissent la vérité.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
