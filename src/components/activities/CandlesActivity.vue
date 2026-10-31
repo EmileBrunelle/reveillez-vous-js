@@ -215,16 +215,26 @@ const { pause } = useRafFn(({ delta }) => {
       >
         <IconChandelle class="absolute inset-0 size-full" />
         <span v-if="!lit[n - 1] && outcome === 'play'" class="wick-cue" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.7}s` }" aria-hidden="true" />
-        <span class="wick-glow" :style="{ opacity: hold[n - 1] * 0.9 }" aria-hidden="true" />
+        <span
+          class="wick-glow absolute left-1/2 top-[28%] size-[7px] -mt-[3.5px] -ml-[3.5px] rounded-[50%] bg-[#ff9a2e] pointer-events-none"
+          :style="{ opacity: hold[n - 1] * 0.9 }"
+          aria-hidden="true"
+        />
         <span v-if="snuffed === n - 1 && !reduced" class="smoke" aria-hidden="true" />
         <span class="flame" :class="{ on: lit[n - 1], 'no-motion': reduced }" aria-hidden="true">
           <span class="flame-sway" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.9}s` }" />
         </span>
       </button>
     </div>
-    <Motion as="span" class="match absolute left-0 top-0 pointer-events-none" :class="{ shown: matchVisible, 'no-motion': reduced }" :style="{ x: matchX, y: matchY }" aria-hidden="true">
+    <Motion
+      as="span"
+      class="match absolute left-0 top-0 pointer-events-none transition-opacity duration-200 ease-[ease] will-change-transform"
+      :class="[matchVisible ? 'opacity-100' : 'opacity-0', { 'no-motion': reduced }]"
+      :style="{ x: matchX, y: matchY }"
+      aria-hidden="true"
+    >
       <span class="match-flame" :class="{ 'no-motion': reduced }" />
-      <span class="match-stick" />
+      <span class="match-stick absolute -left-[1.5px] top-0 w-[3px] h-[34px] rounded-xs bg-[#8a5a2b] rotate-14 origin-[50%_0]" />
     </Motion>
     <ActivityHud activity="candles" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
     <ActivitySkip :show="canSkip" @skip="finish" />
@@ -235,17 +245,6 @@ const { pause } = useRafFn(({ delta }) => {
 .warm {
   background: radial-gradient(ellipse at 50% 65%, rgb(255 140 40 / 0.38), rgb(120 40 10 / 0.18) 55%, transparent 80%);
   transition: opacity 2.4s ease-in-out;
-}
-.wick-glow {
-  position: absolute;
-  left: 50%;
-  top: 28%;
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
-  border-radius: 50%;
-  background: #ff9a2e;
-  pointer-events: none;
 }
 /* Appel discret sur la mèche éteinte : halo qui respire (3 s, < 0,5 Hz), sur l’opacité seulement ; statique si mouvement réduit. */
 .wick-cue {
@@ -326,14 +325,6 @@ const { pause } = useRafFn(({ delta }) => {
     outline-color: rgb(232 217 176 / 0.45);
   }
 }
-.match {
-  opacity: 0;
-  transition: opacity 0.2s;
-  will-change: transform;
-}
-.match.shown {
-  opacity: 1;
-}
 .match-flame {
   position: absolute;
   left: -6px;
@@ -345,17 +336,6 @@ const { pause } = useRafFn(({ delta }) => {
   box-shadow: 0 0 12px 4px rgb(255 160 50 / 0.5);
   transform-origin: 50% 100%;
   animation: sway 2.4s ease-in-out infinite;
-}
-.match-stick {
-  position: absolute;
-  left: -1.5px;
-  top: 0;
-  width: 3px;
-  height: 34px;
-  background: #8a5a2b;
-  border-radius: 2px;
-  transform: rotate(14deg);
-  transform-origin: 50% 0;
 }
 @keyframes sway {
   0%,

@@ -79,6 +79,11 @@ const { start: driftLater, stop: driftStop } = useTimeoutFn(
   { immediate: false },
 )
 
+// Classes communes des touches de la planche (littéraux complets : le scanner d’UnoCSS les lit dans ce fichier).
+const KEY =
+  'key relative border-0 border-none border-current rounded-[8px] [background:transparent] text-[#d9b55a] font-[inherit] cursor-pointer focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-2'
+const ANSWER = 'answer px-2 py-0 min-h-[calc(var(--cell)*1.1)] font-bold tracking-[0.12em]'
+
 const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('ouija'),
   delayMs: outcomeMsOf('ouija'),
@@ -295,8 +300,8 @@ const { pause } = useRafFn(({ delta }) => {
     </p>
     <div ref="board" class="board relative flex flex-col items-center gap-1.5 sm:gap-2 px-2 py-3 sm:px-6 sm:py-5" role="group" aria-label="Planche Ouija">
       <div class="flex gap-10 sm:gap-16">
-        <button :ref="setEl(OUIJA_YES)" type="button" class="key answer" :aria-label="OUIJA_YES" tabindex="-1">{{ OUIJA_YES }}</button>
-        <button :ref="setEl(OUIJA_NO)" type="button" class="key answer" :aria-label="OUIJA_NO" tabindex="-1">{{ OUIJA_NO }}</button>
+        <button :ref="setEl(OUIJA_YES)" type="button" :class="[KEY, ANSWER, 'text-[1.1rem]']" :aria-label="OUIJA_YES" tabindex="-1">{{ OUIJA_YES }}</button>
+        <button :ref="setEl(OUIJA_NO)" type="button" :class="[KEY, ANSWER, 'text-[1.1rem]']" :aria-label="OUIJA_NO" tabindex="-1">{{ OUIJA_NO }}</button>
       </div>
       <div v-for="row in OUIJA_ROWS" :key="row" class="flex gap-1 sm:gap-1.5">
         <button
@@ -304,8 +309,11 @@ const { pause } = useRafFn(({ delta }) => {
           :key="l"
           :ref="setEl(l)"
           type="button"
-          class="key letter"
-          :class="{ next: expected === l, pop: popLetter === l, 'no-motion': reduced }"
+          :class="[
+            KEY,
+            'letter size-[var(--cell)] text-[length:calc(var(--cell)*0.56)] sm:text-[length:calc(var(--cell)*0.52)] font-bold',
+            { next: expected === l, pop: popLetter === l, 'no-motion': reduced },
+          ]"
           :aria-label="`Lettre ${l}`"
           :tabindex="isTabbable(l) ? 0 : -1"
           @focus="focusLetter(l)"
@@ -314,11 +322,22 @@ const { pause } = useRafFn(({ delta }) => {
           {{ l }}
         </button>
       </div>
-      <button :ref="setEl(OUIJA_BYE)" type="button" class="key answer bye" :class="{ lit: farewell, 'no-motion': reduced }" :aria-label="OUIJA_BYE" tabindex="-1">
+      <button
+        :ref="setEl(OUIJA_BYE)"
+        type="button"
+        :class="[
+          KEY,
+          ANSWER,
+          'bye mt-1 text-[0.95rem] transition-[color,background-color,box-shadow] duration-600 ease-[ease]',
+          { '!text-[#1a0d06] ![background:#f1d98a] [box-shadow:0_0_22px_6px_rgb(241_217_138/0.55)]': farewell, 'no-motion': reduced },
+        ]"
+        :aria-label="OUIJA_BYE"
+        tabindex="-1"
+      >
         {{ OUIJA_BYE }}
       </button>
     </div>
-    <Motion as="span" class="drop absolute left-0 top-0 pointer-events-none" :style="{ x: dropX, y: dropY, rotate: dropTilt, scale: dropLift }" aria-hidden="true">
+    <Motion as="span" class="drop absolute left-0 top-0 pointer-events-none will-change-transform" :style="{ x: dropX, y: dropY, rotate: dropTilt, scale: dropLift }" aria-hidden="true">
       <IconGoutte class="drop-shape" />
     </Motion>
     <ActivityHud activity="ouija" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
@@ -342,19 +361,6 @@ const { pause } = useRafFn(({ delta }) => {
     inset 0 0 0 4px rgb(217 181 90 / 0.4),
     0 10px 30px rgb(0 0 0 / 0.6);
 }
-.key {
-  font-family: inherit;
-  color: #d9b55a;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  position: relative;
-  border-radius: 8px;
-}
-.key:focus-visible {
-  outline: 3px solid #e8d9b0;
-  outline-offset: 2px;
-}
 .letter::after {
   /* Zone de toucher ≥ 44 px sans changer le dessin. */
   content: '';
@@ -363,32 +369,6 @@ const { pause } = useRafFn(({ delta }) => {
   width: max(100%, 44px);
   height: max(100%, 44px);
   transform: translate(-50%, -50%);
-}
-.letter {
-  width: var(--cell);
-  height: var(--cell);
-  font-size: calc(var(--cell) * 0.56);
-  font-weight: 700;
-}
-.answer {
-  min-height: calc(var(--cell) * 1.1);
-  padding: 0 0.5rem;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-.bye {
-  margin-top: 0.25rem;
-  font-size: 0.95rem;
-  transition:
-    color 0.6s ease,
-    background-color 0.6s ease,
-    box-shadow 0.6s ease;
-}
-.bye.lit {
-  color: #1a0d06;
-  background: #f1d98a;
-  box-shadow: 0 0 22px 6px rgb(241 217 138 / 0.55);
 }
 /* Lettre attendue : un anneau d’or se remplit pendant le survol (progression pilotée par dwellCss, pas de clignotement). */
 .letter.next {
@@ -399,12 +379,6 @@ const { pause } = useRafFn(({ delta }) => {
   .board {
     --cell: clamp(1.75rem, calc((100cqh - 15rem) / 6.4), 3.25rem);
   }
-  .letter {
-    font-size: calc(var(--cell) * 0.52);
-  }
-}
-.drop {
-  will-change: transform;
 }
 .drop-shape {
   position: absolute;
