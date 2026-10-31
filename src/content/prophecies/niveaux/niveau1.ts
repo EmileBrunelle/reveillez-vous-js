@@ -65,6 +65,7 @@ export const niveau1: ContenuNiveau = {
     'Un squelette ira chez le dentiste. Il montrera fièrement ses dents du haut. Quand on lui demandera celles du bas, il se souviendra qu’il a égaré sa mâchoire en 1912.',
     'Faute d’eau, vous ferez bouillir vos pâtes dans une boisson sportive bleue. Résultat : des pâtes vert sorcière. Les cartes rappellent qu’un chaudron, ça ne s’improvise pas.',
     'Vous briserez un miroir en mille morceaux. Sept ans de malchance, annonceront les cartes. Un esprit serviable vous demandera si vous avez essayé de mettre le miroir dans le riz.',
+    'Un chat blanc comme un drap de fantôme boira dans votre verre d’eau, sur le comptoir, sans la moindre gêne. Les cartes vous conseillent de prendre un autre verre. Pour toujours.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
