@@ -50,6 +50,7 @@ export const niveau1: ContenuNiveau = {
     'Les astres sont formels : quelque part, un bébé de six mois lit « HTML pour les bébés ». Dans vingt ans, cet enfant examinera votre candidature et la refusera : « expérience insuffisante ».',
     'Les cartes ont reconnu les trois esprits qui vous suivent depuis votre premier cours de programmation : NullPointer, IndexOutOfBounds et FileNotFound. Chaque fois qu’un malheur arrive, ce sont toujours les trois mêmes.',
     'Cette nuit, l’enfant que vous étiez reviendra vous hanter. Pas pour se venger : seulement pour demander, une dernière fois, la permission de jouer à Minecraft. Les esprits observent une minute de silence.',
+    'Ce soir, un message vous dira « Je t’aime ». Votre cœur bondira. Trente secondes plus tard : « Pardon, c’était pour un défi. » Les esprits, qui ont tout vu, en rient encore.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.

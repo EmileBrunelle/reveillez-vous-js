@@ -30,6 +30,8 @@ export const niveau5: ContenuNiveau = {
     'AU KARAOKÉ, VOUS VOUDREZ IMPRESSIONNER LA PERSONNE QUI VOUS PLAÎT AVEC UNE CHANSON CONNUE. À L’ÉCRAN, LES PAROLES RACONTERONT VOTRE JOURNÉE, MINUTE PAR MINUTE, JUSQU’À CE QUE VOUS LISIEZ CE QUE VOUS CHANTEZ.',
     'SOIRÉE FAMILIALE EN BEAUCE : ON PROJETTERA UN FILM SUR LE FLANC D’UNE VACHE BLANCHE. PERSONNE N’A APPORTÉ DE FILM. POURTANT, ON Y VOIT VOTRE SALON CE SOIR, ET LA VACHE TOURNE LENTEMENT LA TÊTE VERS VOUS.',
     'La boule de cristal vous montre deux portes : derrière l’une, tout ce que vous savez ; derrière l’autre, rien du tout. Prenez la seconde. Vous serez stupide, mais vous serez libre.',
+    'On vous montrera deux cercles orange : l’un minuscule, l’autre immense. On vous jurera que les deux ont la même taille. Vous finirez par le croire. Réveillez-vous.',
+    'Vous vous réveillerez à l’hôpital après onze ans de coma. Au lieu de paniquer, vous ouvrirez grand les bras : « Voyage dans le temps ! » Les cartes saluent votre optimisme. Réveillez-vous, mais pas trop vite.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.

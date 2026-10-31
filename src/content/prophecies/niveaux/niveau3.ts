@@ -40,6 +40,8 @@ export const niveau3: ContenuNiveau = {
     'Les esprits vous préviennent : dans un laboratoire du pavillon PK, une prise électrique portera l’étiquette « Nettoyeur de clés ». Elle est déjà noircie. N’y croyez pas : les farces de l’au-delà sont toujours à 120 volts.',
     'Cette nuit, les fantômes de 2009 reviendront hanter votre fenêtre : un visage de troll vous sourira dans le noir, et un autre murmurera « Me gusta » en vous regardant dormir. Un problème ?',
     'À la poissonnerie, vous demanderez un sac de plastique. On vous répondra avec un sourire : « Pas besoin, il est déjà dedans. » Les esprits de la mer ne pardonnent pas.',
+    'Au dépanneur, la tablette du lait évaporé sera vide. Ne vous inquiétez pas : le produit fonctionne exactement comme annoncé. Les esprits, eux, savent où est passée la personne partie en chercher il y a vingt ans.',
+    'Vous passerez l’hiver en Floride, comme tout le monde. En vacances, c’est un château. Pour y vivre, c’est un sous-sol humide où une souris géante vous attend dans le noir.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.

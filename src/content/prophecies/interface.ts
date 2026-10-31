@@ -24,6 +24,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'Mise à jour disponible', texte: 'Votre avenir a été mis à jour. Redémarrage requis.' },
     { titre: 'Rappel', texte: 'Vous avez rendez-vous avec le 31 octobre.' },
     { titre: 'Barre des tâches', texte: 'La porte a été ouverte avant vous.' },
+    { titre: 'Connexion non sécurisée', texte: 'Êtes-vous en HTTP ? Parce que ://' },
   ],
   bulle3: [
     { titre: 'Connexion détectée', texte: 'Une personne consulte votre horoscope en ce moment.' },
