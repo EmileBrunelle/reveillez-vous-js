@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { HORLOGE_LIGNES } from '../../src/content/horloge'
-import { fenetreHoraire, heureQc, HORLOGE_CHANCE, HORLOGE_KEY, nextClockLine } from '../../src/engine/horloge'
+import { HORLOGE_LIGNES } from '@/content/horloge'
+import { fenetreHoraire, heureQc, HORLOGE_CHANCE, HORLOGE_KEY, nextClockLine } from '@/engine/horloge'
 
 const at = (h: number, m = 0, month = 10, day = 12) => new Date(2026, month - 1, day, h, m)
 const memStore = () => {

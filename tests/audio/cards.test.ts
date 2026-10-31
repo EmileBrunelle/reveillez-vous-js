@@ -23,16 +23,16 @@ const node = (): Record<string, unknown> => {
 }
 const ctx = { currentTime: 1, destination: h.dest, createGain: node, createBiquadFilter: node, createBufferSource: node }
 
-vi.mock('../../src/audio/sfx', () => ({
+vi.mock('@/audio/sfx', () => ({
   ac: () => ctx,
   effetsOut: () => h.out,
   muted: h.muted,
 }))
-vi.mock('../../src/audio/noise', () => ({
+vi.mock('@/audio/noise', () => ({
   startNoise: (_c: unknown, _src: unknown, _at: number, dur: number) => void h.durs.push(dur),
 }))
 
-import { cardCollect, cardHover, cardPick, cardPickStill, createGate, ENV_MAX, ENV_MIN, HOVER_MIN_INTERVAL, jitter, PEAK, WHOOSH_DUR } from '../../src/audio/cards'
+import { cardCollect, cardHover, cardPick, cardPickStill, createGate, ENV_MAX, ENV_MIN, HOVER_MIN_INTERVAL, jitter, PEAK, WHOOSH_DUR } from '@/audio/cards'
 
 const THUD = 0.4
 const at = (ms: number) => vi.spyOn(performance, 'now').mockReturnValue(ms)

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useSessionStore } from '../../src/stores/session'
+import { useSessionStore } from '@/stores/session'
 
 describe('session store', () => {
   beforeEach(() => setActivePinia(createPinia()))

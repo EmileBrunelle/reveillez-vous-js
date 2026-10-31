@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { muted } from '../../src/audio/sfx'
-import { ambienceDucked } from '../../src/audio/ambience'
-import { startFinaleAudio } from '../../src/audio/finale'
+import { muted } from '@/audio/sfx'
+import { ambienceDucked } from '@/audio/ambience'
+import { startFinaleAudio } from '@/audio/finale'
 
 const stats = { oscStarted: 0, oscStopped: 0, disconnected: 0 }
 const param = () => {

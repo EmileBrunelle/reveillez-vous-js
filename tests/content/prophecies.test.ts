@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { expandFields, expandTemplate, isGabarit, isObjectTable, isTitre, type ArcaneTable, type Gabarit, type Grammar, type ObjectTable } from '../../src/engine/grammar'
-import { mulberry32 } from '../../src/engine/rng'
-import { prophecies, tableKey } from '../../src/content/prophecies'
+import { expandFields, expandTemplate, isGabarit, isObjectTable, isTitre, type ArcaneTable, type Gabarit, type Grammar, type ObjectTable } from '@/engine/grammar'
+import { mulberry32 } from '@/engine/rng'
+import { prophecies, tableKey } from '@/content/prophecies'
 import { BANNED, CONTRACTIONS, RELIGION, bannedRe } from './rules'
 
 /** Tout le code source du contenu (chaque fichier du dossier), pour les balayages de mots interdits. */

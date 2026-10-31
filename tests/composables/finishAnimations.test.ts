@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { finishAnimations } from '../../src/composables/finishAnimations'
+import { finishAnimations } from '@/composables/finishAnimations'
 
 describe('finishAnimations (clic pendant l’ouverture de « À propos »)', () => {
   it('mène chaque animation à sa fin avant de l’arrêter, sans quoi la fenêtre reste figée à mi-course', () => {

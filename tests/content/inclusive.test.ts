@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { prophecies } from '../../src/content/prophecies'
+import { prophecies } from '@/content/prophecies'
 import { INCLUSIVE_BANNED, PRONOUN_ALLOWLIST, runningTextEntries } from './rules'
 
 describe('écriture inclusive (UQAM) : textes courants de prophecies.ts', () => {

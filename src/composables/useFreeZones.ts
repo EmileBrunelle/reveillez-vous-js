@@ -1,5 +1,5 @@
 import { useResizeObserver, useScreenSafeArea } from '@vueuse/core'
-import type { Box } from '../engine/freeZones'
+import type { Box } from '@/engine/freeZones'
 import { useLayoutRefs } from './layoutRefs'
 
 const boxOf = (el: Element): Box => {

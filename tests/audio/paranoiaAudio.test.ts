@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BASS_PARTIALS, PAD_GAINS, PAD_VOICES, RARE_KINDS, SUB_GAINS, clampLevel, estimatedDbfs, nextRareDelay, pickRareKind, rareRange, subGain } from '../../src/audio/paranoiaAudio'
+import { BASS_PARTIALS, PAD_GAINS, PAD_VOICES, RARE_KINDS, SUB_GAINS, clampLevel, estimatedDbfs, nextRareDelay, pickRareKind, rareRange, subGain } from '@/audio/paranoiaAudio'
 
 describe('sous-bourdon par palier', () => {
   it('absent au niveau 1, puis strictement croissant', () => {

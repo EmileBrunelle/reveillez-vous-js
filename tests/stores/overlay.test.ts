@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { effectScope, nextTick, ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
-import { useOverlayRegistration, useOverlayStore } from '../../src/stores/overlay'
+import { useOverlayRegistration, useOverlayStore } from '@/stores/overlay'
 
 describe('store des superpositions', () => {
   beforeEach(() => setActivePinia(createPinia()))

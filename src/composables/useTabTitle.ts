@@ -1,9 +1,9 @@
 import { watch, type Ref } from 'vue'
 import { useDocumentVisibility, useTitle } from '@vueuse/core'
-import { prophecies } from '../content/prophecies'
-import type { ParanoiaLevel } from '../engine/paranoia'
-import { nextTabTitle } from '../engine/prophecy'
-import { secureRng } from '../engine/rng'
+import { prophecies } from '@/content/prophecies'
+import type { ParanoiaLevel } from '@/engine/paranoia'
+import { nextTabTitle } from '@/engine/prophecy'
+import { secureRng } from '@/engine/rng'
 import { safeStorage } from './safeStorage'
 
 export const BASE_TITLE = 'Réveillez-vous.js'

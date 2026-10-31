@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, ref } from 'vue'
-import { useGpuEffect } from '../../src/composables/useGpuEffect'
-import type { GpuLoop } from '../../src/effects/gpuLoop'
+import { useGpuEffect } from '@/composables/useGpuEffect'
+import type { GpuLoop } from '@/effects/gpuLoop'
 
 // useTimeoutFn de VueUse ne démarre que si `window` et `document` existent à l’import (isClient) : l’environnement de test est node.
 vi.hoisted(() => {

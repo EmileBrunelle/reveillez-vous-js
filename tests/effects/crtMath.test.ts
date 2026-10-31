@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { crtEdgeTerms, RIPPLE, rippleDisplacement } from '../../src/effects/crtMath'
+import { crtEdgeTerms, RIPPLE, rippleDisplacement } from '@/effects/crtMath'
 
 describe('CRT bords lisibles', () => {
   for (const p of [0, 1]) {

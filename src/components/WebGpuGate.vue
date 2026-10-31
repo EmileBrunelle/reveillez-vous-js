@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import IconGithub from '~icons/simple-icons/github'
-import { REPO_URL } from '../content/finale'
+import { REPO_URL } from '@/content/finale'
 
 defineEmits<{ retry: []; about: [] }>()
 </script>

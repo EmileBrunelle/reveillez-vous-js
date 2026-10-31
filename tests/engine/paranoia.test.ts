@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isQuickKnock, paranoiaLevel } from '../../src/engine/paranoia'
+import { isQuickKnock, paranoiaLevel } from '@/engine/paranoia'
 
 describe('paranoiaLevel', () => {
   it('returns an integer 1..5 for 0..100 and never decreases', () => {

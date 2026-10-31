@@ -1,11 +1,11 @@
 // Bulles de la barre des tâches liées à la porte : une par visite (niveau 2+), peu après l’arrivée.
 import { storeToRefs } from 'pinia'
 import { useTimeoutFn } from '@vueuse/core'
-import { prophecies, tableKey } from '../content/prophecies'
-import { nextTitled } from '../engine/prophecy'
-import type { Rng } from '../engine/rng'
-import { useProgressStore } from '../stores/progress'
-import { useSessionStore } from '../stores/session'
+import { prophecies, tableKey } from '@/content/prophecies'
+import { nextTitled } from '@/engine/prophecy'
+import type { Rng } from '@/engine/rng'
+import { useProgressStore } from '@/stores/progress'
+import { useSessionStore } from '@/stores/session'
 import { safeStorage } from './safeStorage'
 
 export const useBubbles = (rng: Rng) => {

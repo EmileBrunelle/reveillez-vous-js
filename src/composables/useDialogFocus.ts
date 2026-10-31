@@ -1,5 +1,5 @@
 import { nextTick, watch, type Ref } from 'vue'
-import { useOverlayRegistration } from '../stores/overlay'
+import { useOverlayRegistration } from '@/stores/overlay'
 import { activeHtmlElement, focusQuietly } from './focusQuietly'
 
 /**

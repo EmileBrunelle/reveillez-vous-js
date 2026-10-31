@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createLanding, RIPPLE_AMP } from '../../src/composables/cardLanding'
+import { createLanding, RIPPLE_AMP } from '@/composables/cardLanding'
 
 const make = (reduced: boolean) => {
   const deps = { reduced: () => reduced, thud: vi.fn(), ripple: vi.fn(), shimmer: vi.fn() }

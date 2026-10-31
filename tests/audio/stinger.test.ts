@@ -40,9 +40,9 @@ const ctx = {
   },
 }
 
-vi.mock('../../src/audio/sfx', () => ({ ac: () => ctx, effetsOut: () => h.out, muted: h.muted }))
+vi.mock('@/audio/sfx', () => ({ ac: () => ctx, effetsOut: () => h.out, muted: h.muted }))
 
-const { STINGERS, playStinger, stingerDuration } = await import('../../src/audio/stinger')
+const { STINGERS, playStinger, stingerDuration } = await import('@/audio/stinger')
 
 describe('stingers d’activité', () => {
   beforeEach(() => {

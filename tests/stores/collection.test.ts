@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { COLLECTION_KEY, useCollectionStore } from '../../src/stores/collection'
-import { useProgressStore } from '../../src/stores/progress'
-import { arcaneInventory, consulted, emptyCollection, parseCollection, seenCount, withSeen } from '../../src/engine/collection'
-import { prophecies } from '../../src/content/prophecies'
+import { COLLECTION_KEY, useCollectionStore } from '@/stores/collection'
+import { useProgressStore } from '@/stores/progress'
+import { arcaneInventory, consulted, emptyCollection, parseCollection, seenCount, withSeen } from '@/engine/collection'
+import { prophecies } from '@/content/prophecies'
 
 const m = new Map<string, string>()
 const stub = (map: Map<string, string>) => ({ getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) })

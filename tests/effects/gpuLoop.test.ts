@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Pas de DOM sous Vitest : la visibilité de l’onglet est une ref que le test pilote.
 const visibility = vi.hoisted(() => ({ current: null as unknown as { value: string } }))
 vi.mock('@vueuse/core', () => ({ useDocumentVisibility: () => visibility.current }))
-import { startGpuLoop } from '../../src/effects/gpuLoop'
+import { startGpuLoop } from '@/effects/gpuLoop'
 
 // vgpu simulé : `frameLoop` enregistre ses boucles, le test pilote les ticks à la main.
 interface FakeLoop {

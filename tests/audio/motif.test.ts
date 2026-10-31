@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { muted } from '../../src/audio/sfx'
-import { HYMN_HZ, FLIP_BLIP_HZ } from '../../src/audio/sfx'
-import { PAD_HZ } from '../../src/audio/finale'
-import { MOTIF, dbToGain, motifBusyUntil, motifWarning, playMotif, type MotifOpts } from '../../src/audio/motif'
-import { nextWarningDelay, warningAllowed, WARNING_RANGE } from '../../src/audio/paranoiaAudio'
+import { muted } from '@/audio/sfx'
+import { HYMN_HZ, FLIP_BLIP_HZ } from '@/audio/sfx'
+import { PAD_HZ } from '@/audio/finale'
+import { MOTIF, dbToGain, motifBusyUntil, motifWarning, playMotif, type MotifOpts } from '@/audio/motif'
+import { nextWarningDelay, warningAllowed, WARNING_RANGE } from '@/audio/paranoiaAudio'
 
 interface Osc {
   type: string

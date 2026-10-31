@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { useActivityDone } from '../../src/composables/useActivityDone'
-import { ACTIVITY_GRACE_MS } from '../../src/engine/activityTiming'
+import { useActivityDone } from '@/composables/useActivityDone'
+import { ACTIVITY_GRACE_MS } from '@/engine/activityTiming'
 
 const G = ACTIVITY_GRACE_MS
 

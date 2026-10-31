@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { PIANO_PHRASES } from '../../src/content/pianoPhrases'
-import { mulberry32 } from '../../src/engine/rng'
-import { KEYS, perform } from '../../src/audio/musicPlan'
-import { MAX_RINGING, notePartials, peakSources, stealCuts } from '../../src/audio/pianoVoice'
+import { PIANO_PHRASES } from '@/content/pianoPhrases'
+import { mulberry32 } from '@/engine/rng'
+import { KEYS, perform } from '@/audio/musicPlan'
+import { MAX_RINGING, notePartials, peakSources, stealCuts } from '@/audio/pianoVoice'
 
 /** Plafond de sources audio (oscillateurs + marteaux + flottement) simultanées : budget d’un téléphone d’entrée de gamme. */
 const MAX_SOURCES = 60

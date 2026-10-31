@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { tryOnMounted, tryOnScopeDispose, until, useDocumentVisibility, useTimeoutFn } from '@vueuse/core'
-import type { GpuLoop } from '../effects/gpuLoop'
+import type { GpuLoop } from '@/effects/gpuLoop'
 import { nextFrame } from './nextFrame'
 
 /** `starting` : init en cours ; `ready` : la boucle tourne ; `failed` : l’init a échoué ou expiré (secours visuel) ; `unavailable` : pas de WebGPU (la porte `gate` a répondu non). */

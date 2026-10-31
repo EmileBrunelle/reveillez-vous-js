@@ -51,7 +51,7 @@ const env = vi.hoisted(() => {
   return { FakeElement, runFrames, pendingFrames: () => frames.length }
 })
 
-const { useCardShimmer } = await import('../../src/composables/useCardShimmer')
+const { useCardShimmer } = await import('@/composables/useCardShimmer')
 
 const setup = async () => {
   const el = new env.FakeElement()

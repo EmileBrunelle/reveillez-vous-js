@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { AUDIO_KEY, DEFAULT_VOLUMES, useAudioStore } from '../../src/stores/audio'
+import { AUDIO_KEY, DEFAULT_VOLUMES, useAudioStore } from '@/stores/audio'
 
 const memStorage = () => {
   const m = new Map<string, string>()

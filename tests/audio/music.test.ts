@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { mulberry32 } from '../../src/engine/rng'
-import { PIANO_PHRASES } from '../../src/content/pianoPhrases'
+import { mulberry32 } from '@/engine/rng'
+import { PIANO_PHRASES } from '@/content/pianoPhrases'
 import {
   GAP_MAX,
   GAP_MIN,
@@ -23,7 +23,7 @@ import {
   resumeDelay,
   type NoteEvent,
   type PhraseGate,
-} from '../../src/audio/musicPlan'
+} from '@/audio/musicPlan'
 
 const A_MAJOR = new Set([9, 11, 1, 2, 4, 6, 8])
 const pc = (m: number) => ((m % 12) + 12) % 12

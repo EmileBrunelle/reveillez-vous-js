@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
-import { unlock } from '../audio/sfx'
+import { unlock } from '@/audio/sfx'
 import { requestOrientationPermission } from './useTilt'
 
 /**

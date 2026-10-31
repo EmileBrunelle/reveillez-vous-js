@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, useId, useTemplateRef, watch } from 'vue'
 import { onClickOutside, useIntervalFn, useNow, useTimeoutFn } from '@vueuse/core'
-import { useSessionStore } from '../stores/session'
-import { muted } from '../audio/sfx'
-import { REPO_URL } from '../content/finale'
-import { loadAbout, loadCollection, loadReset, loadSound, prefetch } from '../lazy'
+import { useSessionStore } from '@/stores/session'
+import { muted } from '@/audio/sfx'
+import { REPO_URL } from '@/content/finale'
+import { loadAbout, loadCollection, loadReset, loadSound, prefetch } from '@/lazy'
 import Vigilance from './Vigilance.vue'
 import IconStart from '~icons/rvj/demarrer'
 import IconSound from '~icons/rvj/son'
@@ -12,9 +12,9 @@ import IconSoundOff from '~icons/rvj/son-coupe'
 import IconFullscreen from '~icons/rvj/fullscreen'
 import IconFullscreenExit from '~icons/rvj/fullscreen-quitter'
 import IconGithub from '~icons/simple-icons/github'
-import { useFullscreenToggle } from '../composables/useFullscreenToggle'
-import { registerLayoutEl, useLayoutRefs } from '../composables/layoutRefs'
-import { useMenuFocus } from '../composables/useMenuFocus'
+import { useFullscreenToggle } from '@/composables/useFullscreenToggle'
+import { registerLayoutEl, useLayoutRefs } from '@/composables/layoutRefs'
+import { useMenuFocus } from '@/composables/useMenuFocus'
 
 defineProps<{ level: number }>()
 const emit = defineEmits<{ about: []; collection: []; sound: []; reset: []; resetLevel: [] }>()

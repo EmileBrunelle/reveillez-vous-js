@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ac, ambienceOut, effetsOut, finaleOut } from '../../src/audio/sfx'
-import { AUDIO_KEY, DEFAULT_VOLUMES, VOLUME_KEYS, parseVolumes, useAudioStore } from '../../src/stores/audio'
+import { ac, ambienceOut, effetsOut, finaleOut } from '@/audio/sfx'
+import { AUDIO_KEY, DEFAULT_VOLUMES, VOLUME_KEYS, parseVolumes, useAudioStore } from '@/stores/audio'
 import { createPinia, setActivePinia } from 'pinia'
 import { effectScope } from 'vue'
-import { safeStorage } from '../../src/composables/safeStorage'
+import { safeStorage } from '@/composables/safeStorage'
 
 interface FakeGain {
   gain: { value: number; setTargetAtTime: ReturnType<typeof vi.fn>; cancelScheduledValues: () => void }

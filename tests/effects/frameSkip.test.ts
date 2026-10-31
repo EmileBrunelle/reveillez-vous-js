@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { copyVec4, crtStaticKey, crystalScalarsChanged, makeVec4Fields, raymarchStaticKey } from '../../src/effects/frameSkip'
+import { copyVec4, crtStaticKey, crystalScalarsChanged, makeVec4Fields, raymarchStaticKey } from '@/effects/frameSkip'
 
 describe('clés d’image statique', () => {
   it('CRT : même taille et paranoïa à 3 décimales près = même clé', () => {

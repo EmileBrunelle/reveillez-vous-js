@@ -1,6 +1,6 @@
 import { throttleFilter, useDocumentVisibility, useIdle, useTimeoutFn } from '@vueuse/core'
 import { ref, watch } from 'vue'
-import { ACTIVITY_GRACE_MS, OUTCOME_MS, type Outcome, type Phase } from '../engine/activityTiming'
+import { ACTIVITY_GRACE_MS, OUTCOME_MS, type Outcome, type Phase } from '@/engine/activityTiming'
 
 // Délai de réussite automatique : une activité se réussit toujours, même sans y toucher.
 export const AUTO_SUCCESS_MS = 20_000

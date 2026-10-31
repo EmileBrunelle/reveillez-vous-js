@@ -7,6 +7,8 @@ import UnoCSS from 'unocss/vite'
 
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
+  // Alias « @/ » → src/ : déclaré une seule fois, dans les tsconfig (paths), et lu par Vite.
+  resolve: { tsconfigPaths: true },
   plugins: [
     UnoCSS(),
     vue(),

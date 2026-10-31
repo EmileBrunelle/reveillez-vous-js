@@ -18,7 +18,7 @@
 //    Les chaînes `futur`, `moment`, `bonbon` ont une variante `_caps`.
 //  - Garde chaque paire cohérente : l’entrée est tirée une seule fois par prophétie, tous ses champs vont ensemble.
 //  - Les valeurs peuvent contenir des {références} imbriquées (profondeur max : 8). Les champs d’une entrée (`question`, `corps`, `verset` ; `titre`, `texte`) sont développés ensemble.
-import type { Grammar } from '../../engine/grammar'
+import type { Grammar } from '@/engine/grammar'
 import { interfaceTextes } from './interface'
 import { niveaux, questions, rappels } from './niveaux'
 import { portes } from './porte'
@@ -27,6 +27,6 @@ import { versets } from './versets'
 
 export type { Level, LevelPrefix, PlainKey, TableKey } from './keys'
 export { tableKey } from './keys'
-export type { Gabarit, Titre } from '../../engine/grammar'
+export type { Gabarit, Titre } from '@/engine/grammar'
 
 export const prophecies: Grammar = { ...niveaux, ...portes, ...rappels, ...interfaceTextes, ...questions, ...tables, ...versets }

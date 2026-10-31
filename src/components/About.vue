@@ -2,13 +2,13 @@
 import { nextTick, ref, watch, useTemplateRef } from 'vue'
 import { Dialog } from '@vuetify/v0'
 import { animate } from 'motion-v'
-import { useReducedMotion } from '../composables/useReducedMotion'
-import { useMotionScope } from '../composables/useMotionScope'
-import { finishAnimations, type Stoppable } from '../composables/finishAnimations'
-import { useLayoutRefs } from '../composables/layoutRefs'
-import { aboutClose, aboutOpen } from '../audio/sfx'
-import { REPO_URL } from '../content/finale'
-import { useOverlayRegistration } from '../stores/overlay'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { useMotionScope } from '@/composables/useMotionScope'
+import { finishAnimations, type Stoppable } from '@/composables/finishAnimations'
+import { useLayoutRefs } from '@/composables/layoutRefs'
+import { aboutClose, aboutOpen } from '@/audio/sfx'
+import { REPO_URL } from '@/content/finale'
+import { useOverlayRegistration } from '@/stores/overlay'
 
 // v-model du parent = « veut ouvert ». `shown` est ce que le dialogue natif voit vraiment : l’animation de
 // fermeture peut ainsi jouer avant la fermeture réelle. DOM et motion seulement : aucune dépendance à WebGPU.

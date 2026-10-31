@@ -1,5 +1,5 @@
 import { tryOnScopeDispose } from '@vueuse/core'
-import { scheduleKnocks, type KnockHandle, type KnockHit } from '../audio/sfx'
+import { scheduleKnocks, type KnockHandle, type KnockHit } from '@/audio/sfx'
 
 /** Calendrier de coups (horloge Web Audio), un seul à la fois : un nouvel `schedule` annule le précédent ; `cancel()` et la destruction du scope l’annulent aussi. */
 export const useKnockSchedule = () => {

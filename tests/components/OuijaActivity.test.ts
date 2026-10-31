@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createPinia } from 'pinia'
-import OuijaActivity from '../../src/components/activities/OuijaActivity.vue'
-import { mulberry32 } from '../../src/engine/rng'
+import OuijaActivity from '@/components/activities/OuijaActivity.vue'
+import { mulberry32 } from '@/engine/rng'
 
 const render = async () => {
   const app = createSSRApp({ render: () => h(OuijaActivity, { level: 1, rng: mulberry32(42) }) }).use(createPinia())

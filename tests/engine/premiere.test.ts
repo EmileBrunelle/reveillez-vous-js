@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { mulberry32 } from '../../src/engine/rng'
-import { nextProphecy, premiereFor, templatesFor } from '../../src/engine/prophecy'
-import { prophecies } from '../../src/content/prophecies'
+import { mulberry32 } from '@/engine/rng'
+import { nextProphecy, premiereFor, templatesFor } from '@/engine/prophecy'
+import { prophecies } from '@/content/prophecies'
 
 const memStore = () => {
   const m = new Map<string, string>()

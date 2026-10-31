@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { isNear, nextWaypoint, stepCatch, stepSpring, stepWisp, wispTuning, type Vec, type WispTuning } from '../../src/engine/wisps'
-import { mulberry32, type Rng } from '../../src/engine/rng'
+import { isNear, nextWaypoint, stepCatch, stepSpring, stepWisp, wispTuning, type Vec, type WispTuning } from '@/engine/wisps'
+import { mulberry32, type Rng } from '@/engine/rng'
 
 describe('wisps', () => {
   it('le ressort converge vers sa cible sans exploser', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aimPoint, TOUCH_GRACE_MS, TOUCH_LIFT } from '../../src/composables/touchAim'
+import { aimPoint, TOUCH_GRACE_MS, TOUCH_LIFT } from '@/composables/touchAim'
 
 const rect = { left: 10, top: 20 }
 describe('aimPoint', () => {

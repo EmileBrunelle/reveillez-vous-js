@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { useMotionScope } from '../../src/composables/useMotionScope'
+import { useMotionScope } from '@/composables/useMotionScope'
 
 // useTimeoutFn de VueUse ne démarre que si `window` et `document` existent à l’import (isClient) : l’environnement de test est node.
 vi.hoisted(() => {

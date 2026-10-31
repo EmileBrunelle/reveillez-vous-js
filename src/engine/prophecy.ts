@@ -1,11 +1,11 @@
 import { expandFields, expandTemplate, isGabarit, isObjectTable, isStringTable, isTitre, type Gabarit, type Grammar, type Titre } from './grammar'
 import type { ParanoiaLevel } from './paranoia'
-import { tableKey, type TableKey } from '../content/prophecies/keys'
+import { tableKey, type TableKey } from '@/content/prophecies/keys'
 import type { Rng } from './rng'
 import { drawPersisted } from './shuffleBag'
 import { isPaquet, type Paquet } from './paquets'
-import { returnGrammar } from '../content/finale'
-import { arcaneIndex } from '../stores/progress'
+import { returnGrammar } from '@/content/finale'
+import { arcaneIndex } from '@/stores/progress'
 
 export interface Arcane {
   /** Chiffre romain (« XVIII », « XIII bis »). */

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick, ref } from 'vue'
-import { useCardGlitch } from '../../src/composables/useCardGlitch'
+import { useCardGlitch } from '@/composables/useCardGlitch'
 
 // Éléments factices : seul ce que le composable touche (animate).
 const fakeEl = () => {

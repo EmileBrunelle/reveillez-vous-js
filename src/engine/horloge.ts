@@ -1,4 +1,4 @@
-import { HORLOGE_LIGNES, type FenetreHoraire } from '../content/horloge'
+import { HORLOGE_LIGNES, type FenetreHoraire } from '@/content/horloge'
 import type { Rng } from './rng'
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>

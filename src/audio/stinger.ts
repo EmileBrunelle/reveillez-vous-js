@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { releaseBusy } from './musicPlan'
 import { ac, effetsOut, muted } from './sfx'
-import type { Outcome } from '../engine/activityTiming'
+import type { Outcome } from '@/engine/activityTiming'
 
 // Jingles d’environ 1 s qui concluent une activité, accordés sur le leitmotif (la) : réussite = montée de la (A4-C♯5-E5-A5,
 // accord de la majeur, résolution), échec = descente comique en trombone (B♭4, la, sol, fa♯ glissant vers mi).

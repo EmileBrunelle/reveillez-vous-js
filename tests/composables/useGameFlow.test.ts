@@ -3,11 +3,11 @@ import { createPinia, setActivePinia } from 'pinia'
 import { effectScope } from 'vue'
 
 const tarot = vi.hoisted(() => ({ load: vi.fn<() => Promise<unknown>>() }))
-vi.mock('../../src/audio/sfx', () => ({ hymn: vi.fn(), unlock: vi.fn() }))
-vi.mock('../../src/lazy', () => ({ loadTarotCard: () => tarot.load(), activityFor: () => null, loadFinale: () => Promise.resolve({}), prefetch: vi.fn() }))
+vi.mock('@/audio/sfx', () => ({ hymn: vi.fn(), unlock: vi.fn() }))
+vi.mock('@/lazy', () => ({ loadTarotCard: () => tarot.load(), activityFor: () => null, loadFinale: () => Promise.resolve({}), prefetch: vi.fn() }))
 
-import { useProgressStore } from '../../src/stores/progress'
-import { useGameFlow } from '../../src/composables/useGameFlow'
+import { useProgressStore } from '@/stores/progress'
+import { useGameFlow } from '@/composables/useGameFlow'
 
 const make = (visits = 0) => {
   const pinia = createPinia()

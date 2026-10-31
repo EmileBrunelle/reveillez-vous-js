@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { resetSafeStorageCache, safeSessionStorage, safeStorage } from '../../src/composables/safeStorage'
+import { resetSafeStorageCache, safeSessionStorage, safeStorage } from '@/composables/safeStorage'
 
 describe('safeStorage', () => {
   afterEach(() => {

@@ -1,6 +1,6 @@
 import { effectScope, watch } from 'vue'
 import { useDocumentVisibility, useIntervalFn, useTimeoutFn, type Pausable } from '@vueuse/core'
-import { orSecure, type Rng } from '../engine/rng'
+import { orSecure, type Rng } from '@/engine/rng'
 import { ambienceDucked, fadeParam } from './ambience'
 import { motifBusyUntil } from './motif'
 import { playPhrase, type PhraseHandle } from './pianoVoice'

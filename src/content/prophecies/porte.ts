@@ -1,6 +1,6 @@
 // Phrases dites par la voix derrière la porte : le rythme frappé et l’invitation à le répéter.
 // Format : chaînes simples, avec `{table}` / `{table.champ}` possibles (voir `tables.ts`).
-import type { Grammar } from '../../engine/grammar'
+import type { Grammar } from '@/engine/grammar'
 
 /** `porte1` … `porte5` (invitations), `rate1` … `rate5` (rythme raté, ≤ ~110 caractères) et `entrez` (après 3 ratés). */
 export const portes: Grammar = {

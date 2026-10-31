@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { prophecies } from '../../src/content/prophecies'
-import { nextFakeError } from '../../src/engine/prophecy'
-import { mulberry32 } from '../../src/engine/rng'
-import type { Grammar } from '../../src/engine/grammar'
-import { tableKey } from '../../src/content/prophecies'
+import { prophecies } from '@/content/prophecies'
+import { nextFakeError } from '@/engine/prophecy'
+import { mulberry32 } from '@/engine/rng'
+import type { Grammar } from '@/engine/grammar'
+import { tableKey } from '@/content/prophecies'
 
 const memStore = () => {
   const m = new Map<string, string>()

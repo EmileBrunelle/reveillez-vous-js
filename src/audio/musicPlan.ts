@@ -1,5 +1,5 @@
-import type { Rng } from '../engine/rng'
-import { PIANO_PHRASES, type ComposedPhrase } from '../content/pianoPhrases'
+import type { Rng } from '@/engine/rng'
+import { PIANO_PHRASES, type ComposedPhrase } from '@/content/pianoPhrases'
 
 // Piano clairsemé (esprit C418) : on joue des phrases composées (src/content/pianoPhrases.ts), interprétées par un Rng injecté
 // (rubato, accords roulés, nuances), pures et déterministes pour un Rng donné. La synthèse est dans pianoVoice.ts.

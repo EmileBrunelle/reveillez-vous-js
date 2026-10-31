@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { mulberry32 } from '../../src/engine/rng'
-import { pickVariant } from '../../src/engine/variant'
+import { mulberry32 } from '@/engine/rng'
+import { pickVariant } from '@/engine/variant'
 
 describe('pickVariant weight', () => {
   it('favors heavier variants', () => {

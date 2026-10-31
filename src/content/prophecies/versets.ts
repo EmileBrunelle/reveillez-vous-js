@@ -1,6 +1,6 @@
 // Versets : livre + référence, tirés séparément par le moteur (le livre via un sac persisté, la référence au hasard).
 // `{verset}` dans un gabarit devient `{verset_livre} {verset_ref}` (ex. « Pleine lune 3:13 »).
-import type { Grammar } from '../../engine/grammar'
+import type { Grammar } from '@/engine/grammar'
 
 /** `verset_livre` (noms de livres) et `verset_ref` (« chapitre:verset »). */
 export const versets: Grammar = {

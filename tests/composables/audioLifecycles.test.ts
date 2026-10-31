@@ -15,20 +15,20 @@ const mocks = vi.hoisted(() => ({
   wipe: { move: vi.fn(), rest: vi.fn(), stop: vi.fn() },
   startWipeSound: vi.fn(),
 }))
-vi.mock('../../src/audio/ambience', () => ({ startAmbience: mocks.startAmbience }))
-vi.mock('../../src/audio/music', () => ({ startMusic: mocks.startMusic }))
-vi.mock('../../src/audio/sfx', async () => {
+vi.mock('@/audio/ambience', () => ({ startAmbience: mocks.startAmbience }))
+vi.mock('@/audio/music', () => ({ startMusic: mocks.startMusic }))
+vi.mock('@/audio/sfx', async () => {
   const { ref: r } = await import('vue')
   return { scheduleKnocks: mocks.scheduleKnocks, muted: r(false) }
 })
-vi.mock('../../src/audio/stinger', () => ({ playStinger: mocks.playStinger }))
-vi.mock('../../src/audio/wipe', () => ({ startWipeSound: mocks.startWipeSound }))
+vi.mock('@/audio/stinger', () => ({ playStinger: mocks.playStinger }))
+vi.mock('@/audio/wipe', () => ({ startWipeSound: mocks.startWipeSound }))
 
-import { muted } from '../../src/audio/sfx'
-import { usePlaceAudio } from '../../src/composables/usePlaceAudio'
-import { useKnockSchedule } from '../../src/composables/useKnockSchedule'
-import { useStinger } from '../../src/composables/useStinger'
-import { useWipeSound } from '../../src/composables/useWipeSound'
+import { muted } from '@/audio/sfx'
+import { usePlaceAudio } from '@/composables/usePlaceAudio'
+import { useKnockSchedule } from '@/composables/useKnockSchedule'
+import { useStinger } from '@/composables/useStinger'
+import { useWipeSound } from '@/composables/useWipeSound'
 
 beforeEach(() => {
   vi.clearAllMocks()

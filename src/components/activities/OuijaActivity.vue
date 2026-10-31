@@ -5,12 +5,12 @@ import { M as Motion, useMotionValue, useSpring } from 'motion-v'
 import { useRovingFocus } from '@vuetify/v0'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
-import { durationOf, outcomeMsOf } from '../../engine/activityTiming'
-import { useActivityDone } from '../../composables/useActivityDone'
-import { useDeferredText } from '../../composables/useDeferredText'
-import { useReducedMotion } from '../../composables/useReducedMotion'
-import { useOverlayStore } from '../../stores/overlay'
-import { OUIJA_SHOWN, OUIJA_WORDS } from '../../content/ouija'
+import { durationOf, outcomeMsOf } from '@/engine/activityTiming'
+import { useActivityDone } from '@/composables/useActivityDone'
+import { useDeferredText } from '@/composables/useDeferredText'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { useOverlayStore } from '@/stores/overlay'
+import { OUIJA_SHOWN, OUIJA_WORDS } from '@/content/ouija'
 import {
   DROP_EXTENT,
   OUIJA_BYE,
@@ -26,12 +26,12 @@ import {
   pressLetter,
   shouldDrift,
   wrongLetterMessage,
-} from '../../engine/ouija'
-import { approach, liftFromSpeed, tiltFromVelocity, tremorOffset, wanderOffset } from '../../engine/ouijaMotion'
-import { orSecure, type Rng } from '../../engine/rng'
-import { ouijaFarewell, ouijaTick } from '../../audio/ouija'
-import { aimPoint } from '../../composables/touchAim'
-import { useHaptics } from '../../composables/haptics'
+} from '@/engine/ouija'
+import { approach, liftFromSpeed, tiltFromVelocity, tremorOffset, wanderOffset } from '@/engine/ouijaMotion'
+import { orSecure, type Rng } from '@/engine/rng'
+import { ouijaFarewell, ouijaTick } from '@/audio/ouija'
+import { aimPoint } from '@/composables/touchAim'
+import { useHaptics } from '@/composables/haptics'
 import IconGoutte from '~icons/rvj/goutte'
 
 const { level, rng = undefined } = defineProps<{ level: number; rng?: Rng }>()

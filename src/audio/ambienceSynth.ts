@@ -1,4 +1,4 @@
-import type { PlaceId } from '../effects/places/types'
+import type { PlaceId } from '@/effects/places/types'
 import { noiseBuffer } from './noise'
 import type { RareKind } from './paranoiaAudio'
 

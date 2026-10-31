@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createPinia } from 'pinia'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { mount, type VueWrapper } from '@vue/test-utils'
-import { createAppLocale } from '../../src/locale'
-import SoundWindow from '../../src/components/SoundWindow.vue'
+import { createAppLocale } from '@/locale'
+import SoundWindow from '@/components/SoundWindow.vue'
 
 let wrapper: VueWrapper | undefined
 afterEach(() => {

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useTemplateRef, watch } from 'vue'
-import { useGpuEffect } from '../composables/useGpuEffect'
-import { useReducedMotion } from '../composables/useReducedMotion'
-import { hasWebGpuAdapter } from '../effects/webgpu'
-import { useSessionStore } from '../stores/session'
+import { useGpuEffect } from '@/composables/useGpuEffect'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { hasWebGpuAdapter } from '@/effects/webgpu'
+import { useSessionStore } from '@/stores/session'
 
 const { paranoia, off } = defineProps<{ paranoia: number; off?: boolean }>()
 const emit = defineEmits<{ ready: []; fail: [] }>()
@@ -17,7 +17,7 @@ const knockRipple = { age: 10, amp: 0 }
 const { status, lost } = useGpuEffect(
   canvas,
   async (el, onLost) => {
-    const { startCrt } = await import('../effects/crt')
+    const { startCrt } = await import('@/effects/crt')
     return startCrt(el, {
       motion: () => !reducedMotion.value,
       paranoia: () => paranoia,

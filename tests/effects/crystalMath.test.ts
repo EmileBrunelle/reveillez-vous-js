@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { KEY_STEP, RING_SIZE, WIN_RATIO, WIPE_RADIUS, clampToDisc, createCoverage, createWipeRing, decodeCell, packCoverage, spacedStamps, stampsAlong } from '../../src/effects/crystalMath'
+import { KEY_STEP, RING_SIZE, WIN_RATIO, WIPE_RADIUS, clampToDisc, createCoverage, createWipeRing, decodeCell, packCoverage, spacedStamps, stampsAlong } from '@/effects/crystalMath'
 
 describe('createWipeRing', () => {
   it('écrase le plus ancien point une fois plein', () => {

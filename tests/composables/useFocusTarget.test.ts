@@ -28,7 +28,7 @@ afterEach(() => vi.unstubAllGlobals())
 
 type T = 'door' | 'close' | 'deck'
 const setup = async () => {
-  const { useFocusTarget } = await import('../../src/composables/useFocusTarget')
+  const { useFocusTarget } = await import('@/composables/useFocusTarget')
   const target = ref<T | null>(null)
   const door = shallowRef<{ focus: () => void } | null>(null)
   const deck = shallowRef<{ focus: () => void } | null>(null)

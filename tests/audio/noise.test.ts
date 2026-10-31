@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { NOISE_SECONDS, noiseBuffer, startNoise } from '../../src/audio/noise'
+import { NOISE_SECONDS, noiseBuffer, startNoise } from '@/audio/noise'
 
 const makeCtx = () => {
   const createBuffer = vi.fn((_ch: number, n: number) => ({ duration: NOISE_SECONDS, getChannelData: () => new Float32Array(n) }))

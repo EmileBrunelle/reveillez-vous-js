@@ -3,7 +3,7 @@
 // `{table.champ}` lit un champ, avec les variantes `champ_maj` (majuscule initiale) et `champ_caps` (tout en majuscules).
 // Tables de chaînes (`withCaps`) : `{futur}`, `{moment}`, `{bonbon}` et leurs variantes `_maj` / `_caps` ; `{lieu}` sans variante.
 // `arcane` : objets de la coupe de cartes (`niveaux` : tableau de niveaux, ex. `[2, 3]`), non passés par `paired`.
-import type { Grammar } from '../../engine/grammar'
+import type { Grammar } from '@/engine/grammar'
 import { paired, withCaps } from './helpers'
 
 /** `industrie`, `fete`, `lieu_inexistant`, `objet`, `arcane`, `futur`, `moment`, `bonbon`, `lieu`. */

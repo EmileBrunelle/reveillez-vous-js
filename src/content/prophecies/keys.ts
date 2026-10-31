@@ -1,5 +1,5 @@
 // Clés typées des tables de la grammaire : une faute de frappe dans un préfixe ou un niveau échoue à `vue-tsc`.
-import type { ParanoiaLevel } from '../../engine/paranoia'
+import type { ParanoiaLevel } from '@/engine/paranoia'
 
 /** Niveau de vigilance (1 à 5), le même que celui du moteur. */
 export type Level = ParanoiaLevel

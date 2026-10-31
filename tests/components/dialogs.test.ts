@@ -4,11 +4,11 @@ import { createPinia } from 'pinia'
 import { readFileSync } from 'node:fs'
 import { Dialog } from '@vuetify/v0'
 import { renderToString } from 'vue/server-renderer'
-import { createAppLocale } from '../../src/locale'
-import About from '../../src/components/About.vue'
-import SoundWindow from '../../src/components/SoundWindow.vue'
-import CollectionWindow from '../../src/components/CollectionWindow.vue'
-import ResetConfirm from '../../src/components/ResetConfirm.vue'
+import { createAppLocale } from '@/locale'
+import About from '@/components/About.vue'
+import SoundWindow from '@/components/SoundWindow.vue'
+import CollectionWindow from '@/components/CollectionWindow.vue'
+import ResetConfirm from '@/components/ResetConfirm.vue'
 
 const render = async (comp: Component, locale = true) => {
   const app = createSSRApp({ render: () => h(comp, { modelValue: false }) }).use(createPinia())

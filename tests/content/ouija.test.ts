@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { OUIJA_SHOWN, OUIJA_WORDS } from '../../src/content/ouija'
+import { OUIJA_SHOWN, OUIJA_WORDS } from '@/content/ouija'
 import { BANNED, INCLUSIVE_BANNED, RELIGION, bannedRe } from './rules'
 
 describe('contenu de la planche Ouija', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { intersects, pickFreeSlot, type Box } from '../../src/engine/freeZones'
-import { mulberry32 } from '../../src/engine/rng'
+import { intersects, pickFreeSlot, type Box } from '@/engine/freeZones'
+import { mulberry32 } from '@/engine/rng'
 
 const area: Box = { left: 0, top: 0, right: 1280, bottom: 760 }
 const card: Box = { left: 450, top: 40, right: 830, bottom: 700 }

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue'
 import { useParallax } from '@vueuse/core'
-import { useGpuEffect } from '../../composables/useGpuEffect'
-import { usePlaceAudio } from '../../composables/usePlaceAudio'
-import { useReducedMotion } from '../../composables/useReducedMotion'
-import { useProgressStore } from '../../stores/progress'
-import { placeLoaders, type PlaceId } from '../../effects/places'
+import { useGpuEffect } from '@/composables/useGpuEffect'
+import { usePlaceAudio } from '@/composables/usePlaceAudio'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { useProgressStore } from '@/stores/progress'
+import { placeLoaders, type PlaceId } from '@/effects/places'
 
 const { place, variant = undefined, sharp } = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
 
@@ -44,7 +44,7 @@ usePlaceAudio(
 const { lost: failed } = useGpuEffect(
   canvas,
   async (el, onLost) => {
-    const [{ createRaymarch }, cfg] = await Promise.all([import('../../effects/raymarch'), placeLoaders[place]()])
+    const [{ createRaymarch }, cfg] = await Promise.all([import('@/effects/raymarch'), placeLoaders[place]()])
     return createRaymarch(el, {
       shader: cfg.shader,
       params: (st) => cfg.params({ ...st, variant }),

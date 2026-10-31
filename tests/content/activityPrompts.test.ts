@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ACTIVITY_PROMPTS } from '../../src/content/activityPrompts'
+import { ACTIVITY_PROMPTS } from '@/content/activityPrompts'
 import { BANNED, INCLUSIVE_BANNED, bannedRe } from './rules'
 
 // Textes des activités (verbes, réussites, échecs) : mêmes règles que les prophéties (AGENTS.md, « Content rules »).

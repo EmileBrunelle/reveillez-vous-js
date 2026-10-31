@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { Grammar } from '../../src/../src/engine/grammar'
-import { prophecies } from '../../src/content/prophecies'
-import { arcaneNameAt, carteTables, doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, nextTabTitle, nextTitled, templatesFor } from '../../src/../src/engine/prophecy'
-import { mulberry32 } from '../../src/../src/engine/rng'
-import { pickVariant } from '../../src/../src/engine/variant'
-import { BAGS_KEY } from '../../src/engine/shuffleBag'
+import type { Grammar } from '@/engine/grammar'
+import { prophecies } from '@/content/prophecies'
+import { arcaneNameAt, carteTables, doorLinesFor, nextDoorLine, nextEntrezLine, nextFailLine, nextProphecy, nextTabTitle, nextTitled, templatesFor } from '@/engine/prophecy'
+import { mulberry32 } from '@/engine/rng'
+import { pickVariant } from '@/engine/variant'
+import { BAGS_KEY } from '@/engine/shuffleBag'
 
 const g: Grammar = {
   niveau1: [

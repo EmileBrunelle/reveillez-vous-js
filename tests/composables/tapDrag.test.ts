@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createTapDrag } from '../../src/composables/tapDrag'
+import { createTapDrag } from '@/composables/tapDrag'
 
 describe('createTapDrag', () => {
   it('un tap court (< seuil) n’est pas un glissement', () => {

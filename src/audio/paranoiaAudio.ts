@@ -1,4 +1,4 @@
-import type { ParanoiaLevel } from '../engine/paranoia'
+import type { ParanoiaLevel } from '@/engine/paranoia'
 import { MASTER_GAIN } from './ambienceSynth'
 
 /** Fondamentale de la basse fantôme (Hz) : écouteurs seulement, les petits haut-parleurs ne la rendent pas. */

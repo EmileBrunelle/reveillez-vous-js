@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { ACTIVITY_PROMPTS, type TimedActivity } from '../../src/content/activityPrompts'
-import { stingerDuration } from '../../src/audio/stinger'
-import { ACTIVITY_GRACE_MS, MAX_ACTIVITY_MS, OUTCOME_MS, durationOf, outcomeAt, outcomeMsOf, outcomeText, timeLeft } from '../../src/engine/activityTiming'
+import { ACTIVITY_PROMPTS, type TimedActivity } from '@/content/activityPrompts'
+import { stingerDuration } from '@/audio/stinger'
+import { ACTIVITY_GRACE_MS, MAX_ACTIVITY_MS, OUTCOME_MS, durationOf, outcomeAt, outcomeMsOf, outcomeText, timeLeft } from '@/engine/activityTiming'
 
 const ids = Object.keys(ACTIVITY_PROMPTS) as TimedActivity[]
 

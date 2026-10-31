@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MAX_PULSE_MS, MIN_GAP_MS, MIN_PULSE_MS, planPulse, resetPulseLimiter } from '../../src/composables/haptics'
+import { MAX_PULSE_MS, MIN_GAP_MS, MIN_PULSE_MS, planPulse, resetPulseLimiter } from '@/composables/haptics'
 
 beforeEach(() => {
   resetPulseLimiter()

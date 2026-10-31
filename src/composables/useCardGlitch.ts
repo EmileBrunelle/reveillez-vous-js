@@ -1,6 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
-import { secureRng } from '../engine/rng'
+import { secureRng } from '@/engine/rng'
 
 // Niveaux 4-5 : rare « hoquet CRT » unique (80-150 ms) : une bande de la carte saute de 2 à 6 px avec une séparation RVB de 1 à 3 px.
 // N4 : 1 par lecture, N5 : 1 ou 2. Jamais dans les 2 s qui suivent le retournement ; coupé en mouvement réduit.

@@ -4,7 +4,7 @@
 // pour une entrée qui s’écarte de ce motif (autre question ou autre verset).
 // `{table}` tire une chaîne ; `{table.champ}` tire un champ d’une table à paires (voir `tables.ts`) ;
 // `{verset}` = livre + référence (voir `versets.ts`). Les valeurs peuvent contenir des références imbriquées (profondeur max : 8).
-import type { Gabarit, Grammar } from '../../../engine/grammar'
+import type { Gabarit, Grammar } from '@/engine/grammar'
 import { niveau1 } from './niveau1'
 import { niveau2 } from './niveau2'
 import { niveau3 } from './niveau3'

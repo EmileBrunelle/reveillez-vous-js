@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { keyEntersKeyboardMode } from '../../src/composables/useKeyboardModality'
+import { keyEntersKeyboardMode } from '@/composables/useKeyboardModality'
 
 describe('keyEntersKeyboardMode', () => {
   it.each(['Tab', 'Enter', ' ', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'])('%j bascule en mode clavier', (key) => {

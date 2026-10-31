@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LIFT_MAX, TILT_MAX, TREMOR_MAX, WANDER_MAX, approach, liftFromSpeed, tiltFromVelocity, tremorOffset, wanderAmp, wanderOffset } from '../../src/engine/ouijaMotion'
+import { LIFT_MAX, TILT_MAX, TREMOR_MAX, WANDER_MAX, approach, liftFromSpeed, tiltFromVelocity, tremorOffset, wanderAmp, wanderOffset } from '@/engine/ouijaMotion'
 
 describe('ouijaMotion', () => {
   it('incline dans le sens du mouvement, borné', () => {

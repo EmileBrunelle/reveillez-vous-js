@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { checkStep, hintFor, makeSequence, startInput } from '../../src/engine/windowSequence'
-import { mulberry32 } from '../../src/engine/rng'
+import { checkStep, hintFor, makeSequence, startInput } from '@/engine/windowSequence'
+import { mulberry32 } from '@/engine/rng'
 
 describe('makeSequence', () => {
   it('gives distinct windows in range, deterministic per seed', () => {

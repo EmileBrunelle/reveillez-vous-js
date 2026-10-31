@@ -1,4 +1,4 @@
-import type { RaymarchState, Shader } from '../raymarch'
+import type { RaymarchState, Shader } from '@/effects/raymarch'
 
 export type PlaceId = 'perron' | 'foret' | 'cimetiere' | 'rue' | 'nuages'
 

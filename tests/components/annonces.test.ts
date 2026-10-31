@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createPinia } from 'pinia'
-import DeckCut from '../../src/components/DeckCut.vue'
-import Vigilance from '../../src/components/Vigilance.vue'
-import { mulberry32 } from '../../src/engine/rng'
+import DeckCut from '@/components/DeckCut.vue'
+import Vigilance from '@/components/Vigilance.vue'
+import { mulberry32 } from '@/engine/rng'
 
 // Pas de DOM dans l’environnement de test (node) : on vérifie le balisage rendu côté serveur (l’état initial de chaque composant).
 const render = (component: object, props: Record<string, unknown>) => {

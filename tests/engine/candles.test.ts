@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { advanceHold, HOLD_MS, isNearWick, pickSnuffed } from '../../src/engine/candles'
-import { mulberry32 } from '../../src/engine/rng'
+import { advanceHold, HOLD_MS, isNearWick, pickSnuffed } from '@/engine/candles'
+import { mulberry32 } from '@/engine/rng'
 
 describe('candles', () => {
   it('allume après HOLD_MS de contact', () => {

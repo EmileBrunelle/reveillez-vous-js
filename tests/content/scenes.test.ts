@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { doors, pickDoor, pickPlaceVariant, placeForLevel, places, type Place } from '../../src/content/scenes'
-import { mulberry32 } from '../../src/engine/rng'
+import { doors, pickDoor, pickPlaceVariant, placeForLevel, places, type Place } from '@/content/scenes'
+import { mulberry32 } from '@/engine/rng'
 
 describe('places', () => {
   it('one place per level, in order', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { ACTIVITIES, parseActivityId, parsePlayed, pickActivity, type ActivityId } from '../../src/engine/activityPick'
-import { paranoiaLevel } from '../../src/engine/paranoia'
-import { mulberry32 } from '../../src/engine/rng'
+import { ACTIVITIES, parseActivityId, parsePlayed, pickActivity, type ActivityId } from '@/engine/activityPick'
+import { paranoiaLevel } from '@/engine/paranoia'
+import { mulberry32 } from '@/engine/rng'
 
 const memStore = () => {
   const m = new Map<string, string>()

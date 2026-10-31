@@ -1,9 +1,9 @@
 import { computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
-import { paranoiaLevel } from '../engine/paranoia'
-import { BAGS_KEY } from '../engine/shuffleBag'
-import { safeSessionStorage, safeStorage } from '../composables/safeStorage'
+import { paranoiaLevel } from '@/engine/paranoia'
+import { BAGS_KEY } from '@/engine/shuffleBag'
+import { safeSessionStorage, safeStorage } from '@/composables/safeStorage'
 
 export const VISITS_KEY = 'rvj-visits'
 export const MEMORY_KEY = 'rvj-memory'

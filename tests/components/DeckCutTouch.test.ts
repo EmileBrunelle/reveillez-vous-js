@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
-import DeckCut from '../../src/components/DeckCut.vue'
-import { shufflePaquets } from '../../src/engine/paquets'
-import { mulberry32 } from '../../src/engine/rng'
+import DeckCut from '@/components/DeckCut.vue'
+import { shufflePaquets } from '@/engine/paquets'
+import { mulberry32 } from '@/engine/rng'
 
 let wrapper: VueWrapper | undefined
 beforeEach(() => vi.useFakeTimers())

@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSSRApp, h, type Component } from 'vue'
 import { renderToString } from 'vue/server-renderer'
-import ActivityHud from '../../src/components/activities/ActivityHud.vue'
-import WindowsActivity from '../../src/components/activities/WindowsActivity.vue'
-import WispsActivity from '../../src/components/activities/WispsActivity.vue'
-import CrystalActivity from '../../src/components/activities/CrystalActivity.vue'
+import ActivityHud from '@/components/activities/ActivityHud.vue'
+import WindowsActivity from '@/components/activities/WindowsActivity.vue'
+import WispsActivity from '@/components/activities/WispsActivity.vue'
+import CrystalActivity from '@/components/activities/CrystalActivity.vue'
 
 const render = (component: Component, props: Record<string, unknown>) => renderToString(createSSRApp({ render: () => h(component, props) }))
 

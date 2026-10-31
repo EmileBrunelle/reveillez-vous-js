@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { effectScope, shallowRef } from 'vue'
-import { registerLayoutEl } from '../../src/composables/layoutRefs'
+import { registerLayoutEl } from '@/composables/layoutRefs'
 
 const fakeEl = () => ({}) as HTMLElement
 

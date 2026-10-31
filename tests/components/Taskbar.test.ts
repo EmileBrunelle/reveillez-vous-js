@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia } from 'pinia'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
-import { useSessionStore } from '../../src/stores/session'
-import Taskbar from '../../src/components/Taskbar.vue'
+import { useSessionStore } from '@/stores/session'
+import Taskbar from '@/components/Taskbar.vue'
 
 const render = async (prepare?: (session: ReturnType<typeof useSessionStore>) => void) => {
   const app = createSSRApp({ render: () => h(Taskbar, { level: 1 }) })

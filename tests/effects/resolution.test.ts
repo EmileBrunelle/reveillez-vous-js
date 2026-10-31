@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { placeDpr, SHARP_MAX_PIXELS } from '../../src/effects/resolution'
+import { placeDpr, SHARP_MAX_PIXELS } from '@/effects/resolution'
 
 describe('placeDpr', () => {
   it('sous CRT : 0,5 plafonné à 540 px de côté long', () => {

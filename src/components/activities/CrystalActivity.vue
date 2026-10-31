@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, useId, useTemplateRef } from 'vue'
-import { useDeferredText } from '../../composables/useDeferredText'
+import { useDeferredText } from '@/composables/useDeferredText'
 import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
-import { durationOf } from '../../engine/activityTiming'
-import { useActivityDone } from '../../composables/useActivityDone'
-import { useGpuEffect } from '../../composables/useGpuEffect'
-import { useWipeSound } from '../../composables/useWipeSound'
-import { useReducedMotion } from '../../composables/useReducedMotion'
-import { KEY_STEP, WIN_RATIO, clampToDisc, createCoverage, createWipeRing, spacedStamps } from '../../effects/crystalMath'
+import { durationOf } from '@/engine/activityTiming'
+import { useActivityDone } from '@/composables/useActivityDone'
+import { useGpuEffect } from '@/composables/useGpuEffect'
+import { useWipeSound } from '@/composables/useWipeSound'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { KEY_STEP, WIN_RATIO, clampToDisc, createCoverage, createWipeRing, spacedStamps } from '@/effects/crystalMath'
 
 // Niveau 5 : essuyer la boule de cristal. Brume WebGPU (canvas carré) ; si le GPU échoue, brume CSS qui s’efface quand même.
 defineProps<{ level: number }>()
@@ -137,7 +137,7 @@ const fallbackStyle = computed(() => {
 const { lost: failed } = useGpuEffect(
   canvas,
   async (el, onLost) => {
-    const { createCrystal } = await import('../../effects/crystal')
+    const { createCrystal } = await import('@/effects/crystal')
     return createCrystal(el, {
       motion: () => !reducedMotion.value,
       points: () => ring.pack(now()),

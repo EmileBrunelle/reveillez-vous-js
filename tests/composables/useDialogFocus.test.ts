@@ -3,12 +3,12 @@ import { effectScope, nextTick, ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 
 const focusQuietly = vi.fn()
-vi.mock('../../src/composables/focusQuietly', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../src/composables/focusQuietly')>()),
+vi.mock('@/composables/focusQuietly', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/composables/focusQuietly')>()),
   focusQuietly: (...a: unknown[]) => focusQuietly(...a),
 }))
 
-const { useDialogFocus } = await import('../../src/composables/useDialogFocus')
+const { useDialogFocus } = await import('@/composables/useDialogFocus')
 
 // Pas de DOM dans l’environnement de test (node) : un faux HTMLElement et un document réduit à activeElement.
 class FakeEl {

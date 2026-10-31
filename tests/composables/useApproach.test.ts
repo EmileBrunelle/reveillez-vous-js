@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../../src/audio/sfx', () => ({ unlock: vi.fn() }))
-vi.mock('../../src/composables/useTilt', () => ({ requestOrientationPermission: vi.fn() }))
+vi.mock('@/audio/sfx', () => ({ unlock: vi.fn() }))
+vi.mock('@/composables/useTilt', () => ({ requestOrientationPermission: vi.fn() }))
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => {
@@ -11,12 +11,12 @@ afterEach(() => {
 
 const load = async (active: boolean) => {
   vi.stubGlobal('navigator', { userActivation: { hasBeenActive: active } })
-  return (await import('../../src/composables/useApproach')).useApproach
+  return (await import('@/composables/useApproach')).useApproach
 }
 
 describe('useApproach', () => {
   it('attend un geste ; approach() débloque l’audio, prépare, puis lève l’attente après la grâce', async () => {
-    const { unlock } = await import('../../src/audio/sfx')
+    const { unlock } = await import('@/audio/sfx')
     const prepare = vi.fn().mockResolvedValue(undefined)
     const { awaiting, approach } = (await load(false))(prepare, 120)
     expect(awaiting.value).toBe(true)

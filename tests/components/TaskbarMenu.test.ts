@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createPinia } from 'pinia'
 import { mount, type VueWrapper } from '@vue/test-utils'
-import Taskbar from '../../src/components/Taskbar.vue'
+import Taskbar from '@/components/Taskbar.vue'
 
 let wrapper: VueWrapper | undefined
 afterEach(() => {

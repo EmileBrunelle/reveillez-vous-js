@@ -1,4 +1,4 @@
-import type { RaymarchState } from '../raymarch'
+import type { RaymarchState } from '@/effects/raymarch'
 import nuagesShader from './nuages.wgsl'
 import type { PlaceConfig } from './types'
 

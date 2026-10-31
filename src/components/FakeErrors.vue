@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, useTemplateRef } from 'vue'
 import { useEventListener, useMediaQuery, useTemplateRefsList, useTimeoutFn } from '@vueuse/core'
-import { prophecies } from '../content/prophecies'
-import { nextFakeError, type ErrorIcon } from '../engine/prophecy'
-import type { ParanoiaLevel } from '../engine/paranoia'
-import { secureRng } from '../engine/rng'
-import { intersects, pickFreeSlot, type Box } from '../engine/freeZones'
-import { useFocusReturn } from '../composables/useFocusReturn'
-import { useFreeZones } from '../composables/useFreeZones'
-import { safeStorage } from '../composables/safeStorage'
+import { prophecies } from '@/content/prophecies'
+import { nextFakeError, type ErrorIcon } from '@/engine/prophecy'
+import type { ParanoiaLevel } from '@/engine/paranoia'
+import { secureRng } from '@/engine/rng'
+import { intersects, pickFreeSlot, type Box } from '@/engine/freeZones'
+import { useFocusReturn } from '@/composables/useFocusReturn'
+import { useFreeZones } from '@/composables/useFreeZones'
+import { safeStorage } from '@/composables/safeStorage'
 
 // Fausses fenêtres d’erreur Windows 98, purement décoratives (niveau 3+, bureau seulement). Elles n’apparaissent que dans les zones libres,
 // mesurées à l’exécution : jamais sur la carte, la porte, un bouton de l’interface ni la barre des tâches.

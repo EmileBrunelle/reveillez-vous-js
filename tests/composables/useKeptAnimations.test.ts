@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { useKeptAnimations } from '../../src/composables/useKeptAnimations'
+import { useKeptAnimations } from '@/composables/useKeptAnimations'
 
 const anim = () => {
   let end!: () => void

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { finaleActive } from '../../src/engine/finaleFlow'
+import { finaleActive } from '@/engine/finaleFlow'
 
 describe('finaleActive', () => {
   it('n’accepte les événements de la finale que pendant la phase finale', () => {

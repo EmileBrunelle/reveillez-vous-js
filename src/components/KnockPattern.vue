@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Gap } from '../engine/rhythm'
+import type { Gap } from '@/engine/rhythm'
 
 /**
  * Motif de la voyante dessiné en points : ● ● ─── ● (une pause longue est un espace plus large, tracé d’un trait).

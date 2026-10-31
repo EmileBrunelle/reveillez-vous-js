@@ -17,7 +17,7 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-const load = async () => (await import('../../src/composables/useLazyWindow')).useLazyWindow
+const load = async () => (await import('@/composables/useLazyWindow')).useLazyWindow
 
 describe('useLazyWindow', () => {
   it('ne monte rien avant la première ouverture, puis reste monté après fermeture', async () => {

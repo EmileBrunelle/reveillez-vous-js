@@ -3,8 +3,8 @@ import { effectScope, nextTick, shallowRef } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 
 // focusQuietly dépend de la modalité clavier (écouteurs globaux) : on le remplace par un focus simple.
-vi.mock('../../src/composables/focusQuietly', () => ({ focusQuietly: (el: { focus: () => void } | null) => el?.focus() }))
-const { useMenuFocus } = await import('../../src/composables/useMenuFocus')
+vi.mock('@/composables/focusQuietly', () => ({ focusQuietly: (el: { focus: () => void } | null) => el?.focus() }))
+const { useMenuFocus } = await import('@/composables/useMenuFocus')
 
 type Focusable = { focus: ReturnType<typeof vi.fn> }
 const entree = (): Focusable => ({ focus: vi.fn() })

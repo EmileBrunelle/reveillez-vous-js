@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AlertDialog } from '@vuetify/v0'
-import { useDialogFocus } from '../composables/useDialogFocus'
+import { useDialogFocus } from '@/composables/useDialogFocus'
 
 // v-model du parent = « veut ouvert ». AlertDialog de v0 (<dialog> natif, role="alertdialog") : piège à focus et arrière-plan inerte sont gratuits.
 const open = defineModel<boolean>({ default: false })

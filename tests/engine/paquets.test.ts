@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { prophecies } from '../../src/content/prophecies'
-import type { ArcaneTable, Grammar } from '../../src/engine/grammar'
-import { drawArcane } from '../../src/engine/prophecy'
-import { PAQUETS, PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets } from '../../src/engine/paquets'
-import { mulberry32 } from '../../src/engine/rng'
+import { prophecies } from '@/content/prophecies'
+import type { ArcaneTable, Grammar } from '@/engine/grammar'
+import { drawArcane } from '@/engine/prophecy'
+import { PAQUETS, PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets } from '@/engine/paquets'
+import { mulberry32 } from '@/engine/rng'
 
 const NIVEAUX = [1, 2, 3, 4, 5] as const
 const rows = prophecies.arcane as ArcaneTable

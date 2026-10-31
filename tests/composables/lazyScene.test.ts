@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createRenderer, h, nextTick, shallowRef, type RendererOptions } from 'vue'
-import { lazyScene } from '../../src/composables/lazyScene'
+import { lazyScene } from '@/composables/lazyScene'
 
 // ChunkFailed est un SFC compilé pour le serveur dans cet environnement (pas de DOM) : on le remplace par un double au même contrat
 // (prop `skippable`, événements `retry`/`skip`, `focus()` exposé qui focalise « Réessayer »).
-vi.mock('../../src/components/ChunkFailed.vue', async () => {
+vi.mock('@/components/ChunkFailed.vue', async () => {
   const { h, shallowRef } = await import('vue')
   return {
     default: {

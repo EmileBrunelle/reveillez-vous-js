@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { AUTO_RELOAD_WINDOW_MS, tryAutoReload } from '../../src/composables/chunkReload'
+import { AUTO_RELOAD_WINDOW_MS, tryAutoReload } from '@/composables/chunkReload'
 
 const memory = () => {
   const m = new Map<string, string>()

@@ -1,6 +1,6 @@
 import { customRef, effectScope, watch, type EffectScope } from 'vue'
 import { useDocumentVisibility, useEventListener, useRafFn } from '@vueuse/core'
-import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '../stores/audio'
+import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '@/stores/audio'
 import { startNoise } from './noise'
 import { playMotif } from './motif'
 

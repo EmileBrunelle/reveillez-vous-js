@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { FREQ_MAX, FREQ_MIN, GAIN_MAX, SPEED_MAX, SQUEAK_MAX, startWipeSound, wipeParams } from '../../src/audio/wipe'
+import { FREQ_MAX, FREQ_MIN, GAIN_MAX, SPEED_MAX, SQUEAK_MAX, startWipeSound, wipeParams } from '@/audio/wipe'
 
 describe('wipeParams', () => {
   it('vitesse nulle (ou invalide) : silence', () => {

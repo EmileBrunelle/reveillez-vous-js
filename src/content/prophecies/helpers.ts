@@ -1,5 +1,5 @@
 // Utilitaires de construction du contenu (aucune donnée ici).
-import type { Grammar, ObjectTable, StringTable } from '../../engine/grammar'
+import type { Grammar, ObjectTable, StringTable } from '@/engine/grammar'
 
 export const cap = (s: string) => s.charAt(0).toLocaleUpperCase('fr-CA') + s.slice(1)
 export const up = (s: string) => s.toLocaleUpperCase('fr-CA')

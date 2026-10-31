@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { purgeLegacyVisits } from '../../src/migrations'
-import { arcaneIndex, FINALE_KEY, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '../../src/stores/progress'
-import { isQuickKnock } from '../../src/engine/paranoia'
-import { BAGS_KEY } from '../../src/engine/shuffleBag'
+import { purgeLegacyVisits } from '@/migrations'
+import { arcaneIndex, FINALE_KEY, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '@/stores/progress'
+import { isQuickKnock } from '@/engine/paranoia'
+import { BAGS_KEY } from '@/engine/shuffleBag'
 
 const m = new Map<string, string>()
 const ss = new Map<string, string>()

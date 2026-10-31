@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createFocusOnce } from '../../src/composables/focusOnce'
+import { createFocusOnce } from '@/composables/focusOnce'
 
 class FakeEl {}
 beforeEach(() => vi.stubGlobal('HTMLElement', FakeEl))

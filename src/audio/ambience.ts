@@ -1,6 +1,6 @@
 import { effectScope, ref, watch } from 'vue'
 import { useDocumentVisibility, useEventListener, useTimeoutFn } from '@vueuse/core'
-import type { PlaceId } from '../effects/places/types'
+import type { PlaceId } from '@/effects/places/types'
 import { ac, ambienceOut, effetsOut, muted } from './sfx'
 import { motifBusyUntil, motifWarning, playMotif } from './motif'
 import { EVENT_BOOST, MASTER_GAIN, RECIPES, beds, bedGain, createTracker, events, gainNode, osc, rareSounds, randomDelay, type Env } from './ambienceSynth'

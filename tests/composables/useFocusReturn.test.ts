@@ -27,7 +27,7 @@ const dom = vi.hoisted(() => {
   Object.assign(globalThis, { window: win, document: doc, HTMLElement: FakeEl })
   return { FakeEl, doc, fire: (t: string) => listeners.get(t)?.forEach((f) => f()) }
 })
-import { useFocusReturn } from '../../src/composables/useFocusReturn'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const focusOn = async (el: InstanceType<typeof dom.FakeEl>) => {
   dom.doc.activeElement = el

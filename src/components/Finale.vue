@@ -2,8 +2,8 @@
 import { computed, nextTick, onScopeDispose, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { M as Motion } from 'motion-v'
 import { useEventListener, useMediaQuery, useTimeoutFn } from '@vueuse/core'
-import { useCollectionStore } from '../stores/collection'
-import { useReducedMotion } from '../composables/useReducedMotion'
+import { useCollectionStore } from '@/stores/collection'
+import { useReducedMotion } from '@/composables/useReducedMotion'
 import {
   CREDITS_BODY,
   CREDITS_THANKS,
@@ -17,12 +17,12 @@ import {
   RESTART_LABEL,
   SKIP_HINT_POINTER,
   SKIP_HINT_TOUCH,
-} from '../content/finale'
-import { useRiseDirective, useTextLeave } from '../composables/useFinaleRise'
-import { useFinaleBox } from '../composables/useFinaleBox'
-import { useKeptAnimations } from '../composables/useKeptAnimations'
-import { focusQuietly } from '../composables/focusQuietly'
-import { BELL_DELAY, startFinaleAudio } from '../audio/finale'
+} from '@/content/finale'
+import { useRiseDirective, useTextLeave } from '@/composables/useFinaleRise'
+import { useFinaleBox } from '@/composables/useFinaleBox'
+import { useKeptAnimations } from '@/composables/useKeptAnimations'
+import { focusQuietly } from '@/composables/focusQuietly'
+import { BELL_DELAY, startFinaleAudio } from '@/audio/finale'
 
 // Finale du niveau 5 : la télé s’éteint en une ligne, l’aube se lève, le texte arrive ligne par ligne, puis le générique.
 // `collapsed` : l’écran est noir (l’app coupe le CRT et passe le lieu en aube sans qu’on le voie). `restart` : « Recommencer ».

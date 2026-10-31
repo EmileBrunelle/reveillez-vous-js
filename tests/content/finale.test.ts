@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { CREDITS, CREDITS_THANKS, REPO_URL, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL, WAKE_LABEL, returnGrammar } from '../../src/content/finale'
-import { nextReturnLine } from '../../src/engine/prophecy'
-import { mulberry32 } from '../../src/engine/rng'
-import { BAGS_KEY } from '../../src/engine/shuffleBag'
+import { CREDITS, CREDITS_THANKS, REPO_URL, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, RESTART_LABEL, WAKE_LABEL, returnGrammar } from '@/content/finale'
+import { nextReturnLine } from '@/engine/prophecy'
+import { mulberry32 } from '@/engine/rng'
+import { BAGS_KEY } from '@/engine/shuffleBag'
 import { BANNED, INCLUSIVE_BANNED, RELIGION, bannedRe } from './rules'
 
 const memStore = () => {

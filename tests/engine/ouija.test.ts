@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DROP_EXTENT, DWELL_MS, advanceDwell, clampDrop, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift, wrongLetterMessage } from '../../src/engine/ouija'
-import { mulberry32 } from '../../src/engine/rng'
+import { DROP_EXTENT, DWELL_MS, advanceDwell, clampDrop, nextLetter, normalizeKey, pickDriftAt, pickWord, pressLetter, shouldDrift, wrongLetterMessage } from '@/engine/ouija'
+import { mulberry32 } from '@/engine/rng'
 
 describe('ouija', () => {
   it('valide une lettre après DWELL_MS de survol, retombe sans survol', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mulberry32, orSecure } from '../../src/engine/rng'
+import { mulberry32, orSecure } from '@/engine/rng'
 
 describe('orSecure', () => {
   it('sans Rng injecté, retourne un vrai Rng (nombres dans [0, 1), pas une fonction)', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { useFullscreenToggle } from '../../src/composables/useFullscreenToggle'
+import { useFullscreenToggle } from '@/composables/useFullscreenToggle'
 
 // Faux document : un EventTarget avec l’API plein écran minimale.
 const fauxDocument = (enabled = true) =>

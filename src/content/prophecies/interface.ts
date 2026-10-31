@@ -1,7 +1,7 @@
 // Textes de l’interface : titres d’onglet cachés, bulles de la barre des tâches, fausses fenêtres d’erreur Windows 98.
 // Format : `onglet<N>` = chaînes simples (≤ 40 caractères) ; `bulle<N>` et `erreur<N>` = `{ titre, texte }` ;
 // `erreur_icone` et `erreur_boutons` sont tirés au hasard pour chaque fausse erreur.
-import type { Grammar } from '../../engine/grammar'
+import type { Grammar } from '@/engine/grammar'
 
 /** `onglet1` … `onglet5`, `bulle1` … `bulle5`, `erreur3` … `erreur5`, `erreur_icone`, `erreur_boutons`. */
 export const interfaceTextes: Grammar = {

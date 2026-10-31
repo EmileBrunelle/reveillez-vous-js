@@ -1,5 +1,5 @@
 import { computed, defineAsyncComponent, defineComponent, h, ref, shallowRef, watch, type Component } from 'vue'
-import ChunkFailed from '../components/ChunkFailed.vue'
+import ChunkFailed from '@/components/ChunkFailed.vue'
 import { tryAutoReload } from './chunkReload'
 
 type Loader = () => Promise<{ default: Component }>

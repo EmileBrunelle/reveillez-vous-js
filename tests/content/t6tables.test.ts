@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { expandFields, expandTemplate, isTitre, type ArcaneTable, type Grammar } from '../../src/engine/grammar'
-import { mulberry32 } from '../../src/engine/rng'
-import { carteTables } from '../../src/engine/prophecy'
-import { prophecies, tableKey, type Level, type LevelPrefix } from '../../src/content/prophecies'
+import { expandFields, expandTemplate, isTitre, type ArcaneTable, type Grammar } from '@/engine/grammar'
+import { mulberry32 } from '@/engine/rng'
+import { carteTables } from '@/engine/prophecy'
+import { prophecies, tableKey, type Level, type LevelPrefix } from '@/content/prophecies'
 import { BANNED, CONTRACTIONS, RELIGION, bannedRe } from './rules'
 
 describe('T6 tables (rappel, onglet, bulle, erreur)', () => {

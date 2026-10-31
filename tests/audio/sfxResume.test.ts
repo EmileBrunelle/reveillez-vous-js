@@ -15,7 +15,7 @@ vi.mock('@vueuse/core', async (importOriginal) => {
   }
 })
 
-import { ac, unlock } from '../../src/audio/sfx'
+import { ac, unlock } from '@/audio/sfx'
 
 class FakeCtx {
   state = 'running'

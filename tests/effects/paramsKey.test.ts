@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { paramsKey } from '../../src/effects/paramsKey'
+import { paramsKey } from '@/effects/paramsKey'
 
 describe('paramsKey', () => {
   it('ignores time and sub-millesimal differences', () => {

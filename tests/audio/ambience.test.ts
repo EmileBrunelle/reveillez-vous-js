@@ -1,12 +1,12 @@
 import { ref } from 'vue'
-import { muted } from '../../src/audio/sfx'
+import { muted } from '@/audio/sfx'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
-import { FADE_IN, FADE_MUTE, FADE_OUT, FADE_XFADE, fadeParam, startAmbience, targetLevel } from '../../src/audio/ambience'
-import { EVENT_BOOST, MASTER_GAIN, NOISE_OFFSET_MAX, RECIPES, bedGain, randomDelay } from '../../src/audio/ambienceSynth'
-import { NOISE_SECONDS } from '../../src/audio/noise'
-import type { PlaceId } from '../../src/effects/places/types'
+import { FADE_IN, FADE_MUTE, FADE_OUT, FADE_XFADE, fadeParam, startAmbience, targetLevel } from '@/audio/ambience'
+import { EVENT_BOOST, MASTER_GAIN, NOISE_OFFSET_MAX, RECIPES, bedGain, randomDelay } from '@/audio/ambienceSynth'
+import { NOISE_SECONDS } from '@/audio/noise'
+import type { PlaceId } from '@/effects/places/types'
 
 const PLACES: PlaceId[] = ['perron', 'foret', 'cimetiere', 'rue', 'nuages']
 
@@ -306,8 +306,8 @@ describe('fondus de startAmbience (contexte factice)', () => {
     vi.resetModules()
     const { createPinia: newPinia, setActivePinia: setPinia } = await import('pinia')
     setPinia(newPinia())
-    const sfx = await import('../../src/audio/sfx')
-    const amb = await import('../../src/audio/ambience')
+    const sfx = await import('@/audio/sfx')
+    const amb = await import('@/audio/ambience')
     const stop = amb.startAmbience('rue')
     vi.advanceTimersByTime(3000)
     sfx.muted.value = true

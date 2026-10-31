@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
-import { safeStorage } from '../composables/safeStorage'
+import { safeStorage } from '@/composables/safeStorage'
 
 // Volumes par catégorie (0 à 1), persistés sous `rvj-audio`. Chaque catégorie a un GainNode branché sur le bus
 // « général » (voir `audio/sfx.ts`) : le store ne porte que l’état, pas le câblage Web Audio.

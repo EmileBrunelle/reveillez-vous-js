@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextFrame, nextFrameOr } from '../../src/composables/nextFrame'
+import { nextFrame, nextFrameOr } from '@/composables/nextFrame'
 
 // useRafFn de VueUse ne démarre que si `window` existe à l’import (isClient) : l’environnement de test est node.
 const frames = vi.hoisted(() => {

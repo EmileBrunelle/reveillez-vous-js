@@ -1,9 +1,9 @@
 import { computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
-import { prophecies } from '../content/prophecies'
-import { arcaneInventory, consulted, emptyCollection, parseCollection, seenCount, withSeen, type Collection } from '../engine/collection'
-import { safeStorage } from '../composables/safeStorage'
+import { prophecies } from '@/content/prophecies'
+import { arcaneInventory, consulted, emptyCollection, parseCollection, seenCount, withSeen, type Collection } from '@/engine/collection'
+import { safeStorage } from '@/composables/safeStorage'
 
 export const COLLECTION_KEY = 'rvj-collection'
 

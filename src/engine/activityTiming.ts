@@ -1,4 +1,4 @@
-import { ACTIVITY_PROMPTS, type TimedActivity } from '../content/activityPrompts'
+import { ACTIVITY_PROMPTS, type TimedActivity } from '@/content/activityPrompts'
 
 /** Plafond de durée d’une activité chronométrée (ms). */
 export const MAX_ACTIVITY_MS = 20_000

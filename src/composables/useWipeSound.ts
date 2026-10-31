@@ -1,5 +1,5 @@
 import { tryOnScopeDispose } from '@vueuse/core'
-import { startWipeSound, type WipeSound } from '../audio/wipe'
+import { startWipeSound, type WipeSound } from '@/audio/wipe'
 
 /** Son de frottement : créé au premier `move` (geste de l’utilisateur), coupé par `stop()` et à la destruction du scope. */
 export const useWipeSound = () => {

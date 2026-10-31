@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia } from 'pinia'
 import { nextTick } from 'vue'
 import { mount, type VueWrapper } from '@vue/test-utils'
-import Finale from '../../src/components/Finale.vue'
+import Finale from '@/components/Finale.vue'
 
 // Pas d’audio réel : la séquence sonore est remplacée par des fonctions vides.
-vi.mock('../../src/audio/finale', () => ({
+vi.mock('@/audio/finale', () => ({
   BELL_DELAY: 1,
   startFinaleAudio: () => ({ powerDown: () => {}, dawn: () => {}, bell: () => {}, fadePad: () => {}, stop: () => {} }),
 }))

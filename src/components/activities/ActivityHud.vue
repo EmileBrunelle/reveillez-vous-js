@@ -5,10 +5,10 @@
 import { computed, nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
-import { useReducedMotion } from '../../composables/useReducedMotion'
-import { ACTIVITY_PROMPTS, type TimedActivity } from '../../content/activityPrompts'
-import { ACTIVITY_GRACE_MS, durationOf, outcomeText, timeLeft, type Phase } from '../../engine/activityTiming'
-import { useStinger } from '../../composables/useStinger'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { ACTIVITY_PROMPTS, type TimedActivity } from '@/content/activityPrompts'
+import { ACTIVITY_GRACE_MS, durationOf, outcomeText, timeLeft, type Phase } from '@/engine/activityTiming'
+import { useStinger } from '@/composables/useStinger'
 
 // `paused` fige la barre (minuterie suspendue) ; `elapsed` donne le temps de jeu écoulé depuis la fin de la grâce (ms), pause comprise.
 const {

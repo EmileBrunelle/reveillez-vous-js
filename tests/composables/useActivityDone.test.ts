@@ -12,8 +12,8 @@ const env = vi.hoisted(() => {
   return { win: target, doc }
 })
 const { win, doc } = env
-import { ACTIVITY_GRACE_MS } from '../../src/engine/activityTiming'
-import { AUTO_SUCCESS_MS, POKE_THROTTLE_MS, SKIP_REVEAL_MS, useActivityDone } from '../../src/composables/useActivityDone'
+import { ACTIVITY_GRACE_MS } from '@/engine/activityTiming'
+import { AUTO_SUCCESS_MS, POKE_THROTTLE_MS, SKIP_REVEAL_MS, useActivityDone } from '@/composables/useActivityDone'
 
 const setVisibility = (state: 'visible' | 'hidden') => {
   doc.visibilityState = state

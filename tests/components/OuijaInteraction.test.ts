@@ -2,9 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { mount, type VueWrapper } from '@vue/test-utils'
-import OuijaActivity from '../../src/components/activities/OuijaActivity.vue'
-import { useOverlayStore } from '../../src/stores/overlay'
-import { mulberry32 } from '../../src/engine/rng'
+import OuijaActivity from '@/components/activities/OuijaActivity.vue'
+import { useOverlayStore } from '@/stores/overlay'
+import { mulberry32 } from '@/engine/rng'
 
 let wrapper: VueWrapper | undefined
 beforeEach(() => vi.useFakeTimers())
