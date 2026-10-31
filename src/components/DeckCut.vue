@@ -468,22 +468,28 @@ const choose = (i: number) => {
     <p class="absolute size-px m-[-1px] overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status" aria-live="polite">{{ status }}</p>
     <span ref="focusSink" tabindex="-1" class="absolute size-px outline-none"></span>
     <!-- Invite et légende : sans effet de mise en page sauf sur grand écran haut, où elles forment une colonne à droite de l’éventail. -->
-    <div class="deck__side">
+    <div class="deck__side contents">
       <p
         :id="promptId"
-        class="deck__prompt absolute inset-x-0 top-[12cqw] m-0 font-ui text-[7cqw] leading-[1.1] [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
-        :class="{ 'deck__prompt--on': ready && chosen === null }"
+        class="deck__prompt absolute inset-x-0 top-[12cqw] m-0 text-center opacity-0 transition-opacity duration-400 ease-[ease-out] font-ui text-[7cqw] leading-[1.1] [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000]"
+        :class="{ 'opacity-100': ready && chosen === null }"
       >
         {{ coarse ? 'Touchez une carte.' : 'Choisissez une carte.' }}
       </p>
+      <!-- Seules des opacités passent par CSS : aucun transform n’a de transition (le mouvement est entièrement piloté par la boucle rAF). Paquets non ciblés : un ton plus sourd (et non une opacité basse, qui laisse passer la brume du décor) ; le voile du .deck__legend garantit le contraste. -->
       <!-- Légende unique sous l’éventail : une ligne par paquet, dans l’ordre des cartes ; la ligne de la carte survolée ou ciblée au clavier passe en pleine opacité. -->
       <ul
-        class="deck__legend absolute inset-x-[4cqw] bottom-[4cqw] m-0 p-0 list-none flex flex-col gap-[1.2cqw] font-ui text-[4.4cqw] leading-[1.1] text-left [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000,0_0_1.5cqw_#000]"
-        :class="{ 'deck__legend--gone': chosen !== null }"
+        class="deck__legend absolute isolate transition-opacity duration-150 ease-[ease-out] inset-x-[4cqw] bottom-[4cqw] m-0 p-0 list-none flex flex-col gap-[1.2cqw] font-ui text-[4.4cqw] leading-[1.1] text-left [color:#f3e3b3] [text-shadow:0.4cqw_0.4cqw_0_#000,0_0_1.5cqw_#000]"
+        :class="{ 'opacity-0 duration-200': chosen !== null }"
         aria-hidden="true"
       >
-        <li v-for="i in cards" :key="i" class="deck__line relative flex items-start gap-[2cqw]" :class="{ 'deck__line--on': hot === i, 'deck__line--dim': hot !== null && hot !== i }">
-          <span class="block shrink-0 size-[5.5cqw] [color:#b9821a]" aria-hidden="true"><TarotEmblem :symbole="EMBLEMS[paquets[i]]" /></span>
+        <li
+          v-for="i in cards"
+          :key="i"
+          class="deck__line relative flex items-start gap-[2cqw] [transition:opacity_0.15s_ease-out,color_0.15s_ease-out,translate_0.15s_ease-out]"
+          :class="{ 'deck__line--on': hot === i, '[color:#c2b189]': hot !== null && hot !== i }"
+        >
+          <span class="block shrink-0 size-[5.5cqw] [color:#b9821a]" :class="{ 'opacity-60': hot !== null && hot !== i }" aria-hidden="true"><TarotEmblem :symbole="EMBLEMS[paquets[i]]" /></span>
           <span
             ><b class="font-normal uppercase">{{ PAQUET_NOMS[paquets[i]] }}</b> : {{ PAQUET_PRESAGES[paquets[i]] }}</span
           >
@@ -527,25 +533,6 @@ const choose = (i: number) => {
   width: 100cqw; /* échelle de repos = FAN_SCALE, échelle 1 = carte du tirage */
   translate: -50% -50%;
 }
-/* Seules des opacités passent par CSS : aucun transform n’a de transition (le mouvement est entièrement piloté par la boucle rAF). */
-.deck__prompt {
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.4s ease-out;
-}
-.deck__prompt--on {
-  opacity: 1;
-}
-.deck__legend,
-.deck__line {
-  transition: opacity 0.15s ease-out;
-}
-.deck__line {
-  transition:
-    opacity 0.15s ease-out,
-    color 0.15s ease-out,
-    translate 0.15s ease-out;
-}
 /* Ligne active : texte blanc, repère « ▸ » ambre (couleur de survol des portes) dans la marge, légère mise en retrait et nom souligné en ambre. */
 .deck__line--on {
   color: #fff;
@@ -569,17 +556,7 @@ const choose = (i: number) => {
   text-decoration-thickness: 0.5cqw;
   text-underline-offset: 0.7cqw;
 }
-/* Paquets non ciblés : un ton plus sourd (et non une opacité basse, qui laisse passer la brume du décor) ; le voile du .deck__legend garantit le contraste. */
-.deck__line--dim {
-  color: #c2b189;
-}
-.deck__line--dim > span:first-child {
-  opacity: 0.6;
-}
 /* Voile décoratif : fond sombre estompé derrière la légende, hors flux (aucun effet sur la mise en page), pour que le texte reste lisible sur la brume ou la neige. */
-.deck__legend {
-  isolation: isolate;
-}
 .deck__legend::before {
   content: '';
   position: absolute;
@@ -590,10 +567,6 @@ const choose = (i: number) => {
   filter: blur(2.5cqw);
   pointer-events: none;
 }
-.deck__legend--gone {
-  opacity: 0;
-  transition-duration: 0.2s;
-}
 .deck__glow {
   box-shadow: 0 5cqw 9cqw rgb(0 0 0 / 0.75);
 }
@@ -601,9 +574,6 @@ const choose = (i: number) => {
   cursor: default;
 }
 /* Grand écran haut : l’éventail prend toute la hauteur de la boîte, l’invite et la légende passent à sa droite, centrées verticalement (seuils = `wide` du script). */
-.deck__side {
-  display: contents;
-}
 @media (min-width: 1600px) and (min-height: 1000px) and (min-aspect-ratio: 8/5) {
   .deck .deck__side {
     display: flex;
