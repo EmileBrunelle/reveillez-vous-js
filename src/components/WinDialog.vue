@@ -2,10 +2,11 @@
 import { useId, useTemplateRef } from 'vue'
 import { Dialog } from '@vuetify/v0'
 import { useDialogFocus } from '@/composables/useDialogFocus'
+import { useWinDrag } from '@/composables/useWinDrag'
 
 // Fenêtre modale façon Windows 98 sur Dialog de v0 (<dialog> natif) : Échap, piège à focus et arrière-plan inerte sont gratuits.
 // Le parent règle la taille et les marges (`contentClass`) et, au besoin, le défilement de la fenêtre (`windowClass`).
-const { title, contentClass = '', windowClass = '' } = defineProps<{ title: string; contentClass?: string; windowClass?: string }>()
+const { title, contentClass = '', windowClass = '', draggable = true } = defineProps<{ title: string; contentClass?: string; windowClass?: string; draggable?: boolean }>()
 // v-model du parent = « veut ouvert ». Clic sur le fond = fermeture : défaut de v0 (`closeOnClickOutside`), gardé exprès, comme À propos.
 const open = defineModel<boolean>({ default: false })
 // Émis après la restitution du focus : le parent fait son propre travail de fermeture.
@@ -16,6 +17,9 @@ const titleId = `${id}-title` // convention de Dialog.Root : `${id}-title`
 // Pas d’autofocus natif sur ce bouton : il ferait apparaître l’anneau de focus de Chrome (voir App.vue et focusQuietly), `useDialogFocus` s’en charge.
 const closeBtn = useTemplateRef<HTMLButtonElement>('closeBtn')
 const { restore } = useDialogFocus(open, () => closeBtn.value)
+// Barre de titre = poignée de déplacement ; la position revient au centre à chaque ouverture.
+const bar = useTemplateRef<HTMLElement>('bar')
+const { style: dragStyle, narrow } = useWinDrag(bar, open, undefined, () => draggable)
 const onClose = () => {
   restore()
   emit('close')
@@ -29,9 +33,9 @@ const base =
 
 <template>
   <Dialog.Root :id v-model="open">
-    <Dialog.Content :class="[base, contentClass]" @close="onClose">
+    <Dialog.Content :class="[base, contentClass]" :style="dragStyle" @close="onClose">
       <div class="win-window flex flex-col max-h-[calc(100dvh-var(--taskbar-h)-var(--safe-t)-1rem)]" :class="windowClass">
-        <div class="flex items-center justify-between gap-2 bg-[#000080] text-white py-[2px] px-2 select-none">
+        <div ref="bar" class="flex items-center justify-between gap-2 bg-[#000080] text-white py-[2px] px-2 select-none" :class="narrow || !draggable ? '' : 'cursor-move touch-none'">
           <Dialog.Title class="m-0 text-[1rem] font-bold">{{ title }}</Dialog.Title>
           <Dialog.Close class="win-btn border-0 min-w-6 h-6 p-0 [font:inherit] font-bold leading-none" :class="focusRing">×</Dialog.Close>
         </div>

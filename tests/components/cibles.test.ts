@@ -7,7 +7,7 @@ const sfc = (nom: string) => readFileSync(new URL(`../../src/components/${nom}.v
 describe('cibles et noms accessibles', () => {
   it('FakeErrors : le bouton de fermeture fait au moins 24×24 px (WCAG 2.5.8) et rend le focus à la fermeture', () => {
     const src = sfc('FakeErrors')
-    const bouton = src.match(/<button[^>]*aria-label="Fermer la fausse erreur"/s)?.[0] ?? ''
+    const bouton = sfc('FakeErrorWindow').match(/<button[^>]*aria-label="Fermer la fausse erreur"/s)?.[0] ?? ''
     expect(bouton).toContain('min-w-6')
     expect(bouton).toContain('min-h-6')
     expect(src).toContain('useFocusReturn') // le focus revient à l’élément extérieur (logique dans useFocusReturn)

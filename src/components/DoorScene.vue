@@ -307,8 +307,11 @@ const open = async () => {
   await wait(750)
   if (state !== 'opening') return
   go(ui.value, { opacity: 0 }, { duration: 0.2 })
-  go(stage.value, { scale: 2.6 }, { duration: 0.4, ease: [0.5, 0, 0.9, 0.5] })
-  await wait(400)
+  // Sortie continue : la caméra traverse la porte (le zoom accélère jusqu’à la fin) et la scène se fond pendant ce même élan, sans arrêt
+  // ni coupure. Le zoom (scale) et le fondu (opacity) sont deux propriétés distinctes : aucune animation n’en double une autre.
+  go(stage.value, { scale: [1, 3.6] }, { duration: 0.6, ease: [0.55, 0, 1, 0.45] })
+  go(stage.value, { opacity: [1, 0] }, { duration: 0.35, delay: 0.25, ease: 'easeIn' })
+  await wait(600)
   finish()
 }
 

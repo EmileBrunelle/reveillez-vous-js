@@ -218,13 +218,20 @@ const { pause } = useRafFn(({ delta }) => {
         @click="light(n - 1)"
       >
         <IconChandelle class="absolute inset-0 size-full" />
-        <span v-if="!lit[n - 1] && outcome === 'play'" class="wick-cue" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.7}s` }" aria-hidden="true" />
+        <!-- Le fondu porte sur le conteneur : `wick-cue` anime déjà sa propre opacité. -->
+        <Transition leave-active-class="transition-opacity duration-200 ease-in" leave-to-class="opacity-0">
+          <span v-if="!lit[n - 1] && outcome === 'play'" class="pointer-events-none absolute inset-0" aria-hidden="true">
+            <span class="wick-cue" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.7}s` }" />
+          </span>
+        </Transition>
         <span
           class="wick-glow absolute left-1/2 top-[28%] size-[7px] -mt-[3.5px] -ml-[3.5px] rounded-[50%] bg-[#ff9a2e] pointer-events-none"
           :style="{ opacity: hold[n - 1] * 0.9 }"
           aria-hidden="true"
         />
-        <span v-if="snuffed === n - 1 && !reduced" class="smoke" aria-hidden="true" />
+        <Transition leave-active-class="transition-[opacity,translate] duration-250 ease-in" leave-to-class="opacity-0 -translate-y-3">
+          <span v-if="snuffed === n - 1 && !reduced" class="pointer-events-none absolute inset-0" aria-hidden="true"><span class="smoke" /></span>
+        </Transition>
         <span class="flame" :class="{ on: lit[n - 1], 'no-motion': reduced }" aria-hidden="true">
           <span class="flame-sway" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.9}s` }" />
         </span>

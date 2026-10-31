@@ -181,6 +181,21 @@ describe('Taskbar : bulles', () => {
     expect(w.find('.balloon').exists()).toBe(false)
   })
 
+  it('cogner à la porte juste après l’affichage d’une bulle ne la fait pas clignoter : elle reste lisible au moins 1 s', async () => {
+    const { w, session } = monter()
+    session.notify('Titre', 'Texte')
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(100)
+    session.setActivityRunning(true) // la porte lance l’activité
+    await vi.advanceTimersByTimeAsync(900) // 1 s après l’affichage
+    expect(w.find('.balloon').exists()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(w.find('.balloon').exists()).toBe(false) // puis elle est bien retenue pendant l’activité
+    session.setActivityRunning(false)
+    await vi.advanceTimersByTimeAsync(1100)
+    expect(w.find('.balloon').exists()).toBe(true) // rendue après l’activité
+  })
+
   it('une bulle sans titre n’affiche que son texte', async () => {
     const { w, session } = monter()
     session.notify('', 'Seulement le texte')

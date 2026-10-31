@@ -212,7 +212,7 @@ describe('OuijaActivity : dérive vers NON (niveau 4 et plus)', () => {
     for (let n = 0; n < 12 && !derive && w.find('button.letter.next').exists(); n++) {
       await touche(w, attendue(w)).trigger('click')
       await avancer(1)
-      derive = annonce(w) === 'La goutte dérive d’elle-même vers NON.'
+      derive = annonce(w) === 'Quelque chose retient la goutte…'
     }
     expect(derive).toBe(true)
     // Pendant la dérive, une bonne lettre n’est pas acceptée.
@@ -222,9 +222,37 @@ describe('OuijaActivity : dérive vers NON (niveau 4 et plus)', () => {
     frapper(l.toLowerCase())
     expect(vi.mocked(ouijaTick).mock.calls.length).toBe(avant)
     await avancer(1750)
-    expect(annonce(w)).toBe('La goutte revient vers vous.')
+    expect(annonce(w)).toBe('La goutte est relâchée.')
     await touche(w, l).trigger('click')
     expect(vi.mocked(ouijaTick).mock.calls.length).toBe(avant + 1)
+  })
+
+  it('pendant la retenue, une main spectrale et la réplique sont visibles ; au relâchement, elles disparaissent', async () => {
+    const w = await monter(5)
+    expect(w.find('.ghost').exists()).toBe(false)
+    expect(w.find('.held-line').exists()).toBe(false)
+    for (let n = 0; n < 12 && !annonce(w).includes('retient') && w.find('button.letter.next').exists(); n++) {
+      await touche(w, attendue(w)).trigger('click')
+      await avancer(1)
+    }
+    expect(w.find('.ghost .ghost-hand').exists()).toBe(true)
+    expect(w.get('.held-line').text()).toBe('Quelque chose retient la goutte…')
+    // La main est décorative : seule la région aria-live annonce la réplique.
+    expect(w.get('.held-line').attributes('aria-hidden')).toBe('true')
+    await avancer(1750)
+    expect(w.find('.ghost').exists()).toBe(false)
+    expect(w.find('.held-line').exists()).toBe(false)
+  })
+
+  it('mouvement réduit : la main garde sa classe « no-motion » (aucune oscillation), la réplique reste', async () => {
+    mouvementReduit(true)
+    const w = await monter(5)
+    for (let n = 0; n < 12 && !annonce(w).includes('retient') && w.find('button.letter.next').exists(); n++) {
+      await touche(w, attendue(w)).trigger('click')
+      await avancer(1)
+    }
+    expect(w.get('.ghost').classes()).toContain('no-motion')
+    expect(w.find('.held-line').exists()).toBe(true)
   })
 
   it('une seule dérive par mot', async () => {
@@ -233,7 +261,7 @@ describe('OuijaActivity : dérive vers NON (niveau 4 et plus)', () => {
     while (w.find('button.letter.next').exists()) {
       await touche(w, attendue(w)).trigger('click')
       await avancer(1)
-      if (annonce(w).includes('dérive')) derives++
+      if (annonce(w).includes('retient')) derives++
       await avancer(1800)
     }
     expect(derives).toBe(1)
@@ -274,17 +302,17 @@ describe('OuijaActivity : issue, pause et clavier de la planche', () => {
 
   it('une dérive qui expire pendant la pause ne rend la goutte qu’à la reprise', async () => {
     const w = await monter(5)
-    for (let n = 0; n < 12 && !annonce(w).includes('dérive') && w.find('button.letter.next').exists(); n++) {
+    for (let n = 0; n < 12 && !annonce(w).includes('retient') && w.find('button.letter.next').exists(); n++) {
       await touche(w, attendue(w)).trigger('click')
       await avancer(1)
     }
-    expect(annonce(w)).toContain('dérive')
+    expect(annonce(w)).toContain('retient')
     fenetrePerdFocus()
     await avancer(5000)
-    expect(annonce(w)).toContain('dérive')
+    expect(annonce(w)).toContain('retient')
     await reprendre(w)
     await avancer(50)
-    expect(annonce(w)).toBe('La goutte revient vers vous.')
+    expect(annonce(w)).toBe('La goutte est relâchée.')
   })
 
   it('la planche n’a qu’un arrêt de tabulation ; les flèches déplacent le focus entre les lettres', async () => {

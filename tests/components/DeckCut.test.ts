@@ -190,6 +190,10 @@ describe('DeckCut : choix à la souris', () => {
     expect(statut()).toBe('Carte choisie.')
     expect(cartes().every((c) => c.attributes('disabled') !== undefined)).toBe(true)
     expect(w.emitted('pick')).toBeUndefined()
+    // Dès le choix (avant tout mouvement), la carte du dessous passe au-dessus de toutes les autres, qui se rangent dessous.
+    expect(cartes()[2].classes()).toContain('z-10')
+    expect(cartes()[0].classes()).not.toContain('z-10')
+    expect(cartes()[1].classes()).not.toContain('z-10')
     images(300) // fuite des autres, envol, tassement
     await w.vm.$nextTick()
     expect(cartes()[2].classes()).toContain('z-10') // la carte choisie passe devant à l’envol
@@ -276,14 +280,14 @@ describe('DeckCut : mouvement réduit', () => {
     expect(lignesActives()).toBe(0)
   })
 
-  it('choisir : bruit « immobile », puis pick après 150 ms, sans trajet', async () => {
+  it('choisir : bruit « immobile », puis pick après 320 ms (courte glissade, pas de ressort)', async () => {
     reduit()
     const w = monter()
     await cartes()[1].trigger('click')
     expect(cardPickStill).toHaveBeenCalledTimes(1)
     expect(cardPick).not.toHaveBeenCalled()
     expect(w.emitted('pick')).toBeUndefined()
-    await avancer(160)
+    await avancer(330)
     expect(w.emitted('pick')).toEqual([[paquets[1]]])
   })
 

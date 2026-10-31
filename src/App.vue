@@ -192,122 +192,147 @@ watch(
         {{ gpu === 'checking' ? connecting : '' }}
       </p>
       <template v-if="gpu === 'ok'">
-        <BgPlace :key="place.id" :place="place.id" :variant="placeVariant.params" :sharp="crtOff" />
+        <!-- Changement de lieu : le nouveau fond se fond par-dessus l’ancien, qui reste dessous jusqu’à la fin (pas de coupure franche). -->
+        <Transition
+          enter-from-class="opacity-0"
+          enter-active-class="transition-opacity duration-[700ms] ease-out motion-reduce:duration-200"
+          leave-active-class="transition-opacity duration-[700ms] motion-reduce:duration-200"
+          leave-to-class="opacity-[0.99]"
+        >
+          <BgPlace :key="place.id" :place="place.id" :variant="placeVariant.params" :sharp="crtOff" />
+        </Transition>
         <div
           class="fixed inset-0 z-0 pointer-events-none bg-[rgb(120_0_0/0.35)] transition-opacity duration-[400ms] motion-reduce:transition-none"
           :class="listening ? 'opacity-100' : 'opacity-0'"
           aria-hidden="true"
         />
-        <button
-          v-if="awaiting"
-          :ref="focusOverlay"
-          class="fixed inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-0.6667rem]"
-          type="button"
-          @click="approach"
-        >
-          Approchez-vous de la porte
-        </button>
-        <!-- Enveloppe qui absorbe le débordement de la secousse (transform de `.app`) : un `overflow` sur l’élément secoué ne
+        <!-- Le bouton « Approchez-vous » avance vers nous en se fondant pendant que la porte recule jusqu’à sa place (fondu enchaîné, sans trou). -->
+        <AnimatePresence>
+          <Motion
+            v-if="awaiting"
+            key="approach"
+            class="fixed inset-0 z-20"
+            :initial="false"
+            :exit="reducedMotion ? { opacity: 0, pointerEvents: 'none' } : { opacity: 0, scale: 1.06, pointerEvents: 'none' }"
+            :transition="{ duration: 0.3, ease: 'easeIn' }"
+          >
+            <button
+              :ref="focusOverlay"
+              class="absolute inset-0 z-20 grid place-items-center w-full border-0 bg-transparent text-fg [font-family:inherit] text-[1.2rem] tracking-[0.08em] cursor-pointer focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-fg focus-visible:outline-offset-[-0.6667rem]"
+              type="button"
+              @click="approach"
+            >
+              Approchez-vous de la porte
+            </button>
+          </Motion>
+          <!-- Enveloppe qui absorbe le débordement de la secousse (transform de `.app`) : un `overflow` sur l’élément secoué ne
              rogne pas sa propre boîte, et le dépassement de ±4 px faisait apparaître des barres de défilement.
              `clip` (pas `hidden`) ne crée pas de conteneur de défilement ; la hauteur de page, donc le défilement légitime, reste celle de `.app`. -->
-        <div v-else-if="DoorScene" class="overflow-clip">
-          <main
-            ref="mainEl"
-            class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[var(--pad-t)] pr-[var(--pad-x-r)] pl-[var(--pad-x-l)] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip"
-            :class="{ 'app--reading': phase === 'reading' || phase === 'cut' }"
+          <Motion
+            v-else-if="DoorScene"
+            key="door-scene"
+            class="overflow-clip"
+            :initial="reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }"
+            :animate="{ opacity: 1, scale: 1 }"
+            :transition="{ duration: 0.4, ease: 'easeOut' }"
           >
-            <AnimatePresence mode="wait">
-              <Motion
-                v-if="phase === 'door'"
-                :key="`door-${sceneKey}`"
-                class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center"
-                :initial="{ opacity: 0 }"
-                :animate="{ opacity: 1 }"
-                :exit="{ opacity: 0 }"
-                :transition="{ duration: 0.2 }"
-              >
-                <DoorScene
-                  ref="doorScene"
-                  :door="door"
-                  :line="doorLine"
-                  :level="level"
-                  :closing="closing"
-                  :quick="isQuickKnock(progress.knocked, level)"
-                  @knocked="progress.markKnocked"
-                  @open="onDone"
-                  @about="openAbout"
-                  @reset="resetOpen = true"
-                  @reset-level="resetLevel"
-                  @listening="(v: boolean) => (listening = v)"
-                  @impact="shake"
-                  @closed="onClosed"
-                />
-              </Motion>
-              <Motion
-                v-else-if="phase === 'activity' && Activity"
-                key="activity"
-                ref="activityEl"
-                tabindex="-1"
-                role="group"
-                :aria-label="activityLabel"
-                class="relative w-full max-w-[36rem] min-[1600px]:max-w-[90rem] h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] min-h-[22rem] grid outline-none"
-                :initial="{ opacity: 0 }"
-                :animate="{ opacity: 1 }"
-                :exit="{ opacity: 0 }"
-                :transition="{ duration: 0.2 }"
-              >
-                <component :is="Activity" :level="level" @done="onActivityDone" />
-              </Motion>
-              <Motion
-                v-else-if="phase === 'cut' || phase === 'reading'"
-                key="deal"
-                class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]"
-                :initial="{ opacity: 0, y: dealFromY }"
-                :animate="{ opacity: 1, y: 0 }"
-                :exit="{ opacity: 0 }"
-                :transition="{ opacity: { duration: 0.2 }, y: { type: 'spring', stiffness: 170, damping: 22 } }"
-              >
-                <!-- Une seule structure pour la coupe et la lecture : la boîte de la carte ne change donc jamais entre les deux. -->
-                <section
-                  ref="readingEl"
+            <main
+              ref="mainEl"
+              class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[var(--pad-t)] pr-[var(--pad-x-r)] pl-[var(--pad-x-l)] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip"
+              :class="{ 'app--reading': phase === 'reading' || phase === 'cut' }"
+            >
+              <AnimatePresence mode="wait">
+                <Motion
+                  v-if="phase === 'door'"
+                  :key="`door-${sceneKey}`"
+                  class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center"
+                  :initial="{ opacity: 0 }"
+                  :animate="{ opacity: 1 }"
+                  :exit="{ opacity: 0 }"
+                  :transition="{ duration: 0.2 }"
+                >
+                  <DoorScene
+                    ref="doorScene"
+                    :door="door"
+                    :line="doorLine"
+                    :level="level"
+                    :closing="closing"
+                    :quick="isQuickKnock(progress.knocked, level)"
+                    @knocked="progress.markKnocked"
+                    @open="onDone"
+                    @about="openAbout"
+                    @reset="resetOpen = true"
+                    @reset-level="resetLevel"
+                    @listening="(v: boolean) => (listening = v)"
+                    @impact="shake"
+                    @closed="onClosed"
+                  />
+                </Motion>
+                <Motion
+                  v-else-if="phase === 'activity' && Activity"
+                  key="activity"
+                  ref="activityEl"
                   tabindex="-1"
                   role="group"
-                  aria-label="Lecture"
-                  class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
+                  :aria-label="activityLabel"
+                  class="relative w-full max-w-[36rem] min-[1600px]:max-w-[90rem] h-[calc(100dvh-0.75rem-var(--pad-t)-var(--taskbar-h))] min-h-[22rem] grid outline-none"
+                  :initial="{ opacity: 0 }"
+                  :animate="{ opacity: 1 }"
+                  :exit="{ opacity: 0 }"
+                  :transition="{ duration: 0.2 }"
                 >
-                  <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
-                    <DeckCut v-if="phase === 'cut'" ref="deckEl" :level="level" :rng="rng" @pick="onPick" />
-                    <TarotCard
-                      v-else-if="tarotOk"
-                      :arcane="prophecy.arcane"
-                      :title="prophecy.question"
-                      :body="prophecy.body"
-                      :verse="prophecy.verse"
-                      :level="level"
-                      :paquet="pickedPaquet"
-                      @flipped="onFlipped"
-                    />
-                    <TarotFallback v-else :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" />
-                  </div>
-                  <div class="flex flex-none flex-wrap gap-3 justify-center" :class="{ invisible: phase === 'cut' }" :inert="phase === 'cut'">
-                    <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">{{ isFinaleVisit(progress.visits) ? WAKE_LABEL : 'Fermer la porte' }}</button>
-                  </div>
-                </section>
-              </Motion>
-              <Motion
-                v-else-if="phase === 'finale'"
-                key="finale"
-                class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center"
-                :initial="{ opacity: 0 }"
-                :animate="{ opacity: 1 }"
-                :exit="{ opacity: 0 }"
-                :transition="{ duration: 0.2 }"
-              >
-                <Finale ref="finaleEl" @collapsed="onCollapsed" @restart="onFinaleRestart" />
-              </Motion>
-            </AnimatePresence>
-          </main>
-        </div>
+                  <component :is="Activity" :level="level" @done="onActivityDone" />
+                </Motion>
+                <Motion
+                  v-else-if="phase === 'cut' || phase === 'reading'"
+                  key="deal"
+                  class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center h-full min-h-0 grid-rows-[minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:32.5rem)]:max-w-[48rem]"
+                  :initial="{ opacity: 0, y: dealFromY }"
+                  :animate="{ opacity: 1, y: 0 }"
+                  :transition="{ opacity: { duration: 0.2 }, y: { type: 'spring', stiffness: 170, damping: 22 } }"
+                >
+                  <!-- Une seule structure pour la coupe et la lecture : la boîte de la carte ne change donc jamais entre les deux. -->
+                  <section
+                    ref="readingEl"
+                    tabindex="-1"
+                    role="group"
+                    aria-label="Lecture"
+                    class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
+                  >
+                    <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
+                      <DeckCut v-if="phase === 'cut'" ref="deckEl" :level="level" :rng="rng" @pick="onPick" />
+                      <TarotCard
+                        v-else-if="tarotOk"
+                        :arcane="prophecy.arcane"
+                        :title="prophecy.question"
+                        :body="prophecy.body"
+                        :verse="prophecy.verse"
+                        :level="level"
+                        :paquet="pickedPaquet"
+                        @flipped="onFlipped"
+                      />
+                      <TarotFallback v-else :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" />
+                    </div>
+                    <div class="flex flex-none flex-wrap gap-3 justify-center" :class="{ invisible: phase === 'cut' }" :inert="phase === 'cut'">
+                      <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">{{ isFinaleVisit(progress.visits) ? WAKE_LABEL : 'Fermer la porte' }}</button>
+                    </div>
+                  </section>
+                </Motion>
+                <Motion
+                  v-else-if="phase === 'finale'"
+                  key="finale"
+                  class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] grid justify-items-center"
+                  :initial="{ opacity: 0 }"
+                  :animate="{ opacity: 1 }"
+                  :exit="{ opacity: 0 }"
+                  :transition="{ duration: 0.2 }"
+                >
+                  <Finale ref="finaleEl" @collapsed="onCollapsed" @restart="onFinaleRestart" />
+                </Motion>
+              </AnimatePresence>
+            </main>
+          </Motion>
+        </AnimatePresence>
       </template>
     </MotionConfig>
   </LazyMotion>

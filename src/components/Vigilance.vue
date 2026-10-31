@@ -67,14 +67,24 @@ const onKeyup = (e: KeyboardEvent) => {
     @blur="release"
   >
     <span :id="hintId" class="sr-only" aria-hidden="true">Triple-clic, appui long ou Entrée maintenue 600 millisecondes pour recommencer à zéro.</span>
-    <span v-if="flash" aria-hidden="true">Vigilance réinitialisée</span>
-    <span v-else class="inline-flex items-center gap-1" role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">
-      <IconEye class="w-4 h-4 flex-none" />
-      <span class="font-bold tabular-nums" aria-hidden="true">{{ level }}</span>
-    </span>
-    <svg v-if="holding" class="vigil-ring absolute inset-0 m-auto w-7 h-7 pointer-events-none -rotate-90" viewBox="0 0 28 28" aria-hidden="true">
-      <circle cx="14" cy="14" r="12" fill="none" stroke="currentColor" stroke-width="2" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" />
-    </svg>
+    <Transition
+      mode="out-in"
+      enter-from-class="opacity-0"
+      enter-active-class="transition-opacity duration-100 ease-out"
+      leave-active-class="transition-opacity duration-100 ease-in"
+      leave-to-class="opacity-0"
+    >
+      <span v-if="flash" aria-hidden="true">Vigilance réinitialisée</span>
+      <span v-else class="inline-flex items-center gap-1" role="img" :aria-label="`Niveau de vigilance : ${level} sur 5`">
+        <IconEye class="w-4 h-4 flex-none" />
+        <span class="font-bold tabular-nums" aria-hidden="true">{{ level }}</span>
+      </span>
+    </Transition>
+    <Transition enter-from-class="opacity-0" enter-active-class="transition-opacity duration-100 ease-out" leave-active-class="transition-opacity duration-100 ease-in" leave-to-class="opacity-0">
+      <svg v-if="holding" class="vigil-ring absolute inset-0 m-auto w-7 h-7 pointer-events-none -rotate-90" viewBox="0 0 28 28" aria-hidden="true">
+        <circle cx="14" cy="14" r="12" fill="none" stroke="currentColor" stroke-width="2" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" />
+      </svg>
+    </Transition>
   </button>
   <!-- Région live persistante, SŒUR du bouton (ses enfants sont présentationnels pour l’ARIA) : montée vide, texte changé ensuite ; un rôle status inséré déjà plein serait muet. -->
   <span class="sr-only" role="status">{{ flash ? 'Vigilance réinitialisée' : '' }}</span>

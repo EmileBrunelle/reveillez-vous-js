@@ -141,7 +141,7 @@ describe('DoorScene : déroulement d’une visite réussie', () => {
 
     await avancer(350) // ouverture
     expect(creak).toHaveBeenCalledTimes(1)
-    await avancer(750 + 400)
+    await avancer(750 + 600)
     expect(w.emitted('open')).toHaveLength(1)
   })
 
@@ -209,7 +209,7 @@ describe('DoorScene : échecs', () => {
     await cogner(w, 1, 0)
     await avancer(1200)
     expect(w.emitted('open')).toBeUndefined()
-    await avancer(1800 + 750 + 400)
+    await avancer(1800 + 750 + 600)
     expect(creak).toHaveBeenCalled()
     expect(w.emitted('open')).toHaveLength(1)
     expect(w.emitted('knocked')).toBeUndefined()
@@ -233,7 +233,7 @@ describe('DoorScene : visite de rappel', () => {
     expect(indice(w)).toBe('Touchez la porte pour l’ouvrir.')
     await porte(w).trigger('click')
     expect(w.get('[role="status"]').text()).toBe('La porte s’ouvre.')
-    await avancer(450 + 750 + 400)
+    await avancer(450 + 750 + 600)
     expect(w.emitted('open')).toHaveLength(1)
     expect(sfx.knocks).toHaveLength(0)
   })
@@ -242,7 +242,7 @@ describe('DoorScene : visite de rappel', () => {
     const w = monter({ quick: true })
     await porte(w).trigger('click')
     await porte(w).trigger('click')
-    await avancer(450 + 750 + 400)
+    await avancer(450 + 750 + 600)
     expect(creak).toHaveBeenCalledTimes(1)
   })
 })

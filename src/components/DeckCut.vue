@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
-import { M as Motion, useMotionValue } from 'motion-v'
+import { M as Motion, animate, useMotionValue } from 'motion-v'
 import { useEventListener, useElementSize, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
-import { FAN, FAN_SCALE } from './deckFan'
+import { FAN, FAN_SCALE, STOW_FADE_MS, stowDelay, stowOf } from './deckFan'
 import { isDrag } from './deckTouch'
 import { cardDeal } from '@/audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '@/audio/cards'
@@ -30,7 +30,7 @@ const chosen = ref<number | null>(null)
 const promptId = useId()
 const hot = ref<number | null>(null)
 // Rang d’empilement fixe : passer d’un coup devant une carte qui la recouvre encore donne l’impression de la traverser.
-// Au survol, la carte se soulève et ses voisines se tassent ; la carte choisie ne passe devant qu’à l’envol, une fois les autres écartées.
+// Au survol, la carte se soulève et ses voisines se tassent ; dès le choix, la carte choisie passe au-dessus de toutes les autres (z-10) : les cartes qui se rangent glissent dessous, jamais à travers.
 const flying = ref(false)
 const restZ = (i: number) => (i === 1 ? 3 : 1)
 const zClass = (i: number) => {
@@ -131,7 +131,6 @@ const restOf = (i: number, h: number | null) => {
     s: me ? fanScale() * HOT_SCALE : fanScale(),
   }
 }
-const stackOf = (i: number) => ({ x: (i - 1) * 0.006 * W, y: 0.05 * W - i * 0.006 * W, r: (i - 1) * 2, s: fanScale() * 0.92 })
 
 // Pointeur : décalage normalisé (−1..1) par rapport au centre de la carte survolée.
 let nx = 0
@@ -146,7 +145,7 @@ let lastTs = 0
 const FINAL_S = 1 // l’élément a la largeur de la boîte : échelle 1 = la carte du tirage
 let startS = fanScale()
 const OTHERS_DELAY = 90 // anticipation de la carte choisie (ms) avant la fuite des autres
-const FLY_DELAY = 400 // l’envol de la carte choisie attend que les autres se soient écartées et fondues : elle ne croise jamais une autre carte
+const FLY_DELAY = 400 // l’envol de la carte choisie attend que les autres soient parties vers la pile : elle ne croise jamais une autre carte
 let finished = false
 
 const apply = () => {
@@ -234,18 +233,17 @@ const tick = (now: number) => {
       c.ty.t = 0
       c.o.t = 1
     } else {
-      const k = i < (chosen.value ?? 0) ? 0 : 1
-      const off = pickAt + OTHERS_DELAY + (k + (i === 1 ? 0.5 : 0)) * 70
+      const off = pickAt + stowDelay(i, chosen.value ?? 0, OTHERS_DELAY)
       if (now >= off) {
-        const f = FAN[i]
-        // La carte du milieu s’écarte du côté opposé au choix : elle libère le chemin de l’envol au lieu de rester dessous.
-        const dir = f.x === 0 ? (chosen.value === 0 ? 1 : -1) : Math.sign(f.x)
-        c.x.t = (fx(i) / 100) * W + dir * 0.5 * W
-        c.y.t = (f.y / 100) * W + 0.14 * W
-        c.r.t = f.rot * 2.2
-        c.o.t = 0
-        c.k = 170
-        c.zeta = 0.9
+        // Rangement : la carte glisse vers la pile (bas de la boîte) et ne s’efface qu’une fois en route ; le choix part ensuite, sans croiser personne.
+        const st = stowOf(i, W)
+        c.x.t = st.x
+        c.y.t = st.y
+        c.r.t = st.r
+        c.s.t = st.s
+        c.o.t = now >= off + STOW_FADE_MS ? 0 : 1
+        c.k = 150
+        c.zeta = 0.85
       }
       c.tx.t = 0
       c.ty.t = 0
@@ -292,7 +290,21 @@ const layoutStatic = () => {
   })
   apply()
 }
-const { start: startReducedPick } = useTimeoutFn(() => emit('pick', paquets[chosen.value ?? 0]), 150, { immediate: false })
+const { start: startReducedPick } = useTimeoutFn(() => emit('pick', paquets[chosen.value ?? 0]), 320, { immediate: false })
+// Mouvement réduit : pas de ressort ni de pile, mais jamais de téléportation. Les autres cartes s’effacent, la choisie glisse brièvement vers la carte du tirage.
+// La boucle rAF ne tourne pas dans ce mode : ces courtes animations sont le seul maître des valeurs.
+const reducedPick = (picked: number) => {
+  const opts = { duration: 0.25, ease: 'easeOut' } as const
+  cards.forEach((i) => {
+    const { mv } = state[i]
+    if (i !== picked) return void animate(mv.opacity, 0, opts)
+    animate(mv.x, 0, opts)
+    animate(mv.y, 0, opts)
+    animate(mv.rotate, 0, opts)
+    animate(mv.scale, FINAL_S, opts)
+  })
+  startReducedPick()
+}
 
 // --- entrée ---------------------------------------------------------------------------------------------------------------------
 const dealSfx = cards.map((i) => useTimeoutFn(cardDeal, 160 + i * 110, { immediate: false }))
@@ -303,12 +315,13 @@ onMounted(() => {
   if (reduced.value) {
     layoutStatic()
     ready.value = true
+    cards.forEach((i) => animate(state[i].mv.opacity, [0, 1], { duration: 0.25, ease: 'easeOut' })) // fondu court : rien n’apparaît d’un coup
     return
   }
   const now = performance.now()
   cards.forEach((i) => {
     const c = state[i]
-    const st = stackOf(i)
+    const st = stowOf(i, W) // les cartes ressortent de la pile où la précédente lecture s’est rangée
     c.x.c = st.x
     c.y.c = st.y
     c.r.c = st.r
@@ -443,7 +456,7 @@ const { start: startFallback } = useTimeoutFn(() => finish(), 1800, { immediate:
 const choose = (i: number) => {
   if (chosen.value !== null || !ready.value) return
   W = deckW.value || W // jamais 0 ici : un choix suppose une boîte rendue ; on garde la dernière largeur connue sinon
-  flying.value = reduced.value
+  flying.value = true
   chosen.value = i
   hot.value = null
   if (reduced.value) cardPickStill()
@@ -452,8 +465,7 @@ const choose = (i: number) => {
   // groupe nommé : la zone de statut annonce seule « Carte choisie. », le nom du groupe n’est pas relu.
   focusQuietly(focusSink.value)
   if (reduced.value) {
-    layoutStatic()
-    startReducedPick()
+    reducedPick(i)
     return
   }
   phase = 'pick'

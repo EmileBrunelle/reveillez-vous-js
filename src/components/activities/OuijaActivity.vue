@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
-import { useElementBounding, useEventListener, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
+import { useElementBounding, useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { M as Motion, useMotionValue, useSpring } from 'motion-v'
 import { useRovingFocus } from '@vuetify/v0'
 import ActivitySkip from './ActivitySkip.vue'
@@ -33,6 +33,7 @@ import { ouijaFarewell, ouijaTick } from '@/audio/ouija'
 import { aimPoint } from '@/composables/touchAim'
 import { useHaptics } from '@/composables/haptics'
 import IconGoutte from '~icons/rvj/goutte'
+import IconMain from '~icons/game-icons/hand'
 
 const { level, rng = undefined } = defineProps<{ level: number; rng?: Rng }>()
 // Pas de défaut de prop : Vue prendrait la fabrique secureRng comme valeur.
@@ -48,7 +49,13 @@ const segments = [...shown].map((ch, i, all) => {
   const start = all.slice(0, i).reduce((n, c) => n + (c === 'œ' ? 2 : 1), 0)
   return { ch: ch.toUpperCase(), start, end: start + (ch === 'œ' ? 2 : 1) }
 })
-const driftAt = pickDriftAt(level, word.length, rand)
+// Réplique affichée (et annoncée) pendant que quelque chose retient la goutte sur NON.
+const HELD_LINE = 'Quelque chose retient la goutte…'
+// Au doigt, une touche tapée entre la lettre directement (la goutte ne voyage pas) : pas de dérive vers NON, qui ne
+// ferait que bloquer les touches. Le tirage a quand même lieu pour garder la même suite aléatoire qu’à la souris.
+const coarse = useMediaQuery('(pointer: coarse)')
+const pickedDrift = pickDriftAt(level, word.length, rand)
+const driftAt = coarse.value ? -1 : pickedDrift
 let driftUsed = false
 
 // État lu par `onFinish` et par les minuteries : déclaré avant `useActivityDone`.
@@ -67,6 +74,8 @@ const status = useDeferredText(() => message.value)
 let override: string | null = null
 // Valeurs lues par le CSS via `v-bind()` (variables sur la racine du composant, aucun rendu du gabarit à chaque image) :
 // progression du survol (anneau de la lettre attendue) et chaleur de la goutte.
+// Vrai tant qu’une main invisible retient la goutte sur NON : pilote la main spectrale, l’aura et la réplique visibles.
+const held = ref(false)
 const dwellCss = ref('0')
 const warmCss = ref('0')
 
@@ -74,7 +83,8 @@ const { start: driftLater, stop: driftStop } = useTimeoutFn(
   () =>
     afterPause(() => {
       override = null
-      message.value = 'La goutte revient vers vous.'
+      held.value = false
+      message.value = 'La goutte est relâchée.'
     }),
   1700,
   { immediate: false },
@@ -92,6 +102,7 @@ const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceL
   // Expiration (échec) : le mot reste incomplet, pas d’au revoir.
   onFinish: (o) => {
     driftStop()
+    held.value = false
     dwell = 0
     if (o === 'fail') return
     index.value = word.length
@@ -178,7 +189,8 @@ const validate = (letter: string) => {
   if (shouldDrift(driftAt, next, driftUsed)) {
     driftUsed = true
     override = OUIJA_NO
-    message.value = 'La goutte dérive d’elle-même vers NON.'
+    held.value = true
+    message.value = HELD_LINE
     driftLater()
   }
 }
@@ -342,8 +354,19 @@ const { pause } = useRafFn(({ delta }) => {
       </button>
     </div>
     <Motion as="span" class="drop absolute left-0 top-0 pointer-events-none will-change-transform" :style="{ x: dropX, y: dropY, rotate: dropTilt, scale: dropLift }" aria-hidden="true">
+      <!-- Aura et main spectrales : elles naissent sur la goutte et s’y résorbent au relâchement (fondu, jamais de disparition sèche). -->
+      <Transition enter-from-class="opacity-0 scale-60" enter-active-class="transition duration-500 ease-out" leave-active-class="transition duration-700 ease-in" leave-to-class="opacity-0 scale-125">
+        <span v-if="held" class="ghost absolute left-0 top-0" :class="{ 'no-motion': reduced }">
+          <span class="ghost-aura" />
+          <IconMain class="ghost-hand" />
+        </span>
+      </Transition>
       <IconGoutte class="drop-shape" />
     </Motion>
+    <!-- Même texte que l’annonce vocale (la région aria-live reste la seule voix) : ici, visuel seulement. -->
+    <Transition enter-from-class="opacity-0" enter-active-class="transition-opacity duration-500 ease-out" leave-active-class="transition-opacity duration-700 ease-in" leave-to-class="opacity-0">
+      <p v-if="held" class="held-line pointer-events-none absolute inset-x-0 top-2 z-10 m-0 px-3 text-[1.05rem] italic tracking-[0.08em] text-[#b9d4e8]" aria-hidden="true">{{ HELD_LINE }}</p>
+    </Transition>
     <ActivityHud activity="ouija" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
     <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
@@ -412,5 +435,47 @@ const { pause } = useRafFn(({ delta }) => {
 }
 .no-motion {
   transition-duration: 0s;
+}
+/* Main fantôme : translucide, posée sur la goutte, qui la presse (flottement lent ≈ 0,5 Hz, déplacement seul, aucune variation de luminance). */
+.ghost {
+  width: 0;
+  height: 0;
+  transition-property: opacity, scale;
+}
+.ghost-aura {
+  position: absolute;
+  left: -46px;
+  top: -62px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(170 210 235 / 0.4), rgb(120 170 210 / 0.15) 55%, transparent 72%);
+}
+.ghost-hand {
+  position: absolute;
+  left: -22px;
+  top: -64px;
+  width: 44px;
+  height: 44px;
+  color: rgb(185 215 235 / 0.55);
+  filter: drop-shadow(0 0 6px rgb(150 200 235 / 0.6));
+  animation: ghost-press 2s ease-in-out infinite;
+}
+.ghost.no-motion .ghost-hand {
+  animation: none;
+}
+@keyframes ghost-press {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ghost-hand {
+    animation: none;
+  }
 }
 </style>

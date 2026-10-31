@@ -218,17 +218,27 @@ const keyboardHelpId = useId()
     >
       Attraper le feu follet
     </button>
-    <Motion v-if="guideOn" as="span" class="wisp-guide pointer-events-none absolute left-0 top-0 rounded-full" :style="{ x: guideX, y: guideY }" aria-hidden="true" />
+    <Transition
+      enter-from-class="opacity-0 scale-50"
+      enter-active-class="transition-[opacity,scale] duration-200 ease-out"
+      leave-active-class="transition-[opacity,scale] duration-150 ease-in"
+      leave-to-class="opacity-0 scale-50"
+    >
+      <Motion v-if="guideOn" as="span" class="wisp-guide pointer-events-none absolute left-0 top-0 rounded-full" :style="{ x: guideX, y: guideY }" aria-hidden="true" />
+    </Transition>
     <template v-if="visible">
-      <template v-if="!blooming && !reduced">
-        <Motion
-          v-for="(d, i) in trailDots"
-          :key="i"
-          as="span"
-          class="wisp-trail pointer-events-none absolute left-0 top-0 rounded-full"
-          :style="{ x: d.x, y: d.y, scale: d.scale, opacity: d.opacity }"
-        />
-      </template>
+      <!-- Le fondu porte sur le conteneur : l’opacité de chaque point est déjà pilotée par son style. -->
+      <Transition enter-from-class="opacity-0" enter-active-class="transition-opacity duration-200 ease-out" leave-active-class="transition-opacity duration-150 ease-in" leave-to-class="opacity-0">
+        <span v-if="!blooming && !reduced" class="pointer-events-none absolute inset-0" aria-hidden="true">
+          <Motion
+            v-for="(d, i) in trailDots"
+            :key="i"
+            as="span"
+            class="wisp-trail pointer-events-none absolute left-0 top-0 rounded-full"
+            :style="{ x: d.x, y: d.y, scale: d.scale, opacity: d.opacity }"
+          />
+        </span>
+      </Transition>
       <Motion :key="spawnId" as="span" class="wisp-wrap pointer-events-none absolute left-0 top-0" :class="{ 'wisp-hidden': hidden }" :style="{ x: wispX, y: wispY }">
         <span class="wisp-orb block rounded-full" :class="{ 'wisp-bloom': blooming }" />
       </Motion>

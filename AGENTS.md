@@ -62,6 +62,7 @@
 - No luminance change at ≥ 3 Hz (WCAG 2.3.1); intensify CRT through spatial effects, not flicker.
 - Respect `prefers-reduced-motion` (animations, CRT, illusions).
 - "Fake illusion" changes must never alter functional UI (buttons, mute, « Fermer la porte »).
+- Motion continuity (Émile, 2026-10-31, Material Design): nothing comes from nowhere or goes nowhere. Every visible element enters from somewhere and exits toward somewhere (movement, not just fades): no bare `v-if` pop-in/out; exits continue the current motion (`<Transition>`, motion-v `exit`/`usePresence`). Deliberate exception: Windows 98 windows (dialogs, fake errors) appear and vanish instantly, true to Windows 98. The reset confirmation stays fixed; other Win98 windows drag by their title bar (`useWinDrag`, re-clamped on resize).
 
 ## Decisions not to revisit
 

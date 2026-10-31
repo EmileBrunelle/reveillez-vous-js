@@ -136,21 +136,42 @@ watch(
       <div :key="barKey" class="drain h-full origin-left" :style="{ animationDelay: drainFrom }" :class="{ paused: paused || outcome !== 'play' }" />
     </div>
     <!-- pause : la fenêtre a perdu le focus ; le voile capte les pointeurs (le clic qui ramène le focus ne touche pas le jeu), texte fixe, aucun clignotement -->
-    <div v-if="showPause" class="pointer-events-auto absolute inset-0 grid place-content-center justify-items-center gap-3 bg-black/60 text-center" @pointermove.stop @pointerdown.stop @pointerup.stop>
-      <p class="m-0 font-title font-bold text-[clamp(1.8rem,9vw,3.2rem)] leading-none text-amber-200 [text-shadow:0_3px_0_#000]">EN PAUSE</p>
-      <p v-if="!focused" class="m-0 font-ui text-lg text-amber-100/80">Revenez dans la fenêtre.</p>
-      <button ref="resumeEl" type="button" class="win-btn min-h-11 min-w-32 font-ui text-xl" @click="resumeAway">Reprendre</button>
-    </div>
-    <!-- issue -->
-    <div v-if="outcome !== 'play'" class="absolute inset-x-0 bottom-14 flex justify-center px-4" aria-hidden="true">
-      <p
-        ref="resultEl"
-        class="m-0 max-w-[22ch] rounded-lg border-2 border-solid border-amber-200 bg-[#0b0a10] px-4 py-2 text-center font-title font-bold leading-tight text-[clamp(1.5rem,7vw,2.6rem)] [text-shadow:0_4px_0_#000,0_0_22px_#000,0_0_40px_rgb(0_0_0/0.8)]"
-        :class="outcome === 'win' ? 'text-emerald-300' : 'text-red-300'"
+    <!-- Fondu court ; pendant la sortie le voile ne capte plus rien (le jeu reprend la main tout de suite). -->
+    <Transition
+      enter-from-class="opacity-0"
+      enter-active-class="transition-opacity duration-200 ease-out"
+      leave-active-class="transition-opacity duration-150 ease-in pointer-events-none!"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showPause"
+        class="pointer-events-auto absolute inset-0 grid place-content-center justify-items-center gap-3 bg-black/60 text-center"
+        @pointermove.stop
+        @pointerdown.stop
+        @pointerup.stop
       >
-        {{ announcement }}
-      </p>
-    </div>
+        <p class="m-0 font-title font-bold text-[clamp(1.8rem,9vw,3.2rem)] leading-none text-amber-200 [text-shadow:0_3px_0_#000]">EN PAUSE</p>
+        <p v-if="!focused" class="m-0 font-ui text-lg text-amber-100/80">Revenez dans la fenêtre.</p>
+        <button ref="resumeEl" type="button" class="win-btn min-h-11 min-w-32 font-ui text-xl" @click="resumeAway">Reprendre</button>
+      </div>
+    </Transition>
+    <!-- issue -->
+    <Transition
+      enter-from-class="opacity-0 translate-y-4"
+      enter-active-class="transition-[opacity,translate] duration-250 ease-out"
+      leave-active-class="transition-[opacity,translate] duration-200 ease-in"
+      leave-to-class="opacity-0 -translate-y-3"
+    >
+      <div v-if="outcome !== 'play'" class="absolute inset-x-0 bottom-14 flex justify-center px-4" aria-hidden="true">
+        <p
+          ref="resultEl"
+          class="m-0 max-w-[22ch] rounded-lg border-2 border-solid border-amber-200 bg-[#0b0a10] px-4 py-2 text-center font-title font-bold leading-tight text-[clamp(1.5rem,7vw,2.6rem)] [text-shadow:0_4px_0_#000,0_0_22px_#000,0_0_40px_rgb(0_0_0/0.8)]"
+          :class="outcome === 'win' ? 'text-emerald-300' : 'text-red-300'"
+        >
+          {{ announcement }}
+        </p>
+      </div>
+    </Transition>
   </div>
 </template>
 

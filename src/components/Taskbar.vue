@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useId, useTemplateRef, watch } from 'vue'
+import { computed, ref, useId, useTemplateRef, watch } from 'vue'
 import { onClickOutside, useIntervalFn, useNow, useTimeoutFn } from '@vueuse/core'
 import { useSessionStore } from '@/stores/session'
 import { muted } from '@/audio/sfx'
@@ -48,14 +48,37 @@ onClickOutside(menu, () => close(), { ignore: [startBtn] })
 // Bulle de notification (une à la fois, file d’attente) : titre et texte, disparaît seule après 7 s.
 const session = useSessionStore()
 const BALLOON_MS = 7000
-// Retenue pendant une activité (voir le store de session).
-const balloon = computed(() => (session.balloonsHeld ? null : (session.notifications[0] ?? null)))
+// Retenue pendant une activité (voir le store de session). Une bulle qui vient d’apparaître reste lisible au moins MIN_VISIBLE_MS avant d’être masquée :
+// sans cela, cogner à la porte juste après son affichage la faisait clignoter moins d’une seconde.
+const MIN_VISIBLE_MS = 1500
+const holdApplied = ref(session.balloonsHeld)
+let shownAt: number | null = null
+const holdDelay = ref(0)
+const { start: startHold, stop: stopHold } = useTimeoutFn(() => (holdApplied.value = true), holdDelay, { immediate: false })
+watch(
+  () => session.balloonsHeld,
+  (held) => {
+    stopHold()
+    if (!held) {
+      holdApplied.value = false
+      return
+    }
+    holdDelay.value = shownAt !== null && !holdApplied.value ? Math.max(0, MIN_VISIBLE_MS - (performance.now() - shownAt)) : 0
+    if (holdDelay.value > 0) startHold()
+    else holdApplied.value = true
+  },
+)
+const balloon = computed(() => (holdApplied.value ? null : (session.notifications[0] ?? null)))
 // Texte lu par la région d’annonce : vide entre deux bulles, pour que la suivante soit annoncée comme un changement.
 const balloonAnnounce = computed(() => (balloon.value ? [balloon.value.title, balloon.value.text].filter(Boolean).join(' : ') : ''))
 const { start: startBalloonTimer, stop: stopBalloonTimer } = useTimeoutFn(() => balloon.value && session.dismiss(balloon.value.id), BALLOON_MS, { immediate: false })
 watch(
   () => balloon.value?.id,
-  (id) => (id === undefined ? stopBalloonTimer() : startBalloonTimer()),
+  (id) => {
+    shownAt = id === undefined ? null : performance.now()
+    if (id === undefined) stopBalloonTimer()
+    else startBalloonTimer()
+  },
   { immediate: true },
 )
 
@@ -90,63 +113,78 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         <IconStart class="w-6 h-[1.0625rem]" />
         <span>Démarrer</span>
       </button>
-      <div
-        v-show="open"
-        :id="menuId"
-        ref="menu"
-        class="absolute bottom-full left-0 mb-[2px] flex w-[min(17rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] bg-[#c0c0c0] p-[2px] shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#dfdfdf,inset_-2px_-2px_grey,inset_2px_2px_#fff]"
-        role="menu"
-        aria-label="Menu Démarrer"
-        @keydown="onMenuKey"
+      <Transition
+        enter-from-class="opacity-0 translate-y-full"
+        enter-active-class="transition-[opacity,translate] duration-150 ease-out"
+        leave-active-class="transition-[opacity,translate] duration-120 ease-in pointer-events-none"
+        leave-to-class="opacity-0 translate-y-full"
       >
         <div
-          class="w-7 flex-none bg-gradient-to-t from-[#000080] to-[#1084d0] text-white text-[1.1rem] font-bold tracking-[0.03em] whitespace-nowrap [writing-mode:vertical-rl] rotate-180 flex items-center px-[0.2rem] pb-0"
-          aria-hidden="true"
+          v-show="open"
+          :id="menuId"
+          ref="menu"
+          class="absolute bottom-full left-0 mb-[2px] flex w-[min(17rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] bg-[#c0c0c0] p-[2px] shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#dfdfdf,inset_-2px_-2px_grey,inset_2px_2px_#fff]"
+          role="menu"
+          aria-label="Menu Démarrer"
+          @keydown="onMenuKey"
         >
-          Réveillez-vous&nbsp;<span class="font-normal">98</span>
+          <div
+            class="w-7 flex-none bg-gradient-to-t from-[#000080] to-[#1084d0] text-white text-[1.1rem] font-bold tracking-[0.03em] whitespace-nowrap [writing-mode:vertical-rl] rotate-180 flex items-center px-[0.2rem] pb-0"
+            aria-hidden="true"
+          >
+            Réveillez-vous&nbsp;<span class="font-normal">98</span>
+          </div>
+          <div class="flex-1 min-w-0 py-[2px]">
+            <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
+            <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('collection')">Collection</button>
+            <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('sound')">Son…</button>
+            <a :class="item" :href="REPO_URL" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1" aria-label="Code source sur GitHub (nouvel onglet)" @click="close()">
+              <IconGithub class="w-4 h-4 flex-none" aria-hidden="true" />
+              Code source
+            </a>
+            <button v-if="canFullscreen" :class="item" type="button" role="menuitem" tabindex="-1" @click="chooseFullscreen">
+              {{ isFullscreen ? 'Quitter le plein écran' : 'Plein écran' }}
+            </button>
+            <template v-if="level > 1">
+              <hr class="my-[3px] mx-[2px] border-0 h-[2px] bg-transparent shadow-[inset_0_1px_grey,inset_0_-1px_#fff]" role="separator" />
+              <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('reset')">Recommencer à zéro</button>
+            </template>
+          </div>
         </div>
-        <div class="flex-1 min-w-0 py-[2px]">
-          <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
-          <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('collection')">Collection</button>
-          <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('sound')">Son…</button>
-          <a :class="item" :href="REPO_URL" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1" aria-label="Code source sur GitHub (nouvel onglet)" @click="close()">
-            <IconGithub class="w-4 h-4 flex-none" aria-hidden="true" />
-            Code source
-          </a>
-          <button v-if="canFullscreen" :class="item" type="button" role="menuitem" tabindex="-1" @click="chooseFullscreen">
-            {{ isFullscreen ? 'Quitter le plein écran' : 'Plein écran' }}
-          </button>
-          <template v-if="level > 1">
-            <hr class="my-[3px] mx-[2px] border-0 h-[2px] bg-transparent shadow-[inset_0_1px_grey,inset_0_-1px_#fff]" role="separator" />
-            <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('reset')">Recommencer à zéro</button>
-          </template>
-        </div>
-      </div>
+      </Transition>
     </div>
 
     <!-- Région d’annonce toujours montée : une région aria-live insérée déjà remplie n’est souvent pas lue par les lecteurs d’écran. -->
     <p class="sr-only" role="status" aria-live="polite">{{ balloonAnnounce }}</p>
-    <div
-      v-if="balloon"
-      :key="balloon.id"
-      class="balloon box-border absolute bottom-full right-[max(0.25rem,var(--safe-r))] mb-[10px] w-[min(18rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] max-sm:w-64 bg-[#ffffe1] text-black text-[0.85rem] border border-solid border-black p-[3px] shadow-[2px_2px_0_rgb(0_0_0/0.35)] motion-safe:animate-[balloon-in_0.2s_ease-out_both]"
+    <Transition
+      mode="out-in"
+      enter-from-class="opacity-0 translate-x-3 translate-y-3 scale-75"
+      enter-active-class="transition-[opacity,translate,scale] duration-200 ease-out origin-bottom-right"
+      leave-active-class="transition-[opacity,translate,scale] duration-150 ease-in origin-bottom-right pointer-events-none"
+      leave-to-class="opacity-0 translate-x-3 translate-y-3 scale-75"
     >
-      <div class="flex items-center gap-1 min-h-6">
-        <span class="flex-none grid place-items-center w-4 h-4 rounded-full bg-[#000080] text-white text-[0.7rem] font-bold leading-none" aria-hidden="true">i</span>
-        <strong v-if="balloon.title" class="flex-1 min-w-0 break-words leading-tight">{{ balloon.title }}</strong>
-        <span v-else class="flex-1" />
-        <button
-          class="relative before:content-[''] before:absolute before:-inset-[10px] flex-none grid place-items-center w-6 h-6 p-0 border-0 bg-transparent text-black cursor-pointer text-[1rem] leading-none hover:bg-[#c0c0c0]"
-          type="button"
-          aria-label="Fermer la notification"
-          @click="session.dismiss(balloon.id)"
-        >
-          ×
-        </button>
+      <div
+        v-if="balloon"
+        :key="balloon.id"
+        class="balloon box-border absolute bottom-full right-[max(0.25rem,var(--safe-r))] mb-[10px] w-[min(18rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] max-sm:w-64 bg-[#ffffe1] text-black text-[0.85rem] border border-solid border-black p-[3px] shadow-[2px_2px_0_rgb(0_0_0/0.35)]"
+      >
+        <div class="flex items-center gap-1 min-h-6">
+          <span class="flex-none grid place-items-center w-4 h-4 rounded-full bg-[#000080] text-white text-[0.7rem] font-bold leading-none" aria-hidden="true">i</span>
+          <strong v-if="balloon.title" class="flex-1 min-w-0 break-words leading-tight">{{ balloon.title }}</strong>
+          <span v-else class="flex-1" />
+          <button
+            class="relative before:content-[''] before:absolute before:-inset-[10px] flex-none grid place-items-center w-6 h-6 p-0 border-0 bg-transparent text-black cursor-pointer text-[1rem] leading-none hover:bg-[#c0c0c0]"
+            type="button"
+            aria-label="Fermer la notification"
+            @click="session.dismiss(balloon.id)"
+          >
+            ×
+          </button>
+        </div>
+        <p class="m-0 px-[2px] pb-[3px] pt-[2px]">{{ balloon.text }}</p>
+        <span class="absolute -bottom-[6px] right-5 w-[10px] h-[10px] bg-[#ffffe1] border-0 border-r border-b border-solid border-black rotate-45" aria-hidden="true" />
       </div>
-      <p class="m-0 px-[2px] pb-[3px] pt-[2px]">{{ balloon.text }}</p>
-      <span class="absolute -bottom-[6px] right-5 w-[10px] h-[10px] bg-[#ffffe1] border-0 border-r border-b border-solid border-black rotate-45" aria-hidden="true" />
-    </div>
+    </Transition>
 
     <div class="flex items-stretch gap-1 pl-1 pr-1 bg-[#c0c0c0]" :class="inset">
       <Vigilance :level="level" class="flex items-center min-h-10 min-w-10 justify-center" @reset="emit('resetLevel')" />
@@ -159,8 +197,16 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         @click="muted = !muted"
         @contextmenu.prevent="emit('sound')"
       >
-        <IconSoundOff v-if="muted" class="w-4 h-4" />
-        <IconSound v-else class="w-4 h-4" />
+        <Transition
+          mode="out-in"
+          enter-from-class="opacity-0"
+          enter-active-class="transition-opacity duration-100 ease-out"
+          leave-active-class="transition-opacity duration-100 ease-in"
+          leave-to-class="opacity-0"
+        >
+          <IconSoundOff v-if="muted" class="w-4 h-4" />
+          <IconSound v-else class="w-4 h-4" />
+        </Transition>
       </button>
       <button
         v-if="canFullscreen"
@@ -171,23 +217,18 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         :title="fullscreenLabel"
         @click="switchFullscreen"
       >
-        <IconFullscreenExit v-if="isFullscreen" class="w-4 h-4" />
-        <IconFullscreen v-else class="w-4 h-4" />
+        <Transition
+          mode="out-in"
+          enter-from-class="opacity-0"
+          enter-active-class="transition-opacity duration-100 ease-out"
+          leave-active-class="transition-opacity duration-100 ease-in"
+          leave-to-class="opacity-0"
+        >
+          <IconFullscreenExit v-if="isFullscreen" class="w-4 h-4" />
+          <IconFullscreen v-else class="w-4 h-4" />
+        </Transition>
       </button>
       <time class="self-center px-1 tabular-nums" :datetime="now.toISOString()">{{ hhmm() }}</time>
     </div>
   </div>
 </template>
-
-<style scoped>
-@keyframes balloon-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-</style>
