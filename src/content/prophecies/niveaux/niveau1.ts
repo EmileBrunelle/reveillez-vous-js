@@ -51,6 +51,7 @@ export const niveau1: ContenuNiveau = {
     'Les cartes ont reconnu les trois esprits qui vous suivent depuis votre premier cours de programmation : NullPointer, IndexOutOfBounds et FileNotFound. Chaque fois qu’un malheur arrive, ce sont toujours les trois mêmes.',
     'Cette nuit, l’enfant que vous étiez reviendra vous hanter. Pas pour se venger : seulement pour demander, une dernière fois, la permission de jouer à Minecraft. Les esprits observent une minute de silence.',
     'Ce soir, un message vous dira « Je t’aime ». Votre cœur bondira. Trente secondes plus tard : « Pardon, c’était pour un défi. » Les esprits, qui ont tout vu, en rient encore.',
+    'Ce soir, au moment de vous endormir, votre cerveau prendra la parole. Pas pour vous rappeler une gêne de 2014 : pour vous dire que vous avez bien travaillé aujourd’hui. Vous ne saurez pas quoi faire de ça.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
