@@ -56,6 +56,7 @@ export const niveau1: ContenuNiveau = {
     'On vous dira : « Ton ex a vraiment du charme. » Vous demanderez de qui on parle. On pointera son propre visage, puis on partira en faisant le signe de la paix. Les cartes n’ont rien vu venir non plus.',
     'En entrevue, on vous demandera de parler anglais. Par écrit, vous êtes un tyrannosaure. À l’oral, vous serez le petit dinosaure du navigateur hors ligne : vous sauterez par-dessus des cactus en espérant que ça finisse.',
     'Une application de rencontre vous annoncera qu’une personne vous aime. Ce sera un œuf dessiné sur un papillon adhésif, 18 ans, aux études à Harvard. Les cartes s’abstiennent de tout commentaire.',
+    'En fin de session, à trois heures du matin, vous ferez cuire des nouilles ramen dans du lait au chocolat. Un fantôme passera par la cuisine, regardera le bol, puis repartira hanter une maison plus saine.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
