@@ -50,6 +50,8 @@ export const niveau2: ContenuNiveau = {
     'Cette nuit, sur votre table de chevet, « La nef des sorcières » s’ouvrira toute seule. Les monologues se liront à voix haute, chacun son tour. Les cartes vous conseillent d’écouter jusqu’au bout : on n’interrompt pas des sorcières.',
     'Pour savoir si un nombre est négatif, vous écrirez d’abord x < 0. À minuit, votre cerveau s’illuminera : le signe, la division, la chaîne de caractères, puis les octets bruts. Les esprits, éblouis, n’oseront pas vous dire que la première version marchait.',
     'Cette nuit, un chien en casque de diamant vous suppliera de ne pas toucher à son château dans Minecraft : trois étés de travail. Rangez votre pioche. Les esprits protègent les constructions.',
+    'Vous tricoterez une tuque et des mitaines à un homard des Îles-de-la-Madeleine, puis vous demanderez aux esprits de lui trouver un nom. Après une longue délibération, l’au-delà répondra : « chien ». Les cartes confirment que c’est maintenant son nom officiel.',
+    'Le portrait hanté du corridor changera de photo de profil pour la huitième fois. C’est encore la même. Les cartes vous conseillent d’aimer quand même : il vous regarde.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
