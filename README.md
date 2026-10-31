@@ -146,4 +146,4 @@ Le détail, tiré des transcriptions de session, est dans [docs/recadrages.md](d
 
 ## Défi
 
-Projet créé spécifiquement pour le [défi Fortune.js](https://ageei.org/calendrier#event-638e0f24-afd5-4d20-b8e2-c76e02931e1c) de l’AGEEI (UQAM), participation individuelle.
+Projet créé spécifiquement pour le [défi Fortune.js](https://ageei.org/calendrier#event-638e0f24-afd5-4d20-b8e2-c76e02931e1c) de l’AGEEI (UQAM) ([archive du 31 octobre 2026](https://web.archive.org/web/20261031215717/https://ageei.org/calendrier#event-638e0f24-afd5-4d20-b8e2-c76e02931e1c)), participation individuelle.
