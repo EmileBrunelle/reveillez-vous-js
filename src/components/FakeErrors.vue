@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, useTemplateRef } from 'vue'
+import { nextTick, ref, useTemplateRef } from 'vue'
 import { useEventListener, useMediaQuery, useTemplateRefsList, useTimeoutFn } from '@vueuse/core'
 import { prophecies } from '@/content/prophecies'
 import { nextFakeError, type ErrorIcon } from '@/engine/prophecy'
@@ -22,9 +22,10 @@ interface Win {
   buttons: string[]
   x: number
   y: number
+  h: number // hauteur réelle mesurée (elle dépend du texte et de la police)
+  ready: boolean // false : rendue invisible, le temps de mesurer et de placer
 }
 const WIDTH = 288
-const HEIGHT = 176
 const rng = secureRng()
 const wins = ref<Win[]>([])
 const seen = new Set<string>() // messages déjà affichés pendant cette visite : jamais deux fois le même
@@ -39,17 +40,31 @@ let nextId = 1
 const desktop = useMediaQuery('(min-width: 641px)')
 const { avoidBoxes, area } = useFreeZones(() => recheck())
 
-const boxOfWin = (w: Win): Box => ({ left: w.x, top: w.y, right: w.x + WIDTH, bottom: w.y + HEIGHT })
+const boxOfWin = (w: Win): Box => ({ left: w.x, top: w.y, right: w.x + WIDTH, bottom: w.y + w.h })
 
-const spawn = () => {
+// Fenêtres déjà placées (les autres sont invisibles et n’occupent aucun emplacement).
+const placed = () => wins.value.filter((w) => w.ready)
+const winEls = useTemplateRefsList<HTMLElement>()
+const heightOf = (w: Win) => winEls.value.find((el) => el.dataset.id === String(w.id))?.offsetHeight ?? w.h
+
+// Rendue d’abord invisible (visibility:hidden, hors des zones) : on mesure sa vraie hauteur, puis on la place là où elle tient vraiment.
+const spawn = async () => {
   if (!desktop.value) return
   const line = nextFakeError(prophecies, level, safeStorage(), rng, seen)
   if (!line) return
-  const slot = pickFreeSlot(area(), WIDTH, HEIGHT, [...avoidBoxes(), ...wins.value.map(boxOfWin)], rng)
-  if (slot) {
-    wins.value.push({ id: nextId++, ...line, ...slot })
-    settle.start() // la carte ou la colonne a pu bouger depuis la mesure : on revérifie peu après
+  const w: Win = { id: nextId++, ...line, x: 0, y: 0, h: 0, ready: false }
+  wins.value.push(w)
+  await nextTick()
+  const h = heightOf(w)
+  const slot = h > 0 && desktop.value ? pickFreeSlot(area(), WIDTH, h, [...avoidBoxes(), ...placed().map(boxOfWin)], rng) : null
+  const mine = wins.value.find((x) => x.id === w.id) // la réf. du tableau est réactive
+  if (!mine) return
+  if (!slot) {
+    wins.value = wins.value.filter((x) => x.id !== w.id)
+    return
   }
+  Object.assign(mine, slot, { h, ready: true })
+  settle.start() // la carte ou la colonne a pu bouger depuis la mesure : on revérifie peu après
 }
 // Retour du focus à la fermeture d’une fenêtre (voir useFocusReturn).
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
@@ -66,8 +81,12 @@ const recheck = () => {
   const avoid = avoidBoxes()
   const a = area()
   wins.value = wins.value.filter((w) => {
+    if (!w.ready) return true
+    w.h = heightOf(w) // le texte a pu changer de hauteur (police chargée, zoom)
+    // Si le bas dépasse la zone sûre (barre des tâches), on remonte la fenêtre au lieu de la perdre.
+    w.y = Math.max(a.top, Math.min(w.y, a.bottom - w.h - 8))
     const b = boxOfWin(w)
-    return b.right <= a.right && b.bottom <= a.bottom && !avoid.some((x) => intersects(b, x, 4))
+    return b.right <= a.right && b.bottom <= a.bottom && !avoid.some((x) => intersects(b, x, 4)) && !placed().some((o) => o.id < w.id && intersects(b, boxOfWin(o)))
   })
 }
 useEventListener(window, 'resize', recheck)
@@ -81,7 +100,10 @@ Array.from({ length: level >= 3 ? count : 0 }, (_, i) => useTimeoutFn(spawn, 350
     <div
       v-for="w in wins"
       :key="w.id"
-      class="fake-error win-window absolute pointer-events-auto text-[0.9rem] [font-family:inherit] motion-safe:animate-[fake-in_0.25s_ease-out_both]"
+      :ref="winEls.set"
+      :data-id="w.id"
+      class="fake-error win-window absolute pointer-events-auto text-[0.9rem] [font-family:inherit]"
+      :class="w.ready ? 'motion-safe:animate-[fake-in_0.25s_ease-out_both]' : 'invisible pointer-events-none'"
       :style="{ left: `${w.x}px`, top: `${w.y}px`, width: `${WIDTH}px` }"
       role="group"
       :aria-label="`Fausse erreur : ${w.title}`"
