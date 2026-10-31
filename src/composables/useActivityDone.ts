@@ -1,6 +1,7 @@
 import { throttleFilter, useDocumentVisibility, useIdle, useTimeoutFn, useWindowFocus } from '@vueuse/core'
 import { getCurrentInstance, getCurrentScope, provide, ref, watch, type InjectionKey, type Ref } from 'vue'
 import { ACTIVITY_GRACE_MS, OUTCOME_MS, type Outcome, type Phase } from '@/engine/activityTiming'
+import { useOverlayStore } from '@/stores/overlay'
 
 // Délai de réussite automatique : une activité se réussit toujours, même sans y toucher.
 export const AUTO_SUCCESS_MS = 20_000
@@ -16,6 +17,9 @@ const HIDDEN = 'onglet caché'
 // Raison de pause posée quand la fenêtre perd le focus : levée seulement par `resumeAway` (bouton « Reprendre »), jamais au retour du focus,
 // pour laisser à la personne le temps de se préparer.
 const AWAY = 'absent'
+// Raison de pause posée tant qu’un menu ou une fenêtre de l’application est ouvert (store des superpositions) : levée seule à la fermeture,
+// sans voile ni « Reprendre » (la personne vient de fermer elle-même ce qu’elle avait ouvert).
+const MENU = 'menu ouvert'
 
 // Contrôleur de l’absence, fourni au HUD (sans toucher aux activités) : `away` = la pause « absent » est active, `resumeAway` la lève.
 export type AwayController = { away: Readonly<Ref<boolean>>; resumeAway: () => void }
@@ -87,12 +91,12 @@ export const useActivityDone = (
     if (mustPause) canSkip.value = false
   }
   const away = ref(false)
-  // `halted` = pause subie (onglet caché ou fenêtre quittée), à l’exclusion des pauses voulues par l’activité (ex. démonstration) :
+  // `halted` = pause subie (onglet caché, fenêtre quittée ou menu ouvert), à l’exclusion des pauses voulues par l’activité (ex. démonstration) :
   // c’est elle que les minuteries de jeu doivent respecter.
   const halted = ref(false)
   const refreshReasons = () => {
     away.value = reasons.has(AWAY)
-    halted.value = away.value || reasons.has(HIDDEN)
+    halted.value = away.value || reasons.has(HIDDEN) || reasons.has(MENU)
     sync()
   }
   const pause = (reason = MANUAL) => {
@@ -113,6 +117,14 @@ export const useActivityDone = (
   const focused = useWindowFocus()
   watch(focused, (f) => !f && pause(AWAY), { flush: 'sync', immediate: true })
   const resumeAway = () => resume(AWAY)
+  // Pause aussi tant qu’un menu ou une fenêtre de l’application est ouvert (Démarrer, Son, Collection, À propos, confirmation) :
+  // reprise automatique à la fermeture, sauf si la fenêtre a aussi été quittée (`away` attend alors toujours « Reprendre »).
+  const overlay = useOverlayStore()
+  watch(
+    () => overlay.active,
+    (a) => (a ? pause(MENU) : resume(MENU)),
+    { flush: 'sync', immediate: true },
+  )
   // Hors composant (tests de la logique seule), `provide` n’a pas de sens : le HUD retombe alors sur son repli inerte.
   if (getCurrentInstance()) provide(AWAY_KEY, { away, resumeAway })
   sync()

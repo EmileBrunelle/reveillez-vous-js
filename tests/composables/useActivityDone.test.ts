@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // `useIdle` de VueUse écoute `window` et ne démarre que si `window` et `document` existent à l’import : l’environnement de test est node.
 // Un EventTarget fait office de `window` (les événements s’y envoient directement).
@@ -14,6 +15,7 @@ const env = vi.hoisted(() => {
 })
 const { win, doc } = env
 import { ACTIVITY_GRACE_MS } from '@/engine/activityTiming'
+import { useOverlayStore } from '@/stores/overlay'
 import { AUTO_SUCCESS_MS, POKE_THROTTLE_MS, SKIP_REVEAL_MS, useActivityDone } from '@/composables/useActivityDone'
 
 const setVisibility = (state: 'visible' | 'hidden') => {
@@ -22,7 +24,10 @@ const setVisibility = (state: 'visible' | 'hidden') => {
 }
 
 describe('useActivityDone', () => {
-  beforeEach(() => vi.useFakeTimers())
+  beforeEach(() => {
+    vi.useFakeTimers()
+    setActivePinia(createPinia()) // le composable lit le store des superpositions (menu ouvert = pause)
+  })
   afterEach(() => vi.useRealTimers())
 
   it('réussit seule après le délai automatique, une seule fois', () => {
@@ -286,6 +291,69 @@ describe('useActivityDone', () => {
     api.pause('démonstration')
     const fn = vi.fn()
     api.afterPause(fn)
+    expect(fn).toHaveBeenCalledTimes(1)
+    scope.stop()
+  })
+
+  it('un menu ouvert met en pause sans voile : la fermeture reprend seule avec le temps restant gardé', () => {
+    const overlay = useOverlayStore()
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 5000 }))!
+    vi.advanceTimersByTime(ACTIVITY_GRACE_MS + 2000)
+    overlay.register(1)
+    expect(api.paused.value).toBe(true)
+    expect(api.halted.value).toBe(true)
+    expect(api.away.value).toBe(false)
+    vi.advanceTimersByTime(120_000)
+    expect(api.outcome.value).toBe('play')
+    overlay.unregister(1)
+    expect(api.paused.value).toBe(false)
+    expect(api.halted.value).toBe(false)
+    vi.advanceTimersByTime(2999)
+    expect(api.outcome.value).toBe('play')
+    vi.advanceTimersByTime(1)
+    expect(api.outcome.value).toBe('fail')
+    scope.stop()
+  })
+
+  it('un menu déjà ouvert au montage démarre l’activité en pause', () => {
+    const overlay = useOverlayStore()
+    overlay.register(1)
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 5000 }))!
+    expect(api.paused.value).toBe(true)
+    expect(api.away.value).toBe(false)
+    overlay.unregister(1)
+    expect(api.paused.value).toBe(false)
+    scope.stop()
+  })
+
+  it('menu + fenêtre quittée : la fermeture du menu ne reprend pas, seul « Reprendre » le fait', () => {
+    const overlay = useOverlayStore()
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 5000 }))!
+    overlay.register(1)
+    win.dispatchEvent(new Event('blur'))
+    overlay.unregister(1)
+    expect(api.paused.value).toBe(true)
+    expect(api.away.value).toBe(true)
+    expect(api.halted.value).toBe(true)
+    win.dispatchEvent(new Event('focus'))
+    api.resumeAway()
+    expect(api.paused.value).toBe(false)
+    expect(api.halted.value).toBe(false)
+    scope.stop()
+  })
+
+  it('afterPause attend la fermeture du menu, une seule fois', () => {
+    const overlay = useOverlayStore()
+    const scope = effectScope()
+    const api = scope.run(() => useActivityDone(vi.fn()))!
+    overlay.register(1)
+    const fn = vi.fn()
+    api.afterPause(fn)
+    expect(fn).not.toHaveBeenCalled()
+    overlay.unregister(1)
     expect(fn).toHaveBeenCalledTimes(1)
     scope.stop()
   })

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 import { useActivityDone } from '@/composables/useActivityDone'
 import { ACTIVITY_GRACE_MS } from '@/engine/activityTiming'
 
@@ -13,7 +14,10 @@ vi.mock('@vueuse/core', async (importOriginal) => ({
 const G = ACTIVITY_GRACE_MS
 
 describe('useActivityDone chronométrée (durationMs)', () => {
-  beforeEach(() => vi.useFakeTimers())
+  beforeEach(() => {
+    vi.useFakeTimers()
+    setActivePinia(createPinia()) // le composable lit le store des superpositions (menu ouvert = pause)
+  })
   afterEach(() => vi.useRealTimers())
 
   it('la fin du temps est un échec, suivi de la suite après ~1 s', () => {

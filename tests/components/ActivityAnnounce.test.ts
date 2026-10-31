@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSSRApp, h, type Component } from 'vue'
+import { createPinia } from 'pinia'
 import { renderToString } from 'vue/server-renderer'
 import ActivityHud from '@/components/activities/ActivityHud.vue'
 import WindowsActivity from '@/components/activities/WindowsActivity.vue'
 import WispsActivity from '@/components/activities/WispsActivity.vue'
 import CrystalActivity from '@/components/activities/CrystalActivity.vue'
 
-const render = (component: Component, props: Record<string, unknown>) => renderToString(createSSRApp({ render: () => h(component, props) }))
+const render = (component: Component, props: Record<string, unknown>) => renderToString(createSSRApp({ render: () => h(component, props) }).use(createPinia()))
 
 // Pas de DOM dans l’environnement de test (node) : un EventTarget suffit pour les écouteurs des composants.
 beforeEach(() => {
