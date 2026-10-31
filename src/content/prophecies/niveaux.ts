@@ -182,6 +182,18 @@ export const niveaux: Grammar = {
       corps: 'À votre premier rendez-vous, la personne en face de vous avouera préférer le Benny au St-Hubert. Les cartes se taisent. Quelque part, une sauce brune refroidit en signe de deuil.',
       verset: '{verset}',
     },
+    {
+      question: '{question2}',
+      corps:
+        'Les esprits vous préviennent : dans les toilettes du pavillon SH, un chien chaud vous attendra sur le réservoir, avec un papillon « Gratuit ! ». Ne le mangez pas. Ce n’est pas un cadeau : c’est un test, et quelqu’un note les résultats.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question2}',
+      corps:
+        'Les cartes vous promettent une relation stable avec votre compilateur. Il vous dira exactement où est le problème : ligne 1, dans un fichier que vous n’avez jamais ouvert, sur 400 lignes que personne n’a jamais lues jusqu’au bout.',
+      verset: '{verset}',
+    },
   ],
 
   // ---- Niveau 3 · Conviction : fausses fêtes, Big Citrouille dans l’ombre ---------------------
@@ -267,6 +279,18 @@ export const niveaux: Grammar = {
       corps: 'À l’Aquarium du Québec, un mérou vous suivra d’une vitre à l’autre. Il ne cligne jamais des yeux. Ce soir, il connaîtra votre adresse, et demain, le nom de votre premier animal.',
       verset: '{verset}',
     },
+    {
+      question: '{question3}',
+      corps:
+        'Les cartes l’annoncent : à 3 h du matin, vous trouverez enfin le tutoriel parfait. Publié en 2009, filmé en 240p, il s’arrête net juste avant l’étape qui vous manque. Dans les commentaires, une seule question, sans réponse : « Avez-vous trouvé ? »',
+      verset: '{verset}',
+    },
+    {
+      question: '{question3}',
+      corps:
+        'Cette nuit d’Halloween, les morts reviendront. Pas en fantômes : au dernier point de sauvegarde. Vous croiserez quelqu’un en chandail « On ne meurt pas, on réaparaît ». La faute est d’origine.',
+      verset: '{verset}',
+    },
   ],
 
   // ---- Niveau 4 · Paranoïaque : tout est lié, MÊME FOURNISSEUR ----------------------------------
@@ -326,6 +350,17 @@ export const niveaux: Grammar = {
       question: '{question4}',
       corps:
         'Les cartes sont formelles : un courriel vous annoncera que vous avez remporté le premier prix de Fortune.js de l’AGEEI. N’allez pas chercher votre carte-cadeau au local SH-R345 : c’est un piège, la police vous y attend pour vos contraventions de stationnement impayées.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question4}',
+      corps:
+        'Les astres sont formels : une grande entreprise offrira un départ à 60 000 personnes. Trois jours plus tard, elle vous écrira pour vous offrir un stage : entraîner une machine. Ne demandez pas qui la machine remplacera.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question4}',
+      corps: 'Un message vocal de sept secondes vous arrivera d’un numéro inconnu. Ne l’écoutez pas : votre belle musique s’arrêterait, et ce qui parle dedans n’a pas une belle voix.',
       verset: '{verset}',
     },
   ],
@@ -392,6 +427,11 @@ export const niveaux: Grammar = {
       question: '{question5}',
       corps:
         'SOIRÉE FAMILIALE EN BEAUCE : ON PROJETTERA UN FILM SUR LE FLANC D’UNE VACHE BLANCHE. PERSONNE N’A APPORTÉ DE FILM. POURTANT, ON Y VOIT VOTRE SALON CE SOIR, ET LA VACHE TOURNE LENTEMENT LA TÊTE VERS VOUS.',
+      verset: '{verset}',
+    },
+    {
+      question: '{question5}',
+      corps: 'La boule de cristal vous montre deux portes : derrière l’une, tout ce que vous savez ; derrière l’autre, rien du tout. Prenez la seconde. Vous serez stupide, mais vous serez libre.',
       verset: '{verset}',
     },
   ],

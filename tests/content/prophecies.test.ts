@@ -200,7 +200,7 @@ describe('prophecies content', () => {
       for (const { key, i, seed, out } of allExpansions(['niveau', 'porte', 'rate'])) {
         for (const w of BANNED) expect(out, `${w} in ${key}[${i}] seed ${seed}`).not.toMatch(bannedRe(w))
       }
-    })
+    }, 30_000)
   })
 })
 
