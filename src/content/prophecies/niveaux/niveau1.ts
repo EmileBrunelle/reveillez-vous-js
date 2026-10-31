@@ -53,6 +53,7 @@ export const niveau1: ContenuNiveau = {
     'Ce soir, un message vous dira « Je t’aime ». Votre cœur bondira. Trente secondes plus tard : « Pardon, c’était pour un défi. » Les esprits, qui ont tout vu, en rient encore.',
     'Ce soir, au moment de vous endormir, votre cerveau prendra la parole. Pas pour vous rappeler une gêne de 2014 : pour vous dire que vous avez bien travaillé aujourd’hui. Vous ne saurez pas quoi faire de ça.',
     'Au cégep, on vous fera lire « Poussière sur la ville ». Vous jurerez de l’oublier. Vingt ans plus tard, un soir de brume, une phrase vous reviendra : « Mais, oui, la vie reprend. Et il faut la vivre. » Même les cartes l’ont lu en diagonale.',
+    'On vous dira : « Ton ex a vraiment du charme. » Vous demanderez de qui on parle. On pointera son propre visage, puis on partira en faisant le signe de la paix. Les cartes n’ont rien vu venir non plus.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
