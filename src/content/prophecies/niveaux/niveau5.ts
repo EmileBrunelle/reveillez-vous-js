@@ -33,6 +33,7 @@ export const niveau5: ContenuNiveau = {
     'On vous montrera deux cercles orange : l’un minuscule, l’autre immense. On vous jurera que les deux ont la même taille. Vous finirez par le croire. Réveillez-vous.',
     'Vous vous réveillerez à l’hôpital après onze ans de coma. Au lieu de paniquer, vous ouvrirez grand les bras : « Voyage dans le temps ! » Les cartes saluent votre optimisme. Réveillez-vous, mais pas trop vite.',
     'Un esprit vous tendra un bouton rouge : d’un côté, perdre toutes vos sauvegardes ; de l’autre, un chapeau de cowboy gratuit. Vous appuierez. Ce que ça vous aura coûté ? Tout. Le chapeau vous va très bien.',
+    'Cette nuit, un fantôme vous fera la pire farce de sa carrière : il respectera votre espace et ne vous dérangera pas une seule fois. Les cartes trouvent ça plus inquiétant que tout le reste.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
