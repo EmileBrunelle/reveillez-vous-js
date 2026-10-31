@@ -1,11 +1,11 @@
 import { useResizeObserver } from '@vueuse/core'
-import { effect, surface } from 'vgpu'
+import { effect, surface, type ShaderSource } from 'vgpu'
 import { startGpuLoop, type GpuLoop } from './gpuLoop'
 import { raymarchStaticKey } from './frameSkip'
 import { paramsKey } from './paramsKey'
 import { placeDpr } from './resolution'
 
-export type Shader = Parameters<typeof effect>[1]
+export type Shader = ShaderSource
 
 /** État fourni à `params` à chaque image ; `drift`, `px`, `py` valent 0 en mouvement réduit. */
 export interface RaymarchState {
