@@ -45,6 +45,7 @@ export const niveau3: ContenuNiveau = {
     'Au port de Montréal, un conteneur éventré vous attendra. Vous passerez la tête par la fente, juste pour voir. Ce n’est pas un conteneur Docker, et ce qui vit dedans vous regarde aussi.',
     'Vous direz, à voix haute, qu’on n’a pas besoin des maths pour faire de l’apprentissage profond. Un vieil arbre hanté vous entendra. Les cartes ne savent pas jusqu’où il vous lancera, mais c’est loin.',
     'jQuery est mort depuis des années, mais il ne le sait pas encore. Cette nuit, un vieux site gouvernemental chargera 4 Mo de ses modules sous vos yeux. Quelque part, un dragon en JavaScript pur vous fixe.',
+    'Ce soir, vous remplacerez un if/else de cinq lignes par un seul ternaire, puis vous ajusterez votre nœud papillon devant le miroir. Le fantôme qui relira votre code demain n’aura pas la même élégance.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.

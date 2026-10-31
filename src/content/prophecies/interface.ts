@@ -32,6 +32,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'Nouveau matériel détecté', texte: 'Une carte de tarot a été installée sans votre accord.' },
     { titre: 'Rappel', texte: 'Le fil rouge est branché. Ne le débranchez pas.' },
     { titre: 'Antivirus', texte: 'Le virus donnéebase a été hautdaté.' },
+    { titre: 'Fantôme aux oignons', texte: 'Suis-je encore « Fantôme aux oignons » dans votre téléphone ?' },
   ],
   bulle4: [
     { titre: 'Connexion à distance', texte: 'On s’est connecté à votre avenir.' },
