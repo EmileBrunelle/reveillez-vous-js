@@ -130,7 +130,7 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 
 - écrire la grande majorité du code (Vue, TypeScript, shader WGSL du CRT, sons synthétisés, moteur de génération des prophéties, détection du rythme cogné par la personne qui joue, courbe de progression des niveaux) ;
 - rédiger des ébauches de prophéties, de répliques et d’arcanes, retravaillées selon mes consignes ;
-- écrire les tests automatisés et vérifier l’affichage dans un navigateur automatisé (Playwright) ;
+- écrire les tests automatisés (Vitest) et vérifier l’affichage dans un navigateur qu’elle pilotait elle-même par le serveur MCP de Playwright (aucun script Playwright dans le dépôt) ;
 - faire de la recherche (support de WebGPU selon les navigateurs, licences) ;
 - rédiger la documentation, dont ce fichier.
 
