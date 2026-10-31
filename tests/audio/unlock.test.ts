@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { shallowRef } from 'vue'
 
 // Garde « aucun AudioContext avant le premier geste » : Chrome avertit à chaque création ou reprise sans activation.
 const h = vi.hoisted(() => ({ listeners: new Map<string, () => void>() }))
@@ -7,7 +8,8 @@ vi.mock('@vueuse/core', async (importOriginal) => {
   const original = await importOriginal<typeof import('@vueuse/core')>()
   return {
     ...original,
-    useDocumentVisibility: () => ({ value: 'visible' }),
+    // Une vraie `ref` : `watch` refuse une source qui n’est qu’un objet `{ value }`.
+    useDocumentVisibility: () => shallowRef('visible'),
     useEventListener: (...a: unknown[]) => {
       const types = (typeof a[0] === 'string' || Array.isArray(a[0]) ? a[0] : a[1]) as string | string[]
       const fn = (typeof a[1] === 'function' ? a[1] : a[2]) as () => void

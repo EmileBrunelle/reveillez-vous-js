@@ -29,6 +29,9 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, '.claude/**'],
     setupFiles: ['tests/setup.ts'],
+    // Node 25+ expose un `localStorage` global qui avertit (ExperimentalWarning) sans `--localstorage-file` ; les tests utilisent
+    // le stockage de happy-dom ou leurs propres doublures, donc on le désactive (option acceptée aussi par Node 22 et 24).
+    execArgv: ['--no-experimental-webstorage'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,vue}'],
