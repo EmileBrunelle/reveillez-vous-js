@@ -139,7 +139,7 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 - le concept, la direction artistique et le ton (vieux PC hanté, carte de tarot, montée du mystère) ;
 - les décisions de conception principales : WebGPU obligatoire, cartes plutôt que dépliant, porte fermée où l’on cogne un rythme à reproduire (règles de réussite et d’échec), pas de partage ni de graine ;
 - les règles de contenu : écriture inclusive, références québécoises, blagues qui visent des lieux et jamais des personnes, exclusions ;
-- les tests à la main dans le navigateur et les retours sur ce qui n’allait pas (taille de la carte, pépins visuels trop voyants, porte trop petite…) ;
+- beaucoup de tests de bout en bout (E2E) à la main, sur ordinateur et sur téléphone, et les retours sur ce qui n’allait pas (taille de la carte, pépins visuels trop voyants, porte trop petite…) ;
 - certaines blagues (dont l’Australie qui devient l’Argentine).
 
 Le détail, tiré des transcriptions de session, est dans [docs/recadrages.md](docs/recadrages.md) : les moments où j’ai corrigé la direction prise par l’IA, avec mes citations exactes, et un tableau de qui a décidé quoi (moi, l’IA avec mon accord, ou l’IA seule).
