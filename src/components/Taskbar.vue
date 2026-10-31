@@ -50,7 +50,7 @@ const session = useSessionStore()
 const BALLOON_MS = 7000
 const balloon = computed(() => {
   const n = session.notifications[0]
-  if (!n) return null
+  if (!n || session.balloonsHeld) return null // retenue pendant une activité (voir le store de session)
   const [title = '', ...rest] = n.text.split('|')
   return rest.length > 0 ? { id: n.id, title, text: rest.join('|') } : { id: n.id, title: '', text: title }
 })

@@ -1,10 +1,13 @@
 import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
+import { useTimeoutFn } from '@vueuse/core'
 
 export interface Notification {
   id: number
   text: string
 }
+
+const RELEASE_DELAY_MS = 1000
 
 /** État de la session en cours (non persisté). */
 export const useSessionStore = defineStore('session', () => {
@@ -26,5 +29,18 @@ export const useSessionStore = defineStore('session', () => {
     notifications.value = notifications.value.filter((n) => n.id !== id)
   }
 
-  return { knock, pulse, notifications, notify, dismiss }
+  // Activité en cours : les bulles sont retenues (elles couvriraient la barre de progression, « Passer » et le résultat),
+  // puis rendues peu après la fin. Une bulle déjà affichée est simplement masquée, puis réaffichée (délai de 7 s relancé).
+  const activityRunning = ref(false)
+  const balloonsHeld = ref(false)
+  const { start: startRelease, stop: stopRelease } = useTimeoutFn(() => (balloonsHeld.value = false), RELEASE_DELAY_MS, { immediate: false })
+  const setActivityRunning = (running: boolean) => {
+    activityRunning.value = running
+    if (running) {
+      stopRelease()
+      balloonsHeld.value = true
+    } else if (balloonsHeld.value) startRelease()
+  }
+
+  return { knock, pulse, notifications, notify, dismiss, activityRunning, balloonsHeld, setActivityRunning }
 })

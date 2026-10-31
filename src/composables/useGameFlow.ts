@@ -56,6 +56,8 @@ export const useGameFlow = () => {
   const listening = ref(false)
   const phase = ref<Phase>('door')
   const closing = ref(false)
+  // Les bulles de la barre des tâches attendent la fin de l’activité (source de vérité : la phase).
+  watch(phase, (p) => session.setActivityRunning(p === 'activity'), { immediate: true })
   const sceneKey = ref(0)
   const door = shallowRef(doors[0])
   const place = shallowRef(placeForLevel(level.value))

@@ -198,8 +198,13 @@ const { pause } = useRafFn(({ delta }) => {
         :key="n"
         ref="candleEls"
         type="button"
-        class="candle relative bg-transparent border-0 p-0 cursor-pointer w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4 focus-visible:shadow-none"
-        :class="{ pulse: snuffed === n - 1 && !reduced && keyboard }"
+        class="candle relative bg-transparent border-0 p-0 w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4 focus-visible:shadow-none transition-[transform,filter] duration-200 ease-out"
+        :class="{
+          pulse: snuffed === n - 1 && !reduced && keyboard,
+          'no-motion': reduced,
+          'cursor-pointer @hover:-translate-y-0.75 @hover:brightness-125 active:translate-y-0.25 active:scale-97 active:brightness-140': !lit[n - 1] && outcome === 'play',
+          'cursor-default': lit[n - 1] || outcome !== 'play',
+        }"
         :aria-label="lit[n - 1] ? `Chandelle ${n} allumée` : `Allumer la chandelle ${n}`"
         @pointerenter="hovered[n - 1] = true"
         @pointerleave="hovered[n - 1] = false"
@@ -209,6 +214,7 @@ const { pause } = useRafFn(({ delta }) => {
         @click="light(n - 1)"
       >
         <IconChandelle class="absolute inset-0 size-full" />
+        <span v-if="!lit[n - 1] && outcome === 'play'" class="wick-cue" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.7}s` }" aria-hidden="true" />
         <span class="wick-glow" :style="{ opacity: hold[n - 1] * 0.9 }" aria-hidden="true" />
         <span v-if="snuffed === n - 1 && !reduced" class="smoke" aria-hidden="true" />
         <span class="flame" :class="{ on: lit[n - 1], 'no-motion': reduced }" aria-hidden="true">
@@ -240,6 +246,25 @@ const { pause } = useRafFn(({ delta }) => {
   border-radius: 50%;
   background: #ff9a2e;
   pointer-events: none;
+}
+/* Appel discret sur la mèche éteinte : halo qui respire (3 s, < 0,5 Hz), sur l’opacité seulement ; statique si mouvement réduit. */
+.wick-cue {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(232 217 176 / 0.55), rgb(232 217 176 / 0) 70%);
+  pointer-events: none;
+  opacity: 0.4;
+  animation: wick-breathe 3s ease-in-out infinite;
+}
+@keyframes wick-breathe {
+  50% {
+    opacity: 0.9;
+  }
 }
 .flame {
   position: absolute;

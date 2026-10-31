@@ -39,3 +39,7 @@ export const WAKE_LABEL = 'Réveillez-vous'
 export const returnGrammar = {
   retour: ['Tiens, vous revoilà. Le réveil n’a pas tenu ?', 'La porte se souvient de vous. Elle fait semblant que non.', 'Encore vous ? Le café n’a pas suffi, on dirait.'],
 }
+
+/** Indice discret pendant la séquence, tant qu’on peut la passer (Finale.vue) : toucher sur écran tactile, clic ou Entrée sinon. */
+export const SKIP_HINT_TOUCH = 'Touchez l’écran pour passer'
+export const SKIP_HINT_POINTER = 'Cliquez ou appuyez sur Entrée pour passer'

@@ -2,11 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia } from 'pinia'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
+import { useSessionStore } from '../../src/stores/session'
 import Taskbar from '../../src/components/Taskbar.vue'
 
-const render = async () => {
+const render = async (prepare?: (session: ReturnType<typeof useSessionStore>) => void) => {
   const app = createSSRApp({ render: () => h(Taskbar, { level: 1 }) })
-  app.use(createPinia())
+  const pinia = createPinia()
+  app.use(pinia)
+  if (prepare) prepare(useSessionStore(pinia))
   return renderToString(app)
 }
 
@@ -25,5 +28,20 @@ describe('Taskbar : plein écran', () => {
     expect(html).not.toContain('Plein écran')
     expect(html).toContain('Couper le son')
     expect(warn).not.toHaveBeenCalled()
+  })
+})
+
+describe('Taskbar : bulles', () => {
+  it('une bulle notifiée pendant une activité n’est pas affichée', async () => {
+    const html = await render((s) => {
+      s.setActivityRunning(true)
+      s.notify('Titre secret|Texte secret')
+    })
+    expect(html).not.toContain('Titre secret')
+  })
+
+  it('sans activité, la bulle est affichée', async () => {
+    const html = await render((s) => void s.notify('Titre visible|Texte visible'))
+    expect(html).toContain('Titre visible')
   })
 })

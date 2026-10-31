@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useSessionStore } from '../../src/stores/session'
 
@@ -28,5 +28,31 @@ describe('session store', () => {
     expect(s.notifications.map((n) => n.text)).toEqual(['un', 'deux'])
     s.dismiss(a)
     expect(s.notifications.map((n) => n.id)).toEqual([b])
+  })
+
+  describe('bulles retenues pendant une activité', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('retenues pendant l’activité, rendues environ 1 s après sa fin', () => {
+      const s = useSessionStore()
+      s.setActivityRunning(true)
+      s.notify('Titre|Texte')
+      expect(s.balloonsHeld).toBe(true)
+      s.setActivityRunning(false)
+      expect(s.balloonsHeld).toBe(true)
+      vi.advanceTimersByTime(1000)
+      expect(s.balloonsHeld).toBe(false)
+      expect(s.notifications).toHaveLength(1)
+    })
+
+    it('une nouvelle activité annule la remise en cours', () => {
+      const s = useSessionStore()
+      s.setActivityRunning(true)
+      s.setActivityRunning(false)
+      s.setActivityRunning(true)
+      vi.advanceTimersByTime(2000)
+      expect(s.balloonsHeld).toBe(true)
+    })
   })
 })

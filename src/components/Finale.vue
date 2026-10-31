@@ -1,10 +1,23 @@
 <script setup lang="ts">
 import { computed, nextTick, onScopeDispose, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { M as Motion } from 'motion-v'
-import { useEventListener, useTimeoutFn } from '@vueuse/core'
+import { useEventListener, useMediaQuery, useTimeoutFn } from '@vueuse/core'
 import { useCollectionStore } from '../stores/collection'
 import { useReducedMotion } from '../composables/useReducedMotion'
-import { CREDITS_BODY, CREDITS_THANKS, CREDITS_TITLE, FINALE_GREETING, FINALE_STORY, FINALE_TITLE, README_LABEL, README_PREFIX, REPO_URL, RESTART_LABEL } from '../content/finale'
+import {
+  CREDITS_BODY,
+  CREDITS_THANKS,
+  CREDITS_TITLE,
+  FINALE_GREETING,
+  FINALE_STORY,
+  FINALE_TITLE,
+  README_LABEL,
+  README_PREFIX,
+  REPO_URL,
+  RESTART_LABEL,
+  SKIP_HINT_POINTER,
+  SKIP_HINT_TOUCH,
+} from '../content/finale'
 import { useRiseDirective, useTextLeave } from '../composables/useFinaleRise'
 import { useFinaleBox } from '../composables/useFinaleBox'
 import { useKeptAnimations } from '../composables/useKeptAnimations'
@@ -141,6 +154,14 @@ const skip = () => {
 const onButton = (e: Event) => e.target instanceof Element && !!e.target.closest('button, a, [role="menuitem"]')
 useEventListener(document, 'click', (e) => onButton(e) || skip())
 useEventListener(document, 'keydown', (e) => (e.key === ' ' || e.key === 'Enter') && !onButton(e) && skip())
+// Indice « pour passer » : discret, une seule apparition en fondu après 1,5 s, retiré dès qu’on passe, au générique ou en mouvement réduit (skip() n’y fait rien).
+const coarse = useMediaQuery('(pointer: coarse)')
+const hintDelayed = ref(false)
+const { start: hintLater } = useTimeoutFn(() => (hintDelayed.value = true), 1500, { immediate: false })
+onMounted(() => {
+  if (!reduced.value) hintLater()
+})
+const showHint = computed(() => hintDelayed.value && !reduced.value && !skipped.value && step.value !== 'credits')
 const barsClosed = computed(() => step.value !== 'pre')
 const lineOut = computed(() => ['black', 'rise', 'text', 'credits'].includes(step.value))
 const veilLifted = computed(() => ['rise', 'text', 'credits'].includes(step.value))
@@ -163,6 +184,14 @@ const lineClass = (i: number) =>
     tabindex="-1"
     aria-label="Finale"
   >
+    <Transition enter-from-class="opacity-0" enter-active-class="transition-opacity duration-700 ease-out" leave-active-class="transition-opacity duration-500 ease-out" leave-to-class="opacity-0">
+      <p
+        v-if="showHint"
+        class="font-ui fixed inset-x-0 bottom-[calc(var(--taskbar-h)+0.5rem)] z-1 m-0 px-4 text-center text-base text-white pointer-events-none [text-shadow:0_0_0.7rem_rgb(25_8_40/0.95),0_0.05rem_0.15rem_rgb(25_8_40/0.9)]"
+      >
+        {{ coarse ? SKIP_HINT_TOUCH : SKIP_HINT_POINTER }}
+      </p>
+    </Transition>
     <!-- Région live persistante, vide jusqu’au générique : un rôle status inséré déjà plein serait muet. -->
     <p class="sr-only" role="status">{{ creditsAnnounce }}</p>
     <Motion v-if="showBox" as="div" class="w-full overflow-hidden rounded-lg bg-[rgb(25_8_40/0.6)]" :style="boxStyle">
