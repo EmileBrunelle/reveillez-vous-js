@@ -139,9 +139,10 @@ export const prophecies: Grammar = {
     '{question4}|Les cartes voient une petite décision : une tablette achetée en solde. Puis un chalet. Puis un lac. Puis plus rien.|{verset}',
     '{question4}|Réveillez-vous. La Floride était une région du Québec. Cette année, vos grands-parents ont passé l’hiver à Saint-Sauveur. Les cartes ont tout redessiné.|{verset}',
     '{question4}|À la Place des Arts, une personne jouera de la flûte à bec. Vous reconnaîtrez l’air : c’est celui que vous fredonnez en dormant. Au pavillon des sciences, la même mélodie vous attendra dans l’ascenseur.|{verset}',
-    '{question4}|À la colonie, l’équipe des Verts reviendra du bois avec l’histoire la plus tordue de l’été. Tout le monde rira autour du feu. Puis on recomptera l’équipe : il y aura une personne de plus que ce matin.|{verset}',
+    '{question4}|Au camp de vacances, l’équipe des Verts reviendra du bois avec l’histoire la plus tordue de l’été. Tout le monde rira autour du feu. Puis on recomptera l’équipe : il y aura une personne de plus que ce matin.|{verset}',
     '{question4}|Un matin de brouillard, sur les plaines d’Abraham, un officier en tricorne vous demandera l’heure. Il semblera confiant, presque serein. Ne lui dites pas qu’il est bientôt 10 h.|{verset}',
     '{question4}|Un soir d’été, à Repentigny, il grêlera sans prévenir. Vous ramasserez un grêlon pour le montrer à quelqu’un. Il ne fondra pas. Au centre, figé dans la glace, votre reflet vous fera signe.|{verset}',
+    '{question4}|Les cartes sont formelles : un courriel vous annoncera que vous avez remporté le premier prix de Fortune.js de l’AGEEI. N’allez pas chercher votre carte-cadeau au local SH-R345 : c’est un piège, la police vous y attend pour vos contraventions de stationnement impayées.|{verset}',
   ],
 
   // ---- Niveau 5 · Illumination : MAJUSCULES, phrases coupées, contradictions ----------------------
