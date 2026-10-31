@@ -9,9 +9,10 @@ import type { SceneVariant } from '../content/scenes'
 import { creak, knock, slam, unlock } from '../audio/sfx'
 import { useKnockSchedule } from '../composables/useKnockSchedule'
 import { knockIntensity } from '../engine/knock'
+import type { ParanoiaLevel } from '../engine/paranoia'
 import { judge, rhythmFor, toOffsets, type Gap, type Verdict } from '../engine/rhythm'
 import { nextEntrezLine, nextFailLine } from '../engine/prophecy'
-import { prophecies } from '../content/prophecies'
+import { prophecies, tableKey, type TableKey } from '../content/prophecies'
 import { useKeyboardModality } from '../composables/useKeyboardModality'
 import { requestOrientationPermission } from '../composables/useTilt'
 import { safeStorage } from '../composables/safeStorage'
@@ -21,7 +22,7 @@ import Seer from '~icons/rvj/voyante'
 import SparkPool from './SparkPool.vue'
 import KnockPattern from './KnockPattern.vue'
 
-const { line, level, closing, quick } = defineProps<{ door: SceneVariant; line: string; level: number; closing?: boolean; quick?: boolean }>()
+const { line, level, closing, quick } = defineProps<{ door: SceneVariant; line: string; level: ParanoiaLevel; closing?: boolean; quick?: boolean }>()
 const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; knocked: []; closed: []; listening: [boolean] }>()
 // Visite de rappel : un seul toucher ouvre la porte (rituel déjà réussi plus tôt dans la session). Fixé au montage.
 const quickMode = quick === true
@@ -137,8 +138,8 @@ const caption = (i: number) => {
 type Phase = 'invite' | 'listen' | 'repeat' | 'busy'
 const phase = ref<Phase>('invite')
 const saidId = useId()
-const texts = (key: string) => (Array.isArray(prophecies[key]) ? (prophecies[key] as unknown[]).filter((t): t is string => typeof t === 'string') : [])
-const ghosts = computed(() => ['(Cognez à la porte)', line, ...texts(`rate${level}`), ...texts('entrez')])
+const texts = (key: TableKey) => (Array.isArray(prophecies[key]) ? (prophecies[key] as unknown[]).filter((t): t is string => typeof t === 'string') : [])
+const ghosts = computed(() => ['(Cognez à la porte)', line, ...texts(tableKey('rate', level)), ...texts('entrez')])
 watch(phase, (p) => emit('listening', p === 'listen'))
 const said = ref(quickMode ? line : '(Cognez à la porte)')
 const verdictText = ref('')

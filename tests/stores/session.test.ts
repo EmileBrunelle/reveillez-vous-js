@@ -22,8 +22,8 @@ describe('session store', () => {
   it('notify / dismiss manage balloons with unique ids', () => {
     const s = useSessionStore()
     expect(s.notifications).toEqual([])
-    const a = s.notify('un')
-    const b = s.notify('deux')
+    const a = s.notify('', 'un')
+    const b = s.notify('', 'deux')
     expect(a).not.toBe(b)
     expect(s.notifications.map((n) => n.text)).toEqual(['un', 'deux'])
     s.dismiss(a)
@@ -37,7 +37,7 @@ describe('session store', () => {
     it('retenues pendant l’activité, rendues environ 1 s après sa fin', () => {
       const s = useSessionStore()
       s.setActivityRunning(true)
-      s.notify('Titre|Texte')
+      s.notify('Titre', 'Texte')
       expect(s.balloonsHeld).toBe(true)
       s.setActivityRunning(false)
       expect(s.balloonsHeld).toBe(true)

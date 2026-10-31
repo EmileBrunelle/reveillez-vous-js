@@ -8,9 +8,13 @@ const memStore = () => {
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) }
 }
 const g = {
-  premiere1: ['Q|Corps A {x}|V'],
-  niveau1: ['Q|Corps A {x}|V', 'Q|Corps B {x}|V', 'Q|Corps C {x}|V'],
-  seche1: ['Q|Corps sec|V'],
+  premiere1: [{ question: 'Q', corps: 'Corps A {x}', verset: 'V' }],
+  niveau1: [
+    { question: 'Q', corps: 'Corps A {x}', verset: 'V' },
+    { question: 'Q', corps: 'Corps B {x}', verset: 'V' },
+    { question: 'Q', corps: 'Corps C {x}', verset: 'V' },
+  ],
+  seche1: [{ question: 'Q', corps: 'Corps sec', verset: 'V' }],
   x: ['a'],
 }
 
@@ -39,7 +43,7 @@ describe('première lecture de la session', () => {
     const bodies = new Set<string>()
     for (let seed = 1; seed <= 40; seed++) bodies.add(nextProphecy(g, 1, memStore(), mulberry32(seed), undefined, false).body)
     expect([...bodies].some((b) => b !== 'Corps A a')).toBe(true)
-    expect(nextProphecy({ ...g, niveau2: ['Q|N2|V'] }, 2, memStore(), mulberry32(3), undefined, true).body).toBe('N2')
+    expect(nextProphecy({ ...g, niveau2: [{ question: 'Q', corps: 'N2', verset: 'V' }] }, 2, memStore(), mulberry32(3), undefined, true).body).toBe('N2')
   })
   it('contenu réel : premiere1 est inclus littéralement dans niveau1, sans clin d’œil complotiste', () => {
     const t = premiereFor(prophecies)
@@ -47,8 +51,8 @@ describe('première lecture de la session', () => {
     expect(t.length).toBeGreaterThanOrEqual(5)
     expect(all.length).toBeGreaterThanOrEqual(3)
     for (const tpl of t) {
-      expect(all, tpl).toContain(tpl)
-      expect(tpl, tpl).not.toMatch(/industrie|dit-on|charisme|fausse fête|coïncidence|vendre/i)
+      expect(all, tpl.corps).toContainEqual(tpl)
+      expect(tpl.corps, tpl.corps).not.toMatch(/industrie|dit-on|charisme|fausse fête|coïncidence|vendre/i)
     }
   })
   it('contenu réel : la première lecture vient de premiere1 et jamais de seche1', () => {
@@ -59,7 +63,7 @@ describe('première lecture de la session', () => {
       const bag = JSON.parse(store.getItem('rvj-bags') ?? '{}')
       expect(bag.seche1, `seed ${seed}`).toBeUndefined()
       const idx = bag.niveau1.order[0]
-      expect(t).toContain(templatesFor(prophecies, 1)[idx])
+      expect(t).toContainEqual(templatesFor(prophecies, 1)[idx])
     }
   })
 })

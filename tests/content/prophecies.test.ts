@@ -1,24 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { expandTemplate, type Grammar, type ObjectTable } from '../../src/engine/grammar'
+import { expandFields, expandTemplate, isGabarit, isObjectTable, isTitre, type ArcaneTable, type Gabarit, type Grammar, type ObjectTable } from '../../src/engine/grammar'
 import { mulberry32 } from '../../src/engine/rng'
-import { prophecies } from '../../src/content/prophecies'
+import { prophecies, tableKey } from '../../src/content/prophecies'
 import { BANNED, CONTRACTIONS, RELIGION, bannedRe } from './rules'
 
 /** Tout le code source du contenu (chaque fichier du dossier), pour les balayages de mots interdits. */
 const raw = Object.values(import.meta.glob('../../src/content/prophecies/*.ts', { query: '?raw', eager: true, import: 'default' })).join('\n')
 
 const SEEDS = 60
-const levels = [1, 2, 3, 4, 5]
+const levels = [1, 2, 3, 4, 5] as const
+
+const VERSET = (t: string) => t.replaceAll('{verset}', '{verset_livre} {verset_ref}')
+/** Développe une entrée : chaîne simple, ou gabarit `{ question, corps, verset }` (champs développés ensemble, joints par « | »). */
+const expandEntry = (tpl: unknown, rng: () => number): string => {
+  if (typeof tpl === 'string') return expandTemplate(prophecies, VERSET(tpl), rng)
+  if (!isGabarit(tpl)) throw new Error(`entrée inattendue : ${JSON.stringify(tpl)}`)
+  const g: Gabarit = { question: VERSET(tpl.question), corps: VERSET(tpl.corps), verset: VERSET(tpl.verset) }
+  return Object.values(expandFields(prophecies, g, rng)).join('|')
+}
 
 /** Chaque expansion (clé, gabarit, graine) du contenu réel. */
 // eslint-disable-next-line func-style -- générateur : func-style n’exempte pas `function*`
 function* expansions(prefix: 'niveau' | 'porte' | 'rate') {
   for (const n of levels) {
-    const key = `${prefix}${n}`
-    const templates = prophecies[key] as string[]
-    for (const [i, tpl] of templates.entries()) {
+    const key = tableKey(prefix, n)
+    for (const [i, tpl] of prophecies[key].entries()) {
       for (let seed = 1; seed <= SEEDS; seed++) {
-        yield { key, i, seed, out: expandTemplate(prophecies, tpl.replaceAll('{verset}', '{verset_livre} {verset_ref}'), mulberry32(seed * 7919 + i)) }
+        yield { key, i, seed, out: expandEntry(tpl, mulberry32(seed * 7919 + i)) }
       }
     }
   }
@@ -40,18 +48,22 @@ const allExpansions = function* (prefixes: ('niveau' | 'porte' | 'rate')[]) {
 }
 
 describe('prophecies content', () => {
-  it('has niveau1..5 and porte1..5 as non-empty string tables', () => {
-    for (const p of ['niveau', 'porte', 'rate']) {
+  it('has niveau1..5 as non-empty { question, corps, verset } tables and porte1..5, rate1..5 as string tables', () => {
+    for (const p of ['porte', 'rate'] as const) {
       for (const n of levels) {
-        const t = prophecies[`${p}${n}`]
+        const t = prophecies[tableKey(p, n)]
         expect(Array.isArray(t) && t.length > 0 && typeof t[0] === 'string', `${p}${n}`).toBe(true)
       }
+    }
+    for (const n of levels) {
+      const t = prophecies[tableKey('niveau', n)]
+      expect(isObjectTable(t) && t.length > 0 && t.every(isGabarit), `niveau${n}`).toBe(true)
     }
   })
 
   it('rate1..5 have at least 4 short lines each; entrez has 3', () => {
     for (const n of levels) {
-      const t = prophecies[`rate${n}`] as string[]
+      const t = prophecies[tableKey('rate', n)] as string[]
       expect(t.length, `rate${n}`).toBeGreaterThanOrEqual(4)
       for (const l of t) expect(l.length, l).toBeLessThanOrEqual(110)
     }
@@ -75,7 +87,7 @@ describe('prophecies content', () => {
     }, 30_000) // parcours exhaustif : dépasse 5 s quand la suite complète charge le processeur
   }
 
-  it('niveau*: exactly 3 non-empty parts split on |', () => {
+  it('niveau*: exactly 3 non-empty parts (question, corps, verset)', () => {
     for (const { key, i, seed, out } of expansions('niveau')) {
       const parts = out.split('|')
       const ctx = `${key}[${i}] seed ${seed}: ${out}`
@@ -91,7 +103,7 @@ describe('prophecies content', () => {
   })
 
   describe('paired tables stay coherent', () => {
-    const objectTables = Object.entries(prophecies).filter(([, t]) => typeof t[0] === 'object') as [string, ObjectTable][]
+    const objectTables = Object.entries(prophecies).filter(([, t]) => isObjectTable(t) && !isGabarit(t[0]) && !isTitre(t[0])) as [string, ObjectTable][]
 
     it('finds the expected object tables', () => {
       expect(objectTables.map(([k]) => k).sort()).toEqual(['arcane', 'fete', 'industrie', 'lieu_inexistant', 'objet'])
@@ -99,8 +111,8 @@ describe('prophecies content', () => {
 
     for (const [name, table] of objectTables) {
       it(`${name}: all fields in one expansion come from the same entry`, () => {
-        const fields = Object.keys(table[0])
-        for (const e of table) expect(Object.keys(e).sort()).toEqual([...fields].sort())
+        const fields = Object.keys(table[0]).filter((f) => f !== 'niveaux') // `niveaux` (arcanes) est une liste, jamais développée
+        for (const e of table) expect(Object.keys(e).sort()).toEqual(Object.keys(table[0]).sort())
         const key = (vals: string[]) => vals.join('§')
         const valid = new Set(table.map((e) => key(fields.map((f) => e[f]))))
         const sentinel: Grammar = { ...prophecies, probe: [fields.map((f) => `{${name}.${f}}`).join('§')] }
@@ -124,7 +136,7 @@ describe('prophecies content', () => {
   })
 
   describe('arcane', () => {
-    const table = prophecies.arcane as ObjectTable
+    const table = prophecies.arcane as ArcaneTable
     const SYMBOLES = [
       'fool',
       'wheel',
@@ -158,11 +170,11 @@ describe('prophecies content', () => {
       expect(new Set(table.map((a) => a.nom)).size).toBe(table.length)
     })
     it('every level has at least 3 preferred arcana', () => {
-      for (const n of levels) expect(table.filter((a) => a.niveaux.includes(String(n))).length, `niveau ${n}`).toBeGreaterThanOrEqual(3)
+      for (const n of levels) expect(table.filter((a) => a.niveaux.includes(n)).length, `niveau ${n}`).toBeGreaterThanOrEqual(3)
     })
     it('typography, no | and no banned or religious words', () => {
       for (const a of table) {
-        for (const v of Object.values(a)) {
+        for (const v of Object.values(a).filter((x) => typeof x === 'string')) {
           expect(v).not.toContain("'")
           expect(v).not.toContain('|')
           expect(v).not.toMatch(/ {2}/)
@@ -214,8 +226,8 @@ describe('versets (livre + référence)', () => {
       }
   })
   it('contient la blague du Café Campus (niveaux 1 et 2)', () => {
-    const all = [...(prophecies.niveau1 as string[]), ...(prophecies.niveau2 as string[])]
-    expect(all.filter((t) => t.includes('Café Campus')).length).toBeGreaterThanOrEqual(3)
+    const all = [...prophecies.niveau1, ...prophecies.niveau2]
+    expect(all.filter((t) => JSON.stringify(t).includes('Café Campus')).length).toBeGreaterThanOrEqual(3)
   })
 })
 
@@ -226,8 +238,8 @@ describe('spécialités régionales', () => {
 })
 
 describe('lot de prophéties québécoises (Pacini, Winners, Benny, Beauce…)', () => {
-  const lvl = (n: number) => (prophecies[`niveau${n}`] as string[]).join('\n')
-  it.each([
+  const lvl = (n: 1 | 2 | 3 | 4 | 5) => JSON.stringify(prophecies[tableKey('niveau', n)])
+  it.each<[1 | 2 | 3 | 4 | 5, string]>([
     [1, 'Pacini'],
     [1, 'Thetford Mines'],
     [1, 'trottinette électrique'],

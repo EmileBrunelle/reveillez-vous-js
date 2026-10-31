@@ -45,15 +45,11 @@ const choose = (e: 'about' | 'collection' | 'sound' | 'reset') => {
 }
 onClickOutside(menu, () => close(), { ignore: [startBtn] })
 
-// Bulle de notification (une à la fois, file d’attente) : « Titre|Texte », disparaît seule après 7 s.
+// Bulle de notification (une à la fois, file d’attente) : titre et texte, disparaît seule après 7 s.
 const session = useSessionStore()
 const BALLOON_MS = 7000
-const balloon = computed(() => {
-  const n = session.notifications[0]
-  if (!n || session.balloonsHeld) return null // retenue pendant une activité (voir le store de session)
-  const [title = '', ...rest] = n.text.split('|')
-  return rest.length > 0 ? { id: n.id, title, text: rest.join('|') } : { id: n.id, title: '', text: title }
-})
+// Retenue pendant une activité (voir le store de session).
+const balloon = computed(() => (session.balloonsHeld ? null : (session.notifications[0] ?? null)))
 const { start: startBalloonTimer, stop: stopBalloonTimer } = useTimeoutFn(() => balloon.value && session.dismiss(balloon.value.id), BALLOON_MS, { immediate: false })
 watch(
   () => balloon.value?.id,

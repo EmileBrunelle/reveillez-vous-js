@@ -189,7 +189,7 @@ export const useGameFlow = () => {
     // Première lecture de la session : une bulle discrète annonce que la suite existe (pas sur écran étroit : elle couvrirait la carte).
     if (progress.visits === 0 && !narrow.value) {
       const b = nextTitled(prophecies, 'bulle1', safeStorage(), rng)
-      if (b) session.notify(`${b.title}|${b.text}`)
+      if (b) session.notify(b.title, b.text)
     }
     focusTarget.value = 'close'
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { expand, expandTemplate, isObjectTable, isStringTable, type Grammar } from '../../src/../src/engine/grammar'
+import { expand, expandFields, expandTemplate, isObjectTable, isStringTable, type Grammar } from '../../src/../src/engine/grammar'
 import { mulberry32 } from '../../src/../src/engine/rng'
 
 const g: Grammar = {
@@ -88,5 +88,20 @@ describe('gardes de table', () => {
   })
   it('expand rejette une table vide', () => {
     expect(() => expand({ start: ['{v}'], v: [] }, 'start', mulberry32(1))).toThrow(/v/)
+  })
+})
+
+describe('expandFields', () => {
+  it('développe chaque champ avec une seule mémoïsation : une table à paires citée dans deux champs reste appariée', () => {
+    const g: Grammar = {
+      objet: [
+        { nom: 'la boule', de: 'de la boule' },
+        { nom: 'le tarot', de: 'du tarot' },
+      ],
+    }
+    for (let seed = 1; seed <= 40; seed++) {
+      const { a, b } = expandFields(g, { a: '{objet.nom}', b: '{objet.de}' }, mulberry32(seed))
+      expect(['la boule|de la boule', 'le tarot|du tarot']).toContain(`${a}|${b}`)
+    }
   })
 })

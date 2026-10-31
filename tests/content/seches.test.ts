@@ -11,7 +11,7 @@ const memStore = () => {
 describe('prophéties sèches', () => {
   it('existent à chaque niveau, au moins 2 par niveau, 8 à 10 au total', () => {
     let total = 0
-    for (const n of [1, 2, 3, 4, 5]) {
+    for (const n of [1, 2, 3, 4, 5] as const) {
       const t = secheFor(prophecies, n)
       expect(t.length, `seche${n}`).toBeGreaterThanOrEqual(2)
       total += t.length
@@ -23,8 +23,8 @@ describe('prophéties sèches', () => {
   it('sont rares : la chance est d’environ 1 sur 8, et la fréquence observée aussi', () => {
     expect(SECHE_CHANCE).toBeGreaterThan(0.1)
     expect(SECHE_CHANCE).toBeLessThanOrEqual(0.15)
-    for (const n of [1, 3, 5]) {
-      const starts = secheFor(prophecies, n).map((t) => t.split('|')[1].split('{')[0].slice(0, 25))
+    for (const n of [1, 3, 5] as const) {
+      const starts = secheFor(prophecies, n).map((t) => t.corps.split('{')[0].slice(0, 25))
       const rng = mulberry32(n * 7)
       const store = memStore()
       let hits = 0
@@ -40,9 +40,9 @@ describe('prophéties sèches', () => {
   })
 
   it('sont au futur : pas de passé composé, pas de « date », au moins trois phrases', () => {
-    for (const n of [1, 2, 3, 4, 5]) {
+    for (const n of [1, 2, 3, 4, 5] as const) {
       for (const t of secheFor(prophecies, n)) {
-        const body = t.split('|')[1]
+        const body = t.corps
         expect(body, body).not.toMatch(/\b(avez|ont|avons) (été|eu|fait|mort)\b/i)
         expect(body).not.toMatch(/\bdate\b/i)
         expect(body.split(/[.!?:]\s/).length).toBeGreaterThanOrEqual(3)

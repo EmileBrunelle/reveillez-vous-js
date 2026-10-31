@@ -4,6 +4,8 @@ import { useTimeoutFn } from '@vueuse/core'
 
 export interface Notification {
   id: number
+  /** Vide : bulle sans titre. */
+  title: string
   text: string
 }
 
@@ -20,9 +22,9 @@ export const useSessionStore = defineStore('session', () => {
   // Bulles de la barre des tâches (T6).
   const notifications = ref<Notification[]>([])
   let nextId = 1
-  const notify = (text: string) => {
+  const notify = (title: string, text: string) => {
     const id = nextId++
-    notifications.value.push({ id, text })
+    notifications.value.push({ id, title, text })
     return id
   }
   const dismiss = (id: number) => {

@@ -7,7 +7,10 @@ import { pickVariant } from '../../src/../src/engine/variant'
 import { BAGS_KEY } from '../../src/engine/shuffleBag'
 
 const g: Grammar = {
-  niveau1: ['Q1|{x}|V1', 'Q2|{x}|V2'],
+  niveau1: [
+    { question: 'Q1', corps: '{x}', verset: 'V1' },
+    { question: 'Q2', corps: '{x}', verset: 'V2' },
+  ],
   porte1: ['Toc {x}'],
   rate1: ['Raté {x}'],
   entrez: ['Entrez'],
@@ -33,7 +36,7 @@ describe('prophecy', () => {
   })
   it('verses go through a shuffle bag: N draws give N distinct verses', () => {
     const versets = ['A 1:1', 'B 2:2', 'C 3:3', 'D 4:4', 'E 5:5']
-    const gv: Grammar = { niveau1: ['Q|corps|{verset}'], verset: versets }
+    const gv: Grammar = { niveau1: [{ question: 'Q', corps: 'corps', verset: '{verset}' }], verset: versets }
     const s = store()
     const rng = mulberry32(7)
     const seen = versets.map(() => nextProphecy(gv, 1, s, rng).verse)
@@ -41,7 +44,7 @@ describe('prophecy', () => {
   })
   it('generative verses: no repeated book until all seen, format ok, old bag size ignored', () => {
     const livres = ['A', 'B', 'C', 'D', 'E', 'F']
-    const gv: Grammar = { niveau1: ['Q|corps|{verset}'], verset_livre: livres, verset_ref: ['1:1', '2:22', '13:13'] }
+    const gv: Grammar = { niveau1: [{ question: 'Q', corps: 'corps', verset: '{verset}' }], verset_livre: livres, verset_ref: ['1:1', '2:22', '13:13'] }
     const s = store()
     s.setItem(BAGS_KEY, JSON.stringify({ verset: { order: [0, 1], pos: 1 }, verset_livre: { order: [0, 1], pos: 1 } }))
     const rng = mulberry32(11)
@@ -53,7 +56,7 @@ describe('prophecy', () => {
     books.slice(1).forEach((b, i) => expect(b).not.toBe(books[i]))
   })
   it('old `verset` table still works when the new tables are missing', () => {
-    const gv: Grammar = { niveau1: ['Q|corps|{verset}'], verset: ['Vieux 1:1'] }
+    const gv: Grammar = { niveau1: [{ question: 'Q', corps: 'corps', verset: '{verset}' }], verset: ['Vieux 1:1'] }
     expect(nextProphecy(gv, 1, store(), mulberry32(1)).verse).toBe('Vieux 1:1')
   })
   it('door line falls back when key is missing', () => {
@@ -73,9 +76,9 @@ describe('rappel de la carte précédente', () => {
     porte2: ['Porte {x}'],
     rappel2: ['Rappel {carte} / {carte_caps}'],
     arcane: [
-      { numero: 'XIII bis', nom: 'Big Citrouille', symbole: 'pumpkin' },
-      { numero: 'XIII ½', nom: 'Le Chat noir', symbole: 'cat' },
-      { numero: 'XVIII', nom: 'La Lune', symbole: 'moon' },
+      { numero: 'XIII bis', nom: 'Big Citrouille', symbole: 'pumpkin', paquet: 'brume', niveaux: [3] },
+      { numero: 'XIII ½', nom: 'Le Chat noir', symbole: 'cat', paquet: 'nuit', niveaux: [3] },
+      { numero: 'XVIII', nom: 'La Lune', symbole: 'moon', paquet: 'nuit', niveaux: [3] },
     ],
     x: ['a'],
   }
@@ -106,7 +109,7 @@ describe('rappel de la carte précédente', () => {
     for (let s = 0; s < 40; s++) expect(nextDoorLine(gr, 2, store(), mulberry32(s), 'fb', { lastArcane: 99 })).toBe('Porte a')
   })
   it('real content: every level 2..5 line expands with a real previous card', () => {
-    for (let lvl = 2; lvl <= 5; lvl++) for (let s = 0; s < 80; s++) expect(nextDoorLine(prophecies, lvl, store(), mulberry32(s), 'fb', { lastArcane: 13 })).not.toMatch(/[{}]/)
+    for (const lvl of [2, 3, 4, 5] as const) for (let s = 0; s < 80; s++) expect(nextDoorLine(prophecies, lvl, store(), mulberry32(s), 'fb', { lastArcane: 13 })).not.toMatch(/[{}]/)
   })
 })
 
@@ -128,8 +131,8 @@ describe('titre d’onglet et bulles', () => {
     expect(nextTabTitle(gt, 2, store(), mulberry32(1), 'Base')).toBe('Revenez')
     expect(nextTabTitle(gt, 3, store(), mulberry32(1), 'Base')).toBe('Base')
   })
-  it('nextTitled splits « Titre|Texte », null when the table is missing', () => {
-    expect(nextTitled({ bulle2: ['Titre|Un texte | avec barre'] }, 'bulle2', store(), mulberry32(1))).toEqual({ title: 'Titre', text: 'Un texte | avec barre' })
+  it('nextTitled expands `{ titre, texte }`, null when the table is missing', () => {
+    expect(nextTitled({ bulle2: [{ titre: 'Titre', texte: 'Un texte | avec barre' }] }, 'bulle2', store(), mulberry32(1))).toEqual({ title: 'Titre', text: 'Un texte | avec barre' })
     expect(nextTitled({}, 'bulle2', store(), mulberry32(1))).toBeNull()
   })
 })

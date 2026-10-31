@@ -2,7 +2,7 @@
 // Tables à paires (`paired`) : une entrée est tirée une seule fois par prophétie, tous ses champs vont ensemble ;
 // `{table.champ}` lit un champ, avec les variantes `champ_maj` (majuscule initiale) et `champ_caps` (tout en majuscules).
 // Tables de chaînes (`withCaps`) : `{futur}`, `{moment}`, `{bonbon}` et leurs variantes `_maj` / `_caps` ; `{lieu}` sans variante.
-// `arcane` : objets de la coupe de cartes (format `niveaux` : chiffres collés, ex. « 23 »), non passés par `paired`.
+// `arcane` : objets de la coupe de cartes (`niveaux` : tableau de niveaux, ex. `[2, 3]`), non passés par `paired`.
 import type { Grammar } from '../../engine/grammar'
 import { paired, withCaps } from './helpers'
 
@@ -80,30 +80,30 @@ export const tables: Grammar = {
   ]),
 
   // Arcanes (cartes de voyant). `symbole` = id d’un emblème de TarotCard (inconnu = œil) ; `niveaux` = niveaux où la carte est
-  // privilégiée (chiffres collés) ; `paquet` = paquet de la coupe (nuit, feu, brume) dont la carte fait partie. Pas de figure religieuse : on garde les arcanes neutres et ceux de notre cru.
+  // privilégiée (tableau) ; `paquet` = paquet de la coupe (nuit, feu, brume) dont la carte fait partie. Pas de figure religieuse : on garde les arcanes neutres et ceux de notre cru.
   arcane: [
-    { numero: 'I', nom: 'Le Magicien du Québec', paquet: 'nuit', symbole: 'star', niveaux: '23' },
-    { numero: '0', nom: 'Le Mat', paquet: 'brume', symbole: 'fool', niveaux: '12' },
-    { numero: 'X', nom: 'La Roue de Fortune', paquet: 'feu', symbole: 'wheel', niveaux: '123' },
-    { numero: 'XVII', nom: 'L’Étoile', paquet: 'nuit', symbole: 'star', niveaux: '12' },
-    { numero: 'XVIII', nom: 'La Lune', paquet: 'nuit', symbole: 'moon', niveaux: '1234' },
-    { numero: 'XIX', nom: 'Le Soleil', paquet: 'feu', symbole: 'sun', niveaux: '1' },
-    { numero: 'IX', nom: 'L’Ermite à lanterne', paquet: 'feu', symbole: 'lantern', niveaux: '23' },
-    { numero: 'XVI', nom: 'La Tour foudroyée', paquet: 'feu', symbole: 'tower', niveaux: '45' },
-    { numero: 'XIII bis', nom: 'Big Citrouille', paquet: 'brume', symbole: 'pumpkin', niveaux: '345' },
-    { numero: 'XX', nom: 'Le Cône orange', paquet: 'feu', symbole: 'cone', niveaux: '2345' },
-    { numero: 'XXI', nom: 'Le Pont en travaux', paquet: 'brume', symbole: 'bridge', niveaux: '345' },
-    { numero: 'VIII', nom: 'La Boule de cristal', paquet: 'nuit', symbole: 'crystal', niveaux: '123' },
-    { numero: 'XIII ½', nom: 'Le Chat noir', paquet: 'nuit', symbole: 'cat', niveaux: '1234' },
-    { numero: 'XXII', nom: 'Saint-Clin-Clin-des-Meuh-Meuh', paquet: 'brume', symbole: 'signpost', niveaux: '23' },
-    { numero: 'XXIII', nom: 'Le Fantôme du troisième', paquet: 'brume', symbole: 'ghost', niveaux: '1245' },
-    { numero: 'LXVI', nom: 'L’Œil derrière la porte', paquet: 'nuit', symbole: 'eye', niveaux: '45' },
-    { numero: 'II ¼', nom: 'Le Castor ingénieur', paquet: 'brume', symbole: 'beaver', niveaux: '12' },
-    { numero: 'XII', nom: 'Le Sablier de la relâche', paquet: 'nuit', symbole: 'hourglass', niveaux: '1234' },
-    { numero: 'XIV', nom: 'La Toile du sous-sol', paquet: 'brume', symbole: 'web', niveaux: '45' },
-    { numero: 'XXIV', nom: 'La Chauve-souris du Stade', paquet: 'nuit', symbole: 'bat', niveaux: '345' },
-    { numero: 'XXV', nom: 'Le Bonhomme de neige déplacé', paquet: 'brume', symbole: 'snowman', niveaux: '345' },
-    { numero: 'LXXV', nom: 'L’Antenne du toit d’en face', paquet: 'feu', symbole: 'antenna', niveaux: '45' },
+    { numero: 'I', nom: 'Le Magicien du Québec', paquet: 'nuit', symbole: 'star', niveaux: [2, 3] },
+    { numero: '0', nom: 'Le Mat', paquet: 'brume', symbole: 'fool', niveaux: [1, 2] },
+    { numero: 'X', nom: 'La Roue de Fortune', paquet: 'feu', symbole: 'wheel', niveaux: [1, 2, 3] },
+    { numero: 'XVII', nom: 'L’Étoile', paquet: 'nuit', symbole: 'star', niveaux: [1, 2] },
+    { numero: 'XVIII', nom: 'La Lune', paquet: 'nuit', symbole: 'moon', niveaux: [1, 2, 3, 4] },
+    { numero: 'XIX', nom: 'Le Soleil', paquet: 'feu', symbole: 'sun', niveaux: [1] },
+    { numero: 'IX', nom: 'L’Ermite à lanterne', paquet: 'feu', symbole: 'lantern', niveaux: [2, 3] },
+    { numero: 'XVI', nom: 'La Tour foudroyée', paquet: 'feu', symbole: 'tower', niveaux: [4, 5] },
+    { numero: 'XIII bis', nom: 'Big Citrouille', paquet: 'brume', symbole: 'pumpkin', niveaux: [3, 4, 5] },
+    { numero: 'XX', nom: 'Le Cône orange', paquet: 'feu', symbole: 'cone', niveaux: [2, 3, 4, 5] },
+    { numero: 'XXI', nom: 'Le Pont en travaux', paquet: 'brume', symbole: 'bridge', niveaux: [3, 4, 5] },
+    { numero: 'VIII', nom: 'La Boule de cristal', paquet: 'nuit', symbole: 'crystal', niveaux: [1, 2, 3] },
+    { numero: 'XIII ½', nom: 'Le Chat noir', paquet: 'nuit', symbole: 'cat', niveaux: [1, 2, 3, 4] },
+    { numero: 'XXII', nom: 'Saint-Clin-Clin-des-Meuh-Meuh', paquet: 'brume', symbole: 'signpost', niveaux: [2, 3] },
+    { numero: 'XXIII', nom: 'Le Fantôme du troisième', paquet: 'brume', symbole: 'ghost', niveaux: [1, 2, 4, 5] },
+    { numero: 'LXVI', nom: 'L’Œil derrière la porte', paquet: 'nuit', symbole: 'eye', niveaux: [4, 5] },
+    { numero: 'II ¼', nom: 'Le Castor ingénieur', paquet: 'brume', symbole: 'beaver', niveaux: [1, 2] },
+    { numero: 'XII', nom: 'Le Sablier de la relâche', paquet: 'nuit', symbole: 'hourglass', niveaux: [1, 2, 3, 4] },
+    { numero: 'XIV', nom: 'La Toile du sous-sol', paquet: 'brume', symbole: 'web', niveaux: [4, 5] },
+    { numero: 'XXIV', nom: 'La Chauve-souris du Stade', paquet: 'nuit', symbole: 'bat', niveaux: [3, 4, 5] },
+    { numero: 'XXV', nom: 'Le Bonhomme de neige déplacé', paquet: 'brume', symbole: 'snowman', niveaux: [3, 4, 5] },
+    { numero: 'LXXV', nom: 'L’Antenne du toit d’en face', paquet: 'feu', symbole: 'antenna', niveaux: [4, 5] },
   ],
 
   // ---- Tables de chaînes partagées ---------------------------------------------------------

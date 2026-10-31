@@ -35,13 +35,13 @@ describe('Taskbar : bulles', () => {
   it('une bulle notifiée pendant une activité n’est pas affichée', async () => {
     const html = await render((s) => {
       s.setActivityRunning(true)
-      s.notify('Titre secret|Texte secret')
+      s.notify('Titre secret', 'Texte secret')
     })
     expect(html).not.toContain('Titre secret')
   })
 
   it('sans activité, la bulle est affichée', async () => {
-    const html = await render((s) => void s.notify('Titre visible|Texte visible'))
+    const html = await render((s) => void s.notify('Titre visible', 'Texte visible'))
     expect(html).toContain('Titre visible')
   })
 })

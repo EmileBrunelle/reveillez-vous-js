@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { prophecies } from '../../src/content/prophecies'
+import type { ArcaneTable, Grammar } from '../../src/engine/grammar'
 import { drawArcane } from '../../src/engine/prophecy'
 import { PAQUETS, PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets } from '../../src/engine/paquets'
 import { mulberry32 } from '../../src/engine/rng'
 
-type Row = Record<string, string>
-const rows = prophecies.arcane as Row[]
+const NIVEAUX = [1, 2, 3, 4, 5] as const
+const rows = prophecies.arcane as ArcaneTable
 
 describe('paquets', () => {
   it('chaque arcane appartient à un paquet connu', () => {
@@ -13,21 +14,21 @@ describe('paquets', () => {
   })
 
   it('chaque paquet a au moins un arcane à chaque niveau 1-5 (sans même le repli)', () => {
-    for (const p of PAQUETS) for (const n of [1, 2, 3, 4, 5]) expect(rows.some((a) => a.paquet === p && a.niveaux.includes(String(n)))).toBe(true)
+    for (const p of PAQUETS) for (const n of NIVEAUX) expect(rows.some((a) => a.paquet === p && a.niveaux.includes(n))).toBe(true)
   })
 
   it('choisir un paquet ne donne que ses arcanes quand il en a pour le niveau', () => {
     for (const p of PAQUETS)
-      for (const n of [1, 2, 3, 4, 5])
+      for (const n of NIVEAUX)
         for (let seed = 1; seed <= 40; seed++) {
           const a = drawArcane(prophecies, n, mulberry32(seed), p)
           expect(a.paquet).toBe(p)
-          expect(rows.find((r) => r.nom === a.nom)?.niveaux).toContain(String(n))
+          expect(rows.find((r) => r.nom === a.nom)?.niveaux).toContain(n)
         }
   })
 
   it('repli : un paquet sans arcane au niveau pige dans les autres paquets de ce niveau', () => {
-    const g = { arcane: [{ numero: 'I', nom: 'A', symbole: 'moon', paquet: 'nuit', niveaux: '1' }] }
+    const g: Grammar = { arcane: [{ numero: 'I', nom: 'A', symbole: 'moon', paquet: 'nuit', niveaux: [1] }] }
     const a = drawArcane(g, 1, mulberry32(1), 'feu')
     expect(a.nom).toBe('A')
     expect(a.paquet).toBe('nuit')

@@ -12,7 +12,22 @@ export const tableKey = <P extends LevelPrefix, L extends Level>(prefix: P, leve
 
 /** Tables sans niveau. */
 export type PlainKey =
-  'gabarit' | 'entrez' | 'erreur_icone' | 'erreur_boutons' | 'industrie' | 'fete' | 'lieu_inexistant' | 'objet' | 'arcane' | 'futur' | 'moment' | 'bonbon' | 'lieu' | 'verset_livre' | 'verset_ref'
+  | 'entrez'
+  | 'erreur_icone'
+  | 'erreur_boutons'
+  | 'industrie'
+  | 'fete'
+  | 'lieu_inexistant'
+  | 'objet'
+  | 'arcane'
+  | 'futur'
+  | 'moment'
+  | 'bonbon'
+  | 'lieu'
+  | 'verset_livre'
+  | 'verset_ref'
+  | 'verset'
+  | 'retour'
 
 /** Toute clé de table connue du contenu (hors variantes `_maj` / `_caps`). */
 export type TableKey = PlainKey | `${LevelPrefix}${Level}`

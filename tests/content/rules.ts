@@ -33,7 +33,7 @@ export const runningTextEntries = (g: Record<string, unknown>): { key: string; t
     if (skip.has(key) || !Array.isArray(table)) continue
     for (const e of table) {
       if (typeof e === 'string') out.push({ key, text: e })
-      else for (const [field, v] of Object.entries(e as Record<string, string>)) out.push({ key: `${key}.${field}`, text: v })
+      else for (const [field, v] of Object.entries(e as Record<string, unknown>)) if (typeof v === 'string') out.push({ key: `${key}.${field}`, text: v })
     }
   }
   return out

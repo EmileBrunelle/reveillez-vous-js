@@ -1,29 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { expandTemplate, type Grammar, type ObjectTable } from '../../src/engine/grammar'
+import { expandFields, expandTemplate, isTitre, type ArcaneTable, type Grammar } from '../../src/engine/grammar'
 import { mulberry32 } from '../../src/engine/rng'
 import { carteTables } from '../../src/engine/prophecy'
-import { prophecies } from '../../src/content/prophecies'
+import { prophecies, tableKey, type Level, type LevelPrefix } from '../../src/content/prophecies'
 import { BANNED, CONTRACTIONS, RELIGION, bannedRe } from './rules'
 
 describe('T6 tables (rappel, onglet, bulle, erreur)', () => {
-  const arcanes = prophecies.arcane as ObjectTable
+  const arcanes = prophecies.arcane as ArcaneTable
   const asGrammar = (nom: string): Grammar => ({ ...prophecies, ...carteTables(nom) })
-  const tables: { prefix: string; levels: number[]; min: number; max: number }[] = [
+  const tables: { prefix: LevelPrefix; levels: Level[]; min: number; max: number }[] = [
     { prefix: 'rappel', levels: [2, 3, 4, 5], min: 6, max: 110 },
     { prefix: 'onglet', levels: [1, 2, 3, 4, 5], min: 3, max: 40 },
     { prefix: 'bulle', levels: [2, 3, 4, 5], min: 4, max: 110 },
     { prefix: 'erreur', levels: [3, 4, 5], min: 4, max: 130 },
   ]
+  const titled = (prefix: string) => prefix === 'bulle' || prefix === 'erreur'
+  /** Textes d’une entrée : la chaîne, ou les champs d’une entrée `{ titre, texte }`. */
+  const textsOf = (e: unknown): string[] => (typeof e === 'string' ? [e] : typeof e === 'object' && e !== null ? Object.values(e).filter((v): v is string => typeof v === 'string') : [])
   for (const { prefix, levels, min, max } of tables) {
     it(`${prefix}*: ≥ ${min} lines, ≤ ${max} chars, typography and banned words on every expansion`, () => {
       for (const n of levels) {
-        const t = prophecies[`${prefix}${n}`] as string[]
-        expect(Array.isArray(t) && typeof t[0] === 'string', `${prefix}${n}`).toBe(true)
+        const t = prophecies[tableKey(prefix, n)]
+        expect(Array.isArray(t) && (titled(prefix) ? isTitre(t[0]) : typeof t[0] === 'string'), `${prefix}${n}`).toBe(true)
         expect(t.length, `${prefix}${n}`).toBeGreaterThanOrEqual(min)
-        expect(new Set(t).size, `${prefix}${n} dedupe`).toBe(t.length)
+        expect(new Set(t.map((e) => JSON.stringify(e))).size, `${prefix}${n} dedupe`).toBe(t.length)
         for (const [i, tpl] of t.entries()) {
           for (const arc of prefix === 'rappel' ? arcanes : [arcanes[0]]) {
-            const out = expandTemplate(asGrammar(arc.nom), tpl, mulberry32(i + 1))
+            const out =
+              typeof tpl === 'string'
+                ? expandTemplate(asGrammar(arc.nom), tpl, mulberry32(i + 1))
+                : Object.values(expandFields(asGrammar(arc.nom), isTitre(tpl) ? tpl : { titre: '', texte: '' }, mulberry32(i + 1))).join('|')
             const ctx = `${prefix}${n}[${i}] (${arc.nom}): ${out}`
             expect(out.length, ctx).toBeLessThanOrEqual(max)
             expect(out, ctx).not.toMatch(/[{}]/)
@@ -47,15 +53,15 @@ describe('T6 tables (rappel, onglet, bulle, erreur)', () => {
     })
   }
   it('rappel*: every line mentions the previous card', () => {
-    for (const n of [2, 3, 4, 5]) for (const tpl of prophecies[`rappel${n}`] as string[]) expect(tpl).toMatch(/\{carte(_maj|_caps)?\}/)
+    for (const n of [2, 3, 4, 5] as const) for (const tpl of prophecies[tableKey('rappel', n)].flatMap(textsOf)) expect(tpl).toMatch(/\{carte(_maj|_caps)?\}/)
   })
   it('rappel*: {carte} never starts a sentence (use {carte_maj})', () => {
-    for (const n of [2, 3, 4, 5]) for (const tpl of prophecies[`rappel${n}`] as string[]) expect(tpl, tpl).not.toMatch(/(^|[.!?…—] )\{carte\}/)
+    for (const n of [2, 3, 4, 5] as const) for (const tpl of prophecies[tableKey('rappel', n)].flatMap(textsOf)) expect(tpl, tpl).not.toMatch(/(^|[.!?…—] )\{carte\}/)
   })
   it('new tables: no « ils », « iel(s) », « eux » or point médian (épicène wording only)', () => {
-    for (const prefix of ['rappel', 'onglet', 'bulle', 'erreur']) {
-      for (let n = 1; n <= 5; n++) {
-        for (const tpl of (prophecies[`${prefix}${n}`] as string[] | undefined) ?? []) {
+    for (const prefix of ['rappel', 'onglet', 'bulle', 'erreur'] as const) {
+      for (const n of [1, 2, 3, 4, 5] as const) {
+        for (const tpl of (prophecies[tableKey(prefix, n)] ?? []).flatMap(textsOf)) {
           expect(tpl, tpl).not.toMatch(/(?<![\p{L}])(ils|iels?|eux)(?![\p{L}])/iu)
           expect(tpl, tpl).not.toContain('·')
         }
