@@ -1,3 +1,5 @@
+/* Global seulement : polices, jetons :root, base html/body, mouvement réduit, anneau de focus, anti-surlignage.
+   Les animations vivent dans le thème UnoCSS (uno.config.ts) et le reste dans les composants. */
 /* VT323 : fontsource (latin) avec size-adjust, car la police est ~25 % plus petite que Courier New à taille égale. */
 @font-face {
   font-family: 'VT323';
@@ -63,32 +65,6 @@ html:has(main[role='alert']) body {
   }
 }
 
-@keyframes reset-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
-/* Chauffe de la cathode : le voile noir s’éclaircit lentement (opacité seule, une fois, sans clignotement). */
-@keyframes crt-warm {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-@keyframes checking-in {
-  to {
-    opacity: 0.6;
-  }
-}
-
-.door-handle {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
 /* Focus clavier (jamais au clic) : double anneau noir + blanc, lisible sur fond clair (carte, barre grise) comme sombre.
    :where() = spécificité nulle, donc les styles de focus déjà soignés (utilitaires, scoped) gardent le dessus ;
    les éléments qui suppriment leur contour (outline-none) ont leur propre repère et sont exclus. */
@@ -97,18 +73,6 @@ html:has(main[role='alert']) body {
   outline-offset: 2px;
   box-shadow: 0 0 0 2px #fff;
 }
-/* Les boutons Windows 98 gardent leur biseau : l’anneau blanc s’ajoute au biseau, et le contour plein remplace le pointillé fin (invisible sur le gris). */
-.win-btn:focus-visible {
-  outline: 2px solid #000;
-  outline-offset: 2px;
-  box-shadow:
-    inset -1px -1px #0a0a0a,
-    inset 1px 1px #fff,
-    inset -2px -2px grey,
-    inset 2px 2px #dfdfdf,
-    0 0 0 2px #fff;
-}
-
 /* Anti-surlignage : rien n’est sélectionnable dans le jeu, carte comprise (au toucher, un tap ou un double-tap pendant le
    retournement surlignait un mot de la prophétie) */
 html,

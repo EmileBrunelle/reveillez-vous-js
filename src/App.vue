@@ -181,14 +181,7 @@ watch(
     <MotionConfig reduced-motion="user">
       <CrtOverlay :key="attempt" :paranoia="paranoia" :off="crtOff" @ready="onGpuReady" @fail="gpu = 'blocked'" />
       <!-- Région live présente dès le montage, vide puis remplie (sinon elle n’est pas annoncée) ; visuellement absente hors de l’attente. -->
-      <p
-        role="status"
-        :class="
-          gpu === 'checking'
-            ? 'fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-[checking-in_0.6s_ease_0.4s_forwards] pointer-events-none'
-            : 'sr-only'
-        "
-      >
+      <p role="status" :class="gpu === 'checking' ? 'fixed inset-0 m-0 grid place-items-center text-[0.9rem] tracking-[0.1em] opacity-0 text-fg animate-checking-in pointer-events-none' : 'sr-only'">
         {{ gpu === 'checking' ? connecting : '' }}
       </p>
       <template v-if="gpu === 'ok'">
@@ -339,12 +332,7 @@ watch(
   <FakeErrors v-if="gpu === 'ok' && phase === 'reading' && cardSettled" :key="sceneKey" :level="level" />
   <Taskbar v-if="gpu === 'ok'" :level="level" @about="openAbout" @collection="openCollection" @sound="openSound" @reset="resetOpen = true" @reset-level="resetLevel" />
   <!-- Voile de chauffe : opacité seule, une fois, retiré à la fin (ou par le repli du minuteur). -->
-  <div
-    v-if="warming && gpu === 'ok'"
-    class="fixed inset-0 z-[100] bg-black pointer-events-none animate-[crt-warm_1.1s_cubic-bezier(0.55,0,0.75,0.6)_forwards]"
-    aria-hidden="true"
-    @animationend="warming = false"
-  />
+  <div v-if="warming && gpu === 'ok'" class="fixed inset-0 z-[100] bg-black pointer-events-none animate-crt-warm" aria-hidden="true" @animationend="warming = false" />
   <About v-if="aboutWanted" v-model="aboutOpen" />
   <CollectionWindow v-if="collectionWanted" v-model="collectionOpen" />
   <SoundWindow v-if="soundWanted" v-model="soundOpen" />

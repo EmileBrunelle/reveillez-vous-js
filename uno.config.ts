@@ -14,6 +14,21 @@ export default defineConfig({
       card: "'IM Fell English', Georgia, serif",
       title: "'Cinzel', Georgia, serif",
     },
+    // Animations (presetWind4) : `animate-<nom>` émet la keyframe une seule fois, avec durée, courbe, délai et fill-mode.
+    animation: {
+      keyframes: {
+        'reset-in': '{from{opacity:0;transform:scale(0.96)}}',
+        // Chauffe de la cathode : le voile noir s’éclaircit lentement (opacité seule, une fois, sans clignotement).
+        'crt-warm': '{from{opacity:1}to{opacity:0}}',
+        'checking-in': '{to{opacity:0.6}}',
+      },
+      durations: { 'reset-in': '0.2s', 'crt-warm': '1.1s', 'checking-in': '0.6s' },
+      timingFns: { 'reset-in': 'ease-out', 'crt-warm': 'cubic-bezier(0.55,0,0.75,0.6)', 'checking-in': 'ease' },
+      properties: {
+        'crt-warm': { 'animation-fill-mode': 'forwards' },
+        'checking-in': { 'animation-delay': '0.4s', 'animation-fill-mode': 'forwards' },
+      },
+    },
     colors: {
       bg: 'var(--bg)',
       fg: 'var(--fg)',
@@ -34,6 +49,6 @@ export default defineConfig({
     lead: 'm-0 text-[1.15rem] leading-[1.5]',
     'win-window': 'bg-[#c0c0c0] text-black shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_grey,inset_2px_2px_#dfdfdf] p-1',
     'win-btn':
-      'bg-[#c0c0c0] text-black px-3 py-1 cursor-pointer shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_grey,inset_2px_2px_#dfdfdf] active:shadow-[inset_-1px_-1px_#fff,inset_1px_1px_#0a0a0a,inset_-2px_-2px_#dfdfdf,inset_2px_2px_grey]',
+      'bg-[#c0c0c0] text-black px-3 py-1 cursor-pointer shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_grey,inset_2px_2px_#dfdfdf] active:shadow-[inset_-1px_-1px_#fff,inset_1px_1px_#0a0a0a,inset_-2px_-2px_#dfdfdf,inset_2px_2px_grey] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-black focus-visible:outline-offset-2 focus-visible:shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_grey,inset_2px_2px_#dfdfdf,0_0_0_2px_#fff]',
   },
 })
