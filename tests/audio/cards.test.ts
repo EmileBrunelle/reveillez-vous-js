@@ -32,12 +32,20 @@ vi.mock('@/audio/noise', () => ({
   startNoise: (_c: unknown, _src: unknown, _at: number, dur: number) => void h.durs.push(dur),
 }))
 
-import { cardCollect, cardHover, cardPick, cardPickStill, createGate, ENV_MAX, ENV_MIN, HOVER_MIN_INTERVAL, jitter, PEAK, WHOOSH_DUR } from '@/audio/cards'
+import { createGate, ENV_MAX, ENV_MIN, HOVER_MIN_INTERVAL, jitter, PEAK, WHOOSH_DUR } from '@/audio/cards'
 
 const THUD = 0.4
 const at = (ms: number) => vi.spyOn(performance, 'now').mockReturnValue(ms)
 
-beforeEach(() => {
+// Le limiteur de survol vit au niveau du module : on recharge le module à chaque test pour qu’un survol d’un test ne bloque pas le suivant.
+let cardCollect: typeof import('@/audio/cards').cardCollect
+let cardHover: typeof import('@/audio/cards').cardHover
+let cardPick: typeof import('@/audio/cards').cardPick
+let cardPickStill: typeof import('@/audio/cards').cardPickStill
+
+beforeEach(async () => {
+  vi.resetModules()
+  ;({ cardCollect, cardHover, cardPick, cardPickStill } = await import('@/audio/cards'))
   h.muted.value = false
   h.edges.length = 0
   h.peaks.length = 0

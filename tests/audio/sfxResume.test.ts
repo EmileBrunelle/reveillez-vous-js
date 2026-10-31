@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 
 // VueUse n’a pas de fenêtre en environnement node : on capte ce que sfx.ts lui demande d’observer.
@@ -15,8 +14,6 @@ vi.mock('@vueuse/core', async (importOriginal) => {
   }
 })
 
-import { ac, unlock } from '@/audio/sfx'
-
 class FakeCtx {
   state = 'running'
   currentTime = 1
@@ -27,18 +24,23 @@ class FakeCtx {
 }
 
 let c: FakeCtx
-beforeEach(() => {
+let unlock: () => void
+// Modules neufs à chaque test : le contexte et le drapeau « geste déjà fait » sont des singletons de module.
+beforeEach(async () => {
+  vi.resetModules()
+  h.listeners.clear()
   vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => undefined, removeItem: () => undefined })
   vi.stubGlobal('window', { AudioContext: FakeCtx })
+  const { createPinia, setActivePinia } = await import('pinia')
   setActivePinia(createPinia())
+  const sfx = await import('@/audio/sfx')
+  unlock = sfx.unlock
   h.visibility.value = 'visible'
-  c = ac() as unknown as FakeCtx // le contexte du module survit d’un test à l’autre : on le remet à neuf
-  c.state = 'running'
+  c = sfx.ac() as unknown as FakeCtx
   c.resume.mockClear()
 })
 afterEach(() => vi.unstubAllGlobals())
 
-// Le module garde son état d’un test à l’autre (contexte, « geste déjà fait ») : l’ordre des tests compte, « avant tout geste » d’abord.
 describe('reprise du contexte audio', () => {
   it('avant tout geste, le retour de visibilité ne reprend pas le contexte (avertissement d’autoplay)', async () => {
     c.state = 'suspended'

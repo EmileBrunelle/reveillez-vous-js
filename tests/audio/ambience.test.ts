@@ -222,33 +222,40 @@ describe('startAmbience (contexte factice)', () => {
 })
 
 describe('fondus de startAmbience (contexte factice)', () => {
-  beforeEach(() => {
+  // Modules neufs à chaque test : le contexte audio et l’heure du dernier arrêt (fondu enchaîné) sont des singletons de module.
+  let sfx: typeof import('@/audio/sfx')
+  let amb: typeof import('@/audio/ambience')
+  beforeEach(async () => {
     vi.useFakeTimers()
-    vi.advanceTimersByTime(1000) // hors de la fenêtre de fondu enchaîné d’un arrêt précédent
     vi.stubGlobal('window', { AudioContext: FakeCtx })
+    vi.resetModules()
+    const { createPinia: newPinia, setActivePinia: setPinia } = await import('pinia')
+    setPinia(newPinia())
+    sfx = await import('@/audio/sfx')
+    amb = await import('@/audio/ambience')
     Object.assign(stats, { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, looped: 0, removed: [], times: [] })
   })
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
-    muted.value = false
+    sfx.muted.value = false
   })
   const lastFade = () => Math.max(...stats.times)
 
   it('entrée d’un lieu : montée de 2,5 s', () => {
-    const stop = startAmbience('rue')
+    const stop = amb.startAmbience('rue')
     expect(lastFade()).toBeCloseTo(FADE_IN, 5)
     stop()
     vi.advanceTimersByTime(2500)
   })
 
   it('changement de lieu (arrêt puis démarrage aussitôt) : le nouveau lieu monte en 2 s, symétrique de la descente de l’ancien', () => {
-    const first = startAmbience('perron')
+    const first = amb.startAmbience('perron')
     stats.times = []
     first()
     expect(lastFade()).toBeCloseTo(FADE_OUT, 5)
     stats.times = []
-    const second = startAmbience('foret')
+    const second = amb.startAmbience('foret')
     expect(lastFade()).toBeCloseTo(FADE_XFADE, 5)
     expect(FADE_XFADE).toBe(FADE_OUT)
     second()
@@ -256,17 +263,17 @@ describe('fondus de startAmbience (contexte factice)', () => {
   })
 
   it('entrée longtemps après un arrêt : retour à la montée de 2,5 s', () => {
-    startAmbience('perron')()
+    amb.startAmbience('perron')()
     vi.advanceTimersByTime(2500)
     stats.times = []
-    const stop = startAmbience('foret')
+    const stop = amb.startAmbience('foret')
     expect(lastFade()).toBeCloseTo(FADE_IN, 5)
     stop()
     vi.advanceTimersByTime(2500)
   })
 
   it('départ : descente de 2 s, puis sources arrêtées et déconnectées (pas de coupure avant la fin du fondu)', () => {
-    const stop = startAmbience('cimetiere')
+    const stop = amb.startAmbience('cimetiere')
     vi.advanceTimersByTime(5000)
     stats.times = []
     const stoppedBefore = stats.stopped
@@ -280,10 +287,10 @@ describe('fondus de startAmbience (contexte factice)', () => {
   })
 
   it('sourdine : fondu de 0,25 s', async () => {
-    const stop = startAmbience('rue')
+    const stop = amb.startAmbience('rue')
     vi.advanceTimersByTime(5000)
     stats.times = []
-    muted.value = true
+    sfx.muted.value = true
     await nextTick()
     expect(lastFade()).toBeCloseTo(FADE_MUTE, 5)
     stop()
@@ -302,12 +309,12 @@ describe('fondus de startAmbience (contexte factice)', () => {
         }
       },
     })
-    // contexte déjà partagé par les tests précédents : on repart d’un contexte neuf via un module propre
+    // le contexte factice ci-dessus doit être celui du module : on repart de modules neufs
     vi.resetModules()
     const { createPinia: newPinia, setActivePinia: setPinia } = await import('pinia')
     setPinia(newPinia())
-    const sfx = await import('@/audio/sfx')
-    const amb = await import('@/audio/ambience')
+    sfx = await import('@/audio/sfx')
+    amb = await import('@/audio/ambience')
     const stop = amb.startAmbience('rue')
     vi.advanceTimersByTime(3000)
     sfx.muted.value = true

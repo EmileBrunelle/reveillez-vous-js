@@ -1,10 +1,12 @@
+[![Réveillez-vous.js : un œil jaune au-dessus du titre, « Voyance hantée · prophéties · Halloween », sur fond bleu façon Windows 98](public/og.png)](https://emilebrunelle.github.io/reveillez-vous-js/)
+
 # Réveillez-vous.js
 
 [![Jouer](https://img.shields.io/badge/jouer-en_ligne-8a2be2?style=flat-square)](https://emilebrunelle.github.io/reveillez-vous-js/)
 [![Déploiement](https://img.shields.io/github/actions/workflow/status/EmileBrunelle/reveillez-vous-js/deploy.yml?branch=main&style=flat-square&label=d%C3%A9ploiement)](https://github.com/EmileBrunelle/reveillez-vous-js/actions/workflows/deploy.yml)
 ![WebGPU requis](https://img.shields.io/badge/WebGPU-requis-005a9c?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-709_r%C3%A9ussis-brightgreen?style=flat-square)
-![Couverture](https://img.shields.io/badge/couverture-60%25-yellow?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-1253_r%C3%A9ussis-brightgreen?style=flat-square)
+![Couverture](https://img.shields.io/badge/couverture-99%25-brightgreen?style=flat-square)
 ![Vue 3 et TypeScript](https://img.shields.io/badge/Vue_3-TypeScript-42b883?style=flat-square&logo=vuedotjs&logoColor=white)
 [![Défi Fortune.js](https://img.shields.io/badge/d%C3%A9fi-Fortune.js_%C2%B7_AGEEI-ff7518?style=flat-square)](https://ageei.org/calendrier#event-638e0f24-afd5-4d20-b8e2-c76e02931e1c)
 
@@ -73,15 +75,17 @@ Polices (Google Fonts, licence SIL OFL) : [VT323](https://fonts.google.com/speci
 
 ## Qualité
 
-709 tests (94 fichiers, Vitest) couvrent le moteur, le contenu, l’audio, les stores et les composants. Couverture mesurée avec `npm run test:coverage` (v8, `src/`) :
+1 253 tests (132 fichiers, Vitest) couvrent le moteur, le contenu, l’audio, les stores, les composables, les effets WebGPU et les composants ; ils passent aussi dans un ordre mélangé (`--sequence.shuffle`). Couverture mesurée avec `npm run test:coverage` (v8, `src/`) :
 
 | Instructions | Branches | Fonctions | Lignes |
 | ------------ | -------- | --------- | ------ |
-| 59,6 %       | 47,1 %   | 60,3 %    | 60,0 % |
+| 98,3 %       | 93,5 %   | 97,0 %    | 99,5 % |
 
 Contrôles à passer avant toute livraison : `npx vitest run`, `npx vue-tsc -b`, `npm run lint` (ESLint, zéro avertissement), `npm run format:check` (Prettier) et `npm run build`.
 
 ## Lancer en local
+
+Node.js 22 (22.13 ou plus), 24 ou 26 : les versions impaires ne sont pas prises en charge par Vitest (plage déclarée dans `engines` de `package.json`). Développé sous Node 24 ; le déploiement GitHub Pages construit le site sous Node 26.
 
 ```bash
 npm install
@@ -133,10 +137,12 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 **Ce que j’ai fait :**
 
 - le concept, la direction artistique et le ton (vieux PC hanté, carte de tarot, montée du mystère) ;
-- toutes les décisions de conception : WebGPU obligatoire, cartes plutôt que dépliant, porte fermée où l’on cogne un rythme à reproduire (règles de réussite et d’échec), pas de partage ni de graine ;
+- les décisions de conception principales : WebGPU obligatoire, cartes plutôt que dépliant, porte fermée où l’on cogne un rythme à reproduire (règles de réussite et d’échec), pas de partage ni de graine ;
 - les règles de contenu : écriture inclusive, références québécoises, blagues qui visent des lieux et jamais des personnes, exclusions ;
 - les tests à la main dans le navigateur et les retours sur ce qui n’allait pas (taille de la carte, pépins visuels trop voyants, porte trop petite…) ;
 - certaines blagues (dont l’Australie qui devient l’Argentine).
+
+Le détail, tiré des transcriptions de session, est dans [docs/recadrages.md](docs/recadrages.md) : les moments où j’ai corrigé la direction prise par l’IA, avec mes citations exactes, et un tableau de qui a décidé quoi (moi, l’IA avec mon accord, ou l’IA seule).
 
 ## Défi
 
