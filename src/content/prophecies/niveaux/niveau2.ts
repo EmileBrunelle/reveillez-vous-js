@@ -53,6 +53,14 @@ export const niveau2: ContenuNiveau = {
     'Vous tricoterez une tuque et des mitaines à un homard des Îles-de-la-Madeleine, puis vous demanderez aux esprits de lui trouver un nom. Après une longue délibération, l’au-delà répondra : « chien ». Les cartes confirment que c’est maintenant son nom officiel.',
     'Le portrait hanté du corridor changera de photo de profil pour la huitième fois. C’est encore la même. Les cartes vous conseillent d’aimer quand même : il vous regarde.',
     'Ce soir, vous recevrez un mot d’amour écrit à même la peau. Il viendra de votre chat noir, qui vous mordra la joue en vous regardant droit dans les yeux. Les cartes appellent ça de la tendresse.',
+    'Au service au volant du cimetière, vous commanderez une résurrection. Dans le haut-parleur, une voix grésillante répondra : « Désolé, la machine est brisée. » D’après les cartes, elle l’est depuis 1847.',
+    'Vous verserez un bidon entier de JavaScript sur une toute petite page web, comme une sorcière qui a la main lourde sur la potion. Les cartes avouent que cette prophétie-ci en contient déjà pas mal.',
+    'L’étiquette de votre costume d’Halloween indiquera : « Fabriqué en dinde ». Les cartes ignorent d’où il vient vraiment, mais la nuit, il glougloute.',
+    'Avant son premier rendez-vous en trois siècles, un vampire déjeunera d’une rôtie trempée dans le rince-bouche et tartinée de dentifrice. Les cartes saluent l’effort. Personne n’a eu le cœur de lui dire.',
+    'Vous verserez beaucoup trop de bain moussant. La mousse montera jusqu’au plafond. Tout en haut, un fantôme vous fera signe : il n’a jamais été aussi propre depuis 1923.',
+    'Un matin, le fantôme de votre appartement vous laissera un gâteau sur le comptoir. Au glaçage, on lira : « MERCI DE ME TOLÉRER ». Les cartes trouvent que c’est la meilleure colocation de votre vie.',
+    'Dans les corridors de l’au-delà, une voix du service de garde vous rattrapera : « En rang deux par deux, pis ça presse ! On court pas dans les corridors ! » Les cartes confirment que, même après la mort, elle en a son voyage.',
+    'Vous sculpterez la citrouille la plus terrifiante du quartier : une pile à 2 %. Les enfants passeront leur chemin sans comprendre. Les adultes, eux, chercheront un chargeur en tremblant.',
   ],
   // Prophéties sèches (rares, ~1 lecture sur 8) : phrases courtes, aplomb total, chute absurde au futur.
   // Futur épicène : jamais de participe qui s’accorde avec la personne qui lit.
