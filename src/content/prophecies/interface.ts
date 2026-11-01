@@ -26,7 +26,7 @@ export const interfaceTextes: Grammar = {
     { titre: 'Barre des tâches', texte: 'La porte a été ouverte avant vous.' },
     { titre: 'Connexion non sécurisée', texte: 'Êtes-vous en HTTP ? Parce que ://' },
     { titre: 'Avis de l’au-delà', texte: 'Vous utilisez peut-être vos données mobiles. Les esprits ne paient pas votre forfait.' },
-    { titre: 'Note de service', texte: 'Pas de Comic Sans : nous sommes une voyance Fortune.js, pas un kiosque à limonade.' },
+    { titre: 'Note de service', texte: 'Pas de Comic Sans : nous sommes un cabinet de voyance Fortune.js, pas un kiosque à limonade.' },
   ],
   bulle3: [
     { titre: 'Connexion détectée', texte: 'Une personne consulte votre horoscope en ce moment.' },

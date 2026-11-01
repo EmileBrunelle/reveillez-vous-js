@@ -24,7 +24,7 @@ const btn =
         <AlertDialog.Title class="m-0 text-[1rem] font-bold">Tout oublier ?</AlertDialog.Title>
       </div>
       <div class="p-4">
-        <AlertDialog.Description as="p" class="[margin:0_0_1.2rem]">La voyance oubliera votre visage et vos visites. Le niveau de vigilance revient à 1.</AlertDialog.Description>
+        <AlertDialog.Description as="p" class="[margin:0_0_1.2rem]">La boule de cristal oubliera votre visage et vos visites. Le niveau de vigilance revient à 1.</AlertDialog.Description>
         <div class="flex flex-wrap gap-3 justify-end">
           <AlertDialog.Cancel ref="cancelBtn" :class="`${btn} bg-[#ffff55]`">Annuler</AlertDialog.Cancel>
           <AlertDialog.Action :class="`${btn} bg-[#aaaaaa]`" @action="emit('confirm')">Oublier</AlertDialog.Action>
