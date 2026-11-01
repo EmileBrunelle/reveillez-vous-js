@@ -2,6 +2,7 @@
 import { useHaptics } from '@/composables/haptics'
 import { computed, onMounted, ref, shallowRef, useId, watch, useTemplateRef } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
+import type { AnimationOptions } from 'motion-v'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { useMotionScope } from '@/composables/useMotionScope'
 import { focusQuietly } from '@/composables/focusQuietly'
@@ -25,7 +26,7 @@ import DoorShading from './DoorShading.vue'
 import DoorGround from './DoorGround.vue'
 import { lookFor } from './doorLook'
 
-const { line, level, closing, quick } = defineProps<{ door: SceneVariant; line: string; level: ParanoiaLevel; closing?: boolean; quick?: boolean }>()
+const { door, line, level, closing, quick } = defineProps<{ door: SceneVariant; line: string; level: ParanoiaLevel; closing?: boolean; quick?: boolean }>()
 const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; knocked: []; closed: []; listening: [boolean] }>()
 // Visite de rappel : un seul toucher ouvre la porte (rituel déjà réussi plus tôt dans la session). Fixé au montage.
 const quickMode = quick === true
@@ -44,6 +45,7 @@ const spill = useTemplateRef<HTMLElement>('spill')
 const seer = useTemplateRef<HTMLElement>('seer')
 const dustLayer = useTemplateRef<HTMLElement>('dustLayer')
 const strip = useTemplateRef<HTMLElement>('strip')
+const handleLayer = useTemplateRef<HTMLElement>('handleLayer')
 const ui = useTemplateRef<HTMLElement>('ui')
 const sparks = useTemplateRef<InstanceType<typeof SparkPool>>('sparks')
 const captionLayer = useTemplateRef<HTMLElement>('captionLayer')
@@ -88,8 +90,17 @@ const dust = (n: number) => {
 }
 
 // La poignée vit dans un SVG en ligne (composant de variante) : pas de ref de gabarit possible, d’où une requête dans notre propre sous-arbre,
-// faite une seule fois après le montage (et non à chaque coup).
-const doorHandles = shallowRef<NodeListOf<Element> | null>(null)
+// faite une seule fois après le montage (et non à chaque coup). Elle se lit dans le calque des poignées (non filtré), jamais dans la porte
+// filtrée : une poignée qui tourne dans le filtre SVG le ferait recalculer (turbulence + éclairages) à chaque image. Le composant est remonté
+// à chaque porte (clé `sceneKey` dans App.vue), donc cette lecture unique reste valable.
+const doorHandles = shallowRef<{ knobs: NodeListOf<Element> | null; levers: NodeListOf<Element> | null }>({ knobs: null, levers: null })
+/** Chaque poignée bouge selon son mécanisme (doorLook) : les boutons tournent, les béquilles s’abaissent (jamais vers le haut), les barres restent fixes. */
+const LEVER_RATIO = 0.7
+const turnHandles = (knob: number | number[], options?: AnimationOptions) => {
+  const { knobs, levers } = doorHandles.value
+  go(knobs, { rotate: knob }, options)
+  go(levers, { rotate: Array.isArray(knob) ? knob.map((a) => Math.abs(a) * LEVER_RATIO) : Math.abs(knob) * LEVER_RATIO }, options)
+}
 
 /** Bascule la porte sous un coup de la voyante ou du joueur. */
 const jitter = (intensity: number) => {
@@ -100,19 +111,15 @@ const jitter = (intensity: number) => {
   // Le bâti encaisse le coup : décalage latéral, léger roulis autour du seuil et un petit recul (échelle), puis ressort amorti qui oscille.
   snap(el, { x: dir * amp, rotateZ: dir * (0.6 + 1.4 * intensity), scale: 1 - 0.006 * (1 + intensity) })
   go(el, { x: 0, rotateZ: 0, scale: 1 }, { type: 'spring', stiffness: 520, damping: 8.5 })
-  const handles = doorHandles.value
-  if (handles?.length) {
-    snap(handles, { rotate: 25 * dir })
-    go(handles, { rotate: 0 }, { type: 'spring', stiffness: 380, damping: 5 })
-  }
+  turnHandles(25 * dir, { duration: 0 })
+  turnHandles(0, { type: 'spring', stiffness: 380, damping: 5 })
   dust(2 + Math.round(intensity * 4))
 }
 
 /** Poignée sous la souris : elle s’incline d’un ressort au survol et revient au repos en le quittant (la souris seulement ; le tactile n’a pas de survol). */
 const handleHover = (over: boolean, e: PointerEvent) => {
-  const handles = doorHandles.value
-  if (e.pointerType !== 'mouse' || !handles?.length || reduced.value || state !== 'idle') return
-  go(handles, { rotate: over ? 14 : 0 }, { type: 'spring', stiffness: 260, damping: 11 })
+  if (e.pointerType !== 'mouse' || reduced.value || state !== 'idle') return
+  turnHandles(over ? 14 : 0, { type: 'spring', stiffness: 260, damping: 11 })
 }
 
 /** Coup de la voyante, de l’intérieur : le battant pousse vers nous (charnière + léger zoom), poussière du cadre et filet de lumière sous la porte. */
@@ -131,6 +138,15 @@ const jitterInside = (intensity: number) => {
   snap(strip.value, { opacity: 0.55 })
   go(strip.value, { opacity: 0 }, { duration: 0.18, ease: 'easeOut' })
 }
+
+const look = computed(() => lookFor(door.id))
+const maskStyle = computed(() => ({ maskImage: `url('${door.mask}')`, WebkitMaskImage: `url('${door.mask}')` }))
+// Gonds et chant d’après l’emprise réelle du battant (boîte 120 × 190), pas d’après la boîte : le pivot et la tranche suivent la silhouette.
+const hingePct = computed(() => (look.value.bounds.hingeX / 120) * 100)
+const edgeBox = computed(() => {
+  const { edgeX, top, bottom } = look.value.bounds
+  return { left: `${(edgeX / 120) * 100}%`, top: `${(top / 190) * 100}%`, height: `${((bottom - top) / 190) * 100}%` }
+})
 
 const session = useSessionStore()
 const intensity = () => knockIntensity(level)
@@ -166,9 +182,22 @@ const said = ref(quickMode ? line : '(Cognez à la porte)')
 const verdictText = ref('')
 // Invite sans geste depuis ~3 s : on souffle que la porte se touche (respiration lente + ligne d’aide).
 const nudge = ref(false)
+// Promotion du cadre en calque pendant l’ouverture seulement : le zoom (1 à 3,6) ne repeint alors ni le cadre filtré ni le sol à chaque image.
+const zooming = ref(false)
 const nudgeTimer = useTimeoutFn(() => (nudge.value = true), 3000, { immediate: false })
+// Retour en douceur de la respiration : on fige l’échelle courante dans une variable CSS, et une courte animation la ramène à 1
+// (sans cela, `scale` retomberait d’un coup à 1 dès le premier coup).
+const settling = ref(false)
 const stopNudge = () => {
   nudgeTimer.stop()
+  const el = leaf.value
+  if (nudge.value && el && !reduced.value) {
+    const current = getComputedStyle(el).scale
+    if (current && current !== 'none') {
+      el.style.setProperty('--settle', current)
+      settling.value = true
+    }
+  }
   nudge.value = false
 }
 const hint = computed(() => {
@@ -300,7 +329,13 @@ const onDoorMousedown = (e: MouseEvent) => {
 }
 
 onMounted(() => {
-  doorHandles.value = leaf.value?.querySelectorAll('.door-handle') ?? null
+  const layer = handleLayer.value
+  layer?.querySelectorAll<SVGElement>('.door-handle').forEach((el, i) => {
+    const kind = look.value.handles[i] ?? 'bar'
+    el.dataset.kind = kind
+    if (kind === 'lever') el.style.transformOrigin = '0% 50%' // la béquille pivote autour de son axe (extrémité gauche)
+  })
+  doorHandles.value = { knobs: layer?.querySelectorAll('[data-kind=knob]') ?? null, levers: layer?.querySelectorAll('[data-kind=lever]') ?? null }
   if (closing) return void slamShut()
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
   nudgeTimer.start()
@@ -313,7 +348,7 @@ const open = async () => {
   unlock()
   halt()
   snap(shake.value, { x: 0, rotateZ: 0, scale: 1 })
-  snap(leaf.value, { rotateY: 0, scale: 1 })
+  snap(leaf.value, { rotateY: 0, scale: 1, z: 0 })
   creak()
   if (reduced.value) {
     go(leaf.value, { opacity: 0 }, { duration: 0.2 })
@@ -322,11 +357,13 @@ const open = async () => {
     await wait(400)
     return finish()
   }
+  zooming.value = true
   // La poignée tourne, le battant hésite (un léger tirage vers nous), puis il pivote sur ses gonds ; l’ombre du battant suit l’angle.
-  go(doorHandles.value, { rotate: [0, 38, 0] }, { duration: 0.34, ease: 'easeInOut' })
+  turnHandles([0, 38, 0], { duration: 0.34, ease: 'easeInOut' })
   go(
     leaf.value,
-    { rotateY: [0, -2.5, OPEN_DEG] },
+    // Porte à joint (frigo) : le battant se décolle d’abord vers nous (translation Z de `tug` px, comme un joint magnétique qui lâche).
+    { rotateY: [0, -2.5, OPEN_DEG], ...(look.value.tug ? { z: [0, look.value.tug, look.value.tug] } : {}) },
     {
       duration: 0.75,
       times: [0, 0.14, 1],
@@ -410,7 +447,12 @@ const onSceneClick = (e: MouseEvent) => {
     class="scene grid-rows-[minmax(0,1fr)_auto] [--stage-cap:clamp(10rem,45dvh,28rem)] max-sm:portrait:[--stage-cap:clamp(10rem,54dvh,30rem)] h-[min(calc(100dvh_-_var(--taskbar-h)_-_0.75rem_-_var(--pad-t)),calc(var(--stage-cap)_+_11rem))]"
     @click="onSceneClick"
   >
-    <div ref="stage" data-stage class="relative w-auto h-full max-h-[var(--stage-cap)] self-end aspect-[120/190] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]">
+    <div
+      ref="stage"
+      data-stage
+      :class="{ 'will-change-transform': zooming }"
+      class="relative w-auto h-full max-h-[var(--stage-cap)] self-end aspect-[120/190] origin-[50%_45%] select-none [-webkit-tap-highlight-color:transparent]"
+    >
       <div class="absolute inset-0" aria-hidden="true">
         <div
           ref="glow"
@@ -430,17 +472,32 @@ const onSceneClick = (e: MouseEvent) => {
            > `leaf` (pivot sur les gonds, Motion). La perspective vit sur le parent direct, centrée sur la porte ; la 3D ne sort pas de ce bloc. -->
       <div ref="shake" class="absolute inset-0 origin-[50%_85%]">
         <div class="absolute inset-0 [perspective:1500px] [perspective-origin:50%_50%]">
-          <div class="door-tilt absolute inset-0 origin-[0_50%] transform-3d">
+          <div class="door-tilt absolute inset-0 transform-3d" :style="{ transformOrigin: `${hingePct}% 50%` }">
             <div
               ref="leaf"
               data-leaf
               :data-nudge="nudge && phase === 'invite' ? '' : undefined"
-              class="absolute inset-0 origin-[0_50%] transform-3d will-change-transform select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+              :data-settle="settling ? '' : undefined"
+              class="absolute inset-0 transform-3d will-change-transform select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
               role="img"
               :aria-label="door.label"
+              :style="{ transformOrigin: `${hingePct}% 50%` }"
+              @animationend="settling = false"
             >
               <div class="absolute inset-0 backface-hidden">
-                <DoorShading :door-id="door.id"><component :is="door.component" class="block w-full h-full" /></DoorShading>
+                <!-- Lueur du survol et anneau du focus clavier : calques frères derrière la porte (silhouette pleine dont seul le débord se voit),
+                     jamais un `filter` sur le nœud filtré lui-même, qui se re-rastériserait à chaque image de la transition. -->
+                <div class="door-halo absolute inset-0 pointer-events-none opacity-0" aria-hidden="true">
+                  <div class="absolute inset-0 bg-[rgb(255_226_140)] [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat]" :style="maskStyle" />
+                </div>
+                <div class="door-ring absolute inset-0 pointer-events-none opacity-0" aria-hidden="true">
+                  <div class="absolute inset-0 bg-[var(--accent)] [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat]" :style="maskStyle" />
+                </div>
+                <!-- Porte filtrée, statique (poignées masquées par CSS) ; les poignées, seules à bouger, sont redessinées au-dessus sans filtre. -->
+                <DoorShading class="door-base" :door-id="door.id"><component :is="door.component" class="block w-full h-full" /></DoorShading>
+                <div ref="handleLayer" class="door-handles absolute inset-0 pointer-events-none" :style="{ filter: `brightness(${look.gain})` }" aria-hidden="true">
+                  <component :is="door.component" class="block w-full h-full" />
+                </div>
               </div>
               <!-- Ombre du battant qui s’éloigne de la lumière : simple opacité liée à l’angle, découpée sur la silhouette de la porte. -->
               <div
@@ -448,10 +505,10 @@ const onSceneClick = (e: MouseEvent) => {
                 class="absolute inset-0 bg-[#05060c] opacity-0 pointer-events-none backface-hidden [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat]"
                 :style="{ maskImage: `url('${door.mask}')`, WebkitMaskImage: `url('${door.mask}')` }"
               />
-              <!-- Chant du côté serrure : une tranche d’environ 3,5 % de la largeur, repliée vers l’arrière. -->
+              <!-- Chant du côté serrure : une tranche d’environ 3,5 % de la largeur, repliée vers l’arrière, collée au vrai bord du battant (bornes de doorLook). -->
               <div
-                class="absolute top-0 left-full h-full w-[3.5%] origin-[0_50%] [transform:rotateY(90deg)] pointer-events-none"
-                :style="{ background: `linear-gradient(to right, ${lookFor(door.id).edge}, color-mix(in srgb, ${lookFor(door.id).edge} 55%, black))` }"
+                class="absolute w-[3.5%] origin-[0_50%] [transform:rotateY(90deg)] pointer-events-none"
+                :style="{ ...edgeBox, background: `linear-gradient(to right, ${look.edge}, color-mix(in srgb, ${look.edge} 55%, black))` }"
               />
             </div>
           </div>
@@ -528,24 +585,51 @@ const onSceneClick = (e: MouseEvent) => {
   opacity: 0;
   transition: opacity 0.2s;
 }
-.door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)::after {
+.door-hit[data-kbd='true']:not([data-phase='listen']):focus-visible::after {
   opacity: 0.75;
 }
 .door-tilt {
   transition: transform 0.25s;
 }
-[data-leaf] :deep(.door-skin) {
-  transition: filter 0.25s;
+/* Poignées : la porte filtrée les cache, le calque des poignées cache tout le reste (la visibilité d’un enfant l’emporte sur celle du parent). */
+.door-base :deep(.door-handle) {
+  visibility: hidden;
 }
-[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)) .door-tilt {
-  transform: rotateY(-5deg);
+.door-handles :deep(svg *) {
+  visibility: hidden;
 }
-[data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)) [data-leaf] :deep(.door-skin) {
+.door-handles :deep(.door-handle) {
+  visibility: visible;
+}
+/* Lueur et anneau : calques frères (silhouette découpée par le masque), seule leur opacité change ; le filtre statique ne bouge jamais. */
+.door-halo {
   filter: drop-shadow(0 0 0.5556rem rgb(255 226 140 / 0.55));
+  transition: opacity 0.25s;
 }
 /* Focus clavier : anneau qui suit la silhouette de la porte (quatre ombres nettes, une par côté), jamais au clic ni au tap (data-kbd). */
-[data-stage]:has(.door-hit[data-kbd='true'][data-phase]:focus-visible) [data-leaf] :deep(.door-skin) {
+.door-ring {
   filter: drop-shadow(3px 0 0 var(--accent)) drop-shadow(-3px 0 0 var(--accent)) drop-shadow(0 3px 0 var(--accent)) drop-shadow(0 -3px 0 var(--accent));
+}
+[data-stage]:has(.door-hit[data-kbd='true']:not([data-phase='listen']):focus-visible) .door-tilt {
+  transform: rotateY(-5deg);
+}
+[data-stage]:has(.door-hit[data-kbd='true']:not([data-phase='listen']):focus-visible) .door-halo {
+  opacity: 1;
+}
+[data-stage]:has(.door-hit[data-kbd='true'][data-phase]:focus-visible) .door-ring {
+  opacity: 1;
+}
+/* Survol : seulement avec un vrai pointeur (le :hover collant du tactile laisserait la porte inclinée). */
+@media (hover: hover) {
+  .door-hit:not([data-phase='listen']):hover::after {
+    opacity: 0.75;
+  }
+  [data-stage]:has(.door-hit:not([data-phase='listen']):hover) .door-tilt {
+    transform: rotateY(-5deg);
+  }
+  [data-stage]:has(.door-hit:not([data-phase='listen']):hover) .door-halo {
+    opacity: 1;
+  }
 }
 /* Contraste forcé (Windows High Contrast) : les ombres et lueurs disparaissent, on dessine un vrai contour. */
 @media (forced-colors: active) {
@@ -557,6 +641,15 @@ const onSceneClick = (e: MouseEvent) => {
 /* Invite : la porte respire (6 s par cycle, ≈0,17 Hz, 1,5 % d’amplitude), sans changement de luminance. Coupée dès le premier coup. */
 [data-leaf][data-nudge] {
   animation: door-breathe 6s ease-in-out infinite;
+}
+/* Fin de l’invite : retour de l’échelle figée (--settle) à 1 en 0,3 s, au lieu d’un saut. */
+[data-leaf][data-settle] {
+  animation: door-settle 0.3s ease-out;
+}
+@keyframes door-settle {
+  from {
+    scale: var(--settle, 1);
+  }
 }
 @keyframes door-breathe {
   /* Propriété `scale` individuelle (et non `transform`) : elle se compose avec les transforms de Motion sur le même élément sans les écraser. */
@@ -574,11 +667,16 @@ const onSceneClick = (e: MouseEvent) => {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-leaf][data-nudge] {
+  [data-leaf][data-nudge],
+  [data-leaf][data-settle] {
     animation: none;
   }
   [data-stage] :deep(.seer-halo) {
     animation: none;
+  }
+  .door-tilt,
+  .door-halo {
+    transition: none;
   }
   [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)) .door-tilt {
     transform: none;
