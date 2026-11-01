@@ -4,7 +4,7 @@ import { M as Motion, animate, useMotionValue } from 'motion-v'
 import { useEventListener, useElementSize, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
-import { FAN, FAN_SCALE, STOW_FADE_MS, stowDelay, stowOf } from './deckFan'
+import { EXIT_SHIFT, FAN, clampExitX, FAN_SCALE, STOW_FADE_MS, STOW_SCALE, cardRect, depthOf, rectsOverlap, shadowOf, stowDelay, stowFrac, stowOf } from './deckFan'
 import { isDrag } from './deckTouch'
 import { cardDeal } from '@/audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '@/audio/cards'
@@ -30,15 +30,48 @@ const chosen = ref<number | null>(null)
 const promptId = useId()
 const hot = ref<number | null>(null)
 // Rang d’empilement fixe : passer d’un coup devant une carte qui la recouvre encore donne l’impression de la traverser.
-// Au survol, la carte se soulève et ses voisines se tassent ; dès le choix, la carte choisie passe au-dessus de toutes les autres (z-10) : les cartes qui se rangent glissent dessous, jamais à travers.
+// Au survol, la carte se soulève et ses voisines se tassent. La carte choisie ne passe devant (z-10) que lorsque son rectangle est séparé de celui de toutes les autres cartes visibles
+// (voir `separated`) : l’ordre ne change jamais pendant un chevauchement ; les cartes qui se rangent glissent ensuite dessous.
 const flying = ref(false)
-const restZ = (i: number) => (i === 1 ? 3 : 1)
-const zClass = (i: number) => {
-  const z = chosen.value === i && flying.value ? 10 : restZ(i)
-  return z === 10 ? 'z-10' : z === 3 ? 'z-3' : 'z-1'
-}
+const zClass = (i: number) => (chosen.value === i && flying.value ? 'z-10' : i === 1 ? 'z-3' : 'z-1')
 const ready = ref(false)
+// Repère « ▸ » de la légende : UN seul élément qui glisse d’une ligne à l’autre (transition CSS sur `translate`, propriété sans lien avec le transform des cartes).
+// Il suit la ligne active (survol, focus ou choix) ; il apparaît en fondu à la position de la première ligne active, et s’efface en fondu à sa dernière position.
+// Refs en fonction indexée : Vue ne garantit pas l’ordre d’un tableau de refs rempli par un v-for.
+const lineEls: Array<HTMLElement | null> = []
+const activeLine = computed(() => hot.value ?? chosen.value)
+const markY = ref(0)
+const markOn = ref(false)
+const markGlide = ref(false) // faux le temps d’une image : le repère se pose sans glisser quand il apparaît (jamais de glissade depuis nulle part)
+const measureMark = () => {
+  const i = activeLine.value
+  if (i !== null) markY.value = lineEls[i]?.offsetTop ?? 0
+}
+// Passer d’une carte à l’autre au pointeur passe un instant par « aucune ligne active » : le repère n’est caché qu’après une courte attente, sinon il rejouerait son apparition à chaque saut.
+const { start: startHideMark, stop: stopHideMark } = useTimeoutFn(() => (markOn.value = false), 120, { immediate: false })
+watch(activeLine, (now) => {
+  if (now === null) return startHideMark()
+  stopHideMark()
+  if (chosen.value !== null && !markOn.value) return // toucher : la légende s’efface au choix, le repère ne s’allume pas sur la ligne choisie
+  const fresh = !markOn.value
+  measureMark()
+  markOn.value = true
+  if (fresh) {
+    markGlide.value = false
+    void nextFrameOr(60).then(() => (markGlide.value = true))
+  }
+})
 const cards = [0, 1, 2] as const
+// Pile statique au centre (dos de cartes réutilisés), posée avant les cartes de l’éventail : aucun coût par image. Les cartes y atterrissent à la même place (`stowFrac`).
+const pile = cards.map((j) => {
+  const f = stowFrac(j)
+  const sh = shadowOf(depthOf(STOW_SCALE, 1), 1)
+  return {
+    j,
+    transform: `translate(calc(-50% + ${f.x * 100}cqw), calc(-50% + ${f.y * 100}cqw)) rotate(${f.r}deg) scale(${f.s})`,
+    shadow: { transform: `translateY(${sh.y * 100}cqw) scale(${sh.s})`, opacity: sh.o },
+  }
+})
 
 // --- ressorts -------------------------------------------------------------------------------------------------------------------
 interface Spr {
@@ -60,6 +93,9 @@ const cardValues = () => ({
   rotateY: useMotionValue(0),
   perspective: useMotionValue(0),
   glow: useMotionValue(0),
+  shadowY: useMotionValue(0),
+  shadowO: useMotionValue(0),
+  shadowS: useMotionValue(1),
 })
 interface Card extends Record<Ch, Spr> {
   mv: ReturnType<typeof cardValues>
@@ -90,6 +126,7 @@ watch(deckW, (w) => {
   // useElementSize repasse à 0 quand la cible change, avant que le ResizeObserver ne mesure : on ignore ce 0.
   if (!w) return
   W = w
+  measureMark() // les lignes de la légende peuvent se replier autrement : le repère se recale
   if (reduced.value) layoutStatic()
 })
 watch(wide, () => reduced.value && layoutStatic())
@@ -145,8 +182,19 @@ let lastTs = 0
 const FINAL_S = 1 // l’élément a la largeur de la boîte : échelle 1 = la carte du tirage
 let startS = fanScale()
 const OTHERS_DELAY = 90 // anticipation de la carte choisie (ms) avant la fuite des autres
-const FLY_DELAY = 400 // l’envol de la carte choisie attend que les autres soient parties vers la pile : elle ne croise jamais une autre carte
+const FLY_DELAY = 400 // carte du milieu seulement : l’envol attend que les autres soient parties vers la pile
 let finished = false
+let deckCx = 0 // centre de la boîte à l’écran et largeur du viewport, lus une fois au choix (bornes de la sortie latérale)
+let viewW = 0
+let flown = false // la carte choisie a pris le premier plan et part vers la lecture
+let flyAt = 0
+const EXIT_MAX = 900 // filet : si la séparation n’arrive jamais (boîte minuscule), la carte passe devant quand même
+// Vrai quand le rectangle de la carte i ne touche plus celui d’aucune autre carte encore visible (une carte quasi transparente ne compte plus).
+const separated = (i: number) => {
+  const box = (c: Card) => cardRect({ x: c.x.c, y: c.y.c, s: c.s.c, r: c.r.c }, W, 0.03 * W)
+  const mine = box(state[i])
+  return cards.every((j) => j === i || state[j].o.c < 0.02 || !rectsOverlap(mine, box(state[j])))
+}
 
 const apply = () => {
   cards.forEach((i) => {
@@ -160,6 +208,11 @@ const apply = () => {
     mv.perspective.set(W * 1.3)
     mv.rotateX.set(c.tx.c)
     mv.rotateY.set(c.ty.c)
+    // Ombre pré-floutée (un enfant à flou fixe) : seuls son décalage, son échelle et son opacité bougent, tous liés à la profondeur (= l’échelle de la carte).
+    const sh = shadowOf(depthOf(c.s.c, FINAL_S), W)
+    mv.shadowY.set(sh.y)
+    mv.shadowO.set(sh.o)
+    mv.shadowS.set(sh.s)
     if (chosen.value === i) {
       const prog = clamp((c.s.c - startS) / (FINAL_S - startS), 0, 1)
       mv.glow.set(Math.sin(Math.PI * prog))
@@ -212,16 +265,21 @@ const tick = (now: number) => {
       c.zeta = phase === 'deal' ? 0.55 : 0.68
     } else if (chosen.value === i) {
       const rest = restOf(i, null)
-      if (now < pickAt + FLY_DELAY) {
-        // Anticipation : petit recul pendant que les autres cartes s’écartent, puis l’envol.
-        c.x.t = rest.x
-        c.y.t = rest.y + 0.018 * W
+      if (!flown) {
+        // Sortie : la carte du milieu est déjà au premier plan (elle attend que les autres s’écartent) ; une carte latérale glisse hors du paquet, avec un léger lift.
+        const side = i === 1 ? 0 : Math.sign(FAN[i].x)
+        c.x.t = clampExitX(rest.x + side * EXIT_SHIFT * W, deckCx, viewW, (rest.s * 1.06 * W) / 2, 0.04 * W) // jamais hors du viewport (téléphone) : les autres cartes qui partent finissent la séparation
+        c.y.t = rest.y + (i === 1 ? 0.018 : -0.04) * W
         c.r.t = rest.r
-        c.s.t = rest.s * 0.94
-        c.k = 420
-        c.zeta = 0.9
+        c.s.t = rest.s * (i === 1 ? 0.94 : 1.06) // la carte qui sort se rapproche (elle grossit), comme celles qui se rangent reculent (elles rétrécissent vers la pile)
+        c.k = i === 1 ? 420 : 380
+        c.zeta = i === 1 ? 0.9 : 0.8
+        if (i === 1 ? now >= pickAt + FLY_DELAY : separated(i) || now >= pickAt + EXIT_MAX) {
+          flown = true
+          flyAt = now
+          flying.value = true
+        }
       } else {
-        flying.value = true
         c.x.t = 0
         c.y.t = 0
         c.r.t = 0
@@ -265,7 +323,7 @@ const tick = (now: number) => {
     })
   }
   apply()
-  if (phase === 'pick' && chosen.value !== null && now > pickAt + FLY_DELAY + 200) {
+  if (phase === 'pick' && chosen.value !== null && flown && now > flyAt + 200) {
     const c = state[chosen.value]
     const settled = Math.abs(c.x.c) < 0.4 && Math.abs(c.y.c) < 0.4 && Math.abs(c.r.c) < 0.15 && Math.abs(c.s.c - FINAL_S) < 0.004 && Math.abs(c.x.v) + Math.abs(c.y.v) < 8
     if (settled) finish()
@@ -293,6 +351,7 @@ const layoutStatic = () => {
 const { start: startReducedPick } = useTimeoutFn(() => emit('pick', paquets[chosen.value ?? 0]), 320, { immediate: false })
 // Mouvement réduit : pas de ressort ni de pile, mais jamais de téléportation. Les autres cartes s’effacent, la choisie glisse brièvement vers la carte du tirage.
 // La boucle rAF ne tourne pas dans ce mode : ces courtes animations sont le seul maître des valeurs.
+const { start: startReducedFront } = useTimeoutFn(() => (flying.value = true), 260, { immediate: false }) // devant seulement une fois les autres effacées (jamais d’ordre changé en chevauchement)
 const reducedPick = (picked: number) => {
   const opts = { duration: 0.25, ease: 'easeOut' } as const
   cards.forEach((i) => {
@@ -303,6 +362,7 @@ const reducedPick = (picked: number) => {
     animate(mv.rotate, 0, opts)
     animate(mv.scale, FINAL_S, opts)
   })
+  startReducedFront()
   startReducedPick()
 }
 
@@ -452,11 +512,11 @@ const status = computed(() => {
 })
 const onFocus = (i: number, e: FocusEvent) => ((e.target as HTMLElement).matches(':focus-visible') ? (reduced.value ? labelOnly(i) : setHot(i)) : undefined)
 
-const { start: startFallback } = useTimeoutFn(() => finish(), 1800, { immediate: false }) // filet indépendant de la boucle rAF (onglet masqué, largeur nulle…)
+const { start: startFallback } = useTimeoutFn(() => finish(), EXIT_MAX + 1800, { immediate: false }) // filet (après le filet de séparation + un vol : finish() ne fait jamais sauter une carte encore en vol) indépendant de la boucle rAF (onglet masqué, largeur nulle…)
 const choose = (i: number) => {
   if (chosen.value !== null || !ready.value) return
   W = deckW.value || W // jamais 0 ici : un choix suppose une boîte rendue ; on garde la dernière largeur connue sinon
-  flying.value = true
+  flying.value = false
   chosen.value = i
   hot.value = null
   if (reduced.value) cardPickStill()
@@ -468,6 +528,9 @@ const choose = (i: number) => {
     reducedPick(i)
     return
   }
+  const box = deckEl.value?.getBoundingClientRect()
+  deckCx = box ? box.left + box.width / 2 : 0
+  viewW = window.innerWidth
   phase = 'pick'
   pickAt = performance.now()
   startFallback()
@@ -495,9 +558,17 @@ const choose = (i: number) => {
         :class="{ 'opacity-0 duration-200': chosen !== null }"
         aria-hidden="true"
       >
+        <span
+          class="deck__mark absolute left-[-2cqw] top-0 [color:#e8a850] opacity-0"
+          :class="{ 'opacity-100': markOn, 'deck__mark--glide': markGlide && !reduced }"
+          :style="{ translate: `0 ${markY}px` }"
+          aria-hidden="true"
+          >▸</span
+        >
         <li
           v-for="i in cards"
           :key="i"
+          :ref="(el) => (lineEls[i] = el as HTMLElement | null)"
           class="deck__line relative flex items-start gap-[2cqw] [transition:opacity_0.15s_ease-out,color_0.15s_ease-out,translate_0.15s_ease-out]"
           :class="{ 'deck__line--on': hot === i, '[color:#c2b189]': hot !== null && hot !== i }"
         >
@@ -507,6 +578,11 @@ const choose = (i: number) => {
           >
         </li>
       </ul>
+    </div>
+    <!-- Pile de dos de cartes au centre, derrière l’éventail (z-0) : d’où sortent les cartes à la donne, où elles se rangent. Purement décorative. -->
+    <div v-for="p in pile" :key="p.j" class="deck__pile absolute top-1/2 left-1/2 w-[100cqw] pointer-events-none z-0" :style="{ transform: p.transform }" aria-hidden="true">
+      <span class="absolute inset-0 rounded-[4cqw] [background:rgb(5_8_24)] [filter:blur(2.6cqw)]" :style="{ transform: p.shadow.transform, opacity: p.shadow.opacity }"></span>
+      <TarotCardBack class="relative" fill :paquet="paquets[p.j]" />
     </div>
     <Motion
       v-for="i in cards"
@@ -526,6 +602,12 @@ const choose = (i: number) => {
       @focus="onFocus(i, $event)"
       @blur="onLeave(i)"
     >
+      <Motion
+        as="span"
+        :style="{ y: state[i].mv.shadowY, opacity: state[i].mv.shadowO, scale: state[i].mv.shadowS }"
+        class="absolute inset-0 rounded-[4cqw] pointer-events-none will-change-transform [background:rgb(5_8_24)] [filter:blur(2.6cqw)]"
+        aria-hidden="true"
+      />
       <Motion as="span" :style="{ opacity: state[i].mv.glow }" class="deck__glow absolute inset-0 rounded-[4cqw] pointer-events-none" aria-hidden="true" />
       <Motion as="span" :style="{ transformPerspective: state[i].mv.perspective, rotateX: state[i].mv.rotateX, rotateY: state[i].mv.rotateY }" class="block relative">
         <TarotCardBack fill :paquet="paquets[i]" />
@@ -550,17 +632,13 @@ const choose = (i: number) => {
   color: #fff;
   translate: 1.6cqw 0;
 }
-.deck__line::before {
-  content: '▸';
-  position: absolute;
-  left: -3.6cqw;
-  top: 0;
-  color: #e8a850;
-  opacity: 0;
+.deck__mark {
   transition: opacity 0.15s ease-out;
 }
-.deck__line--on::before {
-  opacity: 1;
+.deck__mark--glide {
+  transition:
+    opacity 0.15s ease-out,
+    translate 0.18s ease-out;
 }
 .deck__line--on b {
   text-decoration: underline;
@@ -612,7 +690,8 @@ const choose = (i: number) => {
   .deck__prompt,
   .deck__legend,
   .deck__line,
-  .deck__line::before {
+  .deck__mark,
+  .deck__mark--glide {
     transition: none;
   }
 }

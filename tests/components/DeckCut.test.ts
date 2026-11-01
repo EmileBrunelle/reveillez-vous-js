@@ -190,10 +190,9 @@ describe('DeckCut : choix à la souris', () => {
     expect(statut()).toBe('Carte choisie.')
     expect(cartes().every((c) => c.attributes('disabled') !== undefined)).toBe(true)
     expect(w.emitted('pick')).toBeUndefined()
-    // Dès le choix (avant tout mouvement), la carte du dessous passe au-dessus de toutes les autres, qui se rangent dessous.
-    expect(cartes()[2].classes()).toContain('z-10')
-    expect(cartes()[0].classes()).not.toContain('z-10')
-    expect(cartes()[1].classes()).not.toContain('z-10')
+    // L’ordre ne change pas en plein chevauchement : juste après le clic, la carte du dessous est encore derrière la carte du milieu.
+    expect(cartes()[2].classes()).not.toContain('z-10')
+    expect(cartes()[1].classes()).toContain('z-3')
     images(300) // fuite des autres, envol, tassement
     await w.vm.$nextTick()
     expect(cartes()[2].classes()).toContain('z-10') // la carte choisie passe devant à l’envol
@@ -219,13 +218,13 @@ describe('DeckCut : choix à la souris', () => {
     }
   })
 
-  it('sans image d’animation (onglet masqué), le filet de 1,8 s émet quand même', async () => {
+  it('sans image d’animation (onglet masqué), le filet de 2,7 s émet quand même (séparation 0,9 s + vol 1,8 s)', async () => {
     const w = monter()
     await avancer(1100)
     await cartes()[0].trigger('click')
-    await avancer(1700)
-    expect(w.emitted('pick')).toBeUndefined()
-    await avancer(300)
+    await avancer(2600)
+    expect(w.emitted('pick')).toBeUndefined() // le filet ne coupe pas un vol possible : il attend la séparation (0,9 s) puis le vol
+    await avancer(400)
     expect(w.emitted('pick')).toEqual([[paquets[0]]])
   })
 
@@ -259,7 +258,7 @@ describe('DeckCut : choix à la souris', () => {
     await avancer(1100)
     images(10)
     await cartes()[1].trigger('click')
-    await avancer(2000)
+    await avancer(3000)
     expect(w.emitted('pick')).toEqual([[paquets[1]]])
   })
 })
@@ -367,5 +366,42 @@ describe('DeckCut : toucher (aperçu et annonce)', () => {
     await avancer(100)
     expect(w.emitted('pick')).toBeUndefined()
     expect(cardHover).not.toHaveBeenCalled()
+  })
+})
+
+describe('DeckCut : repère de la légende', () => {
+  // happy-dom ne fait aucune mise en page : offsetTop = rang de la ligne × 20 px.
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, 'offsetTop', {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.classList.contains('deck__line') ? [...this.parentElement!.querySelectorAll('.deck__line')].indexOf(this) * 20 : 0
+      },
+    })
+  })
+  afterEach(() => {
+    delete (HTMLElement.prototype as { offsetTop?: number }).offsetTop
+  })
+  const repere = () => wrapper!.get('.deck__mark')
+  it('un seul repère, caché au départ, qui suit la ligne active puis s’efface sans bouger', async () => {
+    monter()
+    await avancer(1100)
+    expect(wrapper!.findAll('.deck__mark')).toHaveLength(1)
+    expect(repere().attributes('aria-hidden')).toBe('true')
+    expect(repere().classes()).not.toContain('opacity-100')
+    pointeur(cartes()[1].element, 'pointerenter')
+    await wrapper!.vm.$nextTick()
+    expect(repere().classes()).toContain('opacity-100')
+    expect(repere().attributes('style')).toContain('translate: 0 20px')
+    pointeur(cartes()[1].element, 'pointerleave')
+    pointeur(cartes()[2].element, 'pointerenter')
+    await wrapper!.vm.$nextTick()
+    expect(repere().attributes('style')).toContain('translate: 0 40px')
+    pointeur(cartes()[2].element, 'pointerleave')
+    await wrapper!.vm.$nextTick()
+    expect(repere().classes()).toContain('opacity-100') // attente courte : un saut d’une carte à l’autre ne le cache pas
+    await avancer(130)
+    expect(repere().classes()).not.toContain('opacity-100')
+    expect(repere().attributes('style')).toContain('translate: 0 40px') // reste en place pendant le fondu
   })
 })
