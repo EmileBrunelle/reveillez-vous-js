@@ -61,7 +61,7 @@ const monter = async (level = LEVEL, seed = 11) => {
 }
 const hud = (w: VueWrapper) => w.get('[data-testid="activity-hud"]')
 const invite = (w: VueWrapper) => w.get('p[aria-live="polite"]')
-const bouton = (w: VueWrapper) => w.get('button.stop')
+const bouton = (w: VueWrapper) => w.get('button.crystal-hit')
 const symboles = (w: VueWrapper) => w.findAll('[data-testid="pendulum-symbol"]')
 const cible = (w: VueWrapper) => symboles(w).findIndex((s) => s.attributes('data-target') !== undefined)
 const angleCss = (w: VueWrapper) => Number((w.get('[data-testid="pendulum-swing"]').element as HTMLElement).style.getPropertyValue('--a'))
@@ -97,20 +97,25 @@ describe('PendulumActivity : consigne et accessibilité', () => {
     expect(invite(w).attributes('aria-live')).toBe('polite')
   })
 
-  it('un bouton réel « Arrêter le pendule », focalisé au montage, décrit par les trois gestes', async () => {
+  it('le cristal est un bouton réel « Arrêter le pendule », seul bouton de l’activité, focalisé au montage, décrit par les gestes', async () => {
     const w = await monter()
     const b = bouton(w)
     expect(b.element.tagName).toBe('BUTTON')
     expect(b.attributes('type')).toBe('button')
-    expect(b.text()).toBe('Arrêter le pendule')
+    expect(b.attributes('aria-label')).toBe('Arrêter le pendule')
+    expect(w.findAll('button.crystal-hit')).toHaveLength(1) // plus de gros bouton sous le demi-cercle
+    expect(b.element.closest('.crystal-pos')).not.toBeNull() // enfant du bras qui tourne : il suit le cristal
+    expect(w.get('[data-testid="pendulum-hint"]').text()).toMatch(/^(Cliquez sur|Touchez) le pendule$/)
     expect(document.activeElement).toBe(b.element)
     expect(w.get(`#${b.attributes('aria-describedby')}`).text()).toBe(PENDULUM_TEXTS.help)
     expect(b.attributes('tabindex')).toBeUndefined()
   })
 
-  it('la scène (dessin) est cachée aux lecteurs d’écran ; le HUD annonce l’issue', async () => {
+  it('le dessin est caché aux lecteurs d’écran (sauf le cristal-bouton) ; le HUD annonce l’issue', async () => {
     const w = await monter()
-    expect(w.get('[data-testid="pendulum-scene"]').attributes('aria-hidden')).toBe('true')
+    expect(w.get('.board').attributes('aria-hidden')).toBe('true')
+    expect(w.get('.crystal').attributes('aria-hidden')).toBe('true')
+    expect(bouton(w).element.closest('[aria-hidden="true"]')).toBeNull()
     expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.pendulum.verb)
   })
 
@@ -176,6 +181,17 @@ describe('PendulumActivity : arrêt', () => {
     await bouton(w).trigger('click', { detail: 1 })
     await avancer(100)
     expect(suivi.steps).toBeGreaterThan(avant)
+  })
+
+  it('un appui à côté du cristal (fond, scène) n’arrête rien et rend le focus au cristal', async () => {
+    const w = await monter()
+    ;(document.activeElement as HTMLElement).blur()
+    await w.get('[data-testid="pendulum-stage"]').trigger('pointerdown', { button: 0 })
+    await w.get('[data-testid="pendulum-scene"]').trigger('pointerdown', { button: 0 })
+    await w.get('.board').trigger('pointerdown', { button: 0 })
+    await avancer(100)
+    expect(suivi.state!.stopped).toBe(false)
+    expect(document.activeElement).toBe(bouton(w).element)
   })
 
   it('un autre bouton de souris n’arrête pas', async () => {

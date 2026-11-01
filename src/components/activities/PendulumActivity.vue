@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
-import { useCssVar, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useCssVar, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { animate } from 'motion-v'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '@/engine/activityTiming'
@@ -22,6 +22,7 @@ import IconRaven from '~icons/game-icons/raven'
 import IconPumpkin from '~icons/game-icons/pumpkin'
 
 // Le pendule : un cristal au bout d’un fil se balance au-dessus d’un demi-cercle de symboles ; il faut l’ARRÊTER sur celui qui est demandé.
+// On l’arrête en cliquant ou en touchant le cristal lui-même (bouton réel, enfant du bras qui tourne : il suit sans second maître de la rotation).
 // L’arrêt ajoute un fort amortissement (le cristal glisse encore avant de s’immobiliser) : on anticipe. La physique est dans `engine/pendulum`.
 // La boucle `useRafFn` est la seule à écrire l’angle (variables CSS `--a`, `--w`, `--k` du support) ; le fil, le cristal, la traînée et l’ombre en dérivent en CSS.
 const { level, rng = undefined } = defineProps<{ level: number; rng?: Rng }>()
@@ -31,6 +32,8 @@ const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 const reduced = useReducedMotion()
 const helpId = useId()
+// Indication selon le geste : doigt ou souris.
+const coarse = useMediaQuery('(pointer: coarse)')
 
 const ICONS: Record<PendulumSymbolId, typeof IconMoon> = { moon: IconMoon, star: IconStar, skull: IconSkull, eye: IconEye, cat: IconCat, ghost: IconGhost, raven: IconRaven, pumpkin: IconPumpkin }
 
@@ -113,7 +116,7 @@ const stopNow = () => {
   pulse(20)
 }
 
-// Clic, toucher ou clavier : l’arrêt se déclenche à l’appui (pointerdown, keydown), pas au relâchement, pour ne pas perdre de précision.
+// Clic ou toucher sur le cristal, ou clavier : l’arrêt se déclenche à l’appui (pointerdown, keydown), pas au relâchement, pour ne pas perdre de précision.
 // Le `click` qui suit un appui de souris ou de doigt (detail > 0) ou une touche déjà traitée est ignoré ; seul un `click` sans appui (lecteur d’écran) arrête.
 const KEY_GUARD_MS = 600
 let keyStopAt = -Infinity
@@ -142,7 +145,9 @@ watch(lit, async (i) => {
 })
 
 const btn = useTemplateRef<HTMLElement>('btn')
-// Le bouton prend le focus au montage (sans anneau si l’entrée était un pointeur) : Espace et Entrée arrêtent dès la première seconde.
+// Un appui à côté du cristal n’arrête rien, mais rend le focus au cristal pour que le clavier continue d’agir.
+const refocus = () => focusQuietly(btn.value)
+// Le cristal prend le focus au montage (sans anneau si l’entrée était un pointeur) : Espace et Entrée arrêtent dès la première seconde.
 onMounted(() => {
   render()
   focusQuietly(btn.value)
@@ -170,15 +175,15 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
 </script>
 
 <template>
-  <div class="relative size-full flex flex-col items-center justify-center gap-3 px-4 pb-32 font-ui select-none" data-testid="pendulum-stage">
+  <div class="relative size-full flex flex-col items-center justify-center gap-3 px-4 pb-32 font-ui select-none" data-testid="pendulum-stage" @pointerdown.self="refocus">
     <p class="min-h-[3lh] max-w-[26ch] text-center text-xl leading-tight text-amber-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
-    <div class="scene relative" aria-hidden="true" data-testid="pendulum-scene">
+    <div class="scene relative" data-testid="pendulum-scene" @pointerdown.self="refocus">
       <!-- Brume : deux nappes qui dérivent lentement (une seule fois sans fin, hors mouvement réduit). -->
-      <span class="mist mist-a pointer-events-none absolute" />
-      <span class="mist mist-b pointer-events-none absolute" />
-      <svg class="board absolute" :viewBox="`${-BOARD - 0.02} -0.02 ${2 * BOARD + 0.04} ${BOARD + 0.04}`" preserveAspectRatio="none">
+      <span class="mist mist-a pointer-events-none absolute" aria-hidden="true" />
+      <span class="mist mist-b pointer-events-none absolute" aria-hidden="true" />
+      <svg class="board absolute" aria-hidden="true" :viewBox="`${-BOARD - 0.02} -0.02 ${2 * BOARD + 0.04} ${BOARD + 0.04}`" preserveAspectRatio="none">
         <defs>
           <radialGradient id="pendulum-stone" cx="0" cy="0" r="1.12" gradientUnits="userSpaceOnUse">
             <stop offset="0.35" stop-color="#231a33" />
@@ -204,6 +209,7 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
         :key="s.id"
         ref="symbolEls"
         class="slot absolute grid place-items-center rounded-full"
+        aria-hidden="true"
         :class="{ target: s.i === target && lit !== s.i, lit: lit === s.i, missed: missed === s.i }"
         :style="{ left: `calc(50% + var(--L) * ${f(s.x)})`, top: `calc(var(--P) + var(--L) * ${f(s.y)})` }"
         data-testid="pendulum-symbol"
@@ -215,37 +221,36 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
       </span>
       <!-- support : l’angle est écrit par la boucle ; chaque bras tourne autour du pivot (origine 0 0) -->
       <div ref="swingEl" class="swing absolute" data-testid="pendulum-swing">
-        <span class="arm shadow-arm absolute"
+        <span class="arm shadow-arm absolute" aria-hidden="true"
           ><span class="shadow-pos absolute"><span class="shadow-blob absolute" /></span
         ></span>
         <template v-if="!reduced">
-          <span v-for="(lag, k) in GHOST_LAG" :key="k" class="arm ghost-arm absolute" :style="{ '--lag': lag }"
+          <span v-for="(lag, k) in GHOST_LAG" :key="k" class="arm ghost-arm absolute" aria-hidden="true" :style="{ '--lag': lag }"
             ><span class="crystal-pos absolute"><span class="ghost absolute inset-0" /></span
           ></span>
         </template>
         <span class="arm main-arm absolute"
-          ><span class="string absolute" /><span class="crystal-pos absolute"
-            ><span class="glow absolute" /><span class="crystal absolute inset-0"><span class="glint absolute" /></span></span
+          ><span class="string absolute" aria-hidden="true" /><span class="crystal-pos absolute"
+            ><span class="glow absolute" aria-hidden="true" /><span class="crystal absolute inset-0" aria-hidden="true"><span class="glint absolute" /></span>
+            <!-- Cible : bouton réel centré sur le cristal (zone de toucher généreuse), enfant du bras qui tourne. -->
+            <button
+              ref="btn"
+              type="button"
+              class="crystal-hit absolute rounded-full cursor-pointer touch-manipulation bg-transparent border-0 p-0 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-amber-200 focus-visible:outline-offset-2"
+              :aria-label="PENDULUM_TEXTS.stop"
+              :aria-disabled="outcome === 'play' ? undefined : 'true'"
+              :aria-describedby="helpId"
+              @pointerdown="onPointerdown"
+              @keydown="onKeydown"
+              @keyup.space.prevent
+              @click="onClick" /></span
         ></span>
         <span class="pivot absolute rounded-full" />
       </div>
     </div>
-    <!-- Bouton réel, sur toute l’activité : un appui n’importe où arrête le pendule (zone de toucher bien au-delà de 44 px). -->
-    <button
-      ref="btn"
-      type="button"
-      class="stop absolute inset-0 cursor-pointer touch-manipulation bg-transparent border-0 p-0 font-ui focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-amber-200 focus-visible:-outline-offset-6"
-      :aria-disabled="outcome === 'play' ? undefined : 'true'"
-      :aria-describedby="helpId"
-      @pointerdown="onPointerdown"
-      @keydown="onKeydown"
-      @keyup.space.prevent
-      @click="onClick"
-    >
-      <span class="absolute bottom-16 left-1/2 -translate-x-1/2 win-btn min-h-11 inline-flex items-center whitespace-nowrap px-5 text-xl" :class="{ invisible: outcome !== 'play' }">{{
-        PENDULUM_TEXTS.stop
-      }}</span>
-    </button>
+    <p class="absolute bottom-16 left-1/2 -translate-x-1/2 whitespace-nowrap text-xl text-violet-200" :class="{ invisible: outcome !== 'play' }" aria-hidden="true" data-testid="pendulum-hint">
+      {{ coarse ? PENDULUM_TEXTS.hintTouch : PENDULUM_TEXTS.hintClick }}
+    </p>
     <p :id="helpId" class="sr-only">{{ PENDULUM_TEXTS.help }}</p>
     <ActivityHud activity="pendulum" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
   </div>
@@ -383,6 +388,13 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
   width: max(1px, calc(var(--L) * 0.005));
   height: calc(var(--L) * (var(--Rc) - 0.11));
   background: linear-gradient(#d8ccf0, rgb(216 204 240 / 0.75));
+}
+.crystal-hit {
+  left: 50%;
+  top: 50%;
+  width: max(4rem, calc(var(--L) * 0.4));
+  height: max(4rem, calc(var(--L) * 0.4));
+  translate: -50% -50%;
 }
 .crystal-pos {
   left: calc(var(--L) * -0.06);

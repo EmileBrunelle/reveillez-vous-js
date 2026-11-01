@@ -40,10 +40,13 @@ export const PENDULUM_SYMBOLS = [
 export type PendulumSymbolId = (typeof PENDULUM_SYMBOLS)[number]['id']
 
 export const PENDULUM_TEXTS = {
-  /** Bouton réel qui arrête le pendule (nom accessible et libellé visible). */
+  /** Cristal-bouton qui arrête le pendule (nom accessible). */
   stop: 'Arrêter le pendule',
+  /** Indications visibles sous le demi-cercle, selon le geste (doigt ou souris). */
+  hintTouch: 'Touchez le pendule',
+  hintClick: 'Cliquez sur le pendule',
   /** Description du bouton : les trois gestes et le conseil d’anticiper (le cristal glisse avant de s’immobiliser). */
-  help: 'Cliquez, touchez l’écran ou appuyez sur Espace ou Entrée pour arrêter le pendule. Le cristal glisse encore un peu avant de s’immobiliser : devancez-le.',
+  help: 'Cliquez sur le pendule, touchez-le ou appuyez sur Espace ou Entrée pour l’arrêter. Le cristal glisse encore un peu avant de s’immobiliser : devancez-le.',
   /** Consigne, annoncée au début. */
   ask: (on: string) => `Arrêtez le pendule sur ${on}`,
   /** Après un raté (`held` : symbole où le cristal s’est arrêté, null s’il est resté entre deux), avec la consigne répétée. */
