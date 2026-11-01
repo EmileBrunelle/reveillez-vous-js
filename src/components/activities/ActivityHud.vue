@@ -8,6 +8,8 @@ import { tryOnScopeDispose, useEventListener, useIntervalFn, useTimeoutFn, useWi
 import { useOverlayStore } from '@/stores/overlay'
 import { AWAY_KEY } from '@/composables/useActivityDone'
 import { focusQuietly } from '@/composables/focusQuietly'
+import { useHudRefs } from '@/composables/hudRefs'
+import { registerLayoutEl } from '@/composables/layoutRefs'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { ACTIVITY_PROMPTS, type TimedActivity } from '@/content/activityPrompts'
 import { ACTIVITY_GRACE_MS, durationOf, outcomeText, timeLeft, type Phase } from '@/engine/activityTiming'
@@ -77,6 +79,11 @@ watch(
   { flush: 'post' },
 )
 const pauseEl = useTemplateRef<HTMLElement>('pauseEl')
+const barEl = useTemplateRef<HTMLElement>('barEl')
+// Publiées à l’activité parente (zone à ne pas recouvrir) ; sans fournisseur, références locales inertes.
+const hudRefs = useHudRefs()
+registerLayoutEl(hudRefs.pauseEl, pauseEl)
+registerLayoutEl(hudRefs.barEl, barEl)
 // Reprise : le focus revient sur le bouton Pause (sans anneau si c’est un clic).
 watch(
   showPause,
@@ -150,6 +157,7 @@ watch(
          Pas de Progress de v0 ici : son Fill écrit lui-même `style.width` (même en renderless), ce qui entre en conflit avec l’animation `scaleX`
          et obligerait à mettre l’état à jour à chaque image ; la barre est donc un `role="progressbar"` natif dont seule la valeur accessible vit dans l’état. -->
     <div
+      ref="barEl"
       role="progressbar"
       aria-label="Temps restant"
       :aria-valuenow="left"

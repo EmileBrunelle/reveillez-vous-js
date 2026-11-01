@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isNear, nextWaypoint, stepCatch, stepSpring, stepWisp, wispTuning, type Vec, type WispTuning } from '@/engine/wisps'
+import { HUD_MARGIN, WISP_HALF, isNear, nextWaypoint, stepCatch, stepSpring, stepWisp, wispTuning, type Vec, type WispTuning } from '@/engine/wisps'
 import { mulberry32, type Rng } from '@/engine/rng'
 
 describe('wisps', () => {
@@ -125,5 +125,47 @@ describe('feux follets : durée d’une partie simulée', () => {
       expect(st.pos.y).toBeGreaterThanOrEqual(t.margin)
       expect(st.pos.y).toBeLessThanOrEqual(H - t.margin)
     }
+  })
+
+  describe('zone interdite du HUD', () => {
+    // Zones du HUD telles que le composant les mesure : consigne pleine largeur, bouton Pause (zone de toucher comprise), barre de temps.
+    const hudDe = (w: number, h: number) => [
+      { x0: 0, y0: 12, x1: w, y1: 40 },
+      { x0: w - 8 - 32 - 6, y0: 8 - 6, x1: w - 8 + 6, y1: 8 + 32 + 6 },
+      { x0: 12, y0: h - 12 - 22, x1: w - 12, y1: h - 12 },
+    ]
+    // L’orbe (carré de 44 px centré sur le feu) doit rester à ≥ 12 px de chaque zone.
+    const croise = (p: Vec, z: { x0: number; y0: number; x1: number; y1: number }) => {
+      const m = WISP_HALF + HUD_MARGIN
+      return p.x > z.x0 - m && p.x < z.x1 + m && p.y > z.y0 - m && p.y < z.y1 + m
+    }
+    for (const [w, h] of [
+      [1280, 800],
+      [384, 740],
+    ]) {
+      it(`${w}×${h} : 500 apparitions et trajectoires sans croiser le HUD`, () => {
+        const hud = hudDe(w, h)
+        const t = wispTuning(3, w, h, hud)
+        const rng = mulberry32(2026)
+        for (let i = 0; i < 500; i++) {
+          const start = nextWaypoint(rng, w, h, { x: w / 2, y: h / 2 }, 56, 0, t.avoid)
+          expect(hud.some((z) => croise(start, z))).toBe(false)
+          let s = { pos: start, vel: { x: 0, y: 0 }, target: nextWaypoint(rng, w, h, start, 56, undefined, t.avoid), untilHop: 0 }
+          // 3 s de trajectoire à 60 images/s, le pointeur parfois près du feu (hésitation).
+          for (let k = 0; k < 180; k++) {
+            s = stepWisp(s, k % 3 === 0 ? { x: s.pos.x + 20, y: s.pos.y } : null, 1 / 60, rng, w, h, t)
+            expect(hud.some((z) => croise(s.pos, z))).toBe(false)
+          }
+        }
+      })
+    }
+    it('une cible placée sous le HUD est repoussée au bord, bornes respectées', () => {
+      const w = 384
+      const h = 740
+      const hud = hudDe(w, h)
+      const t = wispTuning(3, w, h, hud)
+      const s = stepWisp({ pos: { x: 340, y: 100 }, vel: { x: 0, y: -400 }, target: { x: 340, y: 10 }, untilHop: 5 }, null, 1 / 60, mulberry32(1), w, h, t)
+      expect(hud.some((z) => croise(s.pos, z))).toBe(false)
+    })
   })
 })

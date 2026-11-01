@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { computed, ref, useId, useTemplateRef } from 'vue'
-import { useElementSize, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { computed, nextTick, onMounted, ref, useId, useTemplateRef } from 'vue'
+import { useElementBounding, useElementSize, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { M as Motion, useMotionValue } from 'motion-v'
 import { useDeferredText } from '@/composables/useDeferredText'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import ActivityHud from './ActivityHud.vue'
+import { provideHudRefs } from '@/composables/hudRefs'
 import { durationOf } from '@/engine/activityTiming'
 import { useActivityDone } from '@/composables/useActivityDone'
 import { secureRng, type Rng } from '@/engine/rng'
 import { aimPoint, TOUCH_GRACE_MS } from '@/composables/touchAim'
 import { useHaptics } from '@/composables/haptics'
-import { isNear, nextWaypoint, stepCatch, stepWisp, wispTuning, type Vec } from '@/engine/wisps'
+import { isNear, nextWaypoint, stepCatch, stepWisp, wispTuning, type Rect, type Vec } from '@/engine/wisps'
 
 const { level } = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
@@ -22,7 +23,35 @@ const rng: Rng = secureRng()
 const TOTAL = 3
 const stage = useTemplateRef<HTMLElement>('stage')
 const { width, height } = useElementSize(stage, undefined, { box: 'border-box' })
-const tuning = computed(() => wispTuning(level, width.value, height.value)) // rayon ≥ 72 px : généreux pour le tactile
+
+// Zone interdite : la consigne (pleine largeur, en haut), le bouton Pause (zone de toucher de 44 px comprise) et la barre de temps du HUD.
+// Mesurées sur le DOM (le HUD reste la source de vérité de ses dimensions) ; le feu garde 12 px de marge, orbe compris.
+const stageBox = useElementBounding(stage)
+const promptEl = useTemplateRef<HTMLElement>('promptEl')
+const promptBox = useElementBounding(promptEl)
+const hudRefs = provideHudRefs() // le HUD y publie son bouton Pause et sa barre de temps
+const pauseBox = useElementBounding(hudRefs.pauseEl)
+const barBox = useElementBounding(hudRefs.barEl)
+onMounted(async () => {
+  await nextTick()
+  for (const b of [stageBox, promptBox, pauseBox, barBox]) b.update() // mesure immédiate : le premier feu ne naît pas sur le repli
+})
+const TOUCH_PAD = 6 // la zone de toucher du bouton Pause dépasse son cadre de 6 px
+const hudZones = computed<Rect[]>(() => {
+  const ox = stageBox.left.value
+  const oy = stageBox.top.value
+  const zone = (b: { left: { value: number }; top: { value: number }; right: { value: number }; bottom: { value: number } }, pad = 0): Rect | null =>
+    b.right.value > b.left.value ? { x0: b.left.value - ox - pad, y0: b.top.value - oy - pad, x1: b.right.value - ox + pad, y1: b.bottom.value - oy + pad } : null
+  const zones = [zone(promptBox), zone(pauseBox, TOUCH_PAD), zone(barBox)].filter((z): z is Rect => !!z)
+  // Repli avant la première mesure : bandes du haut et du bas, bouton Pause dans le coin.
+  return zones.length
+    ? zones
+    : [
+        { x0: 0, y0: 0, x1: width.value, y1: 52 },
+        { x0: 0, y0: height.value - 32, x1: width.value, y1: height.value },
+      ]
+})
+const tuning = computed(() => wispTuning(level, width.value, height.value, hudZones.value)) // rayon ≥ 72 px : généreux pour le tactile
 const reduced = useReducedMotion()
 
 // État rendu par Vue (rare : à chaque capture ou apparition).
@@ -76,12 +105,12 @@ const pushTrail = () => {
 const spawn = () => {
   const w = width.value
   const h = height.value
-  const start = nextWaypoint(rng, w, h, { x: w / 2, y: h / 2 }, 56, 0)
+  const start = nextWaypoint(rng, w, h, { x: w / 2, y: h / 2 }, 56, 0, tuning.value.avoid)
   place(start)
   history = Array.from({ length: HISTORY }, () => start)
   pushTrail()
   vel = { x: 0, y: 0 }
-  target = nextWaypoint(rng, w, h, start)
+  target = nextWaypoint(rng, w, h, start, 56, undefined, tuning.value.avoid)
   untilHop = 0
   setProgress(0)
   blooming.value = false
@@ -127,7 +156,7 @@ const { pause } = useRafFn(({ delta }) => {
     if (hopWait > 0) {
       hopWait -= dt
       if (hopWait <= 0) {
-        place(nextWaypoint(rng, width.value, height.value, pos))
+        place(nextWaypoint(rng, width.value, height.value, pos, 56, undefined, tuning.value.avoid))
         hidden.value = false
         untilHop = 2.4
       }
@@ -202,7 +231,7 @@ const keyboardHelpId = useId()
 
 <template>
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
-    <p class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
+    <p ref="promptEl" class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
     <p :id="keyboardHelpId" class="sr-only">Au clavier, activez le bouton « Attraper le feu follet ».</p>
