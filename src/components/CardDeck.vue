@@ -21,7 +21,8 @@ import { useReducedMotion } from '@/composables/useReducedMotion'
 // pas y glisser la carte par z-index. Un deuxième élément racine, la COUCHE DE RECOUVREMENT (`deckcover`), est donc une copie fixe du dessus du paquet (dos + couches au-dessus du rang visé), partageant les mêmes valeurs
 // Motion (même position, même inclinaison) et rendue PAR-DESSUS la carte (z-10, jamais animé) : éteinte, puis allumée quand la carte est séparée du paquet, éteinte une fois la carte fondue. Identique au paquet dessous : invisible.
 // Sur-échantillonnage : l’intérieur 3D est dessiné à SS× sa taille puis ramené par scale(1/SS) (.deck-ss) ; Chromium lisse mal les bords des plans inclinés en preserve-3d, surtout la tranche. La perspective suit (px × SS).
-const SS = 2
+// Au toucher (téléphone), pas de sur-échantillonnage : couche trop lourde à DPR 3 (voir aussi la règle pointer: coarse de .deck-ss).
+const SS = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 1 : 2
 const reduced = useReducedMotion()
 const box = useTemplateRef<HTMLElement>('box')
 const { width } = useElementSize(box, undefined, { box: 'border-box' })
@@ -188,6 +189,12 @@ usePresence({
   translate: -50% -50%;
   scale: 0.5;
   container-type: inline-size;
+}
+@media (pointer: coarse) {
+  .deck-ss {
+    width: 100%;
+    scale: 1;
+  }
 }
 .deck-plan {
   outline: 1px solid transparent;

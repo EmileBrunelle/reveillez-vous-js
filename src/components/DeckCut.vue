@@ -96,7 +96,10 @@ watch(activeLine, (now) => {
 const cards = [0, 1, 2] as const
 // Qualité : lue UNE fois au montage (niveau « posé »), jamais en plein vol de carte ; un changement de niveau ne s’applique qu’à la prochaine coupe.
 // En `low` (appareil faible) : pas de sur-échantillonnage du dos, pas d’inclinaison au pointeur ni de traîne, oscillation au repos réduite, ombre de profondeur fixe.
-const low = useQuality().settled.value === 'low'
+// Au toucher (téléphone, écran à haute densité), pas de sur-échantillonnage : la densité lisse déjà les bords, et une couche 2× à DPR 3
+// dépasse vite la mémoire graphique du téléphone (cartes affichées en morceaux ou en retard).
+const touchScreen = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
+const low = useQuality().settled.value === 'low' || touchScreen
 const SS = low ? 1 : 2 // facteur de sur-échantillonnage du dos (voir .deck__ss dans le gabarit)
 const CALM = low ? 0.4 : 1 // part de l’oscillation au repos conservée
 // --- ressorts -------------------------------------------------------------------------------------------------------------------
