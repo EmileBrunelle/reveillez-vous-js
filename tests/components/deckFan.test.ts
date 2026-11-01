@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { DECK_LAYERS, DECK_PERSP, DECK_THICK, DECK_TILT, FAN_PERSP, FAN_SCALE, PILE_LIFE, STOW_END_SCALE, STOW_SCALE, dealStartOf, deckPose, stowDelay, stowFrac, stowOf } from '@/components/deckFan'
+import { mulberry32 } from '@/engine/rng'
+import {
+  DECK_LAYERS,
+  DECK_PERSP,
+  DECK_THICK,
+  DECK_TILT,
+  FAN_PERSP,
+  FAN_SCALE,
+  PILE_LIFE,
+  STOW_END_SCALE,
+  STOW_SCALE,
+  FAN_STACK,
+  dealRankOf,
+  dealStartOf,
+  deckPose,
+  drawPileOrder,
+  promoteMiddle,
+  stackOfPile,
+  stowDelay,
+  stowFrac,
+  stowOf,
+} from '@/components/deckFan'
 
 describe('deckFan : pile de rangement sur le dessus du paquet', () => {
   it('la pile est au centre de la boîte (dessus du paquet), plus petite que l’éventail, légèrement décalée carte par carte', () => {
@@ -99,4 +120,45 @@ describe('deckFan : sortie bornée au viewport', () => {
     expect(clampExitX(-300, 192, 384, 80, 10)).toBe(80 + 10 - 192)
   })
   it('viewport trop étroit : pas de décalage plutôt qu’un bornage inversé', () => expect(clampExitX(100, 50, 100, 80, 10)).toBe(0))
+})
+
+describe('deckFan : sommet de la pile tiré au hasard à la donne', () => {
+  it('sur 300 donnes, chaque place finale (gauche, milieu, droite) reçoit le sommet environ 1 fois sur 3', () => {
+    const rng = mulberry32(2026)
+    const tops = [0, 0, 0]
+    for (let n = 0; n < 300; n++) tops[drawPileOrder(rng)[0]]++
+    tops.forEach((t) => {
+      expect(t / 300).toBeGreaterThanOrEqual(0.25)
+      expect(t / 300).toBeLessThanOrEqual(0.42)
+    })
+  })
+
+  it('le sommet part en premier ; le tirage est une permutation', () => {
+    const rng = mulberry32(5)
+    for (let n = 0; n < 50; n++) {
+      const order = drawPileOrder(rng)
+      expect([...order].sort()).toEqual([0, 1, 2])
+      expect(dealRankOf(order)[order[0]]).toBe(0)
+      expect(stackOfPile(order)[2]).toBe(order[0]) // le sommet est le plus haut en z
+    }
+  })
+
+  it('aucune permutation de z en plein chevauchement ; la carte du milieu finit devant dès que les rectangles se séparent', () => {
+    const rng = mulberry32(99)
+    for (let n = 0; n < 300; n++) {
+      const start = stackOfPile(drawPileOrder(rng))
+      expect(promoteMiddle(start, () => false)).toBe(start) // chevauchement : rien ne bouge, même liste
+      let stack: readonly number[] = start
+      for (let k = 0; k < 3; k++) stack = promoteMiddle(stack, () => true)
+      expect(stack[2]).toBe(1)
+      expect([...stack].sort()).toEqual([0, 1, 2])
+    }
+    expect(promoteMiddle(FAN_STACK, () => true)).toBe(FAN_STACK) // déjà devant : inchangé
+  })
+
+  it('un échange à la fois : jamais par-dessus une carte qui recouvre encore la carte du milieu', () => {
+    const stack: readonly number[] = [1, 0, 2] // le milieu au fond : 0 juste au-dessus, 2 tout en haut
+    expect(promoteMiddle(stack, (j) => j === 2)).toBe(stack) // 2 est séparée mais 0 recouvre encore
+    expect(promoteMiddle(stack, (j) => j === 0)).toEqual([0, 1, 2])
+  })
 })

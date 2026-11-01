@@ -16,8 +16,13 @@ import {
   STOW_FADE_MS,
   STOW_STEP_MS,
   cardRect,
+  FAN_STACK,
+  dealRankOf,
   dealStartOf,
   deckPose,
+  drawPileOrder,
+  promoteMiddle,
+  stackOfPile,
   depthOf,
   rectsOverlap,
   shadowOf,
@@ -54,7 +59,13 @@ const hot = ref<number | null>(null)
 // Au survol, la carte se soulève et ses voisines se tassent. La carte choisie ne passe devant (z-10) que lorsque son rectangle est séparé de celui de toutes les autres cartes visibles
 // (voir `separated`) : l’ordre ne change jamais pendant un chevauchement ; les cartes qui se rangent glissent ensuite dessous.
 const flying = ref(false)
-const zClass = (i: number) => (chosen.value === i && flying.value ? 'z-10' : i === 1 ? 'z-3' : 'z-1')
+// Donne : le sommet de la pile est tiré au hasard (`dealOrder`, du sommet au fond), indépendamment de sa place finale. `stack` = l’ordre des z, du fond vers le dessus ; la carte du milieu ne passe devant
+// qu’une fois séparée de la carte qui la recouvre (voir `promoteMiddle`), jamais pendant un chevauchement. Mouvement réduit : pas de pile, la carte du milieu est devant d’emblée.
+const dealOrder = drawPileOrder(rng)
+const dealRank = dealRankOf(dealOrder)
+const stack = ref<readonly number[]>(stackOfPile(dealOrder))
+const Z_STACK = ['z-1', 'z-2', 'z-3'] as const
+const zClass = (i: number) => (chosen.value === i && flying.value ? 'z-10' : Z_STACK[stack.value.indexOf(i)])
 const ready = ref(false)
 // Repère « ▸ » de la légende : UN seul élément qui glisse d’une ligne à l’autre (transition CSS sur `translate`, propriété sans lien avec le transform des cartes).
 // Il suit la ligne active (survol, focus ou choix) ; il apparaît en fondu à la position de la première ligne active, et s’efface en fondu à sa dernière position.
@@ -232,6 +243,14 @@ const separated = (i: number) => {
   return cards.every((j) => j === i || state[j].o.c < 0.02 || !rectsOverlap(mine, box(state[j])))
 }
 
+// Deux cartes dont les rectangles ne se touchent pas (même marge que `separated`) : seul moment où leur ordre peut changer.
+const apartFrom = (i: number, j: number) => {
+  const box = (c: Card) => cardRect({ x: c.x.c, y: c.y.c, s: c.s.c, r: c.r.c }, W, 0.03 * W)
+  return !rectsOverlap(box(state[i]), box(state[j]))
+}
+const DEAL_SHIFT = 0.5 // écart latéral de la carte qui dégage le milieu à la donne (fraction de W, borné au viewport)
+let excursionEnd = 0 // passé cet instant, une carte qui n’a pas pu se séparer revient à sa place : l’ordre reste celui de la pile (aucune permutation en chevauchement)
+
 const apply = () => {
   cards.forEach((i) => {
     const c = state[i]
@@ -288,6 +307,10 @@ const tick = (now: number) => {
       const inPile = now < c.startAt
       const pile = dealStartOf(i, W)
       const rest = inPile ? { x: pile.x, y: pile.y + deckPose.y * W, r: pile.r, s: pile.s } : restOf(i, hot.value)
+      // Une carte latérale qui part du sommet et recouvre encore la carte du milieu s’écarte d’abord sur le côté : dès que leurs rectangles sont séparés, la carte du milieu passe devant, puis elle revient à sa place.
+      if (!inPile && i !== 1 && now < excursionEnd && stack.value.indexOf(i) > stack.value.indexOf(1)) {
+        rest.x = clampExitX(rest.x + Math.sign(FAN[i].x) * DEAL_SHIFT * W, deckCx, viewW, (rest.s * 1.06 * W) / 2, 0.04 * W)
+      }
       const isHot = hot.value === i
       // Léger balancement propre à chaque carte (mouvement seulement), calmé sous le pointeur.
       const sw = swayOf(c, t, isHot ? 0 : inPile ? PILE_LIFE : 1)
@@ -375,6 +398,7 @@ const tick = (now: number) => {
     })
   }
   apply()
+  if (phase !== 'pick') stack.value = promoteMiddle(stack.value, (j) => apartFrom(1, j))
   if (phase === 'pick' && chosen.value !== null && flown && now > flyAt + 200) {
     const c = state[chosen.value]
     const settled = Math.abs(c.x.c) < 0.4 && Math.abs(c.y.c) < 0.4 && Math.abs(c.r.c) < 0.15 && Math.abs(c.s.c - FINAL_S) < 0.004 && Math.abs(c.x.v) + Math.abs(c.y.v) < 8
@@ -419,10 +443,10 @@ const reducedPick = (picked: number) => {
 }
 
 // --- entrée ---------------------------------------------------------------------------------------------------------------------
-// Donne : la carte du dessus (le milieu) part la première, puis la suivante de la pile (la droite), enfin celle du dessous ; une courte pause d’abord, cartes visibles sur le paquet.
+// Donne : le sommet de la pile (tiré au hasard, voir `dealOrder`) part le premier, puis la carte suivante de la pile, enfin celle du dessous ; une courte pause d’abord, cartes visibles sur le paquet.
 const DEAL_HOLD_MS = 200
 const DEAL_STEP_MS = 90
-const DEAL_RANK = [2, 0, 1] as const
+const DEAL_RANK = dealRank
 const dealSfx = cards.map((i) => useTimeoutFn(cardDeal, DEAL_HOLD_MS + DEAL_RANK[i] * DEAL_STEP_MS, { immediate: false }))
 // Le paquet n’est visible que lorsqu’il est le sujet (deckShown) : à la donne, jusqu’à la dernière carte posée ; il revient au rangement (voir choose) ; jamais en mouvement réduit (les cartes se fondent sur place).
 const { start: startPhase } = useTimeoutFn(
@@ -439,12 +463,17 @@ const { start: startReady } = useTimeoutFn(() => (ready.value = true), 1000, { i
 onMounted(() => {
   W = deckW.value // lecture synchrone du montage : le watcher de deckW n’a pas encore tourné
   if (reduced.value) {
+    stack.value = FAN_STACK
     layoutStatic()
     ready.value = true
     cards.forEach((i) => animate(state[i].mv.opacity, [0, 1], { duration: 0.25, ease: 'easeOut' })) // fondu court : rien n’apparaît d’un coup
     return
   }
   const now = performance.now()
+  excursionEnd = now + DEAL_HOLD_MS + 2 * DEAL_STEP_MS + 520
+  const r = deckEl.value?.getBoundingClientRect()
+  deckCx = r ? r.left + r.width / 2 : 0
+  viewW = window.innerWidth
   cards.forEach((i) => {
     const c = state[i]
     const st = dealStartOf(i, W) // les cartes partent du dessus du paquet, où la précédente lecture s’est rangée

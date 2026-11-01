@@ -1,5 +1,8 @@
 // Éventail des trois cartes de la coupe : partagé entre DeckCut (placement) et TarotCard (point de départ de la donne).
 // x/y en % de la largeur de la carte finale (centre de la boîte = 0,0), rot en degrés ; FAN_SCALE = largeur affichée d’une carte de l’éventail, en fraction de la boîte (la carte, large comme la boîte, est réduite à cette échelle puis grandit jusqu’à 1 au choix).
+import type { Rng } from '@/engine/rng'
+import { shuffled } from '@/engine/shuffleBag'
+
 export const FAN_SCALE = 0.5
 export const FAN = [
   { x: -17, y: 3, rot: -4 },
@@ -70,4 +73,22 @@ export const clampExitX = (x: number, cx: number, vw: number, hw: number, m: num
   const lo = hw + m - cx
   const hi = vw - hw - m - cx
   return lo > hi ? 0 : Math.max(lo, Math.min(hi, x))
+}
+
+// Pile de la donne : la carte du SOMMET est tirée au hasard (jamais liée à sa place dans l’éventail, sinon c’est toujours la carte du milieu, la plus naturelle à choisir).
+/** Ordre de la pile à la donne, du sommet vers le fond (permutation uniforme des cartes 0, 1, 2) : le sommet part le premier, comme quand on étale un vrai paquet. */
+export const drawPileOrder = (rng: Rng): number[] => shuffled(3, rng)
+/** Rang de départ de chaque carte (0 = sommet de la pile, part la première). */
+export const dealRankOf = (order: readonly number[]) => [0, 1, 2].map((i) => order.indexOf(i))
+/** Empilement du fond vers le dessus (l’ordre des z) pour une pile tirée. */
+export const stackOfPile = (order: readonly number[]) => [...order].reverse()
+/** Empilement d’une fois la donne finie : la carte du milieu devant les autres. */
+export const FAN_STACK: readonly number[] = [0, 2, 1]
+/** Fait passer la carte du milieu devant la carte qui la recouvre juste au-dessus d’elle, mais SEULEMENT si leurs rectangles sont séparés (`apart`) : l’ordre ne change jamais pendant un chevauchement. Un échange à la fois (jamais par-dessus une carte qui la recouvre encore) ; renvoie la même liste s’il n’y a rien à faire. */
+export const promoteMiddle = (stack: readonly number[], apart: (j: number) => boolean): readonly number[] => {
+  const k = stack.indexOf(1)
+  if (k < 0 || k === stack.length - 1 || !apart(stack[k + 1])) return stack
+  const next = [...stack]
+  ;[next[k], next[k + 1]] = [next[k + 1], next[k]]
+  return next
 }

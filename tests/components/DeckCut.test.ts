@@ -6,6 +6,7 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import DeckCut from '@/components/DeckCut.vue'
 import { PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets } from '@/engine/paquets'
 import { mulberry32 } from '@/engine/rng'
+import { drawPileOrder } from '@/components/deckFan'
 import { useQualityStore } from '@/stores/quality'
 
 // La boucle rAF et la mesure de la boîte sont pilotées à la main : la géométrie n’existe pas sous happy-dom.
@@ -46,10 +47,18 @@ afterEach(() => {
 const media = (re: RegExp) =>
   vi.stubGlobal('matchMedia', (q: string) => ({ matches: re.test(q), media: q, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {} }))
 const reduit = () => media(/reduce/)
-const monter = () => {
-  wrapper = mount(DeckCut, { props: { level: 1, rng: mulberry32(7) }, attachTo: document.body, global: { plugins: [createPinia()] } })
+const monter = (seed = 7) => {
+  wrapper = mount(DeckCut, { props: { level: 1, rng: mulberry32(seed) }, attachTo: document.body, global: { plugins: [createPinia()] } })
   return wrapper
 }
+/** Graine dont la pile de la donne a la carte du milieu au sommet (le composant tire d’abord les paquets, puis le sommet). */
+const graineMilieuDessus = (() => {
+  for (let g = 1; ; g++) {
+    const r = mulberry32(g)
+    shufflePaquets(r)
+    if (drawPileOrder(r)[0] === 1) return g
+  }
+})()
 const cartes = () => wrapper!.findAll('button.deck__card')
 const avancer = (ms: number) => vi.advanceTimersByTimeAsync(ms)
 /** Fait tourner la boucle d’animation comme le ferait requestAnimationFrame. */
@@ -97,9 +106,20 @@ describe('DeckCut : rendu et donne', () => {
     expect(w.get('.deck__prompt').classes()).toContain('opacity-100')
   })
 
-  it('la carte du milieu est devant les deux autres au repos', () => {
+  it('à la donne, l’empilement suit le tirage du sommet (trois niveaux distincts, un par carte)', () => {
     monter()
-    expect(cartes().map((c) => c.classes().find((k) => /^z-\d+$/.test(k)))).toEqual(['z-1', 'z-3', 'z-1'])
+    const z = cartes().map((c) => c.classes().find((k) => /^z-\d+$/.test(k)))
+    expect([...z].sort()).toEqual(['z-1', 'z-2', 'z-3'])
+    const r = mulberry32(7)
+    shufflePaquets(r) // le composant tire d’abord les paquets, puis le sommet
+    expect(z[drawPileOrder(r)[0]]).toBe('z-3')
+  })
+
+  it('quand la carte du milieu est au sommet, elle reste devant les deux autres du début à la fin de la donne', async () => {
+    monter(graineMilieuDessus)
+    await avancer(1100)
+    images(200)
+    expect(cartes().map((c) => c.classes().find((k) => /^z-\d+$/.test(k)))[1]).toBe('z-3')
   })
 
   it('focus() donne le focus au groupe', () => {
@@ -184,7 +204,7 @@ describe('DeckCut : choix à la souris', () => {
   })
 
   it('choisir : son, statut, cartes désactivées, vol de la carte jusqu’à la position du tirage, puis pick', async () => {
-    const w = monter()
+    const w = monter(graineMilieuDessus)
     await avancer(1100)
     images(120) // éventail posé
     await cartes()[2].trigger('click')
@@ -199,7 +219,7 @@ describe('DeckCut : choix à la souris', () => {
     await w.vm.$nextTick()
     expect(cartes()[2].classes()).toContain('z-10') // la carte choisie passe devant à l’envol
     await avancer(200) // image bornée avant l’émission
-    expect(w.emitted('pick')).toEqual([[paquets[2]]])
+    expect(w.emitted('pick')).toEqual([[shufflePaquets(mulberry32(graineMilieuDessus))[2]]])
     // un second clic (ou le filet de 1,8 s) n’émet pas une deuxième fois
     await cartes()[0].trigger('click')
     await avancer(3000)
