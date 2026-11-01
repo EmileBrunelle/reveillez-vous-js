@@ -138,5 +138,5 @@ export const useActivityDone = (
     if (scope) scope.run(wait)
     else wait()
   }
-  return { finish, outcome, startedAt, paused, elapsed, graceLeft, pause, resume, away, halted, resumeAway, afterPause, isFinished: () => finished }
+  return { finish, fail, outcome, startedAt, paused, elapsed, graceLeft, pause, resume, away, halted, resumeAway, afterPause, isFinished: () => finished }
 }
