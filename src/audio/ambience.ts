@@ -111,9 +111,11 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
   }
   const retryDelay = (extra: number) => MIN_SPACING_MS / 1000 + Math.random() * extra
 
+  const rearmers: { pause: () => void; resume: () => void }[] = []
   /** Minuterie ré-armable à délai variable : `fire` rend le prochain délai (s), ou `null` pour ne plus l’armer. À créer dans `scope`. */
   const useRearmed = (fire: () => number | null) => {
     const interval = ref(0)
+    let wanted: number | null = null
     const timer = useTimeoutFn(
       () => {
         if (stopped) return
@@ -124,10 +126,13 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
     )
     const arm = (seconds: number | null) => {
       timer.stop()
+      wanted = seconds
       if (seconds === null) return
       interval.value = seconds * 1000
-      timer.start()
+      // onglet caché : on garde le délai voulu, sans minuterie ; `rearmers` le relance au retour
+      if (!hidden) timer.start()
     }
+    rearmers.push({ pause: () => timer.stop(), resume: () => wanted !== null && !stopped && timer.start() })
     return arm
   }
 
@@ -230,6 +235,7 @@ export const startAmbience = (place: PlaceId, getLevel: () => number = () => 1):
       visibility,
       (v, old) => {
         hidden = v === 'hidden'
+        for (const r of rearmers) (hidden ? r.pause : r.resume)()
         // premier appel : l’entrée (ou le fondu enchaîné) déjà programmée prime, sauf si l’onglet est caché d’emblée
         if (old !== undefined || hidden) ramp(FADE_HIDDEN)
       },

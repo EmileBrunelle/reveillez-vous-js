@@ -1,5 +1,5 @@
 import { customRef, effectScope, watch, type EffectScope } from 'vue'
-import { useDocumentVisibility, useEventListener, useRafFn } from '@vueuse/core'
+import { useDocumentVisibility, useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { useAudioStore, VOLUME_KEYS, type VolumeKey } from '@/stores/audio'
 import { startNoise } from './noise'
 import { playMotif } from './motif'
@@ -59,6 +59,9 @@ export const effetsOut = (c: AudioContext) => bus(c, 'effets')
 /** Sortie des sons de la finale. */
 export const finaleOut = (c: AudioContext) => bus(c, 'finale')
 
+/** Délai (ms) avant de suspendre le contexte d’un onglet caché : laisse finir les fondus (le plus long dure 0,5 s). */
+const SUSPEND_DELAY_MS = 700
+
 /** Reprend le contexte s’il a été suspendu (iOS : « interrupted » après un appel ou une alarme) ; sans effet s’il tourne déjà ou s’il est fermé. */
 const resumeIfStopped = () => {
   if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume()
@@ -81,8 +84,20 @@ const watchContext = () => {
   volumeScope = effectScope(true)
   volumeScope.run(() => {
     const visibility = useDocumentVisibility()
+    // `suspend` après la fin des fondus du masquage (musique 0,3 s, ambiance 0,5 s), seulement si un geste a activé l’audio et hors sourdine
+    const suspendLater = useTimeoutFn(
+      () => {
+        if (ctx && ctx.state === 'running' && visibility.value === 'hidden' && hasGestured() && !muted.value) void ctx.suspend()
+      },
+      SUSPEND_DELAY_MS,
+      { immediate: false },
+    )
     watch(visibility, (v) => {
-      if (v === 'visible' && hasGestured()) resumeIfStopped()
+      if (v === 'hidden') suspendLater.start()
+      else {
+        suspendLater.stop()
+        if (hasGestured()) resumeIfStopped()
+      }
     })
     // `pointerup` et `keydown` sont des gestes d’activation (Chrome tactile n’active pas l’audio sur `pointerdown`, et le clavier compte)
     useEventListener(['pointerup', 'keydown'], onGesture, { passive: true })

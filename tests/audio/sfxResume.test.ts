@@ -10,6 +10,10 @@ vi.mock('@vueuse/core', async (importOriginal) => {
   return {
     ...original,
     useDocumentVisibility: () => h.visibility,
+    useTimeoutFn: (cb: () => void, ms: number) => {
+      let id: ReturnType<typeof setTimeout> | undefined
+      return { start: () => void (id = setTimeout(cb, ms)), stop: () => clearTimeout(id) }
+    },
     useEventListener: (types: string | string[], fn: () => void) => void [types].flat().forEach((t) => h.listeners.set(t, fn)),
   }
 })
@@ -19,6 +23,7 @@ class FakeCtx {
   currentTime = 1
   destination = {}
   resume = vi.fn(() => Promise.resolve())
+  suspend = vi.fn(() => Promise.resolve())
   createGain = () => ({ gain: { value: 0, setTargetAtTime: vi.fn(), cancelScheduledValues: vi.fn() }, connect: (n: unknown) => n })
   createDynamicsCompressor = () => ({ threshold: {}, knee: {}, ratio: {}, attack: {}, release: {}, connect: (n: unknown) => n })
 }
@@ -27,6 +32,7 @@ let c: FakeCtx
 let unlock: () => void
 // Modules neufs à chaque test : le contexte et le drapeau « geste déjà fait » sont des singletons de module.
 beforeEach(async () => {
+  vi.useFakeTimers()
   vi.resetModules()
   h.listeners.clear()
   vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => undefined, removeItem: () => undefined })
@@ -39,7 +45,10 @@ beforeEach(async () => {
   c = sfx.ac() as unknown as FakeCtx
   c.resume.mockClear()
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
+})
 
 describe('reprise du contexte audio', () => {
   it('avant tout geste, le retour de visibilité ne reprend pas le contexte (avertissement d’autoplay)', async () => {
@@ -82,5 +91,40 @@ describe('reprise du contexte audio', () => {
     h.visibility.value = 'visible'
     await nextTick()
     expect(c.resume).not.toHaveBeenCalled()
+  })
+})
+
+describe('suspension du contexte (onglet caché)', () => {
+  it('après un geste, suspend une fois les fondus finis, puis reprend une fois au retour', async () => {
+    unlock()
+    c.resume.mockClear()
+    h.visibility.value = 'hidden'
+    await nextTick()
+    vi.advanceTimersByTime(300)
+    expect(c.suspend).not.toHaveBeenCalled() // fondu de la musique encore en cours
+    vi.advanceTimersByTime(1000)
+    expect(c.suspend).toHaveBeenCalledTimes(1)
+    c.state = 'suspended'
+    h.visibility.value = 'visible'
+    await nextTick()
+    expect(c.resume).toHaveBeenCalledTimes(1)
+    expect(c.suspend).toHaveBeenCalledTimes(1)
+  })
+  it('un retour avant la fin du délai annule la suspension', async () => {
+    unlock()
+    h.visibility.value = 'hidden'
+    await nextTick()
+    h.visibility.value = 'visible'
+    await nextTick()
+    vi.advanceTimersByTime(2000)
+    expect(c.suspend).not.toHaveBeenCalled()
+  })
+  it('sans geste ou en sourdine, ne suspend pas', async () => {
+    vi.stubGlobal('navigator', { userActivation: { hasBeenActive: false } })
+    h.visibility.value = 'hidden'
+    await nextTick()
+    vi.advanceTimersByTime(2000)
+    expect(c.suspend).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
   })
 })

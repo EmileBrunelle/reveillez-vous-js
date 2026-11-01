@@ -160,9 +160,11 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
         if (hidden) {
           endMine(FADE_QUICK)
           openFilter()
+          ticker?.pause() // onglet caché : plus de vérification inutile
         } else {
           delayResume()
           restoreFilter()
+          if (!stopped) ticker?.resume()
         }
       },
       { immediate: true },
@@ -180,7 +182,7 @@ export const startMusic = (getLevel: () => number = () => 1, rng: Rng = orSecure
     // un jingle ou un leitmotif qui démarre coupe la phrase en cours (sauf l’occupation posée par ma propre phrase)
     watch(stingerBusyUntil, (v) => v > c.currentTime && endMine(FADE_QUICK))
     watch(motifBusyUntil, (v) => mine && v !== myBusy && v > c.currentTime && endMine(FADE_QUICK))
-    ticker = useIntervalFn(tick, TICK_MS)
+    ticker = useIntervalFn(tick, TICK_MS, { immediate: !hidden })
   })
 
   return () => {

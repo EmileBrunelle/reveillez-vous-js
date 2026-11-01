@@ -10,6 +10,8 @@ const h = vi.hoisted(() => ({
   visibility: { value: 'visible' } as { value: string },
   phrases: [] as { args: unknown[]; stop: ReturnType<typeof vi.fn>; end: number }[],
   phraseLength: 12,
+  ticker: { paused: 0, resumed: 0 },
+  generation: 0,
 }))
 vi.mock('@vueuse/core', async (importOriginal) => {
   const { ref } = await import('vue')
@@ -20,9 +22,30 @@ vi.mock('@vueuse/core', async (importOriginal) => {
     ...original,
     useDocumentVisibility: () => h.visibility,
     useEventListener: () => undefined,
-    useIntervalFn: (cb: () => void, ms: number) => {
-      const id = setInterval(cb, ms)
-      return { pause: () => clearInterval(id) }
+    useIntervalFn: (cb: () => void, ms: number, opts: { immediate?: boolean } = {}) => {
+      let id: ReturnType<typeof setInterval> | undefined
+      const born = h.generation
+      const resume = () => {
+        if (h.generation !== born) return // instance d’un test précédent : ne se réveille pas
+        clearInterval(id)
+        id = setInterval(cb, ms)
+        h.ticker.resumed++
+      }
+      const pause = () => {
+        clearInterval(id)
+        id = undefined
+        if (h.generation === born) h.ticker.paused++
+      }
+      if (opts.immediate !== false) id = setInterval(cb, ms)
+      return {
+        pause,
+        resume,
+        isActive: {
+          get value() {
+            return id !== undefined
+          },
+        },
+      }
     },
     useTimeoutFn: (cb: () => void, ms: number) => {
       let id: ReturnType<typeof setTimeout> | undefined
@@ -64,6 +87,8 @@ const load = async () => {
 }
 
 beforeEach(() => {
+  h.generation++
+  h.ticker = { paused: 0, resumed: 0 }
   h.phrases = []
   h.visibility.value = 'visible'
   FakeCtx.instances = []
@@ -211,6 +236,17 @@ describe('startMusic : coupures', () => {
     expect(h.phrases).toHaveLength(1)
     advance(14) // 21 s au total : au-delà du délai maximal de 20 s
     expect(h.phrases).toHaveLength(2)
+  })
+
+  it('l’onglet caché met le ticker en pause, le retour le reprend', async () => {
+    await playing()
+    h.ticker.paused = h.ticker.resumed = 0
+    h.visibility.value = 'hidden'
+    await nextTick()
+    expect(h.ticker).toEqual({ paused: 1, resumed: 0 })
+    h.visibility.value = 'visible'
+    await nextTick()
+    expect(h.ticker).toEqual({ paused: 1, resumed: 1 })
   })
 
   it('l’onglet caché coupe la phrase ; son retour attend 8 à 20 s', async () => {
