@@ -32,7 +32,10 @@ const { paquet = 'nuit' } = defineProps<{ fill?: boolean; paquet?: Paquet }>()
   width: 100%;
 }
 .back__face {
-  background: repeating-linear-gradient(45deg, transparent 0 3cqw, var(--back-line) 3cqw 3.6cqw), repeating-linear-gradient(-45deg, transparent 0 3cqw, var(--back-line) 3cqw 3.6cqw), var(--back-bg);
+  /* Filets du treillis à bords doux (rampe de ~0,5cqw de chaque côté, même largeur apparente de ~0,6cqw) : pas de saut net, donc pas de scintillement ni de moiré quand la carte s’incline ou rétrécit. */
+  background:
+    repeating-linear-gradient(45deg, transparent 0 2.5cqw, var(--back-line) 3cqw 3.2cqw, transparent 3.6cqw),
+    repeating-linear-gradient(-45deg, transparent 0 2.5cqw, var(--back-line) 3cqw 3.2cqw, transparent 3.6cqw), var(--back-bg);
 }
 .back__frame {
   border: 0.8cqw solid var(--back-accent);
@@ -55,8 +58,8 @@ const { paquet = 'nuit' } = defineProps<{ fill?: boolean; paquet?: Paquet }>()
 }
 .back--feu .back__face {
   background:
-    radial-gradient(ellipse 60% 40% at 50% 112%, rgb(255 140 40 / 0.55), transparent 70%), repeating-linear-gradient(90deg, transparent 0 2.6cqw, var(--back-line) 2.6cqw 3.2cqw),
-    repeating-linear-gradient(0deg, transparent 0 5cqw, rgb(0 0 0 / 0.25) 5cqw 5.6cqw), var(--back-bg);
+    radial-gradient(ellipse 60% 40% at 50% 112%, rgb(255 140 40 / 0.55), transparent 70%), repeating-linear-gradient(90deg, transparent 0 2.1cqw, var(--back-line) 2.6cqw 2.8cqw, transparent 3.2cqw),
+    repeating-linear-gradient(0deg, transparent 0 4.5cqw, rgb(0 0 0 / 0.25) 5cqw 5.2cqw, transparent 5.6cqw), var(--back-bg);
 }
 /* Brume : bandes horizontales de brouillard et branchages en diagonale. */
 .back--brume {
@@ -68,6 +71,7 @@ const { paquet = 'nuit' } = defineProps<{ fill?: boolean; paquet?: Paquet }>()
 .back--brume .back__face {
   background:
     radial-gradient(ellipse 80% 30% at 30% 30%, rgb(200 240 225 / 0.22), transparent 70%), radial-gradient(ellipse 80% 30% at 70% 75%, rgb(200 240 225 / 0.18), transparent 70%),
-    repeating-linear-gradient(0deg, transparent 0 4cqw, var(--back-line) 4cqw 4.5cqw), repeating-linear-gradient(60deg, transparent 0 9cqw, rgb(10 40 34 / 0.45) 9cqw 9.6cqw), var(--back-bg);
+    repeating-linear-gradient(0deg, transparent 0 3.5cqw, var(--back-line) 4cqw 4.1cqw, transparent 4.5cqw),
+    repeating-linear-gradient(60deg, transparent 0 8.5cqw, rgb(10 40 34 / 0.45) 9cqw 9.2cqw, transparent 9.6cqw), var(--back-bg);
 }
 </style>

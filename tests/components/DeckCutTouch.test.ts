@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia } from 'pinia'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import DeckCut from '@/components/DeckCut.vue'
 import { shufflePaquets } from '@/engine/paquets'
@@ -15,7 +16,7 @@ afterEach(() => {
 })
 
 const monter = () => {
-  wrapper = mount(DeckCut, { props: { level: 1, rng: mulberry32(7) }, attachTo: document.body })
+  wrapper = mount(DeckCut, { props: { level: 1, rng: mulberry32(7) }, attachTo: document.body, global: { plugins: [createPinia()] } })
   return wrapper
 }
 const toucher = (cible: Element, type: string, clientX: number, pointerId = 1) =>

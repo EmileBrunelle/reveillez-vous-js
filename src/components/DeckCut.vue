@@ -33,6 +33,7 @@ import type { Rng } from '@/engine/rng'
 import { nextFrameOr } from '@/composables/nextFrame'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { focusQuietly } from '@/composables/focusQuietly'
+import { useQuality } from '@/stores/quality'
 
 // Coupe du paquet : trois paquets différents (dos, teinte, arcanes) en éventail, dans la même boîte (7:12) que la carte du tirage.
 // Tout le mouvement passe par UNE boucle rAF : chaque carte a des valeurs courantes qui poursuivent une cible avec un ressort (aucune transition CSS
@@ -82,6 +83,11 @@ watch(activeLine, (now) => {
   }
 })
 const cards = [0, 1, 2] as const
+// Qualité : lue UNE fois au montage (niveau « posé »), jamais en plein vol de carte ; un changement de niveau ne s’applique qu’à la prochaine coupe.
+// En `low` (appareil faible) : pas de sur-échantillonnage du dos, pas d’inclinaison au pointeur ni de traîne, oscillation au repos réduite, ombre de profondeur fixe.
+const low = useQuality().settled.value === 'low'
+const SS = low ? 1 : 2 // facteur de sur-échantillonnage du dos (voir .deck__ss dans le gabarit)
+const CALM = low ? 0.4 : 1 // part de l’oscillation au repos conservée
 // --- ressorts -------------------------------------------------------------------------------------------------------------------
 interface Spr {
   c: number // valeur courante
@@ -132,9 +138,9 @@ const state: Card[] = cards.map((i) => ({
   zeta: 0.55,
 }))
 // Oscillation propre à chaque carte au repos (hauteur et rotation) ; `k` la module (en pile, la moitié).
-const swayOf = (c: Card, t: number, k: number) => ({ y: Math.sin(t * 1.4 + c.swayPhase) * 0.007 * W * k, r: Math.sin(t * 0.9 + c.swayPhase * 1.7) * 0.9 * k })
+const swayOf = (c: Card, t: number, k: number) => ({ y: Math.sin(t * 1.4 + c.swayPhase) * 0.007 * W * k * CALM, r: Math.sin(t * 0.9 + c.swayPhase * 1.7) * 0.9 * k * CALM })
 // Inclinaison de traîne : proportionnelle à la vitesse de la carte (elle « traîne » dans le mouvement).
-const lean = (v: number) => clamp((v / Math.max(W, 1)) * 2.2, -6, 6)
+const lean = (v: number) => (low ? 0 : clamp((v / Math.max(W, 1)) * 2.2, -6, 6))
 const dampOf = (k: number, zeta: number) => 2 * zeta * Math.sqrt(k)
 const step = (p: Spr, k: number, d: number, dt: number) => {
   p.v += (k * (p.t - p.c) - d * p.v) * dt
@@ -235,11 +241,11 @@ const apply = () => {
     mv.rotate.set(c.r.c)
     mv.scale.set(c.s.c)
     mv.opacity.set(clamp(c.o.c, 0, 1))
-    mv.perspective.set(W * c.pp.c)
+    mv.perspective.set(W * c.pp.c * SS)
     mv.rotateX.set(c.tx.c)
     mv.rotateY.set(c.ty.c)
     // Ombre pré-floutée (un enfant à flou fixe) : seuls son décalage, son échelle et son opacité bougent, tous liés à la profondeur (= l’échelle de la carte).
-    const sh = shadowOf(depthOf(c.s.c, FINAL_S), W)
+    const sh = shadowOf(low ? 0.5 : depthOf(c.s.c, FINAL_S), W)
     mv.shadowY.set(sh.y)
     mv.shadowO.set(sh.o)
     mv.shadowS.set(sh.s)
@@ -293,8 +299,8 @@ const tick = (now: number) => {
       c.ko = inPile ? 300 : 160
       if (inPile) c.pp.t = DECK_PERSP
       // Inclinaison : proportionnelle au décalage du pointeur, plus la traîne ; sur le paquet, celle du paquet (la carte repose sur sa face).
-      c.ty.t = (inPile ? deckPose.ry : isHot ? nx * MAX_TILT : 0) + lean(c.x.v)
-      c.tx.t = (inPile ? deckPose.rx : isHot ? -ny * MAX_TILT : 0) - lean(c.y.v)
+      c.ty.t = (inPile ? deckPose.ry : isHot && !low ? nx * MAX_TILT : 0) + lean(c.x.v)
+      c.tx.t = (inPile ? deckPose.rx : isHot && !low ? -ny * MAX_TILT : 0) - lean(c.y.v)
       c.k = phase === 'deal' ? 190 : 230
       c.zeta = phase === 'deal' ? 0.55 : 0.68
     } else if (chosen.value === i) {
@@ -670,9 +676,13 @@ const choose = (i: number) => {
         aria-hidden="true"
       />
       <Motion as="span" :style="{ opacity: state[i].mv.glow }" class="deck__glow absolute inset-0 rounded-[4cqw] pointer-events-none" aria-hidden="true" />
-      <Motion as="span" :style="{ transformPerspective: state[i].mv.perspective, rotateX: state[i].mv.rotateX, rotateY: state[i].mv.rotateY }" class="block relative">
-        <TarotCardBack fill :paquet="paquets[i]" />
-      </Motion>
+      <!-- Sur-échantillonnage : le dos est dessiné à SS× sa taille (enveloppe statique, sans transform animé) puis ramené par scale(1/SS) ; le nœud incliné (seul maître de rotateX/Y) garde sa taille réelle ×SS,
+           donc la perspective aussi. Chromium lisse ainsi le treillis et les bords d’un plan incliné. Hauteur de l’enveloppe fixée à celle d’une carte : la boîte du bouton ne change pas. -->
+      <div class="deck__ss relative origin-top-left" :class="low ? 'w-full' : 'w-[200%] h-[calc(100cqw*12/7)] scale-50'">
+        <Motion as="span" :style="{ transformPerspective: state[i].mv.perspective, rotateX: state[i].mv.rotateX, rotateY: state[i].mv.rotateY }" class="block relative">
+          <TarotCardBack fill :paquet="paquets[i]" />
+        </Motion>
+      </div>
     </Motion>
   </div>
 </template>

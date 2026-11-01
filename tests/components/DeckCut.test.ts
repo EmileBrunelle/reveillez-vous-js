@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import DeckCut from '@/components/DeckCut.vue'
 import { PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets } from '@/engine/paquets'
 import { mulberry32 } from '@/engine/rng'
+import { useQualityStore } from '@/stores/quality'
 
 // La boucle rAF et la mesure de la boîte sont pilotées à la main : la géométrie n’existe pas sous happy-dom.
 const boucle = vi.hoisted(() => ({ cb: null as null | ((o: { timestamp: number }) => void), largeur: { value: 300 } as { value: number } }))
@@ -45,7 +47,7 @@ const media = (re: RegExp) =>
   vi.stubGlobal('matchMedia', (q: string) => ({ matches: re.test(q), media: q, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {} }))
 const reduit = () => media(/reduce/)
 const monter = () => {
-  wrapper = mount(DeckCut, { props: { level: 1, rng: mulberry32(7) }, attachTo: document.body })
+  wrapper = mount(DeckCut, { props: { level: 1, rng: mulberry32(7) }, attachTo: document.body, global: { plugins: [createPinia()] } })
   return wrapper
 }
 const cartes = () => wrapper!.findAll('button.deck__card')
@@ -403,5 +405,30 @@ describe('DeckCut : repère de la légende', () => {
     await avancer(130)
     expect(repere().classes()).not.toContain('opacity-100')
     expect(repere().attributes('style')).toContain('translate: 0 40px') // reste en place pendant le fondu
+  })
+})
+
+describe('DeckCut : qualité', () => {
+  const monterAvec = (niveau: 'high' | 'low') => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useQualityStore().settled = niveau
+    wrapper = mount(DeckCut, { props: { level: 1, rng: mulberry32(7) }, attachTo: document.body, global: { plugins: [pinia] } })
+    return wrapper
+  }
+
+  it('en high, le dos est sur-échantillonné 2× (enveloppe réduite de moitié)', () => {
+    monterAvec('high')
+    expect(wrapper!.find('.deck__ss').classes()).toContain('scale-50')
+  })
+
+  it('en low, pas de sur-échantillonnage (enveloppe pleine largeur, sans échelle) ; la boucle tourne sans erreur au pointeur', async () => {
+    monterAvec('low')
+    expect(wrapper!.find('.deck__ss').classes()).not.toContain('scale-50')
+    await avancer(1100)
+    const carte = cartes()[0]
+    await pointeur(carte.element, 'pointerenter')
+    await pointeur(carte.element, 'pointermove', { clientX: 5000, clientY: 5000 })
+    images(30) // inclinaison au pointeur et traîne coupées en low : rien ne doit lever d’erreur
   })
 })

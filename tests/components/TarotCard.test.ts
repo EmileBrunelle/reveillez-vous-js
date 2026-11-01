@@ -14,7 +14,20 @@ const shimmer = vi.hoisted(() => vi.fn())
 vi.mock('@/composables/useCardShimmer', () => ({ useCardShimmer: () => ({ shimmer, shimmering: ref(false) }) }))
 vi.mock('@/audio/sfx', () => ({ cardFlip: vi.fn(), cardThud: vi.fn() }))
 // Les animations Motion sont remplacées par des contrôles inertes : les promesses se résolvent tout de suite.
-vi.mock('motion-v', async (orig) => ({ ...(await orig<typeof import('motion-v')>()), animate: vi.fn(() => ({ stop: () => {} })) }))
+// `usePresence` est enveloppé pour récupérer `onExit` (la sortie `stow` que lance AnimatePresence).
+const presence = vi.hoisted(() => ({ onExit: undefined as undefined | (() => Promise<void> | void) }))
+vi.mock('motion-v', async (orig) => {
+  const mod = await orig<typeof import('motion-v')>()
+  return {
+    ...mod,
+    animate: vi.fn(() => ({ stop: () => {} })),
+    usePresence: (o: Parameters<typeof mod.usePresence>[0]) => {
+      presence.onExit = o.onExit as typeof presence.onExit
+      return mod.usePresence(o)
+    },
+  }
+})
+import { animate } from 'motion-v'
 
 import { cardFlip, cardThud } from '@/audio/sfx'
 
@@ -138,5 +151,24 @@ describe('TarotCard : destruction', () => {
     wrapper = undefined
     await vi.advanceTimersByTimeAsync(5000)
     expect(cardFlip).not.toHaveBeenCalled()
+  })
+})
+
+describe('sortie (stow)', () => {
+  it('une animation qui ne se résout jamais libère quand même la présence après le délai', async () => {
+    monter()
+    vi.mocked(animate).mockImplementation((() => new Promise(() => {})) as never)
+    let libre = false
+    void Promise.resolve(presence.onExit?.()).then(() => (libre = true))
+    await vi.advanceTimersByTimeAsync(100)
+    expect(libre).toBe(false)
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(libre).toBe(true)
+  })
+
+  it('une animation rejetée (AbortError) libère aussi la présence', async () => {
+    monter()
+    vi.mocked(animate).mockImplementation((() => Promise.reject(new DOMException('annulée', 'AbortError'))) as never)
+    await expect(Promise.resolve(presence.onExit?.())).resolves.toBeUndefined()
   })
 })

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { animate, usePresence, type AnimationOptions } from 'motion-v'
+import { promiseTimeout } from '@vueuse/core'
 import TarotEmblem from './TarotEmblem.vue'
 import TarotCardBack from './TarotCardBack.vue'
 import { emblemMask } from './emblemMask'
 import { DECK_PERSP, deckPose } from './deckFan'
-import { INSERT_CARD_MS, INSERT_MS, deckSlot, insertPoses } from './deckInsert'
+import { INSERT_CARD_MS, INSERT_MS, INSERT_TOTAL_MS, deckSlot, insertPoses } from './deckInsert'
 import { cardFlip, cardThud } from '@/audio/sfx'
 import type { Arcane } from '@/engine/prophecy'
 import type { Paquet } from '@/engine/paquets'
@@ -133,12 +134,22 @@ onMounted(() => {
   rootNode = root.value
 })
 const PERSPECTIVE_PX = 1100 // perspective du plateau (classe `[perspective:1100px]` du gabarit)
+// Une animation interrompue ne résout jamais sa promesse (motion-dom) et un rejet (AbortError) ne doit rien bloquer : AnimatePresence attend la fin de `stow` pour libérer la présence.
+// Chaque attente est donc bornée (durée de l’animation + marge) et ses erreurs sont avalées.
+const EXIT_GRACE_MS = 500
+const bounded = async (anim: { then: (onResolve: VoidFunction, onReject?: VoidFunction) => unknown }, ms: number) => {
+  try {
+    await Promise.race([new Promise<void>((resolve, reject) => anim.then(resolve, reject)), promiseTimeout(ms)])
+  } catch {
+    // interrompue : la présence est libérée quand même
+  }
+}
 const stow = async () => {
   const el = dealNode ?? dealEl.value
   const w = (rootNode ?? root.value)?.offsetWidth ?? 0
   halt()
   if (!el) return
-  if (reduced.value || !w) return void (await animate(el, { opacity: 0 }, { duration: 0.2, ease: 'easeOut' }))
+  if (reduced.value || !w) return void (await bounded(animate(el, { opacity: 0 }, { duration: 0.2, ease: 'easeOut' }), 200 + EXIT_GRACE_MS))
   const { side, inside } = insertPoses(deckSlot.value, deckPose, w)
   const { approach, slide } = INSERT_MS
   const opts: AnimationOptions = {
@@ -153,19 +164,25 @@ const stow = async () => {
   const fuite = (x: number, y: number) => `${w / 2 + x}px ${(w * 12) / 7 / 2 + y}px`
   const persp = DECK_PERSP * w
   if (stage)
-    void animate(stage, { perspectiveOrigin: [fuite(0, 0), fuite(side.x, side.y), fuite(inside.x, inside.y), fuite(inside.x, inside.y)], perspective: [PERSPECTIVE_PX, persp, persp, persp] }, opts)
-  await animate(
-    el,
-    {
-      x: [null, side.x, inside.x, inside.x],
-      y: [null, side.y, side.y, side.y],
-      scale: [null, side.s, side.s, side.s],
-      rotateZ: [null, 0, 0, 0],
-      rotateX: [null, side.rx, side.rx, side.rx],
-      rotateY: [null, side.ry, side.ry, side.ry],
-      opacity: [null, 1, 1, 0],
-    },
-    opts,
+    void bounded(
+      animate(stage, { perspectiveOrigin: [fuite(0, 0), fuite(side.x, side.y), fuite(inside.x, inside.y), fuite(inside.x, inside.y)], perspective: [PERSPECTIVE_PX, persp, persp, persp] }, opts),
+      INSERT_TOTAL_MS + EXIT_GRACE_MS,
+    )
+  await bounded(
+    animate(
+      el,
+      {
+        x: [null, side.x, inside.x, inside.x],
+        y: [null, side.y, side.y, side.y],
+        scale: [null, side.s, side.s, side.s],
+        rotateZ: [null, 0, 0, 0],
+        rotateX: [null, side.rx, side.rx, side.rx],
+        rotateY: [null, side.ry, side.ry, side.ry],
+        opacity: [null, 1, 1, 0],
+      },
+      opts,
+    ),
+    INSERT_TOTAL_MS + EXIT_GRACE_MS,
   )
 }
 usePresence({ element: () => rootNode ?? root.value, onExit: stow })
