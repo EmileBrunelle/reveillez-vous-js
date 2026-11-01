@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, reactive, ref, useTemplateRef } from 'vue'
-import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { reactive, ref, shallowRef, useTemplateRef, watch } from 'vue'
+import { useEventListener, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { M as Motion, useMotionValue, useSpring } from 'motion-v'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '@/engine/activityTiming'
@@ -10,7 +10,7 @@ import { useActivityDone } from '@/composables/useActivityDone'
 import { useDeferredText } from '@/composables/useDeferredText'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { useKeyboardModality } from '@/composables/useKeyboardModality'
-import { advanceHold, isNearWick, pickSnuffed } from '@/engine/candles'
+import { COUNT, DRAFT_DELAY_MS, RELIGHT_MS, advanceHolds, autoRelights, initCandles, isNearWick, lightCandle, litCount, relightSnuffed, resetHolds, snuffStep } from '@/engine/candles'
 import IconChandelle from '~icons/rvj/chandelle'
 import { orSecure, type Rng } from '@/engine/rng'
 
@@ -23,46 +23,125 @@ const reduced = useReducedMotion()
 // Le cadre pulsant de la chandelle soufflée est un repère de focus : réservé au clavier, jamais après un geste du pointeur.
 const keyboard = useKeyboardModality()
 
-const COUNT = 3
-// État lu par `onFinish` et par les minuteries : déclaré avant `useActivityDone`.
-const lit = reactive<boolean[]>(Array(COUNT).fill(false))
-const hold = reactive<number[]>(Array(COUNT).fill(0))
-const litCount = computed(() => lit.filter(Boolean).length)
-// Indice de la chandelle soufflée (-1 : aucune) : courant d’air une seule fois, dès le niveau 3 (l’activité peut être rejouée aux niveaux suivants).
-const snuffed = ref(-1)
+// État de jeu (allumées, progression des mèches, chandelle soufflée) : immuable, les règles sont dans `engine/candles.ts`.
+const candles = shallowRef(initCandles(level))
+// Temps de jeu restant (ms) : les règles du courant d’air en dépendent.
+const leftMs = () => Math.max(0, durationOf('candles') - elapsed())
 
-// Sans rallumage après 4 s, la chandelle se rallume seule (douce chaleur) et l’activité se termine (`finish` n’est lu qu’à l’échéance).
-const { start: relightLater, stop: relightStop } = useTimeoutFn(
-  () =>
-    afterPause(() => {
-      const i = snuffed.value
-      if (i < 0 || isFinished()) return
-      lit[i] = true
-      hold[i] = 1
-      snuffed.value = -1
-      finish()
-    }),
-  4000,
-  { immediate: false },
-)
-
-const { finish, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), {
+const { finish, isFinished, outcome, startedAt, paused, halted, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('candles'),
-  // Fin par n’importe quel chemin (dont les 20 s) : la chandelle soufflée se rallume, rien ne reste sombre.
-  // Expiration (échec) : rien ne se rallume, les chandelles restent comme elles sont.
-  onFinish: (o) => {
-    const i = snuffed.value
-    if (o === 'win' && i >= 0) {
-      lit[i] = true
-      hold[i] = 1
-      snuffed.value = -1
-    }
-    relightStop()
+  // Fin par n’importe quel chemin (victoire ou temps écoulé) : plus aucune minuterie de jeu ne doit agir. Rien ne se rallume
+  // à la fin ; une victoire n’arrive jamais pendant qu’une chandelle est soufflée (les trois sont alors allumées).
+  onFinish: () => {
+    relight.stop()
+    snuff.stop()
   },
 })
 
-// À l’issue la région se vide : le HUD annonce seul le résultat.
-const prompt = useDeferredText(() => (outcome.value !== 'play' ? '' : snuffed.value >= 0 ? 'Un courant d’air… Rallumez la chandelle.' : 'Allumez les trois chandelles'))
+// Minuterie de jeu suspendue pendant la pause subie (onglet caché, fenêtre quittée, menu ouvert) : le temps restant est conservé
+// et reprend à la reprise (jamais d’échéance derrière le voile « EN PAUSE »).
+interface Suspendable {
+  start: (delayMs: number) => void
+  stop: () => void
+}
+const suspendable = (fn: () => void): Suspendable => {
+  let armed = false
+  let left = 0
+  let since = 0
+  const timer = useTimeoutFn(
+    () => {
+      armed = false
+      fn()
+    },
+    () => left,
+    { immediate: false },
+  )
+  const run = () => {
+    since = Date.now()
+    timer.start()
+  }
+  watch(
+    halted,
+    (h) => {
+      if (!armed) return
+      if (h) {
+        left = Math.max(0, left - (Date.now() - since))
+        timer.stop()
+      } else run()
+    },
+    { flush: 'sync' },
+  )
+  return {
+    start: (delayMs) => {
+      armed = true
+      left = delayMs
+      timer.stop()
+      if (!halted.value) run()
+    },
+    stop: () => {
+      armed = false
+      timer.stop()
+    },
+  }
+}
+
+// Niveau 3 : sans rallumage à la main après 4 s, la chandelle soufflée se rallume seule (douce chaleur) et l’activité se termine.
+// Dès le niveau 4, aucune minuterie de rallumage : il faut tenir l’allumette sur la mèche.
+const relight: Suspendable = suspendable(() => {
+  if (isFinished()) return
+  const { state, step } = relightSnuffed(candles.value)
+  candles.value = state
+  if (step === 'win') finish()
+})
+
+// Chandelles « tenues » : survolées, focalisées ou touchées (pointerdown à pointerup, par pointeur) ; jamais soufflées.
+const hovered = reactive<boolean[]>(Array(COUNT).fill(false))
+const focused = reactive<boolean[]>(Array(COUNT).fill(false))
+// Identifiant du pointeur qui tient la chandelle (null : aucun) : le relâchement d’un doigt ne libère pas la chandelle d’un autre.
+const touchedBy = reactive<(number | null)[]>(Array(COUNT).fill(null))
+const protectedSet = () => new Set(Array.from({ length: COUNT }, (_, i) => i).filter((i) => hovered[i] || focused[i] || touchedBy[i] !== null))
+const releaseTouch = (e: PointerEvent) => {
+  touchedBy.forEach((id, i) => {
+    if (id === e.pointerId) touchedBy[i] = null
+  })
+}
+useEventListener(window, 'pointerup', releaseTouch)
+useEventListener(window, 'pointercancel', releaseTouch)
+
+// Le courant d’air souffle une seule fois, juste après la troisième chandelle allumée (jamais s’il reste moins de ~4,5 s : les trois
+// allumées valent alors la victoire). Si toutes les allumées sont protégées, on réessaie à l’échéance suivante, tant qu’il reste du temps.
+const snuff: Suspendable = suspendable(() => {
+  if (isFinished()) return
+  const { state, step } = snuffStep(candles.value, rand, protectedSet(), leftMs())
+  candles.value = state
+  if (step === 'win') return finish()
+  if (step === 'retry') return snuff.start(DRAFT_DELAY_MS)
+  if (autoRelights(level)) relight.start(RELIGHT_MS)
+})
+
+const light = (i: number) => {
+  if (outcome.value !== 'play') return
+  const wasSnuffed = candles.value.snuffed === i
+  const { state, step } = lightCandle(candles.value, i, level, leftMs())
+  if (step === 'none') return
+  candles.value = state
+  pulse(20)
+  if (wasSnuffed) relight.stop()
+  if (step === 'draft') snuff.start(DRAFT_DELAY_MS)
+  else if (step === 'win') finish()
+}
+// Un clic de souris ou un tap (`detail` > 0) n’allume pas : seule l’allumette tenue sur la mèche le fait.
+// Entrée ou Espace sur une chandelle focalisée (`detail` = 0) allume tout de suite, pour l’accessibilité.
+const onClick = (e: MouseEvent, i: number) => {
+  if (e.detail > 0) return
+  light(i)
+}
+
+// Consigne : la région aria-live garde sa hauteur (2 lignes) et se cache à l’issue au lieu de se vider, sinon la rangée sauterait ;
+// le HUD annonce seul le résultat.
+const PROMPT = 'Tenez l’allumette sur chaque mèche'
+const PROMPT_DRAFT = 'Un courant d’air… Rallumez la chandelle.'
+const prompt = useDeferredText(() => (candles.value.snuffed >= 0 ? PROMPT_DRAFT : PROMPT))
 const stage = useTemplateRef<HTMLElement>('stage')
 const candleEls = useTemplateRef<HTMLElement[]>('candleEls')
 
@@ -75,63 +154,37 @@ const matchX = useSpring(targetX, SPRING)
 const matchY = useSpring(targetY, SPRING)
 const matchVisible = ref(false)
 
-// Chandelles « tenues » : survolées, focalisées ou touchées (pointerdown à pointerup) ; jamais soufflées.
-const hovered = reactive<boolean[]>(Array(COUNT).fill(false))
-const focused = reactive<boolean[]>(Array(COUNT).fill(false))
-const touched = reactive<boolean[]>(Array(COUNT).fill(false))
-const protectedSet = () => new Set(Array.from({ length: COUNT }, (_, i) => i).filter((i) => hovered[i] || focused[i] || touched[i]))
-const releaseTouch = () => touched.fill(false)
-useEventListener(window, 'pointerup', releaseTouch)
-useEventListener(window, 'pointercancel', releaseTouch)
-
-// Niveau 3 : une chandelle s’éteint une seule fois, juste après la troisième allumée.
-let snuffUsed = level < 3
-const { start: snuffLater } = useTimeoutFn(
-  () =>
-    afterPause(() => {
-      if (isFinished()) return
-      const i = pickSnuffed(lit, rand, protectedSet())
-      if (i < 0) {
-        // Seule allumée et tenue : on reporte le courant d’air plutôt que d’éteindre sous le curseur.
-        if (litCount.value > 0) snuffLater()
-        return
-      }
-      lit[i] = false
-      hold[i] = 0
-      snuffed.value = i
-      relightLater()
-    }),
-  450,
-  { immediate: false },
-)
-
-const light = (i: number) => {
-  if (lit[i] || outcome.value !== 'play') return
-  lit[i] = true
-  pulse(20)
-  hold[i] = 1
-  if (snuffed.value === i) {
-    snuffed.value = -1
-    relightStop()
-  }
-  if (litCount.value < COUNT) return
-  if (!snuffUsed) {
-    snuffUsed = true
-    snuffLater()
-    return
-  }
-  finish()
+// Mesures de la scène et des mèches (repère de la scène) : prises à l’entrée et au pointerdown, refaites si la scène ou une chandelle change de taille
+// (fenêtre, police, hauteur de la consigne). Aucune mesure dans le mouvement du pointeur une fois la scène mesurée.
+// Le tableau des éléments suit l’ordre du rendu sans que Vue le garantisse : on trie par abscisse (les chandelles sont en rangée, de gauche à droite).
+let origin = { left: 0, top: 0 }
+let wicks: { x: number; y: number }[] = []
+let measured = false
+const measure = () => {
+  const el = stage.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  origin = { left: r.left, top: r.top }
+  wicks = (candleEls.value ?? [])
+    .map((c) => c.getBoundingClientRect())
+    .sort((a, b) => a.left - b.left)
+    .map((c) => ({ x: c.left - r.left + c.width / 2, y: c.top - r.top + c.height * 0.28 }))
+  measured = true
 }
+useResizeObserver(
+  () => [stage.value, ...(candleEls.value ?? [])],
+  () => (measured = false),
+)
 
 // Au toucher, l’allumette reste visible 300 ms après le pointerup, puis s’efface en fondu.
 const { start: hideMatch, stop: keepMatch } = useTimeoutFn(() => (matchVisible.value = false), TOUCH_GRACE_MS, { immediate: false })
 const setTarget = (e: PointerEvent) => {
+  // Multitouche : seul le pointeur principal conduit l’allumette.
+  if (!e.isPrimary) return
   keepMatch()
-  // Mesure faite au moment de l’événement, sur l’élément qui le reçoit : jamais périmée (transforms, défilement, police).
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  measureWicks(rect)
-  const x = e.clientX - rect.left
-  const y = e.clientY - rect.top
+  if (!measured) measure()
+  const x = e.clientX - origin.left
+  const y = e.clientY - origin.top
   targetX.set(x)
   targetY.set(y)
   // Première apparition (ou mouvement réduit) : pas de glissade depuis l’ancienne position.
@@ -141,58 +194,58 @@ const setTarget = (e: PointerEvent) => {
   }
   matchVisible.value = true
 }
+useEventListener(stage, 'pointerenter', measure)
 useEventListener(stage, 'pointermove', setTarget)
-useEventListener(stage, 'pointerdown', setTarget)
-useEventListener(stage, 'pointerup', (e: PointerEvent) => {
-  if (e.pointerType === 'touch') hideMatch()
+useEventListener(stage, 'pointerdown', (e: PointerEvent) => {
+  if (e.isPrimary) measure()
+  setTarget(e)
 })
-useEventListener(stage, 'pointercancel', () => {
+useEventListener(stage, 'pointerup', (e: PointerEvent) => {
+  if (e.isPrimary && e.pointerType === 'touch') hideMatch()
+})
+useEventListener(stage, 'pointercancel', (e: PointerEvent) => {
+  if (!e.isPrimary) return
   keepMatch()
   matchVisible.value = false
-  hold.forEach((_, i) => {
-    if (!lit[i]) hold[i] = 0
-  })
+  candles.value = resetHolds(candles.value)
 })
 useEventListener(stage, 'pointerleave', (e: PointerEvent) => {
-  if (e.pointerType === 'touch') return // pointerleave suit pointerup au toucher : le fondu de 300 ms s’applique
+  if (!e.isPrimary || e.pointerType === 'touch') return // pointerleave suit pointerup au toucher : le fondu de 300 ms s’applique
   keepMatch()
   matchVisible.value = false
 })
 
-// Mèches (repère de la scène), mesurées à chaque geste du pointeur (trois rectangles, rien dans la boucle d’images) : la place des chandelles
-// change avec la fenêtre, la police ou la hauteur du texte d’invite, aucun cache ne reste périmé.
-// Le tableau des éléments suit l’ordre du rendu sans que Vue le garantisse : on trie par abscisse (les chandelles sont en rangée, de gauche à droite).
-let wicks: { x: number; y: number }[] = []
-const measureWicks = (stageRect: DOMRect) => {
-  wicks = (candleEls.value ?? [])
-    .map((c) => c.getBoundingClientRect())
-    .sort((a, b) => a.left - b.left)
-    .map((r) => ({ x: r.left - stageRect.left + r.width / 2, y: r.top - stageRect.top + r.height * 0.28 }))
-}
+// Boucle d’images : seulement tant que l’allumette est visible ou qu’une progression retombe (sinon elle dort).
+const { pause: pauseLoop, resume: resumeLoop } = useRafFn(
+  ({ delta }) => {
+    // Activité finie : plus rien à suivre (l’issue dure environ une seconde, la boucle ne tourne plus pour rien).
+    if (isFinished()) return pauseLoop()
+    // En pause (onglet caché, fenêtre sans focus) : l’allumette et les mèches se figent, la boucle reste armée pour la reprise.
+    if (paused.value) return
+    if (!matchVisible.value && candles.value.hold.every((h) => h === 0)) return pauseLoop()
+    const dt = Math.min(delta, 50)
+    const flameX = matchX.get()
+    const flameY = matchY.get() - 20
+    const touching = Array.from({ length: COUNT }, (_, i) => matchVisible.value && !!wicks[i] && isNearWick(flameX, flameY, wicks[i].x, wicks[i].y, 44))
+    const { state, reached } = advanceHolds(candles.value, touching, dt)
+    candles.value = state
+    for (const i of reached) light(i)
+  },
+  { immediate: false },
+)
+watch(matchVisible, (v) => v && !isFinished() && resumeLoop(), { flush: 'sync' })
 
-const { pause } = useRafFn(({ delta }) => {
-  // Activité finie : plus rien à suivre (l’issue dure environ une seconde, la boucle ne tourne plus pour rien).
-  if (isFinished()) return pause()
-  // En pause (onglet caché, fenêtre sans focus) : l’allumette et les mèches se figent, la boucle reste armée pour la reprise.
-  if (paused.value) return
-  const dt = Math.min(delta, 50)
-  for (let i = 0; i < COUNT; i++) {
-    if (lit[i]) continue
-    const w = wicks[i]
-    const touching = matchVisible.value && !!w && isNearWick(matchX.get(), matchY.get() - 20, w.x, w.y, 44)
-    const p = advanceHold(hold[i], touching, dt)
-    if (p !== hold[i]) hold[i] = p
-    if (p >= 1) light(i)
-  }
-})
+// Lueur de la mèche : pleine sur une chandelle allumée, elle suit la progression sur une mèche éteinte.
+const glow = (i: number) => (candles.value.lit[i] ? 0.9 : candles.value.hold[i] * 0.9)
 </script>
 
 <template>
   <div ref="stage" class="relative size-full touch-none select-none flex flex-col items-center justify-center gap-6 font-ui text-center">
     <!-- La pièce sombre et sa chaleur couvrent toute la fenêtre (fixed, hors de la colonne de 36 rem) : rien n’est rogné, aucun rectangle visible. -->
     <div class="fixed inset-0 -z-1 pointer-events-none bg-[#07050a]" aria-hidden="true" />
-    <div class="warm fixed inset-0 -z-1 pointer-events-none" :class="{ 'no-motion': reduced }" :style="{ opacity: litCount / COUNT }" aria-hidden="true" />
-    <p class="relative m-0 text-[1.4rem] text-[#e8d9b0]" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
+    <div class="warm fixed inset-0 -z-1 pointer-events-none" :class="{ 'no-motion': reduced }" :style="{ opacity: litCount(candles) / COUNT }" aria-hidden="true" />
+    <!-- Hauteur réservée (2 lignes, le texte le plus long au téléphone) et bas aligné sur les chandelles : la rangée ne bouge ni au montage, ni à l’issue. -->
+    <p class="relative m-0 w-full min-h-[2lh] flex items-end justify-center text-[1.4rem] leading-[1.2] text-[#e8d9b0]" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
     <div class="relative flex items-end gap-8 sm:gap-14">
@@ -203,35 +256,31 @@ const { pause } = useRafFn(({ delta }) => {
         type="button"
         class="candle relative bg-transparent border-0 p-0 w-[4.5rem] h-[11rem] focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-4 focus-visible:shadow-none transition-[transform,filter] duration-200 ease-out"
         :class="{
-          pulse: snuffed === n - 1 && !reduced && keyboard,
+          pulse: candles.snuffed === n - 1 && !reduced && keyboard,
           'no-motion': reduced,
-          'cursor-pointer @hover:-translate-y-0.75 @hover:brightness-125 active:translate-y-0.25 active:scale-97 active:brightness-140': !lit[n - 1] && outcome === 'play',
-          'cursor-default': lit[n - 1] || outcome !== 'play',
+          'cursor-pointer @hover:-translate-y-0.75 @hover:brightness-125 active:translate-y-0.25 active:scale-97 active:brightness-140': !candles.lit[n - 1] && outcome === 'play',
+          'cursor-default': candles.lit[n - 1] || outcome !== 'play',
         }"
-        :aria-label="lit[n - 1] ? `Chandelle ${n} allumée` : `Allumer la chandelle ${n}`"
+        :aria-label="candles.lit[n - 1] ? `Chandelle ${n} allumée` : `Allumer la chandelle ${n}`"
         @pointerenter="hovered[n - 1] = true"
         @pointerleave="hovered[n - 1] = false"
-        @pointerdown="touched[n - 1] = true"
+        @pointerdown="touchedBy[n - 1] = $event.pointerId"
         @focus="focused[n - 1] = true"
         @blur="focused[n - 1] = false"
-        @click="light(n - 1)"
+        @click="onClick($event, n - 1)"
       >
         <IconChandelle class="absolute inset-0 size-full" />
         <!-- Le fondu porte sur le conteneur : `wick-cue` anime déjà sa propre opacité. -->
         <Transition leave-active-class="transition-opacity duration-200 ease-in" leave-to-class="opacity-0">
-          <span v-if="!lit[n - 1] && outcome === 'play'" class="pointer-events-none absolute inset-0" aria-hidden="true">
+          <span v-if="!candles.lit[n - 1] && outcome === 'play'" class="pointer-events-none absolute inset-0" aria-hidden="true">
             <span class="wick-cue" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.7}s` }" />
           </span>
         </Transition>
-        <span
-          class="wick-glow absolute left-1/2 top-[28%] size-[7px] -mt-[3.5px] -ml-[3.5px] rounded-[50%] bg-[#ff9a2e] pointer-events-none"
-          :style="{ opacity: hold[n - 1] * 0.9 }"
-          aria-hidden="true"
-        />
+        <span class="wick-glow absolute left-1/2 top-[28%] size-[7px] -mt-[3.5px] -ml-[3.5px] rounded-[50%] bg-[#ff9a2e] pointer-events-none" :style="{ opacity: glow(n - 1) }" aria-hidden="true" />
         <Transition leave-active-class="transition-[opacity,translate] duration-250 ease-in" leave-to-class="opacity-0 -translate-y-3">
-          <span v-if="snuffed === n - 1 && !reduced" class="pointer-events-none absolute inset-0" aria-hidden="true"><span class="smoke" /></span>
+          <span v-if="candles.snuffed === n - 1 && !reduced" class="pointer-events-none absolute inset-0" aria-hidden="true"><span class="smoke" /></span>
         </Transition>
-        <span class="flame" :class="{ on: lit[n - 1], 'no-motion': reduced }" aria-hidden="true">
+        <span class="flame" :class="{ on: candles.lit[n - 1], 'no-motion': reduced }" aria-hidden="true">
           <span class="flame-sway" :class="{ 'no-motion': reduced }" :style="{ animationDelay: `${n * -0.9}s` }" />
         </span>
       </button>
