@@ -48,5 +48,9 @@
     "vite": "^8.3.5",
     "vitest": "^5.0.5",
     "vue-tsc": "^3.3.13"
+  },
+  "allowScripts": {
+    "@vgpu/adapter-node": false,
+    "webgpu": false
   }
 }

@@ -27,6 +27,8 @@ vi.mock('@/audio/sfx', () => ({
 }))
 // Motif fixe : deux coups séparés d’une pause courte (le jugement reste le vrai `judge`).
 vi.mock('@/engine/rhythm', async (orig) => ({ ...(await orig<typeof import('@/engine/rhythm')>()), rhythmFor: () => sfx.motif }))
+// Pas de GPU dans ces tests (ni en CI) : la porte 3D est simulée, sans quoi son init échoue et avertit pour rien.
+vi.mock('@/effects/door3d', () => ({ createDoor3d: vi.fn(async () => ({ stop: vi.fn() })) }))
 // Les animations Motion sont remplacées par des contrôles inertes : les promesses se résolvent tout de suite.
 vi.mock('motion-v', async (orig) => ({ ...(await orig<typeof import('motion-v')>()), animate: vi.fn(() => ({ stop: () => {} })) }))
 
