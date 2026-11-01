@@ -146,7 +146,7 @@ watch(
         {{ prompt.verb }}
       </p>
     </div>
-    <!-- barre de temps : en bas, jusqu’à la place du bouton « Passer » (retiré) ; le rouge de la fin (derniers 25 %) est dans l’animation.
+    <!-- barre de temps : en bas, sur toute la largeur du HUD moins les marges sûres (« Passer » est retiré) ; le rouge de la fin (derniers 25 %) est dans l’animation.
          Pas de Progress de v0 ici : son Fill écrit lui-même `style.width` (même en renderless), ce qui entre en conflit avec l’animation `scaleX`
          et obligerait à mettre l’état à jour à chaque image ; la barre est donc un `role="progressbar"` natif dont seule la valeur accessible vit dans l’état. -->
     <div
@@ -156,7 +156,7 @@ watch(
       aria-valuemin="0"
       aria-valuemax="100"
       :aria-valuetext="`${left} %`"
-      class="absolute bottom-3 left-3 right-32 sm:right-36 h-3.5 border-2 border-solid border-black bg-black/70 p-px"
+      class="absolute bottom-3 left-[max(0.75rem,var(--safe-l))] right-[max(0.75rem,var(--safe-r))] h-3.5 border-2 border-solid border-black bg-black/70 p-px"
     >
       <div :key="barKey" class="drain h-full origin-left" :style="{ animationDelay: drainFrom }" :class="{ paused: paused || outcome !== 'play' }" />
     </div>
