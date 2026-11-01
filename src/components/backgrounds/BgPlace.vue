@@ -60,6 +60,7 @@ const { lost: failed } = useGpuEffect(
       sharp: () => sharp ?? false,
       shadows: () => !noShadows.value && quality.atLeast('high'),
       quality: () => quality.level,
+      settledQuality: () => quality.settled,
       onGpuSample: quality.reportGpuMs,
       onShadowsOver: quality.reportShadowsOver,
       paranoia,

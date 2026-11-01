@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
 import { M as Motion, animate, useMotionValue, useMotionValueEvent, usePresence, useSpring } from 'motion-v'
-import { useElementSize, useEventListener } from '@vueuse/core'
+import { promiseTimeout, useElementSize, useEventListener } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import { DECK_BREATH_HZ, DECK_BREATH_TILT, DECK_BREATH_Y, DECK_LAYERS, DECK_PERSP, DECK_POINTER_TILT, DECK_THICK, DECK_TILT, STOW_SCALE, deckPose } from './deckFan'
 import { INSERT_COVER_OFF_MS, INSERT_END_SCALE, INSERT_FADE_IN_MS, INSERT_MS, INSERT_TOTAL_MS, deckSlot, pickSlot } from './deckInsert'
@@ -131,11 +131,14 @@ usePresence({
       { opacity: [0, 0, 1, 1, 0] },
       { duration: coverEnd / 1000, times: [0, INSERT_MS.approach / coverEnd, (INSERT_MS.approach + frame) / coverEnd, INSERT_COVER_OFF_MS / coverEnd, 1], ease: 'linear' },
     )
-    await animate(
+    // Une animation stoppée ne résout jamais `finished` (motion-dom 2.10) et motion-v attend sans rattraper : sans délai maximal, la sortie ne libérerait jamais la porte (`AnimatePresence` en mode `wait`).
+    // La course avec un délai (durée de la séquence + 500 ms) et le catch libèrent dans tous les cas.
+    const sortie = animate(
       el,
       { opacity: [null, 1, 1, 0], scale: [null, STOW_SCALE, STOW_SCALE, INSERT_END_SCALE] },
       { duration: T, times: [0, at(INSERT_FADE_IN_MS), at(INSERT_COVER_OFF_MS), 1], ease: ['easeOut', 'linear', [0.4, 0, 0.2, 1]] },
     )
+    await Promise.race([Promise.resolve(sortie), promiseTimeout(INSERT_TOTAL_MS + 500)]).catch(() => {})
     deckPose.rx = DECK_TILT.x // la prochaine donne repart du repos
     deckPose.ry = DECK_TILT.y
     deckPose.y = 0

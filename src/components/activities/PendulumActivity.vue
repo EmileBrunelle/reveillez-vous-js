@@ -78,6 +78,8 @@ const render = () => {
 
 // Verdict : le cristal est immobile ; il retient un symbole, ou aucun s’il est resté entre deux.
 const judge = () => {
+  // La minuterie a pu rendre l’échec pendant la glissade : aucun verdict sous l’écran d’issue (ni symbole vert, ni essai décompté).
+  if (isFinished()) return
   phase.value = 'rest'
   const held = heldSymbol(state.theta, tuning.count, tuning.ratio)
   if (held === target) {

@@ -5,7 +5,7 @@ import { defineComponent, h } from 'vue'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { DECK_LAYERS, DECK_TILT, deckPose } from '@/components/deckFan'
 import { deckShown } from '@/components/deckShown'
-import { deckSlot } from '@/components/deckInsert'
+import { INSERT_TOTAL_MS, deckSlot } from '@/components/deckInsert'
 
 // Motion simulé : valeurs minimales (get/set), enveloppes transparentes, animations espionnes (WAAPI absent sous happy-dom).
 const exit = vi.hoisted(() => ({ fn: null as null | (() => Promise<void>) }))
@@ -95,6 +95,26 @@ describe('CardDeck : le paquet 3D', () => {
     deckPose.rx = 99
     await expect(exit.fn?.()).resolves.toBeUndefined()
     expect(deckPose.rx).toBe(DECK_TILT.x)
+  })
+
+  it('une animation de sortie qui ne se résout jamais libère quand même, après la durée de la séquence + 500 ms', async () => {
+    const { animate } = await import('motion-v')
+    wrapper = mount(Hote, { attachTo: document.body })
+    deckPose.rx = 99
+    vi.useFakeTimers()
+    try {
+      vi.mocked(animate).mockImplementationOnce(() => ({ stop: () => {}, then: () => {} }) as never) // couche de recouvrement : sans importance
+      vi.mocked(animate).mockImplementationOnce(() => ({ stop: () => {}, then: () => {} }) as never) // le paquet : `finished` ne se résout jamais
+      let libere = false
+      void exit.fn?.().then(() => (libere = true))
+      await vi.advanceTimersByTimeAsync(INSERT_TOTAL_MS + 400)
+      expect(libere).toBe(false) // pas avant le délai maximal
+      await vi.advanceTimersByTimeAsync(200)
+      expect(libere).toBe(true)
+      expect(deckPose.rx).toBe(DECK_TILT.x) // la pose repart du repos même sans fin d’animation
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('suit deckShown : il n’apparaît qu’à la donne et au rangement', async () => {

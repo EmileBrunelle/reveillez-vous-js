@@ -336,6 +336,20 @@ describe('PendulumActivity : issue', () => {
     expect(w.emitted('done')).toHaveLength(1)
   })
 
+  it('arrêté juste avant la fin : l’échec de la minuterie tient, aucun verdict (symbole vert, essai décompté) ne le contredit', async () => {
+    const w = await monter()
+    const total = durationOf('pendulum') + ACTIVITY_GRACE_MS
+    await avancer(total - 200 - 80) // l’arrêt s’achève (glissade) après la minuterie
+    await appuiClavier(w)
+    await avancer(3000)
+    expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.pendulum.fail)
+    expect(suivi.state!.rest).toBe(true)
+    expect(w.findAll('[data-lit]')).toHaveLength(0)
+    expect(symboles(w).some((s) => s.classes().includes('missed') || s.classes().includes('lit'))).toBe(false)
+    expect(invite(w).text()).not.toMatch(/essai|Entre deux/i)
+    expect(w.emitted('done')).toHaveLength(1)
+  })
+
   it('l’appui est ignoré une fois l’issue rendue', async () => {
     const w = await monter()
     await avancer(durationOf('pendulum') + ACTIVITY_GRACE_MS + 1500)

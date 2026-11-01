@@ -79,6 +79,21 @@ describe('fonds raymarchés : DPR, densité, ombres', () => {
     expect(s.surf.dpr).toBeCloseTo(0.375)
   })
 
+  it('le DPR lit le niveau posé (`settledQuality`) : une descente en cours ne recrée pas la surface avant la transition', async () => {
+    const level = { v: 'high' as QualityLevel }
+    const settled = { v: 'high' as QualityLevel }
+    await make(level, { settledQuality: () => settled.v }).p
+    const s = run<Any>(loop.opts!.setup, {})
+    const surf = s.surf
+    level.v = 'low' // descente décidée, pas encore posée
+    run(loop.opts!.render, frame(), s, clk(1))
+    expect(s.surf).toBe(surf)
+    expect(s.surf.dpr).toBe(0.5)
+    settled.v = 'low'
+    run(loop.opts!.render, frame(), s, clk(2))
+    expect(s.surf.dpr).toBeCloseTo(0.375)
+  })
+
   it('la densité (uniform) glisse vers la cible du niveau sans sauter, et reste à 1 en high', async () => {
     const level = { v: 'high' as QualityLevel }
     await make(level).p

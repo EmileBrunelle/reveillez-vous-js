@@ -51,6 +51,8 @@ export interface RaymarchOptions {
   shadows?: () => boolean
   /** Niveau de qualité courant (voir `stores/quality.ts`) : réduit le DPR et la densité des particules. Absent = `high`. */
   quality?: () => QualityLevel
+  /** Niveau « posé » (`quality.settled`) : ne change qu’aux transitions ; le DPR de la surface (ressource à recréer) le lit. Absent = `quality`. */
+  settledQuality?: () => QualityLevel
   /** Reçoit la durée GPU (ms) du passage du fond quand `timestamp-query` existe (réutilise le timer des ombres). */
   onGpuSample?: (ms: number) => void
   /** Appelé une fois quand le budget propre des ombres est dépassé (le gouverneur en tire une descente). */
@@ -157,7 +159,7 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
         css.w = entry!.contentRect.width
         css.h = entry!.contentRect.height
       })
-      const dprFor = () => placeDpr(css.w, css.h, opts.sharp?.() ?? false, window.devicePixelRatio || 1, opts.quality?.() ?? 'high')
+      const dprFor = () => placeDpr(css.w, css.h, opts.sharp?.() ?? false, window.devicePixelRatio || 1, opts.settledQuality?.() ?? opts.quality?.() ?? 'high')
       const anim = { p: paranoia(), drift: 0, px: 0, py: 0, detail: detailTarget() }
       const surf = surface(gpu, canvas, { dpr: dprFor(), clearColor: [0, 0, 0, 1] })
       const fx = effect(gpu, opts.shader, { set: { params: params(anim, 0) } })

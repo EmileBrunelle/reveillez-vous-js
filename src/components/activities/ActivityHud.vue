@@ -78,6 +78,27 @@ watch(
   },
   { flush: 'post' },
 )
+// Pendant la pause, le jeu derrière le voile est inerte (Tab n’atteint plus ses contrôles) : les frères de la racine du HUD, c’est-à-dire la zone de jeu de l’activité.
+// Le voile, le bouton Pause et la barre des tâches (hors de l’activité) restent hors de cette zone. On ne retire `inert` que sur ce qu’on a posé nous-mêmes.
+const rootEl = useTemplateRef<HTMLElement>('rootEl')
+let rendusInertes: Element[] = []
+const libererJeu = () => {
+  for (const el of rendusInertes) el.removeAttribute('inert')
+  rendusInertes = []
+}
+const regler = (on: boolean) => {
+  libererJeu()
+  if (!on) return
+  const racine = rootEl.value
+  for (const el of racine?.parentElement?.children ?? []) {
+    if (el === racine || el.hasAttribute('inert')) continue
+    el.setAttribute('inert', '')
+    rendusInertes.push(el)
+  }
+}
+watch(showPause, regler, { flush: 'sync' })
+onMounted(() => regler(showPause.value)) // monté déjà en pause : la racine n’existait pas encore pour la veille
+tryOnScopeDispose(libererJeu)
 const pauseEl = useTemplateRef<HTMLElement>('pauseEl')
 const barEl = useTemplateRef<HTMLElement>('barEl')
 // Publiées à l’activité parente (zone à ne pas recouvrir) ; sans fournisseur, références locales inertes.
@@ -113,15 +134,17 @@ const resultEl = useTemplateRef<HTMLElement>('resultEl')
 // Retrait : le verbe géant, centré, s’efface en fondu (léger grossissement) au lieu de se ranger en bas à gauche.
 // Rangé, il restait loin du jeu sur grand écran et contredisait la consigne des fenêtres (« RETENEZ ! » pendant « À vous ! »).
 // Un seul maître du transform : animate. Mouvement réduit : simple disparition, sans grossissement.
+// Une animation annulée (démontage en cours de route) rejette sa promesse avec un AbortError : on la rattrape pour qu’aucun rejet ne reste sans gestionnaire.
+const absorber = (animation: { then: (onResolve: () => void, onReject?: () => void) => unknown }) => void new Promise<void>((resolve, reject) => animation.then(resolve, reject)).catch(() => {})
 const dock = () => {
   const el = verbEl.value
   if (!el) return
-  animate(el, reduced.value ? { opacity: 0 } : { opacity: 0, scale: 1.08 }, { duration: reduced.value ? 0.2 : 0.45, ease: 'easeIn' })
+  absorber(animate(el, reduced.value ? { opacity: 0 } : { opacity: 0, scale: 1.08 }, { duration: reduced.value ? 0.2 : 0.45, ease: 'easeIn' }))
 }
 const { start: dockLater } = useTimeoutFn(dock, 800, { immediate: false })
 onMounted(() => {
   if (reduced.value) return dockLater()
-  if (verbEl.value) animate(verbEl.value, { scale: [0.2, 1], opacity: [0, 1] }, { type: 'spring', stiffness: 520, damping: 11 })
+  if (verbEl.value) absorber(animate(verbEl.value, { scale: [0.2, 1], opacity: [0, 1] }, { type: 'spring', stiffness: 520, damping: 11 }))
   dockLater()
 })
 
@@ -136,13 +159,13 @@ watch(
     releaseMusicTension(o)
     stinger.play(o, o === 'win' ? (prompt.value.winStingerDelay ?? 0) : 0)
     await nextTick()
-    if (resultEl.value && !reduced.value) animate(resultEl.value, { scale: [0.3, 1], rotate: o === 'win' ? [-6, 0] : [4, 0] }, { type: 'spring', stiffness: 480, damping: 9 })
+    if (resultEl.value && !reduced.value) absorber(animate(resultEl.value, { scale: [0.3, 1], rotate: o === 'win' ? [-6, 0] : [4, 0] }, { type: 'spring', stiffness: 480, damping: 9 }))
   },
 )
 </script>
 
 <template>
-  <div class="pointer-events-none absolute inset-0 z-20 select-none" data-testid="activity-hud">
+  <div ref="rootEl" class="pointer-events-none absolute inset-0 z-20 select-none" data-testid="activity-hud">
     <p class="sr-only" role="status">{{ pauseAnnouncement || announcement }}</p>
     <!-- verbe : plein centre à l’apparition, puis effacé en fondu -->
     <div class="absolute inset-0 flex items-center justify-center" :class="{ invisible: outcome !== 'play' }" aria-hidden="true">
