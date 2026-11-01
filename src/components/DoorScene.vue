@@ -148,6 +148,14 @@ const edgeBox = computed(() => {
   return { left: `${(edgeX / 120) * 100}%`, top: `${(top / 190) * 100}%`, height: `${((bottom - top) / 190) * 100}%` }
 })
 
+// Lueur au sol : un trapèze qui part DU seuil (pied réel de l’embrasure) et s’évase vers l’avant ; son bord haut épouse l’ouverture (gonds → chant),
+// et le clip-path (appliqué après le flou) coupe tout ce qui remonterait derrière le seuil.
+const spillStyle = computed(() => {
+  const { hingeX, edgeX, bottom } = look.value.bounds
+  const w = ((edgeX - hingeX) / 120) * 100
+  return { left: `${(hingeX / 120) * 100 - w / 2}%`, width: `${w * 2}%`, top: `${(bottom / 190) * 100}%` }
+})
+
 const session = useSessionStore()
 const intensity = () => knockIntensity(level)
 const playerKnock = (e: MouseEvent, fromPointer = false) => {
@@ -463,7 +471,8 @@ const onSceneClick = (e: MouseEvent) => {
       </div>
       <div
         ref="spill"
-        class="absolute -left-[45%] -right-[45%] top-[60%] h-[80%] opacity-0 origin-[50%_0] [clip-path:polygon(33%_0,67%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0),rgb(255_226_140/0.6)_14%,rgb(255_226_140/0))] blur-[7px] pointer-events-none"
+        class="absolute h-[80%] opacity-0 origin-[50%_0] [clip-path:polygon(25%_0,75%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0.85),rgb(255_226_140/0.45)_30%,rgb(255_226_140/0))] blur-[7px] pointer-events-none"
+        :style="spillStyle"
         aria-hidden="true"
       />
       <DoorGround :door-id="door.id" layer="sol" />
