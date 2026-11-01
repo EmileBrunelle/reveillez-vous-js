@@ -27,6 +27,8 @@ import { useFocusTarget } from './composables/useFocusTarget'
 import { provideLayoutRefs, registerLayoutEl } from './composables/layoutRefs'
 import { useShake } from './composables/useShake'
 import { useApproach } from './composables/useApproach'
+import { useFrameBudget } from './composables/useFrameBudget'
+import { useQualityStore } from './stores/quality'
 
 // Focus au montage (pas d’autofocus : Chrome y montrerait l’anneau avant toute entrée) ; sans entrée connue, on le traite comme un pointeur.
 // Ref fonction rappelée à chaque rendu : createFocusOnce ne focalise qu’une fois par élément (une réapparition de l’overlay = nouvel élément).
@@ -113,6 +115,10 @@ const forgetAll = () => {
 }
 const { level, paranoia } = storeToRefs(progress)
 useTabTitle(level)
+// Gouverneur de qualité : images mesurées seulement tant qu’une animation tourne (jeu lancé, mouvement permis) ; une remontée en attente s’applique au changement de phase.
+const quality = useQualityStore()
+useFrameBudget(() => gpu.value === 'ok' && !reducedMotion.value)
+watch(phase, () => quality.transition())
 
 const activityLabel = computed(() => (activityId.value ? ACTIVITY_PROMPTS[activityId.value].verb : 'Activité'))
 const mainEl = useTemplateRef<HTMLElement>('mainEl')

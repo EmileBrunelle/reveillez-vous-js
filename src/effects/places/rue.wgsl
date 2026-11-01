@@ -13,6 +13,7 @@ struct Params {
   weather: f32, // variante : 0 dégagé, 1 pluie légère (rue mouillée), 2 feuilles mortes (dégagé, rafales d’automne)
   cold: f32, // variante : proportion de fenêtres à lumière froide 0..1
   shadows: f32, // 1 = ombre de la voiture portée par le lampadaire (0 : tactile, écran étroit ou budget GPU dépassé)
+  density: f32, // 0..1 densité des feuilles en l’air (qualité adaptative : 1 en `high`, glisse vers le bas sous charge)
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -590,7 +591,7 @@ fn leaf_slice(ro: vec3f, rd: vec3f, zs: f32, tHit: f32, cell: f32, dens: f32, se
     if (lk > 0.0) {
       for (var i = 0; i < 3; i++) {
         let fi = f32(i);
-        let lf = leaf_slice(ro, rd, 3.5 + fi * fi * 2.1 + fi * 1.6, t, 1.1 - 0.12 * fi, (0.30 - 0.08 * fi) * lk, 3.0 + fi * 7.1, fogc);
+        let lf = leaf_slice(ro, rd, 3.5 + fi * fi * 2.1 + fi * 1.6, t, 1.1 - 0.12 * fi, (0.30 - 0.08 * fi) * lk * params.density, 3.0 + fi * 7.1, fogc);
         col = mix(col, lf.rgb, lf.a);
       }
     }

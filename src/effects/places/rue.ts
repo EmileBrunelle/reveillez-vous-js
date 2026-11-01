@@ -22,6 +22,7 @@ const rueParams = (s: RaymarchState & { variant?: Record<string, number> }): Rec
     py: s.py,
     weather: s.variant?.weather ?? 0,
     cold: s.variant?.cold ?? 0.2,
+    density: s.detail ?? 1,
   }
 }
 

@@ -12,7 +12,10 @@ export const SHADOW_WINDOW = 30
 /** Une image plus longue que cela (onglet resté caché, reprise) n’est pas une mesure de coût. */
 const SHADOW_MAX_SAMPLE_MS = 250
 
-/** Verdict de la session : un GPU jugé trop lent le reste pour tous les lieux et toutes les visites (pas de ~30 images lourdes à chaque fois). */
+/**
+ * Verdict : un GPU jugé trop lent coupe les ombres pour tous les lieux et toutes les visites (pas de ~30 images lourdes à chaque fois),
+ * jusqu’à ce que le gouverneur de qualité (`stores/quality.ts`) remonte au niveau `high` et le remette à zéro (`resetShadowVerdict`).
+ */
 let cutForSession = false
 
 /** Vrai si un budget a déjà coupé les ombres pour le reste de la session. */
@@ -23,7 +26,7 @@ export const cutShadowsForSession = (): void => {
   cutForSession = true
 }
 
-/** Remet le verdict à zéro (tests seulement : en production, il dure jusqu’à la fermeture de l’onglet). */
+/** Remet le verdict à zéro : appelé par le gouverneur à la remontée vers `high` (les ombres sont alors mesurées de nouveau), et par les tests. */
 export const resetShadowVerdict = (): void => {
   cutForSession = false
 }
@@ -31,8 +34,10 @@ export const resetShadowVerdict = (): void => {
 export interface ShadowBudget {
   /** Ajoute une mesure en ms (durée GPU du passage, ou intervalle entre images en repli). */
   push: (ms: number) => void
-  /** Vrai dès qu’une fenêtre complète a dépassé la limite : les ombres restent coupées jusqu’au démontage (pas de va-et-vient). */
+  /** Vrai dès qu’une fenêtre complète a dépassé la limite : les ombres restent coupées jusqu’à `reset` (pas de va-et-vient). */
   readonly over: boolean
+  /** Repart d’une fenêtre vide (le gouverneur a remonté : les ombres reviennent et sont jugées de nouveau). */
+  reset: () => void
 }
 
 /** Juge le coût mesuré par fenêtres de `window` images consécutives ; la limite s’applique à la moyenne de la fenêtre. */
@@ -51,6 +56,11 @@ export const createShadowBudget = (limitMs: number, window = SHADOW_WINDOW): Sha
     },
     get over() {
       return over
+    },
+    reset: () => {
+      sum = 0
+      n = 0
+      over = false
     },
   }
 }

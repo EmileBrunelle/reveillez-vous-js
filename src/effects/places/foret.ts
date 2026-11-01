@@ -26,6 +26,7 @@ export const foret: PlaceConfig = {
       moon: v.moon ?? 1,
       snow: v.snow ?? 0,
       glow: 1,
+      density: s.detail ?? 1,
     }
   },
 }

@@ -3,12 +3,14 @@ import { useTemplateRef, watch } from 'vue'
 import { useGpuEffect } from '@/composables/useGpuEffect'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { hasWebGpuAdapter } from '@/effects/webgpu'
+import { useQualityStore } from '@/stores/quality'
 import { useSessionStore } from '@/stores/session'
 
 const { paranoia, off } = defineProps<{ paranoia: number; off?: boolean }>()
 const emit = defineEmits<{ ready: []; fail: [] }>()
 
 const session = useSessionStore()
+const quality = useQualityStore()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const reducedMotion = useReducedMotion()
 // Coup de porte : objet réutilisé à chaque image (lu par le CRT, aucune allocation par trame).
@@ -21,6 +23,9 @@ const { status, lost } = useGpuEffect(
     return startCrt(el, {
       motion: () => !reducedMotion.value,
       paranoia: () => paranoia,
+      // Qualité : grain éteint en douceur en `low` ; surface à 1× posée seulement aux changements de scène ou de phase.
+      quality: () => quality.level,
+      settledQuality: () => quality.settled,
       ripple: () => {
         // Âge (s) depuis le dernier coup, plafonné ; amplitude légèrement modulée par la paranoïa.
         const k = session.knock

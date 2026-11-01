@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { useTemplateRef } from 'vue'
+import { onMounted, useTemplateRef } from 'vue'
 import { useMediaQuery, useParallax } from '@vueuse/core'
 import { useGpuEffect } from '@/composables/useGpuEffect'
 import { usePlaceAudio } from '@/composables/usePlaceAudio'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { useProgressStore } from '@/stores/progress'
+import { useQualityStore } from '@/stores/quality'
 import { placeLoaders, type PlaceId } from '@/effects/places'
 import { SHADOWS_OFF_MEDIA } from '@/effects/shadowQuality'
 
 const { place, variant = undefined, sharp } = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
 
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
-// Ombres lancées : coupées sur téléphone et tablette (pointeur grossier) et sous 641 px de large ; le coût mesuré peut les couper aussi (createRaymarch).
+// Ombres lancées : coupées sur téléphone et tablette (pointeur grossier) et sous 641 px de large, et sous le niveau `high` ; le coût mesuré peut les couper aussi (createRaymarch).
 const noShadows = useMediaQuery(SHADOWS_OFF_MEDIA)
 const reducedMotion = useReducedMotion()
+// Qualité adaptative : ombres seulement en `high`, DPR et densité des particules selon le niveau, temps GPU du fond rapporté au gouverneur.
+const quality = useQualityStore()
+// Un nouveau lieu est un changement de scène : c’est là qu’une remontée de qualité en attente s’applique.
+onMounted(() => quality.transition())
 // Le niveau de paranoïa (0..1) vient directement du store de progression, lu à chaque image par les paramètres du shader.
 const root = useTemplateRef<HTMLElement>('root')
 const { tilt, roll, source } = useParallax(root)
@@ -53,7 +58,10 @@ const { lost: failed } = useGpuEffect(
       params: (st) => cfg.params({ ...st, variant }),
       motion: () => !reducedMotion.value,
       sharp: () => sharp ?? false,
-      shadows: () => !noShadows.value,
+      shadows: () => !noShadows.value && quality.atLeast('high'),
+      quality: () => quality.level,
+      onGpuSample: quality.reportGpuMs,
+      onShadowsOver: quality.reportShadowsOver,
       paranoia,
       parallax,
       onLost,

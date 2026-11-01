@@ -1,7 +1,7 @@
 // Logique pure de saut de trame en mouvement réduit : le shader est alors statique, on ne redessine que si une entrée change.
 
-/** Clé de l’image statique du CRT : seuls la taille du canvas et la paranoïa (à 3 décimales) la changent. */
-export const crtStaticKey = (width: number, height: number, paranoia: number): string => `${width}x${height}|${paranoia.toFixed(3)}`
+/** Clé de l’image statique du CRT : seuls la taille du canvas, la paranoïa (à 3 décimales) et l’allègement `lite` (qualité, ajouté seulement s’il est non nul) la changent. */
+export const crtStaticKey = (width: number, height: number, paranoia: number, lite = 0): string => `${width}x${height}|${paranoia.toFixed(3)}${lite > 0 ? `|l${lite.toFixed(2)}` : ''}`
 
 /**
  * Clé de l’image statique d’un fond raymarché : taille, paranoïa, paramètres de la variante (voir `paramsKey`, hors `time`)

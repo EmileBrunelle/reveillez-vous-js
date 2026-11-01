@@ -14,6 +14,7 @@ struct Params {
   snow: f32, // variante : 0..1 rafales de neige
   glow: f32, // intensité des citrouilles
   shadows: f32, // 1 = ombres lancées des troncs (0 : tactile, écran étroit ou budget GPU dépassé)
+  density: f32, // 0..1 densité des flocons (qualité adaptative : 1 en `high`)
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -210,7 +211,7 @@ fn flakes(c2: vec2f, scale: f32, speed: f32, seed: f32) -> f32 {
   let cell = floor(q);
   let f = fract(q) - 0.5;
   let o = (vec2f(h21(cell + seed + 3.1), h21(cell + seed + 7.7)) - 0.5) * 0.6;
-  return step(0.74, h21(cell + seed)) * smoothstep(0.2, 0.05, length(f - o));
+  return step(1.0 - 0.26 * params.density, h21(cell + seed)) * smoothstep(0.2, 0.05, length(f - o));
 }
 
 // Une paire d’yeux dans le noir à la position monde c (écartement 0,34), clignement lent.

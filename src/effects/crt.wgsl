@@ -6,6 +6,7 @@ struct Params {
   width: f32, // largeur du canevas en pixels de l’APPAREIL
   rippleAge: f32, // secondes depuis le dernier coup (non ramené), borné par l’appelant
   rippleAmp: f32, // 0..1
+  lite: f32, // 0..1 allègement (qualité `low`) : sans grain ; glisse côté CPU, jamais de saut
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -84,8 +85,11 @@ fn sd_round(p: vec2f, b: vec2f, r: f32) -> f32 {
   dark = dark + flick * params.motion;
 
   // Grain : de moyenne nulle, fin, nouvelle graine à 30 Hz.
-  let n = hash(floor(px * 0.5) + vec2f(fract(floor(t * 30.0) * 0.6180339) * 91.0, floor(t * 30.0) % 7.0));
-  dark = dark + (n - 0.5) * (0.04 + 0.06 * p);
+  // Allégé (`lite` → 1) : l’amplitude s’éteint en douceur ; la moyenne est nulle, la luminance globale ne bouge donc pas. À 1, le hachage est sauté.
+  if (params.lite < 0.999) {
+    let n = hash(floor(px * 0.5) + vec2f(fract(floor(t * 30.0) * 0.6180339) * 91.0, floor(t * 30.0) % 7.0));
+    dark = dark + (n - 0.5) * (0.04 + 0.06 * p) * (1.0 - params.lite);
+  }
 
   // Bande douce qui défile lentement : 0,07 Hz, bords larges et doux, faible contraste.
   let band = fract(t * 0.07);
