@@ -351,6 +351,16 @@ const { pause } = useRafFn(({ delta }) => {
       >
         {{ OUIJA_BYE }}
       </button>
+      <!-- Même texte que l’annonce vocale (la région aria-live reste la seule voix) : ici, visuel seulement. -->
+      <Transition enter-from-class="opacity-0" enter-active-class="transition-opacity duration-500 ease-out" leave-active-class="transition-opacity duration-700 ease-in" leave-to-class="opacity-0">
+        <p
+          v-if="held"
+          class="held-line pointer-events-none absolute top-full left-1/2 z-10 mt-1 w-max max-w-[calc(100cqw-1rem)] -translate-x-1/2 rounded-md bg-[#08050a]/85 px-3 py-0.5 text-center text-[1rem] italic tracking-[0.06em] text-[#b9d4e8]"
+          aria-hidden="true"
+        >
+          {{ HELD_LINE }}
+        </p>
+      </Transition>
     </div>
     <Motion as="span" class="drop absolute left-0 top-0 pointer-events-none will-change-transform" :style="{ x: dropX, y: dropY, rotate: dropTilt, scale: dropLift }" aria-hidden="true">
       <!-- Aura et main spectrales : elles naissent sur la goutte et s’y résorbent au relâchement (fondu, jamais de disparition sèche). -->
@@ -362,10 +372,6 @@ const { pause } = useRafFn(({ delta }) => {
       </Transition>
       <IconGoutte class="drop-shape" />
     </Motion>
-    <!-- Même texte que l’annonce vocale (la région aria-live reste la seule voix) : ici, visuel seulement. -->
-    <Transition enter-from-class="opacity-0" enter-active-class="transition-opacity duration-500 ease-out" leave-active-class="transition-opacity duration-700 ease-in" leave-to-class="opacity-0">
-      <p v-if="held" class="held-line pointer-events-none absolute inset-x-0 top-2 z-10 m-0 px-3 text-[1.05rem] italic tracking-[0.08em] text-[#b9d4e8]" aria-hidden="true">{{ HELD_LINE }}</p>
-    </Transition>
     <ActivityHud activity="ouija" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
   </div>
 </template>
