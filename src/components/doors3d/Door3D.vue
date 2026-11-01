@@ -54,7 +54,7 @@ const {
 
 const emit = defineEmits<{ failed: []; ready: [] }>()
 
-// Le canevas reste invisible jusqu’à sa première image dessinée (jamais une image vide) ; `ready` prévient l’appelant, qui fait le fondu depuis son repli.
+// Le canevas reste invisible jusqu’à sa première image dessinée (jamais une image vide) ; `ready` prévient l’appelant, qui fait alors apparaître la porte (aucun SVG pendant l’attente).
 const shown = ref(false)
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const noShadows = useMediaQuery(SHADOWS_OFF_MEDIA)
@@ -111,7 +111,7 @@ const { lost } = useGpuEffect(
       settled: quality,
     })
   },
-  // Init bornée : un GPU qui ne répond pas laisse la place au SVG de la scène au lieu d’une porte absente.
+  // Init bornée : un GPU qui ne répond pas (6 s) émet `failed` : la scène passe alors au SVG pour toute la session, au lieu d’une porte absente.
   { warning: 'Porte 3D désactivée :', timeout: 6000 },
 )
 watch(lost, (l) => l && emit('failed'))

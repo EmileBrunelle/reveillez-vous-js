@@ -50,8 +50,10 @@ afterEach(() => {
 })
 
 const LIGNE = 'Entrez, on vous attendait.'
+// Porte rare sans `place` (frigo), toujours en SVG : ces tests suivent le jeu, pas le rendu 3D (voir DoorScene3d.test.ts).
+const PORTE = doors.find((d) => d.id === 'frigo')!
 const monter = (props: Record<string, unknown> = {}) => {
-  wrapper = mount(DoorScene, { props: { door: doors[0], line: LIGNE, level: 1, ...props }, attachTo: document.body, global: { plugins: [createPinia()] } })
+  wrapper = mount(DoorScene, { props: { door: PORTE, line: LIGNE, level: 1, ...props }, attachTo: document.body, global: { plugins: [createPinia()] } })
   return wrapper
 }
 const porte = (w: VueWrapper) => w.get('button[aria-label="Cogner à la porte"]')
@@ -78,7 +80,7 @@ describe('DoorScene : rendu', () => {
   it('affiche la porte comme bouton, son libellé et la phrase d’invite', () => {
     const w = monter()
     expect(porte(w).attributes('data-phase')).toBe('invite')
-    expect(w.get('[role="img"]').attributes('aria-label')).toBe(doors[0].label)
+    expect(w.get('[role="img"]').attributes('aria-label')).toBe(PORTE.label)
     expect(w.get('p.lead').text()).toBe('(Cognez à la porte)')
     expect(porte(w).attributes('aria-describedby')).toBe(w.get('p.lead').attributes('id'))
   })

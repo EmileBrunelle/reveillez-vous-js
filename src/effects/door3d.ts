@@ -21,7 +21,7 @@ export interface Door3dOptions {
   settled?: QualityLevel
 }
 
-/** Plage de DPR de la surface selon le niveau posé (comme `placeDpr` pour les fonds) ; `low` laisse normalement le SVG, 1 par prudence. */
+/** Plage de DPR de la surface selon le niveau posé (comme `placeDpr` pour les fonds) ; `low` garde la porte 3D avec un DPR de 1 (le minimum), sans ombres : le coût baisse, la porte reste. */
 export const door3dDpr = (settled: QualityLevel = 'high'): [number, number] => (settled === 'high' ? [1, 1.5] : settled === 'medium' ? [1, 1.25] : [1, 1])
 
 /**
