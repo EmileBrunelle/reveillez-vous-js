@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+/* eslint-disable vue/one-component-per-file -- hôtes de test : plusieurs petits composants définis dans le même fichier. */
 import { afterEach, describe, expect, it } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia } from 'pinia'
