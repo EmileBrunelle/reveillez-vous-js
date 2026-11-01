@@ -6,6 +6,7 @@ import TarotCardBack from './TarotCardBack.vue'
 import { DECK_BREATH_HZ, DECK_BREATH_TILT, DECK_BREATH_Y, DECK_LAYERS, DECK_PERSP, DECK_POINTER_TILT, DECK_THICK, DECK_TILT, STOW_SCALE, deckPose } from './deckFan'
 import { INSERT_COVER_OFF_MS, INSERT_END_SCALE, INSERT_FADE_IN_MS, INSERT_MS, INSERT_TOTAL_MS, deckSlot, pickSlot } from './deckInsert'
 import { deckShown } from './deckShown'
+import { PAQUETS } from '@/engine/paquets'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 
 // Le paquet : un vrai objet posé au centre de la boîte des cartes, derrière l’éventail (DeckCut) et la lecture (TarotCard). Les trois cartes de la coupe sont les cartes de son dessus :
@@ -26,6 +27,8 @@ const { width } = useElementSize(box, undefined, { box: 'border-box' })
 // Rang visé par la carte de lecture à sa sortie, tiré une fois par paquet (cosmétique : `Math.random` suffit) ; TarotCard le lit dans `deckSlot`.
 const slot = pickSlot(Math.random())
 deckSlot.value = slot
+// Dos du dessus, tiré à chaque montage parmi les dos existants (cosmétique : `Math.random` suffit). Le paquet et la couche de recouvrement le partagent : sinon l’insertion se trahirait.
+const dos = PAQUETS[Math.min(PAQUETS.length - 1, Math.floor(Math.random() * PAQUETS.length))]!
 const opacity = useMotionValue(0)
 const scale = useMotionValue(STOW_SCALE)
 const y = useMotionValue(0)
@@ -144,7 +147,7 @@ usePresence({
       <Motion :style="{ transformPerspective: perspective, rotateX, rotateY }" class="relative aspect-[7/12] [transform-style:preserve-3d] will-change-transform">
         <span class="absolute inset-0 rounded-[4cqw] [background:rgb(5_8_24)] [filter:blur(3cqw)] opacity-60" :style="groundShadow"></span>
         <span v-for="(l, k) in layers" :key="k" class="absolute inset-0 rounded-[4cqw]" :style="l"></span>
-        <span class="absolute inset-0"><TarotCardBack fill paquet="nuit" /></span>
+        <span class="absolute inset-0"><TarotCardBack fill :paquet="dos" /></span>
       </Motion>
     </Motion>
   </div>
@@ -153,7 +156,7 @@ usePresence({
     <Motion :ref="(c: unknown) => setCover(c)" :style="{ y, scale, opacity: 0 }" class="deckbox__lift absolute top-1/2 left-1/2 w-[100cqw] will-change-transform">
       <Motion :style="{ transformPerspective: perspective, rotateX, rotateY }" class="relative aspect-[7/12] [transform-style:preserve-3d] will-change-transform">
         <span v-for="(l, k) in coverLayers" :key="k" class="absolute inset-0 rounded-[4cqw]" :style="l"></span>
-        <span class="absolute inset-0"><TarotCardBack fill paquet="nuit" /></span>
+        <span class="absolute inset-0"><TarotCardBack fill :paquet="dos" /></span>
       </Motion>
     </Motion>
   </div>

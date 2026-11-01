@@ -106,4 +106,23 @@ describe('CardDeck : le paquet 3D', () => {
     await wrapper.vm.$nextTick()
     expect(appels()).toBeGreaterThan(apres) // fondu de disparition
   })
+
+  it('le dos du dessus varie d’un montage à l’autre, et la couche de recouvrement affiche toujours le même que le paquet', () => {
+    const vus = new Set<string>()
+    for (const r of [0, 0.4, 0.9]) {
+      vi.spyOn(Math, 'random').mockReturnValue(r)
+      wrapper = mount(Hote, { attachTo: document.body })
+      const dos = (sel: string) =>
+        wrapper!
+          .get(`${sel} .back`)
+          .classes()
+          .find((k) => k.startsWith('back--') && k !== 'back--fill')
+      expect(dos('.deckcover')).toBe(dos('.deckbox:not(.deckcover)'))
+      vus.add(dos('.deckcover')!)
+      wrapper.unmount()
+      wrapper = undefined
+      vi.restoreAllMocks()
+    }
+    expect(vus.size).toBe(3)
+  })
 })
