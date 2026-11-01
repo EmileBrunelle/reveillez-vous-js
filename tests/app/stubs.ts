@@ -105,3 +105,6 @@ export const makeWindow = (name: string) =>
       return () => h('div', { 'data-testid': `win-${name}`, 'data-open': String(props.modelValue) })
     },
   })
+
+// Le paquet 3D (CardDeck) dépend de Motion (valeurs, ressorts) : décor sans comportement, doublure vide.
+export const CardDeck = defineComponent({ setup: () => () => h('div', { 'data-testid': 'card-deck' }) })

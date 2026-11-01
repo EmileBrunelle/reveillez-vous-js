@@ -1,20 +1,39 @@
 import { describe, expect, it } from 'vitest'
-import { FAN_SCALE, STOW_SCALE, stowDelay, stowFrac, stowOf } from '@/components/deckFan'
+import { DECK_LAYERS, DECK_PERSP, DECK_THICK, DECK_TILT, FAN_PERSP, FAN_SCALE, PILE_LIFE, STOW_END_SCALE, STOW_SCALE, dealStartOf, deckPose, stowDelay, stowFrac, stowOf } from '@/components/deckFan'
 
-describe('deckFan : pile de rangement', () => {
-  it('la pile est au centre de la boîte, plus petite que l’éventail, et chaque carte a son décalage', () => {
+describe('deckFan : pile de rangement sur le dessus du paquet', () => {
+  it('la pile est au centre de la boîte (dessus du paquet), plus petite que l’éventail, légèrement décalée carte par carte', () => {
     const pts = [0, 1, 2].map((i) => stowOf(i, 300))
     pts.forEach((p) => {
       expect(Math.abs(p.y)).toBeLessThan(0.05 * 300) // au centre, pas en bas près de la légende
       expect(p.s).toBe(STOW_SCALE)
       expect(p.s).toBeLessThan(FAN_SCALE)
-      expect(Math.abs(p.x)).toBeLessThan(10) // une pile, pas un second éventail
+      expect(Math.abs(p.x)).toBeLessThan(10) // une pile serrée, pas un second éventail
     })
-    expect(new Set(pts.map((p) => p.x)).size).toBe(3)
-    expect(stowOf(1, 300)).toMatchObject({ x: 0, y: 0 }) // la carte de lecture se range sur la carte du milieu
+    expect(new Set(pts.map((p) => p.x)).size).toBe(3) // chaque carte a son décalage
+    expect(new Set(pts.map((p) => p.r)).size).toBe(3)
+    expect(stowOf(1, 300)).toMatchObject({ x: 0, y: 0 }) // la carte du milieu, au sommet, et la carte de lecture se rangent sur le centre du dessus
   })
-  it('chaque carte atterrit sur son dos de la pile (mêmes fractions que le décor statique)', () => {
+  it('la donne part d’où le rangement arrive : les cartes ressortent du dessus du paquet', () => {
+    ;[0, 1, 2].forEach((i) => expect(dealStartOf(i, 300)).toEqual(stowOf(i, 300)))
     ;[0, 1, 2].forEach((i) => expect(stowOf(i, 100).x).toBeCloseTo(stowFrac(i).x * 100))
+  })
+  it('la pile recule en s’effaçant (échelle plus petite) sans disparaître d’un coup, et reste vivante', () => {
+    expect(STOW_END_SCALE).toBeLessThan(STOW_SCALE)
+    expect(STOW_END_SCALE).toBeGreaterThan(0)
+    expect(PILE_LIFE).toBeGreaterThan(0) // jamais d’immobilité totale
+    expect(PILE_LIFE).toBeLessThan(1) // mais plus faible que dans l’éventail
+  })
+  it('le paquet 3D : tranche épaisse en couches, inclinaison de repos douce, perspective plus douce que celle de l’éventail', () => {
+    expect(DECK_LAYERS).toBeGreaterThanOrEqual(8)
+    expect(DECK_THICK).toBeGreaterThan(0)
+    expect(DECK_TILT.x).toBeGreaterThan(0) // le haut recule : la tranche descend
+    expect(DECK_TILT.y).toBeLessThan(0) // la tranche passe à droite
+    expect(Math.abs(DECK_TILT.x)).toBeLessThan(30)
+    expect(DECK_PERSP).toBeGreaterThan(FAN_PERSP)
+  })
+  it('la pose partagée du paquet part de son inclinaison de repos', () => {
+    expect(deckPose).toEqual({ rx: DECK_TILT.x, ry: DECK_TILT.y, y: 0 })
   })
   it('les cibles suivent la largeur de la boîte', () => {
     expect(stowOf(0, 600).y).toBeCloseTo(stowOf(0, 300).y * 2)

@@ -4,7 +4,25 @@ import { M as Motion, animate, useMotionValue } from 'motion-v'
 import { useEventListener, useElementSize, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
-import { EXIT_SHIFT, FAN, clampExitX, FAN_SCALE, STOW_FADE_MS, STOW_SCALE, cardRect, depthOf, rectsOverlap, shadowOf, stowDelay, stowFrac, stowOf } from './deckFan'
+import {
+  DECK_PERSP,
+  EXIT_SHIFT,
+  FAN,
+  FAN_PERSP,
+  clampExitX,
+  FAN_SCALE,
+  PILE_LIFE,
+  STOW_END_SCALE,
+  STOW_FADE_MS,
+  cardRect,
+  dealStartOf,
+  deckPose,
+  depthOf,
+  rectsOverlap,
+  shadowOf,
+  stowDelay,
+  stowOf,
+} from './deckFan'
 import { isDrag } from './deckTouch'
 import { cardDeal } from '@/audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '@/audio/cards'
@@ -62,17 +80,6 @@ watch(activeLine, (now) => {
   }
 })
 const cards = [0, 1, 2] as const
-// Pile statique au centre (dos de cartes réutilisés), posée avant les cartes de l’éventail : aucun coût par image. Les cartes y atterrissent à la même place (`stowFrac`).
-const pile = cards.map((j) => {
-  const f = stowFrac(j)
-  const sh = shadowOf(depthOf(STOW_SCALE, 1), 1)
-  return {
-    j,
-    transform: `translate(calc(-50% + ${f.x * 100}cqw), calc(-50% + ${f.y * 100}cqw)) rotate(${f.r}deg) scale(${f.s})`,
-    shadow: { transform: `translateY(${sh.y * 100}cqw) scale(${sh.s})`, opacity: sh.o },
-  }
-})
-
 // --- ressorts -------------------------------------------------------------------------------------------------------------------
 interface Spr {
   c: number // valeur courante
@@ -99,12 +106,33 @@ const cardValues = () => ({
 })
 interface Card extends Record<Ch, Spr> {
   mv: ReturnType<typeof cardValues>
-  startAt: number
+  startAt: number // la carte reste sur le paquet jusqu’à cet instant (donne)
+  ko: number // raideur de l’opacité
+  pp: Spr // distance de la perspective (en largeurs de carte) : douce sur le paquet, marquée dans l’éventail
   swayPhase: number
   k: number // raideur de la position/échelle/rotation
   zeta: number // amortissement (< 1 : léger dépassement)
 }
-const state: Card[] = cards.map((i) => ({ mv: cardValues(), x: spr(), y: spr(), r: spr(), s: spr(FAN_SCALE), tx: spr(), ty: spr(), o: spr(), startAt: 0, swayPhase: i * 2.1, k: 190, zeta: 0.55 }))
+const state: Card[] = cards.map((i) => ({
+  mv: cardValues(),
+  x: spr(),
+  y: spr(),
+  r: spr(),
+  s: spr(FAN_SCALE),
+  tx: spr(),
+  ty: spr(),
+  o: spr(),
+  startAt: 0,
+  ko: 160,
+  pp: spr(DECK_PERSP),
+  swayPhase: i * 2.1,
+  k: 190,
+  zeta: 0.55,
+}))
+// Oscillation propre à chaque carte au repos (hauteur et rotation) ; `k` la module (en pile, la moitié).
+const swayOf = (c: Card, t: number, k: number) => ({ y: Math.sin(t * 1.4 + c.swayPhase) * 0.007 * W * k, r: Math.sin(t * 0.9 + c.swayPhase * 1.7) * 0.9 * k })
+// Inclinaison de traîne : proportionnelle à la vitesse de la carte (elle « traîne » dans le mouvement).
+const lean = (v: number) => clamp((v / Math.max(W, 1)) * 2.2, -6, 6)
 const dampOf = (k: number, zeta: number) => 2 * zeta * Math.sqrt(k)
 const step = (p: Spr, k: number, d: number, dt: number) => {
   p.v += (k * (p.t - p.c) - d * p.v) * dt
@@ -205,7 +233,7 @@ const apply = () => {
     mv.rotate.set(c.r.c)
     mv.scale.set(c.s.c)
     mv.opacity.set(clamp(c.o.c, 0, 1))
-    mv.perspective.set(W * 1.3)
+    mv.perspective.set(W * c.pp.c)
     mv.rotateX.set(c.tx.c)
     mv.rotateY.set(c.ty.c)
     // Ombre pré-floutée (un enfant à flou fixe) : seuls son décalage, son échelle et son opacité bougent, tous liés à la profondeur (= l’échelle de la carte).
@@ -246,21 +274,25 @@ const tick = (now: number) => {
   // Cibles
   cards.forEach((i) => {
     const c = state[i]
+    c.pp.t = FAN_PERSP
     if (phase === 'deal' || phase === 'idle') {
-      if (now < c.startAt) return
-      const rest = restOf(i, hot.value)
+      // Donne : les cartes attendent sur le dessus du paquet (vivantes, inclinées comme lui), puis s’étalent l’une après l’autre.
+      const inPile = now < c.startAt
+      const pile = dealStartOf(i, W)
+      const rest = inPile ? { x: pile.x, y: pile.y + deckPose.y * W, r: pile.r, s: pile.s } : restOf(i, hot.value)
       const isHot = hot.value === i
       // Léger balancement propre à chaque carte (mouvement seulement), calmé sous le pointeur.
-      const sway = isHot ? 0 : 1
+      const sw = swayOf(c, t, isHot ? 0 : inPile ? PILE_LIFE : 1)
       c.x.t = rest.x
-      c.y.t = rest.y + Math.sin(t * 1.4 + c.swayPhase) * 0.007 * W * sway
-      c.r.t = rest.r + Math.sin(t * 0.9 + c.swayPhase * 1.7) * 0.9 * sway
+      c.y.t = rest.y + sw.y
+      c.r.t = rest.r + sw.r
       c.s.t = rest.s
       c.o.t = 1
-      // Inclinaison : proportionnelle au décalage du pointeur, plus un peu de la vitesse de la carte (elle « traîne » dans le mouvement).
-      const lean = (v: number) => clamp((v / Math.max(W, 1)) * 2.2, -6, 6)
-      c.ty.t = (isHot ? nx * MAX_TILT : 0) + lean(c.x.v)
-      c.tx.t = (isHot ? -ny * MAX_TILT : 0) - lean(c.y.v)
+      c.ko = inPile ? 300 : 160
+      if (inPile) c.pp.t = DECK_PERSP
+      // Inclinaison : proportionnelle au décalage du pointeur, plus la traîne ; sur le paquet, celle du paquet (la carte repose sur sa face).
+      c.ty.t = (inPile ? deckPose.ry : isHot ? nx * MAX_TILT : 0) + lean(c.x.v)
+      c.tx.t = (inPile ? deckPose.rx : isHot ? -ny * MAX_TILT : 0) - lean(c.y.v)
       c.k = phase === 'deal' ? 190 : 230
       c.zeta = phase === 'deal' ? 0.55 : 0.68
     } else if (chosen.value === i) {
@@ -293,25 +325,36 @@ const tick = (now: number) => {
     } else {
       const off = pickAt + stowDelay(i, chosen.value ?? 0, OTHERS_DELAY)
       if (now >= off) {
-        // Rangement : la carte glisse vers la pile (bas de la boîte) et ne s’efface qu’une fois en route ; le choix part ensuite, sans croiser personne.
+        // Rangement : la carte rejoint le dessus du paquet en reculant (elle rétrécit), puis la pile recule encore et s’efface. Vivante jusqu’au bout : même oscillation, plus faible.
         const st = stowOf(i, W)
+        const gathered = now >= off + STOW_FADE_MS
+        const sw = swayOf(c, t, PILE_LIFE)
         c.x.t = st.x
-        c.y.t = st.y
-        c.r.t = st.r
-        c.s.t = st.s
-        c.o.t = now >= off + STOW_FADE_MS ? 0 : 1
+        c.y.t = st.y + deckPose.y * W + sw.y
+        c.r.t = st.r + sw.r
+        c.s.t = gathered ? STOW_END_SCALE : st.s
+        c.o.t = gathered ? 0 : 1
+        c.ko = gathered ? 380 : 160
+        c.pp.t = DECK_PERSP
         c.k = 150
         c.zeta = 0.85
+        c.ty.t = deckPose.ry + lean(c.x.v)
+        c.tx.t = deckPose.rx - lean(c.y.v)
+      } else {
+        // Avant son départ, la carte continue de vivre à sa place dans l’éventail.
+        const sw = swayOf(c, t, 1)
+        const rest = restOf(i, null)
+        c.y.t = rest.y + sw.y
+        c.r.t = rest.r + sw.r
+        c.tx.t = 0
+        c.ty.t = 0
       }
-      c.tx.t = 0
-      c.ty.t = 0
     }
   })
   // Intégration (deux sous-pas : stable même à faible fréquence d’images)
   for (let n = 0; n < 2; n++) {
     cards.forEach((i) => {
       const c = state[i]
-      if (now < c.startAt && phase === 'deal') return
       const d = dampOf(c.k, c.zeta)
       step(c.x, c.k, d, frame / 2)
       step(c.y, c.k, d, frame / 2)
@@ -319,7 +362,8 @@ const tick = (now: number) => {
       step(c.s, c.k, d, frame / 2)
       step(c.tx, 260, dampOf(260, 0.5), frame / 2)
       step(c.ty, 260, dampOf(260, 0.5), frame / 2)
-      step(c.o, 160, dampOf(160, 1), frame / 2)
+      step(c.o, c.ko, dampOf(c.ko, 1), frame / 2)
+      step(c.pp, 120, dampOf(120, 1), frame / 2)
     })
   }
   apply()
@@ -367,7 +411,11 @@ const reducedPick = (picked: number) => {
 }
 
 // --- entrée ---------------------------------------------------------------------------------------------------------------------
-const dealSfx = cards.map((i) => useTimeoutFn(cardDeal, 160 + i * 110, { immediate: false }))
+// Donne : la carte du dessus (le milieu) part la première, puis la suivante de la pile (la droite), enfin celle du dessous ; une courte pause d’abord, cartes visibles sur le paquet.
+const DEAL_HOLD_MS = 200
+const DEAL_STEP_MS = 90
+const DEAL_RANK = [2, 0, 1] as const
+const dealSfx = cards.map((i) => useTimeoutFn(cardDeal, DEAL_HOLD_MS + DEAL_RANK[i] * DEAL_STEP_MS, { immediate: false }))
 const { start: startPhase } = useTimeoutFn(() => (phase = 'idle'), 900, { immediate: false })
 const { start: startReady } = useTimeoutFn(() => (ready.value = true), 1000, { immediate: false })
 onMounted(() => {
@@ -381,13 +429,16 @@ onMounted(() => {
   const now = performance.now()
   cards.forEach((i) => {
     const c = state[i]
-    const st = stowOf(i, W) // les cartes ressortent de la pile où la précédente lecture s’est rangée
+    const st = dealStartOf(i, W) // les cartes partent du dessus du paquet, où la précédente lecture s’est rangée
     c.x.c = st.x
-    c.y.c = st.y
+    c.y.c = st.y + deckPose.y * W
     c.r.c = st.r
     c.s.c = st.s
+    c.tx.c = deckPose.rx // posées sur la face du paquet : même inclinaison que lui
+    c.ty.c = deckPose.ry
     c.o.c = 0
-    c.startAt = now + 120 + i * 110
+    c.ko = 300
+    c.startAt = now + DEAL_HOLD_MS + DEAL_RANK[i] * DEAL_STEP_MS
     dealSfx[i].start()
   })
   apply()
@@ -578,11 +629,6 @@ const choose = (i: number) => {
           >
         </li>
       </ul>
-    </div>
-    <!-- Pile de dos de cartes au centre, derrière l’éventail (z-0) : d’où sortent les cartes à la donne, où elles se rangent. Purement décorative. -->
-    <div v-for="p in pile" :key="p.j" class="deck__pile absolute top-1/2 left-1/2 w-[100cqw] pointer-events-none z-0" :style="{ transform: p.transform }" aria-hidden="true">
-      <span class="absolute inset-0 rounded-[4cqw] [background:rgb(5_8_24)] [filter:blur(2.6cqw)]" :style="{ transform: p.shadow.transform, opacity: p.shadow.opacity }"></span>
-      <TarotCardBack class="relative" fill :paquet="paquets[p.j]" />
     </div>
     <Motion
       v-for="i in cards"

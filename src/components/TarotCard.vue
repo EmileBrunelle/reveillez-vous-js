@@ -4,7 +4,7 @@ import { animate, usePresence } from 'motion-v'
 import TarotEmblem from './TarotEmblem.vue'
 import TarotCardBack from './TarotCardBack.vue'
 import { emblemMask } from './emblemMask'
-import { stowOf } from './deckFan'
+import { DECK_TILT, stowOf } from './deckFan'
 import { cardFlip, cardThud } from '@/audio/sfx'
 import type { Arcane } from '@/engine/prophecy'
 import type { Paquet } from '@/engine/paquets'
@@ -120,7 +120,7 @@ const onCardClick = () => {
   skip()
 }
 
-// Sortie : la carte se range sur la pile où les deux autres cartes sont parties (la dernière les rejoint), et c’est de là que le paquet suivant ressortira.
+// Sortie : la carte se range sur le dessus du paquet (CardDeck) où les deux autres cartes sont parties, et c’est de là que le paquet suivant ressortira.
 // Appelé par AnimatePresence quand la lecture est retirée : le retrait attend la fin. `animate` direct (et non useMotionScope) : le scope du composant est
 // déjà détruit à ce moment. Durées bornées (pas de ressort), donc la promesse se termine toujours. Mouvement réduit : fondu seul.
 // Les template refs sont déjà à null quand AnimatePresence appelle `stow` (le composant est démonté) : on garde les éléments dans des variables ordinaires.
@@ -137,7 +137,7 @@ const stow = async () => {
   if (!el) return
   if (reduced.value || !w) return void (await animate(el, { opacity: 0 }, { duration: 0.2, ease: 'easeOut' }))
   const st = stowOf(1, w)
-  const travel = animate(el, { x: st.x, y: st.y, scale: st.s, rotateZ: st.r }, { duration: 0.5, ease: [0.4, 0, 0.2, 1] })
+  const travel = animate(el, { x: st.x, y: st.y, scale: st.s, rotateZ: st.r, rotateX: DECK_TILT.x, rotateY: DECK_TILT.y }, { duration: 0.5, ease: [0.4, 0, 0.2, 1] }) // elle se couche sur le dessus du paquet, même inclinaison que lui
   void animate(el, { opacity: 0 }, { duration: 0.2, delay: 0.3, ease: 'easeIn' }) // l’effacement ne commence qu’une fois la carte presque arrivée
   await travel
 }

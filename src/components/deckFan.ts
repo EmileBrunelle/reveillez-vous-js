@@ -7,16 +7,34 @@ export const FAN = [
   { x: 17, y: 3, rot: 4 },
 ] as const
 
-// Pile de rangement : « rien ne vient de nulle part pour aller nulle part ». Un petit paquet de dos de cartes, statique, est posé au centre de la boîte, derrière l’éventail.
-// Les cartes en sortent en s’étalant à la donne, y retournent en se rassemblant au choix (les deux non choisies), et la carte de lecture les y rejoint à sa sortie.
-// Positions en fraction de la largeur W de la boîte (centre = 0,0), carte réduite à STOW_SCALE ; chaque carte i (0, 1, 2) a son léger décalage dans la pile.
+// Paquet et pile : « rien ne vient de nulle part pour aller nulle part ». Un vrai paquet (CardDeck : dos du dessus, tranche en couches, vu en perspective) est posé au centre de la boîte, derrière l’éventail.
+// Les trois cartes de jeu sont les cartes du dessus : elles partent du dessus du paquet à la donne (étalées en éventail), y reviennent au choix (les deux non choisies, qui reculent et s’effacent), et la carte de lecture les y rejoint à sa sortie.
+// Positions en fraction de la largeur W de la boîte (centre = 0,0 = centre du dessus du paquet), carte réduite à STOW_SCALE ; chaque carte i (0, 1, 2) a son léger décalage dans la pile (la carte du milieu, au sommet, est au centre).
 export const STOW_SCALE = 0.3
-export const STOW_FADE_MS = 260 // la carte voyage d’abord, puis s’efface une fois sur la pile (jamais de fondu sec)
-export const stowFrac = (i: number) => ({ x: (i - 1) * 0.012, y: (1 - i) * 0.008, r: (i - 1) * 3, s: STOW_SCALE })
+export const STOW_END_SCALE = 0.25 // la pile recule encore un peu en s’effaçant
+export const STOW_FADE_MS = 260 // la carte voyage d’abord jusqu’au paquet, puis recule et s’efface (jamais de fondu sec)
+export const PILE_LIFE = 0.5 // part de l’oscillation et de l’inclinaison de l’éventail qu’une carte garde en pile : jamais d’immobilité totale
+export const stowFrac = (i: number) => ({ x: (i - 1) * 0.02, y: (1 - i) * 0.012, r: (i - 1) * 4, s: STOW_SCALE })
 export const stowOf = (i: number, w: number) => {
   const p = stowFrac(i)
   return { x: p.x * w, y: p.y * w, r: p.r, s: p.s }
 }
+/** Départ de la donne : les cartes ressortent exactement d’où elles se rangent, sur le dessus du paquet. */
+export const dealStartOf = stowOf
+
+// Paquet 3D (CardDeck) : inclinaison de repos (degrés, rotateX > 0 = le haut recule et la tranche descend ; rotateY < 0 = la tranche passe à droite), épaisseur en fraction de la largeur de la carte, nombre de couches de la tranche.
+// Le dessus du paquet est le plan de pivot (z = 0) : le centre de la face visible ne bouge pas, la tranche pend dessous. Les cartes en pile prennent la même inclinaison (voir `deckPose`).
+export const DECK_TILT = { x: 18, y: -10 } as const
+export const DECK_THICK = 0.5
+export const DECK_LAYERS = 12
+export const FAN_PERSP = 1.3 // distance de la perspective, en largeurs de carte : cartes de l’éventail (inclinaison marquée)
+export const DECK_PERSP = 4 // paquet et cartes qui y reposent : perspective plus douce, la tranche ne rétrécit pas sous la face du dessus
+export const DECK_BREATH_HZ = 0.19 // respiration très lente (≤ 0,3 Hz) : déplacement et inclinaison seulement, jamais de luminance
+export const DECK_BREATH_Y = 0.008 // amplitude verticale (fraction de W)
+export const DECK_BREATH_TILT = 1.2 // degrés
+export const DECK_POINTER_TILT = 7 // degrés d’inclinaison supplémentaire quand le pointeur est au bord de l’écran
+/** Pose courante du paquet, écrite par CardDeck (seul maître de son transform) et lue par DeckCut pour que les cartes en pile reposent sur la face du dessus : degrés, et y en fraction de W. */
+export const deckPose = { rx: DECK_TILT.x as number, ry: DECK_TILT.y as number, y: 0 }
 
 // Départ échelonné des cartes non choisies (ms après le choix) : la plus proche du choix part d’abord, le milieu un demi-pas plus tard.
 export const STOW_STEP_MS = 70

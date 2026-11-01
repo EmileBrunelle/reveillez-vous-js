@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import CrtOverlay from './components/CrtOverlay.vue'
 import WebGpuGate from './components/WebGpuGate.vue'
 import TarotFallback from './components/TarotFallback.vue'
+import CardDeck from './components/CardDeck.vue'
 import Taskbar from './components/Taskbar.vue'
 import FakeErrors from './components/FakeErrors.vue'
 import BgPlace from './components/backgrounds/BgPlace.vue'
@@ -297,9 +298,12 @@ watch(
                     class="w-full max-w-[36rem] min-[1600px]:max-w-[90rem] text-center select-none [-webkit-tap-highlight-color:transparent] touch-manipulation outline-none flex flex-col gap-3 items-center h-full min-h-0 [@media(orientation:landscape)_and_(max-height:32.5rem)]:flex-row [@media(orientation:landscape)_and_(max-height:32.5rem)]:gap-4"
                   >
                     <div class="flex-[1_1_0] min-h-0 w-full [container-type:size] grid place-items-center [@media(orientation:landscape)_and_(max-height:32.5rem)]:h-full">
-                      <DeckCut v-if="phase === 'cut'" ref="deckEl" :level="level" :rng="rng" @pick="onPick" />
+                      <!-- Le paquet, sous les cartes : il reste de la coupe à la fin de la lecture (les cartes en partent et y reviennent). -->
+                      <CardDeck />
+                      <DeckCut v-if="phase === 'cut'" ref="deckEl" class="col-start-1 row-start-1" :level="level" :rng="rng" @pick="onPick" />
                       <TarotCard
                         v-else-if="tarotOk"
+                        class="col-start-1 row-start-1"
                         :arcane="prophecy.arcane"
                         :title="prophecy.question"
                         :body="prophecy.body"
@@ -308,7 +312,7 @@ watch(
                         :paquet="pickedPaquet"
                         @flipped="onFlipped"
                       />
-                      <TarotFallback v-else :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" />
+                      <TarotFallback v-else class="col-start-1 row-start-1" :title="prophecy.question" :body="prophecy.body" :verse="prophecy.verse" />
                     </div>
                     <div class="flex flex-none flex-wrap gap-3 justify-center" :class="{ invisible: phase === 'cut' }" :inert="phase === 'cut'">
                       <button ref="closeBtn" class="btn-alt" type="button" :disabled="closing" @click="onClose">{{ isFinaleVisit(progress.visits) ? WAKE_LABEL : 'Fermer la porte' }}</button>

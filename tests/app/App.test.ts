@@ -11,6 +11,7 @@ vi.mock('@/audio/sfx', () => ({ hymn: vi.fn(), unlock: vi.fn(), muted: { value: 
 vi.mock('@/components/CrtOverlay.vue', async () => ({ default: (await import('./stubs')).CrtOverlay }))
 vi.mock('@/components/backgrounds/BgPlace.vue', async () => ({ default: (await import('./stubs')).BgPlace }))
 vi.mock('@/components/Taskbar.vue', async () => ({ default: (await import('./stubs')).Taskbar }))
+vi.mock('@/components/CardDeck.vue', async () => ({ default: (await import('./stubs')).CardDeck }))
 vi.mock('@/components/FakeErrors.vue', async () => ({ default: (await import('./stubs')).FakeErrors }))
 // Motion simulé par des enveloppes transparentes : les vraies animations (WAAPI) ne tournent pas sous happy-dom et rejettent à l’annulation.
 vi.mock('motion-v', async () => {
