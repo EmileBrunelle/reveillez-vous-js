@@ -166,11 +166,15 @@ describe('useTextLeave', () => {
   }
   const make = (flags: { reduced?: boolean; skipped?: boolean } = {}) => useTextLeave({ reduced: ref(flags.reduced ?? false), skipped: ref(flags.skipped ?? false) })
 
-  it('mouvement réduit ou saut : `done` tout de suite, sans animer', () => {
+  // Régression (« j’ai cliqué trop vite ») : un clic sautait la finale et la Transition out-in appelait `leaveText` en plein rendu ;
+  // un `done()` synchrone relançait la mise à jour de la Transition dans le patch, Vue plantait (« parentNode » de null) et le cadre restait vide.
+  it('mouvement réduit ou saut : `done` au microtâche suivant (jamais synchrone), sans animer', async () => {
     for (const flags of [{ reduced: true }, { skipped: true }]) {
       const { leaveText } = make(flags)
       const done = vi.fn()
       leaveText(document.createElement('p'), done)
+      expect(done).not.toHaveBeenCalled()
+      await flush()
       expect(done).toHaveBeenCalledOnce()
       expect(anim.calls).toHaveLength(0)
     }

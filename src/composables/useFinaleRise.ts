@@ -28,7 +28,9 @@ export const useRiseDirective = ({ reduced, skipped }: Flags, keep: (a: Stoppabl
 export const useTextLeave = ({ reduced, skipped }: Flags) => {
   let leaving: (() => void) | undefined
   const leaveText = (el: Element, done: () => void) => {
-    if (reduced.value || skipped.value) return done()
+    // Jamais de `done()` synchrone : appelé pendant le rendu, il relance la mise à jour de la Transition (mode out-in) en plein patch,
+    // Vue plante (« parentNode » de null) et le cadre de la finale reste vide pour de bon. On termine au prochain microtâche.
+    if (reduced.value || skipped.value) return void queueMicrotask(done)
     const a = animate(el as HTMLElement, { opacity: 0 } as never, { duration: 0.45, ease: 'easeIn' } as never)
     const end = () => {
       leaving = undefined
