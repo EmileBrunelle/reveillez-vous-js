@@ -5,14 +5,34 @@
 [![Jouer](https://img.shields.io/badge/jouer-en_ligne-8a2be2?style=flat-square)](https://emilebrunelle.github.io/reveillez-vous-js/)
 [![Déploiement](https://img.shields.io/github/actions/workflow/status/EmileBrunelle/reveillez-vous-js/deploy.yml?branch=main&style=flat-square&label=d%C3%A9ploiement)](https://github.com/EmileBrunelle/reveillez-vous-js/actions/workflows/deploy.yml)
 ![WebGPU requis](https://img.shields.io/badge/WebGPU-requis-005a9c?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-1253_r%C3%A9ussis-brightgreen?style=flat-square)
-![Couverture](https://img.shields.io/badge/couverture-99%25-brightgreen?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-1575_r%C3%A9ussis-brightgreen?style=flat-square)
+![Couverture](https://img.shields.io/badge/couverture-98%25-brightgreen?style=flat-square)
 ![Vue 3 et TypeScript](https://img.shields.io/badge/Vue_3-TypeScript-42b883?style=flat-square&logo=vuedotjs&logoColor=white)
 [![Défi Fortune.js](https://img.shields.io/badge/d%C3%A9fi-Fortune.js_%C2%B7_AGEEI-ff7518?style=flat-square)](https://ageei.org/calendrier#event-638e0f24-afd5-4d20-b8e2-c76e02931e1c)
 
 > Frappez le bon rythme, ouvrez la porte, recevez votre prophétie.
 
 **[Jouer en ligne](https://emilebrunelle.github.io/reveillez-vous-js/)** : une partie complète dure quelques minutes. Navigateur avec WebGPU requis (Chrome ou Edge récents recommandés, voir [Technologies](#technologies)).
+
+## Aperçu
+
+![Une ruelle d’Halloween la nuit : une porte verte à imposte, des citrouilles sculptées et des lumières chaudes, sous l’écran cathodique](docs/media/porte-ruelle-halloween.webp)
+
+![Une porte de perron entrouverte : la voyante, capuchon sur la tête, tient sa boule de cristal dans la lumière jaune](docs/media/porte-ouverte-voyante.webp)
+
+![Animation : on cogne trois fois, la porte pivote en 3D, la voyante apparaît, la caméra s’avance, puis le paquet de cartes se déploie](docs/media/ouverture-de-la-porte.webp)
+
+![Un paquet de cartes en 3D au centre de l’écran, trois cartes en éventail dont la carte du dessus, et la légende des trois paquets](docs/media/eventail-et-paquet.webp)
+
+![Animation : le paquet est donné, on choisit un paquet, la carte se retourne et dévoile une prophétie](docs/media/donne-et-choix-de-la-carte.webp)
+
+![Une carte de tarot, Le Mat, avec sa prophétie en caractères à l’ancienne et le bouton « Fermer la porte »](docs/media/carte-de-lecture.webp)
+
+![Le mini-jeu du pendule divinatoire : un demi-cercle de symboles, un pendule violet qui oscille, une barre de temps et le bouton Pause](docs/media/mini-jeu-pendule.webp)
+
+![La barre des tâches Windows 98 et son menu Démarrer ouvert : À propos, Collection, Son, Code source, Plein écran](docs/media/barre-des-taches-menu-demarrer.webp)
+
+![Le jeu sur un écran de téléphone (384 × 740) : le pendule, sa barre de temps et le bouton Pause tiennent sans débordement](docs/media/format-telephone.webp)
 
 ## En bref
 
@@ -26,8 +46,8 @@
 1. Ouvrez la page : une porte apparaît. Activez-la (clic, toucher, ou Tab puis Entrée au clavier) : c’est le bouton « Cogner à la porte ».
 2. **La personne voyante cogne un rythme** : écoutez-le (ou suivez les points, les sous-titres et la vibration sur appareil compatible).
 3. **Reproduisez-le** en cognant sur la porte (clic, toucher, ou Entrée ou Espace au clavier). Après trois échecs, la porte s’ouvre quand même.
-4. **Dès le niveau 2, une petite activité** précède la carte ; elle s’achève d’elle-même après 16 à 20 s, ou avec le bouton pour la passer. Au fil des niveaux : attraper des feux follets, allumer des chandelles à l’allumette, épeler un mot à la planche Ouija, frapper aux fenêtres d’une maison dans l’ordre où elles s’allument, essuyer une boule de cristal.
-5. **Coupez le paquet** : trois paquets (Nuit, Feu, Brume), chacun avec son dos, sa légende et son tirage d’arcanes. Souris : survolez, puis cliquez. Clavier : Tab, puis Entrée. Tactile : un premier toucher donne un aperçu, un second choisit.
+4. **Dès le niveau 2, un mini-jeu** précède la carte ; il s’achève de lui-même après 16 à 20 s. Six mini-jeux, tirés au hasard sans répétition de suite : attraper des feux follets, allumer des chandelles à l’allumette, épeler un mot à la planche Ouija, frapper aux fenêtres d’une maison dans l’ordre où elles s’allument, essuyer une boule de cristal, arrêter le pendule divinatoire sur le bon symbole. Un bouton **Pause** met le jeu en attente (voile plein écran, reprise en un clic).
+5. **Coupez le paquet** : un vrai paquet de cartes en 3D d’où trois cartes sortent en éventail (et où elles rentrent ensuite) ; trois paquets (Nuit, Feu, Brume), chacun avec son dos, sa légende et son tirage d’arcanes. Souris : survolez, puis cliquez. Clavier : Tab, puis Entrée. Tactile : un premier toucher donne un aperçu, un second choisit.
 6. Une **carte de tarot** est tirée face cachée, puis retournée : lisez votre prophétie. Inclinez la carte avec le pointeur, avec le doigt ou en bougeant votre téléphone. Chaque arcane vu s’ajoute à la **Collection** (menu Démarrer).
 7. « Fermer la porte » : une nouvelle porte, un nouveau lieu, une nouvelle prophétie.
 
@@ -37,9 +57,13 @@ Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches)
 
 - **Jeu de rythme à la porte** : la personne voyante cogne un motif, vous le rejouez ; jouable sans le son (points, sous-titres, vibration).
 - **Prophéties générées** par une grammaire maison de type Tracery, avec arcane et **verset génératif** (livre × référence) ; des « sacs mélangés » persistés évitent les répétitions.
-- **Escalade en 5 niveaux** : la paranoïa monte de visite en visite, à travers cinq lieux (perron, forêt, cimetière, rue, nuages) avec leurs variantes de météo et de portes, et cinq petites activités.
-- **Décors en raymarching WebGPU** (WGSL) et **post-effet CRT** en WebGPU (vgpu), mis à l’échelle sur grand écran.
-- **Interface Windows 98** : barre des tâches, menu Démarrer (À propos, Collection, Son, code source, plein écran), zone de notification (vigilance, son, horloge).
+- **Escalade en 5 niveaux** : la paranoïa monte de visite en visite, à travers cinq lieux (perron, forêt, cimetière, ruelle d’Halloween, nuages) avec leurs variantes de météo et de portes, et six mini-jeux au tirage varié.
+- **Portes en vraie 3D WebGPU** : battant avec épaisseur, pivot, poignées qui bougent selon leur mécanisme, intégration au décor (lueur au sol, ombre portée) ; la garde-robe a deux battants.
+- **Décors en raymarching WebGPU** (WGSL), avec **ombres lancées par rayons** et ruelle d’Halloween, et **post-effet CRT** en WebGPU (vgpu), mis à l’échelle sur grand écran.
+- **Paquet de cartes en 3D** : les cartes sortent du paquet et y rentrent ; la carte de lecture est remise à un rang au hasard.
+- **Qualité adaptative** : un gouverneur mesure la durée des images et baisse (puis remonte) le niveau de détail selon la fluidité ; rien ne tourne quand l’onglet est caché.
+- **Transitions continues** : rien n’apparaît ni ne disparaît d’un coup, tout vient de quelque part, au ressort.
+- **Interface Windows 98** : barre des tâches, menu Démarrer (À propos, Collection, Son, code source, plein écran), zone de notification (vigilance, son, horloge) et vrai gestionnaire de fenêtres : les fausses erreurs ont leur bouton dans la barre des tâches et se déplacent à la souris ou au doigt.
 - **Tous les sons sont synthétisés** (Web Audio), sans fichier audio : lits d’ambiance par lieu avec fondus, limiteur de sortie, leitmotif de trois notes (tonalité de la majeur) qui revient jusqu’à la finale, volumes réglables par catégorie.
 - Contenu en français québécois, écriture inclusive, références d’ici.
 
@@ -64,7 +88,7 @@ Le **niveau de vigilance** (1 à 5, badge de l’œil dans la barre des tâches)
 | motion-v                 | animations                                                                                                    | [motion.dev](https://motion.dev/docs/vue)                   | [motiondivision/motion-vue](https://github.com/motiondivision/motion-vue) |
 | Vuetify0 (`@vuetify/v0`) | primitives de composants sans style, à personnaliser — ici, le dialogue accessible de la fenêtre « À propos » | [0.vuetifyjs.com](https://0.vuetifyjs.com)                  | [vuetifyjs/0](https://github.com/vuetifyjs/0)                             |
 | Pinia                    | état partagé (progression, collection)                                                                        | [pinia.vuejs.org](https://pinia.vuejs.org)                  | [vuejs/pinia](https://github.com/vuejs/pinia)                             |
-| vgpu                     | WebGPU : filtre CRT et fond 3D (shaders WGSL)                                                                 | [vgpu.sh](https://vgpu.sh)                                  | [vercel-labs/vgpu](https://github.com/vercel-labs/vgpu)                   |
+| vgpu                     | WebGPU : filtre CRT et décors et portes en 3D (shaders WGSL)                                                  | [vgpu.sh](https://vgpu.sh)                                  | [vercel-labs/vgpu](https://github.com/vercel-labs/vgpu)                   |
 | unplugin-icons + Iconify | icônes (game-icons, Simple Icons)                                                                             | [iconify.design](https://iconify.design)                    | [unplugin/unplugin-icons](https://github.com/unplugin/unplugin-icons)     |
 | Fontsource               | polices auto-hébergées                                                                                        | [fontsource.org](https://fontsource.org)                    | [fontsource/fontsource](https://github.com/fontsource/fontsource)         |
 | Vitest                   | tests                                                                                                         | [vitest.dev](https://vitest.dev)                            | [vitest-dev/vitest](https://github.com/vitest-dev/vitest)                 |
@@ -75,11 +99,11 @@ Polices (Google Fonts, licence SIL OFL) : [VT323](https://fonts.google.com/speci
 
 ## Qualité
 
-1 253 tests (132 fichiers, Vitest) couvrent le moteur, le contenu, l’audio, les stores, les composables, les effets WebGPU et les composants ; ils passent aussi dans un ordre mélangé (`--sequence.shuffle`). Couverture mesurée avec `npm run test:coverage` (v8, `src/`) :
+1 575 tests (156 fichiers, Vitest) couvrent le moteur, le contenu, l’audio, les stores, les composables, les effets WebGPU et les composants ; ils passent aussi dans un ordre mélangé (`--sequence.shuffle`). Couverture mesurée avec `npm run test:coverage` (v8, `src/`) :
 
 | Instructions | Branches | Fonctions | Lignes |
 | ------------ | -------- | --------- | ------ |
-| 98,3 %       | 93,5 %   | 97,0 %    | 99,5 % |
+| 97,3 %       | 91,5 %   | 95,7 %    | 98,4 % |
 
 Contrôles à passer avant toute livraison : `npx vitest run`, `npx vue-tsc -b`, `npm run lint` (ESLint, zéro avertissement), `npm run format:check` (Prettier) et `npm run build`.
 
@@ -107,10 +131,10 @@ src/
   App.vue          enchaînement : écran WebGPU, porte, activité, coupe, carte, finale
   engine/          grammaire, sacs mélangés, prophéties, coups, rythme, niveaux, activités, collection, RNG injecté
   content/         prophéties (niveaux 1 à 5), portes, lieux, finale
-  components/      DoorScene, KnockPattern, DeckCut, TarotCard, Finale, Taskbar, CrtOverlay, activities/, backgrounds/…
-  effects/         shaders WGSL (CRT, lieux, boule de cristal) et leur code, détection WebGPU
+  components/      DoorScene, doors3d/, Seer, KnockPattern, CardDeck, DeckCut, TarotCard, Finale, Taskbar, TaskbarWindows, CrtOverlay, activities/, backgrounds/…
+  effects/         shaders WGSL (CRT, lieux, portes, paquet, boule de cristal), juge de fluidité, détection WebGPU
   audio/           sons synthétisés (ambiance, leitmotif, finale, effets)
-  stores/          progression, collection, session
+  stores/          progression, collection, session, qualité, fenêtres, audio
   composables/     inclinaison, toucher, vibration, mouvement réduit, stockage sûr
 tests/             engine/, content/, composables/, effects/, audio/, components/, stores/
 ```
@@ -130,7 +154,8 @@ Oui, l’IA a été utilisée, et beaucoup. Outil : **Claude Code** (Anthropic),
 
 - écrire la grande majorité du code (Vue, TypeScript, shader WGSL du CRT, sons synthétisés, moteur de génération des prophéties, détection du rythme cogné par la personne qui joue, courbe de progression des niveaux) ;
 - rédiger des ébauches de prophéties, de répliques et d’arcanes, retravaillées selon mes consignes ;
-- écrire les tests automatisés (Vitest) et vérifier l’affichage dans un navigateur qu’elle pilotait elle-même par le serveur MCP de Playwright (aucun script Playwright dans le dépôt) ;
+- écrire les tests automatisés (Vitest) et vérifier l’affichage dans un navigateur qu’elle pilotait elle-même (Playwright, sans script dans le dépôt), y compris des mesures de fluidité et des captures d’écran de ce fichier ;
+- relire les changements risqués avec un modèle plus fort que celui qui les avait écrits ;
 - faire de la recherche (support de WebGPU selon les navigateurs, licences) ;
 - rédiger la documentation, dont ce fichier.
 
