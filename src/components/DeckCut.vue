@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { M as Motion, animate, useMotionValue } from 'motion-v'
 import { useEventListener, useElementSize, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
@@ -14,6 +14,7 @@ import {
   PILE_LIFE,
   STOW_END_SCALE,
   STOW_FADE_MS,
+  STOW_STEP_MS,
   cardRect,
   dealStartOf,
   deckPose,
@@ -23,6 +24,7 @@ import {
   stowDelay,
   stowOf,
 } from './deckFan'
+import { deckShown } from './deckShown'
 import { isDrag } from './deckTouch'
 import { cardDeal } from '@/audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '@/audio/cards'
@@ -416,7 +418,17 @@ const DEAL_HOLD_MS = 200
 const DEAL_STEP_MS = 90
 const DEAL_RANK = [2, 0, 1] as const
 const dealSfx = cards.map((i) => useTimeoutFn(cardDeal, DEAL_HOLD_MS + DEAL_RANK[i] * DEAL_STEP_MS, { immediate: false }))
-const { start: startPhase } = useTimeoutFn(() => (phase = 'idle'), 900, { immediate: false })
+// Le paquet n’est visible que lorsqu’il est le sujet (deckShown) : à la donne, jusqu’à la dernière carte posée ; il revient au rangement (voir choose) ; jamais en mouvement réduit (les cartes se fondent sur place).
+const { start: startPhase } = useTimeoutFn(
+  () => {
+    phase = 'idle'
+    deckShown.value = false
+  },
+  900,
+  { immediate: false },
+)
+const { start: startDeckHide } = useTimeoutFn(() => (deckShown.value = false), OTHERS_DELAY + 1.5 * STOW_STEP_MS + STOW_FADE_MS, { immediate: false }) // les cartes rangées ont rejoint le dessus : le paquet recule avec elles
+onBeforeUnmount(() => (deckShown.value = false))
 const { start: startReady } = useTimeoutFn(() => (ready.value = true), 1000, { immediate: false })
 onMounted(() => {
   W = deckW.value // lecture synchrone du montage : le watcher de deckW n’a pas encore tourné
@@ -444,6 +456,7 @@ onMounted(() => {
   apply()
   startReady()
   phase = 'deal'
+  deckShown.value = true
   resume()
   // La phase « deal » devient « idle » (mêmes cibles, ressort un peu plus ferme) quand la dernière carte est posée.
   startPhase()
@@ -583,6 +596,8 @@ const choose = (i: number) => {
   deckCx = box ? box.left + box.width / 2 : 0
   viewW = window.innerWidth
   phase = 'pick'
+  deckShown.value = true
+  startDeckHide()
   pickAt = performance.now()
   startFallback()
   startS = state[i].s.c

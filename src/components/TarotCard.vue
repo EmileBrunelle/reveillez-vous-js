@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef } from 'vue'
-import { animate, usePresence } from 'motion-v'
+import { animate, usePresence, type AnimationOptions } from 'motion-v'
 import TarotEmblem from './TarotEmblem.vue'
 import TarotCardBack from './TarotCardBack.vue'
 import { emblemMask } from './emblemMask'
-import { DECK_TILT, stowOf } from './deckFan'
+import { DECK_PERSP, deckPose } from './deckFan'
+import { INSERT_CARD_MS, INSERT_MS, deckSlot, insertPoses } from './deckInsert'
 import { cardFlip, cardThud } from '@/audio/sfx'
 import type { Arcane } from '@/engine/prophecy'
 import type { Paquet } from '@/engine/paquets'
@@ -120,26 +121,52 @@ const onCardClick = () => {
   skip()
 }
 
-// Sortie : la carte se range sur le dessus du paquet (CardDeck) où les deux autres cartes sont parties, et c’est de là que le paquet suivant ressortira.
-// Appelé par AnimatePresence quand la lecture est retirée : le retrait attend la fin. `animate` direct (et non useMotionScope) : le scope du composant est
-// déjà détruit à ce moment. Durées bornées (pas de ressort), donc la promesse se termine toujours. Mouvement réduit : fondu seul.
-// Les template refs sont déjà à null quand AnimatePresence appelle `stow` (le composant est démonté) : on garde les éléments dans des variables ordinaires.
+// Sortie : la carte est REMISE DANS le paquet (CardDeck), à un rang tiré au hasard, comme une vraie carte qu’on glisse dans le jeu (logique et déroulement dans deckInsert) :
+// elle recule (échelle, inclinaison du paquet) et se place à côté de lui, à la hauteur de la tranche visée ; puis seul son `translate` bouge, elle glisse dans la tranche (la couche de recouvrement de CardDeck
+// cache la partie entrée) ; rentrée, elle se fond. Un seul maître du transform : cette animation. Appelé par AnimatePresence quand la lecture est retirée : le retrait attend la fin.
+// `animate` direct (et non useMotionScope) : le scope du composant est déjà détruit à ce moment. UNE animation à images clés, durée bornée (pas de ressort) : la promesse se termine toujours,
+// et sa minuterie concorde avec celle de CardDeck (même origine). Mouvement réduit : fondu seul.
 let dealNode: HTMLElement | null = null
 let rootNode: HTMLElement | null = null
 onMounted(() => {
   dealNode = dealEl.value
   rootNode = root.value
 })
+const PERSPECTIVE_PX = 1100 // perspective du plateau (classe `[perspective:1100px]` du gabarit)
 const stow = async () => {
   const el = dealNode ?? dealEl.value
   const w = (rootNode ?? root.value)?.offsetWidth ?? 0
   halt()
   if (!el) return
   if (reduced.value || !w) return void (await animate(el, { opacity: 0 }, { duration: 0.2, ease: 'easeOut' }))
-  const st = stowOf(1, w)
-  const travel = animate(el, { x: st.x, y: st.y, scale: st.s, rotateZ: st.r, rotateX: DECK_TILT.x, rotateY: DECK_TILT.y }, { duration: 0.5, ease: [0.4, 0, 0.2, 1] }) // elle se couche sur le dessus du paquet, même inclinaison que lui
-  void animate(el, { opacity: 0 }, { duration: 0.2, delay: 0.3, ease: 'easeIn' }) // l’effacement ne commence qu’une fois la carte presque arrivée
-  await travel
+  const { side, inside } = insertPoses(deckSlot.value, deckPose, w)
+  const { approach, slide } = INSERT_MS
+  const opts: AnimationOptions = {
+    duration: INSERT_CARD_MS / 1000,
+    times: [0, approach / INSERT_CARD_MS, (approach + slide) / INSERT_CARD_MS, 1],
+    ease: [[0.4, 0, 0.2, 1], [0.3, 0, 0.2, 1], 'easeIn'],
+  }
+  // Même point de fuite et même distance de perspective que le paquet : la perspective du plateau (`.tarot__stage`) suit le centre de la carte, et passe de 1100 px à celle du paquet (4 largeurs de carte).
+  // Sans cela la carte, décalée à côté du paquet, aurait une autre inclinaison que lui (bords qui fuient vers le centre de la boîte). Pas d’échelle de pile dans ce calcul : la propriété `scale` ne touche pas z,
+  // la profondeur de l’inclinaison reste celle de la carte pleine grandeur, et c’est elle que la perspective mesure.
+  const stage = el.parentElement
+  const fuite = (x: number, y: number) => `${w / 2 + x}px ${(w * 12) / 7 / 2 + y}px`
+  const persp = DECK_PERSP * w
+  if (stage)
+    void animate(stage, { perspectiveOrigin: [fuite(0, 0), fuite(side.x, side.y), fuite(inside.x, inside.y), fuite(inside.x, inside.y)], perspective: [PERSPECTIVE_PX, persp, persp, persp] }, opts)
+  await animate(
+    el,
+    {
+      x: [null, side.x, inside.x, inside.x],
+      y: [null, side.y, side.y, side.y],
+      scale: [null, side.s, side.s, side.s],
+      rotateZ: [null, 0, 0, 0],
+      rotateX: [null, side.rx, side.rx, side.rx],
+      rotateY: [null, side.ry, side.ry, side.ry],
+      opacity: [null, 1, 1, 0],
+    },
+    opts,
+  )
 }
 usePresence({ element: () => rootNode ?? root.value, onExit: stow })
 
