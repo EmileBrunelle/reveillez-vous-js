@@ -12,6 +12,7 @@ struct Params {
   mist: f32, // variante : multiplicateur de densité de la brume
   moon: f32, // variante : multiplicateur de taille / luminosité de la lune
   rain: f32, // variante : 0..1 bruine
+  shadows: f32, // 1 = ombres lancées des monuments (0 : tactile, écran étroit ou budget GPU dépassé)
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -74,6 +75,15 @@ fn marker(lp: vec2f, kind: i32, tilt: f32) -> f32 {
   return d;
 }
 
+// Monument de la cellule `ci` de la rangée `seed` : centre, échelle, inclinaison et genre (kind = -1 : cellule vide ou dégagement du portail).
+struct Mk { cx: f32, sc: f32, tilt: f32, kind: i32 }
+fn marker_cell(ci: f32, seed: f32, cw: f32) -> Mk {
+  let hh = h21(vec2f(ci, seed * 5.7));
+  let cx = (ci + 0.2 + 0.6 * h21(vec2f(ci, seed * 2.1 + 3.0))) * cw;
+  if (hh > 0.84 || abs(cx) < 1.1) { return Mk(cx, 1.0, 0.0, -1); }
+  return Mk(cx, 0.85 + 0.45 * h21(vec2f(ci + 9.0, seed)), (h21(vec2f(ci, seed + 11.0)) - 0.5) * 0.45, i32(floor(hh / 0.21)));
+}
+
 // Rangée de monuments sur le plan z = D : retourne vec2(couverture, kind) pour que l’appelant colore bois / pierre / fer.
 fn row_mask(ro: vec3f, rd: vec3f, D: f32, seed: f32, aa: f32) -> vec2f {
   let X = ro.x + rd.x / rd.z * D;
@@ -84,18 +94,47 @@ fn row_mask(ro: vec3f, rd: vec3f, D: f32, seed: f32, aa: f32) -> vec2f {
   var m = 0.0;
   var kd = 0.0;
   for (var j = -1; j <= 1; j++) {
-    let ci = ci0 + f32(j);
-    let hh = h21(vec2f(ci, seed * 5.7));
-    let cx = (ci + 0.2 + 0.6 * h21(vec2f(ci, seed * 2.1 + 3.0))) * cw;
-    if (hh > 0.84 || abs(cx) < 1.1) { continue; }
-    let kind = i32(floor(hh / 0.21));
-    let sc = 0.85 + 0.45 * h21(vec2f(ci + 9.0, seed));
-    let tilt = (h21(vec2f(ci, seed + 11.0)) - 0.5) * 0.45;
-    let d = marker((vec2f(X - cx, Y) / sc), kind, tilt) * sc;
+    let mk = marker_cell(ci0 + f32(j), seed, cw);
+    if (mk.kind < 0) { continue; }
+    let d = marker((vec2f(X - mk.cx, Y) / mk.sc), mk.kind, mk.tilt) * mk.sc;
     let mm = smoothstep(aa, -aa, d);
-    if (mm > m) { m = mm; kd = f32(kind); }
+    if (mm > m) { m = mm; kd = f32(mk.kind); }
   }
   return vec2f(m, kd);
+}
+
+// Rangée (plan z = D) vue depuis un point du sol `g` : la lumière de la lune (MOON_DIR) traverse le plan en (X, Y), où le gabarit 2D du monument
+// donne la distance signée d. Ombre douce classique, res = min(k·d / t) avec t la distance parcourue vers la lumière : la pénombre s’élargit
+// avec l’éloignement de l’objet. Un plan = un « pas » exact (pas de marche) ; rien de dépendant du temps ni de bruit, donc rien ne scintille.
+fn row_shadow(g: vec3f, D: f32, seed: f32, k: f32) -> f32 {
+  let t = (D - g.z) / MOON_DIR.z;
+  if (t < 0.02 || t > 1.9 / MOON_DIR.y) { return 1.0; } // derrière nous, ou plus haut que le plus haut des monuments
+  let X = g.x + MOON_DIR.x * t;
+  let Y = MOON_DIR.y * t;
+  let cw = 2.3 + 0.2 * seed;
+  let ci0 = floor(X / cw);
+  var res = 1.0;
+  for (var j = -1; j <= 1; j++) {
+    let mk = marker_cell(ci0 + f32(j), seed, cw);
+    if (mk.kind < 0) { continue; }
+    let d = marker((vec2f(X - mk.cx, Y) / mk.sc), mk.kind, mk.tilt) * mk.sc;
+    res = min(res, k * d / t);
+  }
+  return clamp(res, 0.0, 1.0);
+}
+
+// Lumière de la lune reçue au sol en `g` (1 = pleine lune, 0 = ombre des monuments) : produit des ombres des 6 rangées, départ au sol
+// (le plan des monuments n’est jamais à t = 0, donc pas d’acné). Les rangées trop éloignées ou derrière `g` sortent aussitôt.
+fn ground_shadow(g: vec3f) -> f32 {
+  var res = 1.0;
+  if (g.z < 0.0 || g.z > 18.0) { return res; }
+  for (var li = 0; li < 6; li++) {
+    let D = 2.6 + 1.7 * f32(li) + 0.25 * f32(li * li);
+    if (D > g.z) { res = min(res, row_shadow(g, D, f32(li), 7.0)); }
+    if (res < 0.02) { break; }
+  }
+  // Ombre douce, jamais noire : l’ambiant (déjà dans la couleur du sol) reste intact.
+  return res * res * (3.0 - 2.0 * res);
 }
 
 // Mur de pierre (Y<0,7) + clôture en fer au-dessus, avec une ouverture de portail au milieu. Retourne vec2(couverture, 0 pierre / 1 fer).
@@ -273,6 +312,13 @@ fn eye_pair(ro: vec3f, rd: vec3f, c: vec3f, ph: f32, tEnd: f32) -> f32 {
     let path = 1.0 - smoothstep(0.55, 1.0, abs(g.x + 0.3 * sin(g.z * 0.2)));
     let n = 0.5 + vnoise(vec3f(g.xz * 1.6, 3.0)) * 0.8;
     var gc = mix(vec3f(0.011, 0.016, 0.017), vec3f(0.060, 0.058, 0.060), path) * n;
+    // Lune au sol : terme diffus froid, multiplié par l’ombre des monuments. Sans ombres (tactile, budget), on garde un éclairage plat moyen (0,85)
+    // pour que le sol ait le même ton partout ; les ombres ne font que le creuser.
+    var lunar = 0.85;
+    if (params.shadows > 0.5) { lunar = ground_shadow(g); }
+    let moonK = params.moon * MOON_DIR.y * lunar;
+    gc *= vec3f(1.0) + moonCol * (2.6 * moonK);
+    gc += moonCol * (0.075 * moonK * n * (1.0 - path)); // l’herbe, très sombre, reçoit aussi la lune : sans cela l’ombre ne s’y lirait pas
     gc += moonCol * 0.012 * pow(max(dot(normalize(vec3f(rd.x, -rd.y, rd.z)), MOON_DIR), 0.0), 40.0) * (1.0 + 3.0 * params.rain);
     col = gc;
   }

@@ -15,6 +15,8 @@ export interface GpuLoopOptions<S> {
   paused?: MaybeRefOrGetter<boolean>
   /** Périphérique perdu (ou trame en échec) hors arrêt volontaire : la boucle est déjà arrêtée. */
   onLost?: () => void
+  /** Demande `timestamp-query` (mesure GPU par `timer(gpu)`) ; si l’adaptateur ne l’offre pas, l’init se fait sans. */
+  timing?: boolean
 }
 
 export interface GpuLoop {
@@ -32,9 +34,10 @@ export interface GpuLoop {
  * le composant appelant doit appeler `stop()` à son démontage.
  */
 export const startGpuLoop = async <S>(opts: GpuLoopOptions<S>): Promise<GpuLoop> => {
-  const { setup, render, teardown, fps = 30, paused, onLost } = opts
+  const { setup, render, teardown, fps = 30, paused, onLost, timing } = opts
   const fpsNow = () => toValue(fps)
-  const gpu = await init()
+  // La mesure est facultative : un adaptateur sans `timestamp-query` fait échouer la première demande, la seconde repart sans.
+  const gpu = await (timing ? init({ requiredFeatures: ['timestamp-query'] }).catch(() => init()) : init())
   const scope = effectScope(true)
   let stopped = false
   let state: S

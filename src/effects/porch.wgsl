@@ -14,6 +14,7 @@ struct Params {
   rain: f32, // variante : 0..1 bruine fine
   leaves: f32, // variante : 0..1 feuilles d’automne qui tombent
   lamp: f32, // variante : 0..1 citrouille illuminée sur le perron
+  shadows: f32, // 1 = ombres lancées de la balustrade (0 : tactile, écran étroit ou budget GPU dépassé)
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -63,6 +64,23 @@ fn railing(p: vec3f) -> f32 {
   let bx = (fract(q.x / 0.24 + 0.5) - 0.5) * 0.24;
   d = min(d, sd_box(vec3f(bx, q.y - 0.67, q.z), vec3f(0.022, 0.45, 0.022)));
   return d;
+}
+
+// Ombre douce de la balustrade, cast de `p` vers la lune : marche de sphère (20 pas au plus) dans `railing`, res = min(k·h / t), la pénombre
+// s’élargit avec la distance parcourue. Départ décalé de 0,03 m le long de la normale `n` (acné d’ombre), sortie anticipée dès que le rayon
+// est franchement masqué ou dépasse la hauteur de la balustrade. Aucun bruit ni temps : l’ombre est fixe. 1 = éclairé, 0 = à l’ombre.
+fn rail_shadow(p: vec3f, n: vec3f) -> f32 {
+  let o = p + n * 0.03;
+  var res = 1.0;
+  var t = 0.02;
+  for (var i = 0; i < 20; i++) {
+    let h = railing(o + MOON_DIR * t);
+    res = min(res, 8.0 * h / t);
+    t += clamp(h, 0.03, 0.4);
+    if (res < 0.01 || t > 3.5) { break; }
+  }
+  res = clamp(res, 0.0, 1.0);
+  return res * res * (3.0 - 2.0 * res);
 }
 
 fn tcap(p: vec2f, a: vec2f, b: vec2f, r1: f32, r2: f32) -> f32 {
@@ -309,6 +327,11 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
       let g = ro + rd * tf;
       let board = smoothstep(0.0, 0.03, abs(fract(g.x * 2.2 + 0.5) - 0.5) * 0.45);
       col = vec3f(0.045, 0.037, 0.033) * (0.5 + 0.5 * board) * (0.6 + 0.8 * vnoise(vec3f(g.x * 4.0, g.z * 40.0, 0.0)));
+      // Lune sur les planches : terme diffus froid multiplié par l’ombre des barreaux (la lune est derrière la balustrade : l’ombre tombe vers nous).
+      // Sans ombres (tactile, budget), éclairage plat moyen (0,85) : même ton partout. Visible seulement quand le cadre laisse voir le plancher (portrait).
+      var lunar = 0.85;
+      if (params.shadows > 0.5) { lunar = rail_shadow(g, vec3f(0.0, 1.0, 0.0)); }
+      col *= vec3f(1.0) + moonCol * (2.4 * params.moon * MOON_DIR.y * lunar);
       col += moonCol * 0.012 * pow(max(dot(normalize(vec3f(rd.x, -rd.y, rd.z)), MOON_DIR), 0.0), 40.0);
       col += fogLit * 0.07;
       tEnd = tf;
@@ -339,7 +362,9 @@ fn sky_col(rd: vec3f, p: f32, moonCol: vec3f, r: f32) -> vec3f {
         railing(q + vec3f(0, 0.01, 0)) - railing(q - vec3f(0, 0.01, 0)),
         railing(q + vec3f(0, 0, 0.01)) - railing(q - vec3f(0, 0, 0.01))));
       // À contre-jour : corps sombre, mince liseré de lune sur les bords tournés vers la lune.
-      let rim = pow(max(dot(n, MOON_DIR), 0.0), 2.0);
+      var rim = pow(max(dot(n, MOON_DIR), 0.0), 2.0);
+      // Le liseré de lune ne touche que ce que la lune voit : chapeaux et lisses se masquent entre eux.
+      if (params.shadows > 0.5 && rim > 0.01) { rim *= rail_shadow(q, n); }
       let grain = 0.7 + 0.5 * vnoise(vec3f(q.x * 3.0, q.y * 30.0, q.z * 3.0));
       col = vec3f(0.012, 0.009, 0.008) * grain + moonCol * rim * 0.30 + fogLit * 0.05;
       tEnd = t;

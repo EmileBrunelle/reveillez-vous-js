@@ -264,6 +264,40 @@ describe('createRaymarch', () => {
     expect(f.pass).toHaveBeenCalledTimes(2)
   })
 
+  it('ombres : l’uniforme `shadows` suit la règle fournie ; sans règle, aucun champ ajouté et pas de mesure GPU', async () => {
+    const rule = { v: true }
+    const { p, params } = make({ shadows: () => rule.v })
+    await p
+    expect(loop.opts!.timing).toBe(true)
+    const s = run<Any>(loop.opts!.setup, {}) // `timer` absent du vgpu simulé : repli sur l’intervalle entre images
+    expect(s.cost.span).toBeNull()
+    const f = frame()
+    run(loop.opts!.render, f, s, dt)
+    expect(s.fx.set).toHaveBeenLastCalledWith({ params: expect.objectContaining({ shadows: 1 }) })
+    expect(f.pass).toHaveBeenCalledWith(s.surf, s.fx)
+    rule.v = false // tactile ou écran étroit
+    run(loop.opts!.render, f, s, dt)
+    expect(s.fx.set).toHaveBeenLastCalledWith({ params: expect.objectContaining({ shadows: 0 }) })
+    expect(params).toHaveBeenCalled()
+    run(loop.opts!.teardown, s)
+    const plain = make()
+    await plain.p
+    expect(loop.opts!.timing).toBe(false)
+    const s2 = run<Any>(loop.opts!.setup, {})
+    expect(s2.cost).toBeNull()
+    expect((vi.mocked(effect).mock.calls.at(-1) as Any)[2].set.params).not.toHaveProperty('shadows')
+  })
+
+  it('ombres : le repli coupe pour de bon quand les images dépassent l’intervalle toléré', async () => {
+    const { p } = make({ shadows: () => true })
+    await p
+    const s = run<Any>(loop.opts!.setup, {})
+    const f = frame()
+    for (let i = 0; i < 40; i++) run(loop.opts!.render, f, s, clk(i, 0.09)) // 90 ms par image : très en deçà de 30 i/s
+    run(loop.opts!.render, f, s, clk(41, 1 / 30))
+    expect(s.fx.set).toHaveBeenLastCalledWith({ params: expect.objectContaining({ shadows: 0 }) })
+  })
+
   it('CRT éteint (sharp) : la surface est recréée à la résolution nette, l’ancienne est libérée', async () => {
     const sharp = { v: false }
     vi.stubGlobal('window', { devicePixelRatio: 2 })

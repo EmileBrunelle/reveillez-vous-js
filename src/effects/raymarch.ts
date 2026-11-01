@@ -1,9 +1,10 @@
 import { useResizeObserver } from '@vueuse/core'
-import { effect, surface, type ShaderSource } from 'vgpu'
+import { effect, surface, timer, type Gpu, type ShaderSource, type Timer, type TimerSpan } from 'vgpu'
 import { startGpuLoop, type GpuLoop } from './gpuLoop'
 import { raymarchStaticKey } from './frameSkip'
 import { paramsKey } from './paramsKey'
 import { placeDpr } from './resolution'
+import { createShadowBudget, SHADOW_BUDGET_MS, SHADOW_FALLBACK_FRAME_MS } from './shadowQuality'
 
 export type Shader = ShaderSource
 
@@ -35,6 +36,11 @@ export interface RaymarchOptions {
   paranoia: () => number
   /** Décalage cible de la caméra dans [-1, 1]² ; lissé ici (lerp), ignoré en mouvement réduit. */
   parallax: () => { x: number; y: number }
+  /**
+   * Règle fixe des ombres lancées (voir `shadowQuality`) : faux = coupées (tactile, écran étroit). Absent = coupées, sans mesure.
+   * Vrai = actives tant que le coût mesuré tient dans le budget ; sinon elles se coupent pour de bon. Écrit dans l’uniforme `shadows` (0 ou 1).
+   */
+  shadows?: () => boolean
   /** Pause supplémentaire ; l’onglet caché met déjà la boucle en pause. */
   paused?: () => boolean
   /** Périphérique perdu : la boucle est déjà arrêtée. */
@@ -45,21 +51,63 @@ export interface RaymarchOptions {
 const STATIC_FPS = 4
 
 /**
+ * Mesure du coût des ombres : durée GPU du passage (`timer`, `timestamp-query`) ou, à défaut, intervalle entre les images.
+ * `span` est le repère à passer au passage ; `sample` reçoit l’intervalle de l’image (utile au repli seulement).
+ */
+const watchShadowCost = (gpu: Gpu) => {
+  const bg = createShadowBudget(SHADOW_BUDGET_MS)
+  const fallback = createShadowBudget(SHADOW_FALLBACK_FRAME_MS)
+  let tm: Timer | null = null
+  let span: TimerSpan | null = null
+  let off = () => {}
+  try {
+    tm = timer(gpu)
+    span = tm.span('fond')
+    off = tm.onResults((r) => bg.push(r.fond ?? NaN))
+  } catch {
+    tm = null // pas de `timestamp-query` : on juge l’intervalle entre images
+  }
+  return {
+    // `over` doit refléter la mesure utilisée : GPU si on l’a, intervalle sinon.
+    budget: {
+      push: (ms: number) => (tm ? bg : fallback).push(ms),
+      get over() {
+        return (tm ? bg : fallback).over
+      },
+    },
+    span,
+    sample: (dt: number) => {
+      if (!tm) fallback.push(dt * 1000)
+    },
+    dispose: () => {
+      off()
+      tm?.dispose()
+    },
+  }
+}
+
+/**
  * Lance un fond raymarché générique sur `canvas`. Lève si quoi que ce soit échoue ; renvoie `stop()`, à appeler au démontage.
  * Animé : 30 i/s. `motion()` faux = mouvement réduit : la boucle tourne à `STATIC_FPS` et ne redessine que si la clé de
  * l’image statique change (taille, paranoïa, paramètres de la variante) ; sinon elle ne fait que recalculer cette clé.
  */
 export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions): Promise<GpuLoop> => {
   const { motion, paranoia, parallax } = opts
+  // Budget mesuré, créé par `setup` seulement si les ombres sont permises ; une fois dépassé, les ombres restent coupées.
+  let budget: ReturnType<typeof createShadowBudget> | null = null
+  const shadowsOn = () => !!opts.shadows?.() && !budget?.over
   const params = (s: { p: number; drift: number; px: number; py: number }, t: number) => {
     const m = motion()
-    return opts.params({ t, width: canvas.width, height: canvas.height, paranoia: s.p, motion: m, drift: m ? s.drift : 0, px: m ? s.px : 0, py: m ? s.py : 0 })
+    const base = opts.params({ t, width: canvas.width, height: canvas.height, paranoia: s.p, motion: m, drift: m ? s.drift : 0, px: m ? s.px : 0, py: m ? s.py : 0 })
+    // Le champ n’existe que si la règle des ombres est fournie : sans elle, les paramètres restent ceux du lieu.
+    return opts.shadows ? { ...base, shadows: shadowsOn() ? 1 : 0 } : base
   }
   return startGpuLoop({
     paused: opts.paused,
     // Mouvement réduit : cadence basse, la boucle ne fait que comparer la clé de l’image statique.
     fps: () => (motion() ? 30 : STATIC_FPS),
     onLost: opts.onLost,
+    timing: !!opts.shadows?.(),
     setup: (gpu) => {
       // Taille CSS mise en cache et tenue à jour par l’observateur : aucune lecture de mise en page par trame.
       const css = { w: canvas.clientWidth, h: canvas.clientHeight }
@@ -71,9 +119,14 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
       const anim = { p: paranoia(), drift: 0, px: 0, py: 0 }
       const surf = surface(gpu, canvas, { dpr: dprFor(), clearColor: [0, 0, 0, 1] })
       const fx = effect(gpu, opts.shader, { set: { params: params(anim, 0) } })
-      return { anim, gpu, dprFor, surf, fx, lastKey: '' }
+      const cost = opts.shadows?.() ? watchShadowCost(gpu) : null
+      budget = cost?.budget ?? null
+      return { anim, gpu, dprFor, surf, fx, lastKey: '', cost }
     },
-    teardown: (s) => s.fx.dispose(),
+    teardown: (s) => {
+      s.cost?.dispose()
+      s.fx.dispose()
+    },
     render: (frame, s, time) => {
       const a = s.anim
       const dt = Math.min(time.deltaTime, 0.1)
@@ -97,8 +150,10 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
         if (key === s.lastKey) return
         s.lastKey = key
       }
+      s.cost?.sample(time.deltaTime)
       s.fx.set({ params: params(a, time.time) })
-      frame.pass(s.surf, s.fx)
+      if (s.cost?.span) frame.pass({ target: s.surf, timer: s.cost.span }, s.fx)
+      else frame.pass(s.surf, s.fx)
     },
   })
 }

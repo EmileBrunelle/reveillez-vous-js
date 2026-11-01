@@ -110,7 +110,7 @@ export const places: Place[] = [
     variants: [
       { id: 'claire', weight: 2, params: { weather: 0, cold: 0.2 } },
       { id: 'pluie', params: { weather: 1, cold: 0.15 } },
-      { id: 'neige', params: { weather: 2, cold: 0.5 } },
+      { id: 'feuilles', params: { weather: 2, cold: 0.5 } },
     ],
   },
   {

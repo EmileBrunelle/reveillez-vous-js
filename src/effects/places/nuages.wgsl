@@ -10,6 +10,7 @@ struct Params {
   py: f32,
   blood: f32, // variante : 1 = lune de sang
   dawn: f32, // variante : 1 = lueur de l’aube à l’horizon (finale)
+  shadows: f32, // 1 = ombre portée de la couche de nuages haute sur la basse (0 : tactile, écran étroit ou budget GPU dépassé)
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -158,6 +159,15 @@ fn sky_col(rd: vec3f, c2: vec2f, mc: vec2f, r: f32, moonCol: vec3f, hazeCol: vec
       var shade = clamp(0.62 + (d - dl) * 8.0, 0.0, 1.0);
       shade = mix(shade, 0.5, f32(i) * 0.5);
       var c = mix(shadowCol, litCol, shade * shade * mix(1.0, 0.45, f32(i)));
+      // Ombre portée de la couche haute sur la basse : du point de la couche basse, on monte vers la lune jusqu’au plan de la couche haute
+      // (y = -1,5) et on y lit la couverture (même bruit, 3 octaves). Ombre douce par nature (couverture lissée), jamais noire : la couche
+      // basse garde au moins 55 % de sa couleur. Dérive lente avec le vent : rien ne scintille.
+      if (i == 1 && params.shadows > 0.5) {
+        let up = g + MOON_DIR.xz * ((3.2 - 1.5) / MOON_DIR.y);
+        let tu = length(vec3f(up.x - ro.x, 1.5, up.y - ro.z));
+        let du = mix(fbm(up * 0.3 + wind, 3), 0.55, 1.0 - exp(-tu * 0.03));
+        c *= mix(1.0, 0.55, smoothstep(0.34, 0.66, du));
+      }
       // Scintillement lunaire sur les nuages sous la lune.
       let rm = normalize(vec3f(rd.x, -rd.y, rd.z));
       c += moonCol * 0.25 * pow(max(dot(rm, MOON_DIR), 0.0), 18.0) * mix(1.0, 0.4, f32(i));

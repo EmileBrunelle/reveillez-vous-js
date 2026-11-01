@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue'
-import { useParallax } from '@vueuse/core'
+import { useMediaQuery, useParallax } from '@vueuse/core'
 import { useGpuEffect } from '@/composables/useGpuEffect'
 import { usePlaceAudio } from '@/composables/usePlaceAudio'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { useProgressStore } from '@/stores/progress'
 import { placeLoaders, type PlaceId } from '@/effects/places'
+import { SHADOWS_OFF_MEDIA } from '@/effects/shadowQuality'
 
 const { place, variant = undefined, sharp } = defineProps<{ place: PlaceId; variant?: Record<string, number>; sharp?: boolean }>()
 
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
+// Ombres lancées : coupées sur téléphone et tablette (pointeur grossier) et sous 641 px de large ; le coût mesuré peut les couper aussi (createRaymarch).
+const noShadows = useMediaQuery(SHADOWS_OFF_MEDIA)
 const reducedMotion = useReducedMotion()
 // Le niveau de paranoïa (0..1) vient directement du store de progression, lu à chaque image par les paramètres du shader.
 const root = useTemplateRef<HTMLElement>('root')
@@ -50,6 +53,7 @@ const { lost: failed } = useGpuEffect(
       params: (st) => cfg.params({ ...st, variant }),
       motion: () => !reducedMotion.value,
       sharp: () => sharp ?? false,
+      shadows: () => !noShadows.value,
       paranoia,
       parallax,
       onLost,

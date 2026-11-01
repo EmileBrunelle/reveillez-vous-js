@@ -13,6 +13,7 @@ struct Params {
   moon: f32, // variante : multiplicateur de taille / luminosité de la lune
   snow: f32, // variante : 0..1 rafales de neige
   glow: f32, // intensité des citrouilles
+  shadows: f32, // 1 = ombres lancées des troncs (0 : tactile, écran étroit ou budget GPU dépassé)
 }
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -126,6 +127,47 @@ fn trunk_mask(ro: vec3f, rd: vec3f, D: f32, seed: f32, aa: f32) -> f32 {
     m = max(m, smoothstep(aa, -aa, d));
   }
   return m;
+}
+
+// Ombre douce des troncs du plan z = D vue depuis un point du sol `g` : la lumière de la lune (MOON_DIR) traverse le plan en X ; le tronc est
+// une bande verticale, donc d = |X - cx - lean| - rr est sa distance signée. Classique res = min(k·d / t), t = distance parcourue vers la lumière
+// (pénombre plus large pour un tronc plus loin). Un plan = un « pas » exact, sans bruit ni terme temporel : aucun scintillement.
+// Les branches ne projettent rien (trop fines pour une ombre lisible à cette échelle).
+fn trunk_shadow(g: vec3f, D: f32, seed: f32, k: f32) -> f32 {
+  let t = (D - g.z) / MOON_DIR.z;
+  if (t < 0.02 || t > 14.0) { return 1.0; }
+  let X = g.x + MOON_DIR.x * t;
+  let Y = MOON_DIR.y * t;
+  let cw = 3.2 + 0.45 * seed;
+  let ci0 = floor(X / cw);
+  let pc = path_x(D);
+  var res = 1.0;
+  for (var j = -1; j <= 1; j++) {
+    let ci = ci0 + f32(j);
+    let hs = h21(vec2f(ci, seed * 7.1));
+    let cx = (ci + 0.15 + 0.7 * h21(vec2f(ci, seed * 3.3 + 1.0))) * cw;
+    if (hs < 0.3 || abs(cx - pc) < 2.5) { continue; }
+    let r = 0.17 + 0.2 * h21(vec2f(ci + 4.0, seed));
+    let lean = (hs - 0.5) * 0.02 * Y;
+    let rr = r * (1.0 + 0.7 * exp(-Y * 1.6));
+    res = min(res, k * (abs(X - cx - lean) - rr) / t);
+  }
+  // Au-delà de ~8 m de parcours la pénombre noie le tronc : l’ombre s’efface au lieu de couper net.
+  return mix(clamp(res, 0.0, 1.0), 1.0, smoothstep(8.0, 14.0, t));
+}
+
+// Lumière de la lune reçue au sol en `g` (1 = lune pleine, 0 = ombre d’un tronc) : produit des 5 rangées de troncs, départ au sol
+// (aucun plan à t = 0 : pas d’acné). Les rangées derrière `g` sortent aussitôt.
+fn ground_shadow(g: vec3f) -> f32 {
+  var res = 1.0;
+  if (g.z < 0.0 || g.z > 28.0) { return res; }
+  for (var li = 0; li < 5; li++) {
+    let D = 5.5 + 3.3 * f32(li) + 0.55 * f32(li * li);
+    if (D > g.z) { res = min(res, trunk_shadow(g, D, f32(li), 6.0)); }
+    if (res < 0.02) { break; }
+  }
+  // Ombre douce, jamais noire : l’ambiant (déjà dans la couleur du sol) reste intact.
+  return res * res * (3.0 - 2.0 * res);
 }
 
 fn treeline(a: f32) -> f32 {
@@ -280,6 +322,13 @@ fn lant_motes(ro: vec3f, rd: vec3f, tEnd: f32) -> f32 {
     let onPath = 1.0 - smoothstep(0.7, 1.3, abs(g.x - path_x(g.z)));
     let n = 0.5 + vnoise(vec3f(g.xz * 1.3, 3.0)) * 0.8;
     var gc = mix(vec3f(0.010, 0.015, 0.016), vec3f(0.085, 0.075, 0.068), onPath) * n;
+    // Lune au sol : terme diffus froid, multiplié par l’ombre des troncs. Sans ombres (tactile, budget), éclairage plat moyen (0,85) :
+    // le sol garde le même ton partout, les ombres ne font que le creuser.
+    var lunar = 0.85;
+    if (params.shadows > 0.5) { lunar = ground_shadow(g); }
+    let moonK = params.moon * MOON_DIR.y * lunar;
+    gc *= vec3f(1.0) + moonCol * (2.0 * moonK);
+    gc += moonCol * (0.07 * moonK * n * (1.0 - onPath)); // l’herbe, très sombre, reçoit aussi la lune : sans cela l’ombre ne s’y lirait pas
     gc += moonCol * 0.012 * pow(max(dot(normalize(vec3f(rd.x, -rd.y, rd.z)), MOON_DIR), 0.0), 40.0) * (0.4 + onPath);
     gc += warm * 0.12 * params.glow * lant_light(g) * (0.35 + 0.65 * onPath);
     col = gc;
