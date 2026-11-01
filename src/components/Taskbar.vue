@@ -115,45 +115,48 @@ const inset = 'shadow-[inset_1px_1px_grey,inset_-1px_-1px_#fff]'
         <IconStart class="w-6 h-[1.0625rem]" />
         <span>Démarrer</span>
       </button>
-      <Transition
-        enter-from-class="opacity-0 translate-y-full"
-        enter-active-class="transition-[opacity,translate] duration-150 ease-out"
-        leave-active-class="transition-[opacity,translate] duration-120 ease-in pointer-events-none"
-        leave-to-class="opacity-0 translate-y-full"
-      >
-        <div
-          v-show="open"
-          :id="menuId"
-          ref="menu"
-          class="absolute bottom-full left-0 mb-[2px] flex w-[min(17rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] bg-[#c0c0c0] p-[2px] shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#dfdfdf,inset_-2px_-2px_grey,inset_2px_2px_#fff]"
-          role="menu"
-          aria-label="Menu Démarrer"
-          @keydown="onMenuKey"
+      <!-- Ancrage coupant posé sur le bord supérieur de la barre : le menu glisse depuis l’arrière de la barre, jamais par-dessus. -->
+      <div class="absolute bottom-full left-0 mb-[2px] overflow-clip">
+        <Transition
+          enter-from-class="translate-y-full"
+          enter-active-class="transition-[translate] duration-150 ease-out"
+          leave-active-class="transition-[translate] duration-120 ease-in pointer-events-none"
+          leave-to-class="translate-y-full"
         >
           <div
-            class="w-7 flex-none bg-gradient-to-t from-[#000080] to-[#1084d0] text-white text-[1.1rem] font-bold tracking-[0.03em] whitespace-nowrap [writing-mode:vertical-rl] rotate-180 flex items-center px-[0.2rem] pb-0"
-            aria-hidden="true"
+            v-show="open"
+            :id="menuId"
+            ref="menu"
+            class="flex w-[min(17rem,calc(100vw-0.5rem-var(--safe-l)-var(--safe-r)))] bg-[#c0c0c0] p-[2px] shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#dfdfdf,inset_-2px_-2px_grey,inset_2px_2px_#fff]"
+            role="menu"
+            aria-label="Menu Démarrer"
+            @keydown="onMenuKey"
           >
-            Réveillez-vous&nbsp;<span class="font-normal">98</span>
+            <div
+              class="w-7 flex-none bg-gradient-to-t from-[#000080] to-[#1084d0] text-white text-[1.1rem] font-bold tracking-[0.03em] whitespace-nowrap [writing-mode:vertical-rl] rotate-180 flex items-center px-[0.2rem] pb-0"
+              aria-hidden="true"
+            >
+              Réveillez-vous&nbsp;<span class="font-normal">98</span>
+            </div>
+            <div class="flex-1 min-w-0 py-[2px]">
+              <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
+              <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('collection')">Collection</button>
+              <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('sound')">Son…</button>
+              <a :class="item" :href="REPO_URL" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1" aria-label="Code source sur GitHub (nouvel onglet)" @click="close()">
+                <IconGithub class="w-4 h-4 flex-none" aria-hidden="true" />
+                Code source
+              </a>
+              <button v-if="canFullscreen" :class="item" type="button" role="menuitem" tabindex="-1" @click="chooseFullscreen">
+                {{ isFullscreen ? 'Quitter le plein écran' : 'Plein écran' }}
+              </button>
+              <template v-if="level > 1">
+                <hr class="my-[3px] mx-[2px] border-0 h-[2px] bg-transparent shadow-[inset_0_1px_grey,inset_0_-1px_#fff]" role="separator" />
+                <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('reset')">Recommencer à zéro</button>
+              </template>
+            </div>
           </div>
-          <div class="flex-1 min-w-0 py-[2px]">
-            <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('about')">À propos</button>
-            <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('collection')">Collection</button>
-            <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('sound')">Son…</button>
-            <a :class="item" :href="REPO_URL" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1" aria-label="Code source sur GitHub (nouvel onglet)" @click="close()">
-              <IconGithub class="w-4 h-4 flex-none" aria-hidden="true" />
-              Code source
-            </a>
-            <button v-if="canFullscreen" :class="item" type="button" role="menuitem" tabindex="-1" @click="chooseFullscreen">
-              {{ isFullscreen ? 'Quitter le plein écran' : 'Plein écran' }}
-            </button>
-            <template v-if="level > 1">
-              <hr class="my-[3px] mx-[2px] border-0 h-[2px] bg-transparent shadow-[inset_0_1px_grey,inset_0_-1px_#fff]" role="separator" />
-              <button :class="item" type="button" role="menuitem" tabindex="-1" @click="choose('reset')">Recommencer à zéro</button>
-            </template>
-          </div>
-        </div>
-      </Transition>
+        </Transition>
+      </div>
     </div>
 
     <!-- Région d’annonce toujours montée : une région aria-live insérée déjà remplie n’est souvent pas lue par les lecteurs d’écran. -->
