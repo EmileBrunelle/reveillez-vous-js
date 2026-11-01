@@ -61,7 +61,7 @@ const monter = async (level = LEVEL, seed = 11) => {
 }
 const hud = (w: VueWrapper) => w.get('[data-testid="activity-hud"]')
 const invite = (w: VueWrapper) => w.get('p[aria-live="polite"]')
-const bouton = (w: VueWrapper) => w.get('button.crystal-hit')
+const bouton = (w: VueWrapper) => w.get('button[data-testid="pendulum-scene"]')
 const symboles = (w: VueWrapper) => w.findAll('[data-testid="pendulum-symbol"]')
 const cible = (w: VueWrapper) => symboles(w).findIndex((s) => s.attributes('data-target') !== undefined)
 const angleCss = (w: VueWrapper) => Number((w.get('[data-testid="pendulum-swing"]').element as HTMLElement).style.getPropertyValue('--a'))
@@ -97,17 +97,23 @@ describe('PendulumActivity : consigne et accessibilité', () => {
     expect(invite(w).attributes('aria-live')).toBe('polite')
   })
 
-  it('le cristal est un bouton réel « Arrêter le pendule », seul bouton de l’activité, focalisé au montage, décrit par les gestes', async () => {
+  it('le dispositif entier est un seul bouton réel « Arrêter le pendule », sans bouton imbriqué, focalisé au montage, décrit par le geste', async () => {
     const w = await monter()
     const b = bouton(w)
     expect(b.element.tagName).toBe('BUTTON')
     expect(b.attributes('type')).toBe('button')
     expect(b.attributes('aria-label')).toBe('Arrêter le pendule')
-    expect(w.findAll('button.crystal-hit')).toHaveLength(1) // plus de gros bouton sous le demi-cercle
-    expect(b.element.closest('.crystal-pos')).not.toBeNull() // enfant du bras qui tourne : il suit le cristal
+    expect(w.findAll('button')).toHaveLength(1 + w.findAll('[data-testid="activity-hud"] button').length) // seul le bouton Pause du HUD s’y ajoute
+    expect(b.element.querySelector('button')).toBeNull()
+    expect(b.element.closest('[data-testid="pendulum-swing"]')).toBeNull() // statique : hors du bras qui tourne
+    expect(b.element.contains(w.get('.board').element)).toBe(true)
+    expect(b.element.contains(w.get('.crystal').element)).toBe(true)
+    expect(b.element.contains(w.get('.pivot').element)).toBe(true)
+    expect(b.element.contains(hud(w).element)).toBe(false) // le HUD (et son bouton Pause) reste hors de la zone
     expect(w.get('[data-testid="pendulum-hint"]').text()).toMatch(/^(Cliquez sur|Touchez) le pendule$/)
     expect(document.activeElement).toBe(b.element)
     expect(w.get(`#${b.attributes('aria-describedby')}`).text()).toBe(PENDULUM_TEXTS.help)
+    expect(PENDULUM_TEXTS.help).toContain('n’importe où sur le pendule')
     expect(b.attributes('tabindex')).toBeUndefined()
   })
 
@@ -183,15 +189,35 @@ describe('PendulumActivity : arrêt', () => {
     expect(suivi.steps).toBeGreaterThan(avant)
   })
 
-  it('un appui à côté du cristal (fond, scène) n’arrête rien et rend le focus au cristal', async () => {
+  it.each([
+    ['le demi-cercle', '.board'],
+    ['le cristal', '.crystal'],
+    ['le point d’accroche', '.pivot'],
+    ['le fil', '.string'],
+  ])('un appui sur %s arrête le pendule', async (_nom, sel) => {
+    const w = await monter()
+    await w.get(sel).trigger('pointerdown', { button: 0 })
+    await avancer(16)
+    expect(suivi.state!.stopped).toBe(true)
+  })
+
+  it('un appui hors du dispositif (fond de l’activité) n’arrête rien et rend le focus au dispositif', async () => {
     const w = await monter()
     ;(document.activeElement as HTMLElement).blur()
     await w.get('[data-testid="pendulum-stage"]').trigger('pointerdown', { button: 0 })
-    await w.get('[data-testid="pendulum-scene"]').trigger('pointerdown', { button: 0 })
-    await w.get('.board').trigger('pointerdown', { button: 0 })
+    await w.get('[data-testid="pendulum-stage"]').trigger('click', { detail: 1 })
     await avancer(100)
     expect(suivi.state!.stopped).toBe(false)
     expect(document.activeElement).toBe(bouton(w).element)
+  })
+
+  it('un appui sur le bouton Pause du HUD n’arrête pas le pendule', async () => {
+    const w = await monter()
+    const pause = hud(w).get('button')
+    await pause.trigger('pointerdown', { button: 0 })
+    await pause.trigger('click', { detail: 1 })
+    await avancer(100)
+    expect(suivi.state!.stopped).toBe(false)
   })
 
   it('un autre bouton de souris n’arrête pas', async () => {

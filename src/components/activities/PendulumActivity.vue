@@ -22,7 +22,7 @@ import IconRaven from '~icons/game-icons/raven'
 import IconPumpkin from '~icons/game-icons/pumpkin'
 
 // Le pendule : un cristal au bout d’un fil se balance au-dessus d’un demi-cercle de symboles ; il faut l’ARRÊTER sur celui qui est demandé.
-// On l’arrête en cliquant ou en touchant le cristal lui-même (bouton réel, enfant du bras qui tourne : il suit sans second maître de la rotation).
+// On l’arrête en cliquant ou en touchant n’importe où sur le dispositif (demi-cercle, fil, cristal, point d’accroche) : un seul bouton réel, STATIQUE (la boucle reste seul maître de la rotation du bras).
 // L’arrêt ajoute un fort amortissement (le cristal glisse encore avant de s’immobiliser) : on anticipe. La physique est dans `engine/pendulum`.
 // La boucle `useRafFn` est la seule à écrire l’angle (variables CSS `--a`, `--w`, `--k` du support) ; le fil, le cristal, la traînée et l’ombre en dérivent en CSS.
 const { level, rng = undefined } = defineProps<{ level: number; rng?: Rng }>()
@@ -118,7 +118,7 @@ const stopNow = () => {
   pulse(20)
 }
 
-// Clic ou toucher sur le cristal, ou clavier : l’arrêt se déclenche à l’appui (pointerdown, keydown), pas au relâchement, pour ne pas perdre de précision.
+// Clic ou toucher sur le dispositif, ou clavier : l’arrêt se déclenche à l’appui (pointerdown, keydown), pas au relâchement, pour ne pas perdre de précision.
 // Le `click` qui suit un appui de souris ou de doigt (detail > 0) ou une touche déjà traitée est ignoré ; seul un `click` sans appui (lecteur d’écran) arrête.
 const KEY_GUARD_MS = 600
 let keyStopAt = -Infinity
@@ -147,9 +147,9 @@ watch(lit, async (i) => {
 })
 
 const btn = useTemplateRef<HTMLElement>('btn')
-// Un appui à côté du cristal n’arrête rien, mais rend le focus au cristal pour que le clavier continue d’agir.
+// Un appui hors du dispositif n’arrête rien, mais rend le focus au dispositif pour que le clavier continue d’agir.
 const refocus = () => focusQuietly(btn.value)
-// Le cristal prend le focus au montage (sans anneau si l’entrée était un pointeur) : Espace et Entrée arrêtent dès la première seconde.
+// Le dispositif prend le focus au montage (sans anneau si l’entrée était un pointeur) : Espace et Entrée arrêtent dès la première seconde.
 onMounted(() => {
   render()
   focusQuietly(btn.value)
@@ -181,7 +181,20 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
     <p class="min-h-[3lh] max-w-[26ch] text-center text-xl leading-tight text-amber-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
-    <div class="scene relative" data-testid="pendulum-scene" @pointerdown.self="refocus">
+    <!-- Tout le dispositif (demi-cercle, fil, cristal, point d’accroche) est UN SEUL bouton statique : un appui n’importe où dessus arrête le pendule. -->
+    <button
+      ref="btn"
+      type="button"
+      class="scene relative block m-0 p-0 border-0 bg-transparent text-inherit cursor-pointer touch-manipulation rounded-xl focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-amber-200 focus-visible:outline-offset-4"
+      data-testid="pendulum-scene"
+      :aria-label="PENDULUM_TEXTS.stop"
+      :aria-disabled="outcome === 'play' ? undefined : 'true'"
+      :aria-describedby="helpId"
+      @pointerdown="onPointerdown"
+      @keydown="onKeydown"
+      @keyup.space.prevent
+      @click="onClick"
+    >
       <!-- Brume : deux nappes qui dérivent lentement (une seule fois sans fin, hors mouvement réduit). -->
       <span class="mist mist-a pointer-events-none absolute" aria-hidden="true" />
       <span class="mist mist-b pointer-events-none absolute" aria-hidden="true" />
@@ -222,7 +235,7 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
         <component :is="ICONS[s.id]" class="icon relative" />
       </span>
       <!-- support : l’angle est écrit par la boucle ; chaque bras tourne autour du pivot (origine 0 0) -->
-      <div ref="swingEl" class="swing absolute" data-testid="pendulum-swing">
+      <span ref="swingEl" class="swing absolute" data-testid="pendulum-swing">
         <span class="arm shadow-arm absolute" aria-hidden="true"
           ><span class="shadow-pos absolute"><span class="shadow-blob absolute" /></span
         ></span>
@@ -233,23 +246,11 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
         </template>
         <span class="arm main-arm absolute"
           ><span class="string absolute" aria-hidden="true" /><span class="crystal-pos absolute"
-            ><span class="glow absolute" aria-hidden="true" /><span class="crystal absolute inset-0" aria-hidden="true"><span class="glint absolute" /></span>
-            <!-- Cible : bouton réel centré sur le cristal (zone de toucher généreuse), enfant du bras qui tourne. -->
-            <button
-              ref="btn"
-              type="button"
-              class="crystal-hit absolute rounded-full cursor-pointer touch-manipulation bg-transparent border-0 p-0 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-amber-200 focus-visible:outline-offset-2"
-              :aria-label="PENDULUM_TEXTS.stop"
-              :aria-disabled="outcome === 'play' ? undefined : 'true'"
-              :aria-describedby="helpId"
-              @pointerdown="onPointerdown"
-              @keydown="onKeydown"
-              @keyup.space.prevent
-              @click="onClick" /></span
+            ><span class="glow absolute" aria-hidden="true" /><span class="crystal absolute inset-0" aria-hidden="true"><span class="glint absolute" /></span></span
         ></span>
         <span class="pivot absolute rounded-full" />
-      </div>
-    </div>
+      </span>
+    </button>
     <p class="absolute bottom-16 left-1/2 -translate-x-1/2 whitespace-nowrap text-xl text-violet-200" :class="{ invisible: outcome !== 'play' }" aria-hidden="true" data-testid="pendulum-hint">
       {{ coarse ? PENDULUM_TEXTS.hintTouch : PENDULUM_TEXTS.hintClick }}
     </p>
@@ -261,7 +262,7 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
 <style scoped>
 /* Tout est en unités de --L (rayon du demi-cercle) : l’échelle suit la largeur et la hauteur disponibles. P = marge au-dessus du pivot. */
 .scene {
-  --L: clamp(7rem, min(14rem, 41vw, (100dvh - var(--taskbar-h) - 19rem) / 1.12), 14rem);
+  --L: clamp(7rem, min(14rem, (100vw - 4.5rem) / 2.24, (100dvh - var(--taskbar-h) - 19rem) / 1.12), 14rem);
   --P: 1.25rem;
   --Rc: 0.705;
   width: calc(var(--L) * 2.24);
@@ -390,13 +391,6 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
   width: max(1px, calc(var(--L) * 0.005));
   height: calc(var(--L) * (var(--Rc) - 0.11));
   background: linear-gradient(#d8ccf0, rgb(216 204 240 / 0.75));
-}
-.crystal-hit {
-  left: 50%;
-  top: 50%;
-  width: max(4rem, calc(var(--L) * 0.4));
-  height: max(4rem, calc(var(--L) * 0.4));
-  translate: -50% -50%;
 }
 .crystal-pos {
   left: calc(var(--L) * -0.06);
