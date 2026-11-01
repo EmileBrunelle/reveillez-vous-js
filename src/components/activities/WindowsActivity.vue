@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
-import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '@/engine/activityTiming'
 import { useActivityDone } from '@/composables/useActivityDone'
@@ -60,7 +59,7 @@ const {
   { immediate: false, immediateCallback: true },
 )
 
-const { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft, pause, resume, halted, afterPause, isFinished } = useActivityDone(() => emit('done'), {
+const { finish, outcome, startedAt, paused, elapsed, graceLeft, pause, resume, halted, afterPause, isFinished } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('windows'),
   // Fin : les fenêtres se verrouillent (plus de frappe pendant l’issue) ; seule la réussite affiche la fin réussie.
   onFinish: (o) => {
@@ -177,6 +176,5 @@ const hit = (i: number) => {
       </div>
     </div>
     <ActivityHud activity="windows" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
-    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>

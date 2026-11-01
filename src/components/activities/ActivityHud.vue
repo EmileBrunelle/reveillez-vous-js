@@ -4,7 +4,8 @@
 // L’issue est annoncée ici une seule fois (région role=status) : les activités ne la répètent pas.
 import { computed, inject, nextTick, onMounted, ref, watch, useTemplateRef } from 'vue'
 import { animate } from 'motion-v'
-import { tryOnScopeDispose, useIntervalFn, useTimeoutFn, useWindowFocus } from '@vueuse/core'
+import { tryOnScopeDispose, useEventListener, useIntervalFn, useTimeoutFn, useWindowFocus } from '@vueuse/core'
+import { useOverlayStore } from '@/stores/overlay'
 import { AWAY_KEY } from '@/composables/useActivityDone'
 import { focusQuietly } from '@/composables/focusQuietly'
 import { useReducedMotion } from '@/composables/useReducedMotion'
@@ -61,7 +62,7 @@ const stinger = useStinger()
 
 // Fenêtre sans focus : useActivityDone suspend la minuterie et ne la relance qu’au bouton « Reprendre » (le temps de se préparer).
 // Contrôleur fourni par useActivityDone ; sans lui (HUD monté seul, tests), repli inerte : jamais de voile.
-const { away, resumeAway } = inject(AWAY_KEY, { away: ref(false), resumeAway: () => {} })
+const { away, resumeAway, pauseByPlayer } = inject(AWAY_KEY, { away: ref(false), resumeAway: () => {}, pauseByPlayer: undefined })
 const focused = useWindowFocus()
 const showPause = computed(() => away.value && outcome === 'play')
 const resumeEl = useTemplateRef<HTMLElement>('resumeEl')
@@ -75,6 +76,30 @@ watch(
   },
   { flush: 'post' },
 )
+const pauseEl = useTemplateRef<HTMLElement>('pauseEl')
+// Reprise : le focus revient sur le bouton Pause (sans anneau si c’est un clic).
+watch(
+  showPause,
+  async (s, avant) => {
+    if (s || !avant) return
+    await nextTick()
+    focusQuietly(pauseEl.value)
+  },
+  { flush: 'post' },
+)
+// Clavier : Échap met en pause, P bascule (sauf à la planche Ouija où P est une lettre). Rien si un menu ou une fenêtre est ouvert (Échap leur appartient).
+const overlay = useOverlayStore()
+useEventListener('keydown', (e: KeyboardEvent) => {
+  if (outcome !== 'play' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || overlay.active) return
+  const cible = e.target
+  if (cible instanceof Element && cible.closest('input, textarea, [contenteditable]')) return
+  if (showPause.value) {
+    if (e.key.toLowerCase() === 'p' && activity !== 'ouija') resumeAway()
+    return
+  }
+  if (e.key === 'Escape' && !e.defaultPrevented) pauseByPlayer?.()
+  else if (e.key.toLowerCase() === 'p' && activity !== 'ouija') pauseByPlayer?.()
+})
 const pauseAnnouncement = computed(() => (showPause.value ? 'Jeu en pause.' : ''))
 const verbEl = useTemplateRef<HTMLElement>('verbEl')
 const resultEl = useTemplateRef<HTMLElement>('resultEl')
@@ -121,7 +146,7 @@ watch(
         {{ prompt.verb }}
       </p>
     </div>
-    <!-- barre de temps : à gauche du bouton « Passer » ; le rouge de la fin (derniers 25 %) est dans l’animation.
+    <!-- barre de temps : en bas, jusqu’à la place du bouton « Passer » (retiré) ; le rouge de la fin (derniers 25 %) est dans l’animation.
          Pas de Progress de v0 ici : son Fill écrit lui-même `style.width` (même en renderless), ce qui entre en conflit avec l’animation `scaleX`
          et obligerait à mettre l’état à jour à chaque image ; la barre est donc un `role="progressbar"` natif dont seule la valeur accessible vit dans l’état. -->
     <div
@@ -135,7 +160,19 @@ watch(
     >
       <div :key="barKey" class="drain h-full origin-left" :style="{ animationDelay: drainFrom }" :class="{ paused: paused || outcome !== 'play' }" />
     </div>
-    <!-- pause : la fenêtre a perdu le focus ; le voile capte les pointeurs (le clic qui ramène le focus ne touche pas le jeu), texte fixe, aucun clignotement -->
+    <!-- bouton Pause : coin haut droit, zone de toucher de 44 px (pseudo-élément) ; absent une fois l’issue affichée -->
+    <button
+      v-if="outcome === 'play' && pauseByPlayer"
+      ref="pauseEl"
+      type="button"
+      aria-label="Mettre en pause"
+      class="win-btn pointer-events-auto absolute top-2 right-2 z-10 grid size-8 place-content-center before:content-[''] before:absolute before:-inset-[6px]"
+      @click="pauseByPlayer"
+    >
+      <span class="flex gap-[3px]" aria-hidden="true"><span class="block h-3.5 w-[4px] bg-black" /><span class="block h-3.5 w-[4px] bg-black" /></span>
+    </button>
+    <!-- La ligne « Revenez » garde sa place (invisible, pas retirée) : si elle disparaissait au retour du focus, le bouton bougerait entre pointerdown et pointerup et le premier clic serait perdu. -->
+    <!-- pause : voile en `fixed` : toute la fenêtre sauf la barre des tâches (z-30, reste libre) ; la fenêtre a perdu le focus ; le voile capte les pointeurs (le clic qui ramène le focus ne touche pas le jeu), texte fixe, aucun clignotement -->
     <!-- Fondu court ; pendant la sortie le voile ne capte plus rien (le jeu reprend la main tout de suite). -->
     <Transition
       enter-from-class="opacity-0"
@@ -145,13 +182,13 @@ watch(
     >
       <div
         v-if="showPause"
-        class="pointer-events-auto absolute inset-0 grid place-content-center justify-items-center gap-3 bg-black/60 text-center"
+        class="pointer-events-auto fixed inset-x-0 top-0 bottom-[var(--taskbar-h)] z-20 grid place-content-center justify-items-center gap-3 bg-black/60 text-center"
         @pointermove.stop
         @pointerdown.stop
         @pointerup.stop
       >
         <p class="m-0 font-title font-bold text-[clamp(1.8rem,9vw,3.2rem)] leading-none text-amber-200 [text-shadow:0_3px_0_#000]">EN PAUSE</p>
-        <p v-if="!focused" class="m-0 font-ui text-lg text-amber-100/80">Revenez dans la fenêtre.</p>
+        <p class="m-0 font-ui text-lg text-amber-100/80" :class="{ invisible: focused }" :aria-hidden="focused ? 'true' : undefined">Revenez dans la fenêtre.</p>
         <button ref="resumeEl" type="button" class="win-btn min-h-11 min-w-32 font-ui text-xl" @click="resumeAway">Reprendre</button>
       </div>
     </Transition>

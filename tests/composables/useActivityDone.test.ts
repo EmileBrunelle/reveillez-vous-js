@@ -16,7 +16,7 @@ const env = vi.hoisted(() => {
 const { win, doc } = env
 import { ACTIVITY_GRACE_MS } from '@/engine/activityTiming'
 import { useOverlayStore } from '@/stores/overlay'
-import { AUTO_SUCCESS_MS, POKE_THROTTLE_MS, SKIP_REVEAL_MS, useActivityDone } from '@/composables/useActivityDone'
+import { AUTO_SUCCESS_MS, useActivityDone } from '@/composables/useActivityDone'
 
 const setVisibility = (state: 'visible' | 'hidden') => {
   doc.visibilityState = state
@@ -77,75 +77,6 @@ describe('useActivityDone', () => {
     vi.advanceTimersByTime(AUTO_SUCCESS_MS)
     expect(auto).toEqual(['finish'])
     s2.stop()
-  })
-
-  it('révèle « Passer » après 12 s, avant la réussite automatique', () => {
-    const scope = effectScope()
-    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100 }))!
-    expect(SKIP_REVEAL_MS).toBe(12_000)
-    expect(SKIP_REVEAL_MS).toBeLessThan(AUTO_SUCCESS_MS)
-    vi.advanceTimersByTime(SKIP_REVEAL_MS - 1)
-    expect(api.canSkip.value).toBe(false)
-    vi.advanceTimersByTime(1)
-    expect(api.canSkip.value).toBe(true)
-    scope.stop()
-  })
-
-  it('« Passer » (finish) termine tout de suite, cache le bouton et n’émet qu’une fois', () => {
-    const emit = vi.fn()
-    const scope = effectScope()
-    const api = scope.run(() => useActivityDone(emit, { delayMs: 100 }))!
-    vi.advanceTimersByTime(SKIP_REVEAL_MS)
-    api.finish()
-    expect(api.canSkip.value).toBe(false)
-    vi.advanceTimersByTime(100)
-    expect(emit).toHaveBeenCalledTimes(1)
-    vi.advanceTimersByTime(AUTO_SUCCESS_MS * 2)
-    expect(emit).toHaveBeenCalledTimes(1)
-    scope.stop()
-  })
-
-  it('qui joue ne voit pas « Passer » : chaque interaction repousse son apparition', () => {
-    const scope = effectScope()
-    // Réussite automatique repoussée : on simule plus de 20 s de jeu.
-    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100, autoMs: 60_000 }))!
-    for (let t = 0; t < 3; t++) {
-      vi.advanceTimersByTime(SKIP_REVEAL_MS - 1000)
-      win.dispatchEvent(new Event(['pointerdown', 'keydown', 'pointermove'][t]))
-    }
-    expect(api.canSkip.value).toBe(false)
-    vi.advanceTimersByTime(SKIP_REVEAL_MS)
-    expect(api.canSkip.value).toBe(true)
-    // Affiché, il reste malgré une nouvelle interaction.
-    win.dispatchEvent(new Event('pointerdown'))
-    expect(api.canSkip.value).toBe(true)
-    scope.stop()
-  })
-
-  it('une réussite avant 12 s ne révèle jamais « Passer »', () => {
-    const scope = effectScope()
-    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100 }))!
-    api.finish()
-    vi.advanceTimersByTime(SKIP_REVEAL_MS * 2)
-    expect(api.canSkip.value).toBe(false)
-    scope.stop()
-  })
-
-  it('une rafale de pointermove repousse « Passer » sans l’avancer : jamais avant 12 s, au plus 250 ms après', () => {
-    const scope = effectScope()
-    const api = scope.run(() => useActivityDone(vi.fn(), { delayMs: 100, autoMs: 120_000 }))!
-    // 5 s de pointermove à 60 Hz.
-    for (let i = 0; i < 300; i++) {
-      win.dispatchEvent(new Event('pointermove'))
-      vi.advanceTimersByTime(16)
-    }
-    expect(api.canSkip.value).toBe(false)
-    // Le dernier événement date d’environ 16 ms : la minuterie (réarmée au plus POKE_THROTTLE_MS après lui) n’échoit jamais avant SKIP_REVEAL_MS.
-    vi.advanceTimersByTime(SKIP_REVEAL_MS - 100)
-    expect(api.canSkip.value).toBe(false)
-    vi.advanceTimersByTime(100 + POKE_THROTTLE_MS)
-    expect(api.canSkip.value).toBe(true)
-    scope.stop()
   })
 
   it('un onglet caché ne fait pas échouer : le temps restant est gardé jusqu’au retour', () => {
@@ -215,29 +146,6 @@ describe('useActivityDone', () => {
     scope.stop()
   })
 
-  it('« Passer » n’apparaît pas pendant une pause et le compte repart à la reprise', () => {
-    const scope = effectScope()
-    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 20_000 }))!
-    api.pause('démonstration')
-    vi.advanceTimersByTime(SKIP_REVEAL_MS * 2)
-    expect(api.canSkip.value).toBe(false)
-    api.resume('démonstration')
-    vi.advanceTimersByTime(SKIP_REVEAL_MS - 1000)
-    expect(api.canSkip.value).toBe(false)
-    vi.advanceTimersByTime(ACTIVITY_GRACE_MS + 1000)
-    expect(api.canSkip.value).toBe(true)
-    scope.stop()
-  })
-
-  it('« Passer » déjà affiché disparaît quand une pause commence', () => {
-    const scope = effectScope()
-    const api = scope.run(() => useActivityDone(vi.fn(), { durationMs: 20_000 }))!
-    vi.advanceTimersByTime(ACTIVITY_GRACE_MS + SKIP_REVEAL_MS)
-    expect(api.canSkip.value).toBe(true)
-    api.pause('démonstration')
-    expect(api.canSkip.value).toBe(false)
-    scope.stop()
-  })
   it('afterPause exécute tout de suite hors pause', () => {
     const scope = effectScope()
     const api = scope.run(() => useActivityDone(vi.fn()))!

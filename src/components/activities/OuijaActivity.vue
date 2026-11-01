@@ -3,7 +3,6 @@ import { computed, ref, useTemplateRef } from 'vue'
 import { useElementBounding, useEventListener, useMediaQuery, useRafFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import { M as Motion, useMotionValue, useSpring } from 'motion-v'
 import { useRovingFocus } from '@vuetify/v0'
-import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf, outcomeMsOf } from '@/engine/activityTiming'
 import { useActivityDone } from '@/composables/useActivityDone'
@@ -95,7 +94,7 @@ const KEY =
   'key relative border-0 border-none border-current rounded-[8px] [background:transparent] text-[#d9b55a] font-[inherit] cursor-pointer focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-[#e8d9b0] focus-visible:outline-offset-2'
 const ANSWER = 'answer px-2 py-0 min-h-[calc(var(--cell)*1.1)] font-bold tracking-[0.12em]'
 
-const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), {
+const { finish, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('ouija'),
   delayMs: outcomeMsOf('ouija'),
   // Fin par n’importe quel chemin (dont les 20 s) : le mot est complet et AU REVOIR s’illumine, rien ne reste en suspens.
@@ -368,7 +367,6 @@ const { pause } = useRafFn(({ delta }) => {
       <p v-if="held" class="held-line pointer-events-none absolute inset-x-0 top-2 z-10 m-0 px-3 text-[1.05rem] italic tracking-[0.08em] text-[#b9d4e8]" aria-hidden="true">{{ HELD_LINE }}</p>
     </Transition>
     <ActivityHud activity="ouija" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
-    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
 

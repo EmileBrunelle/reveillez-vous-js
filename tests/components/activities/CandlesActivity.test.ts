@@ -229,18 +229,6 @@ describe('CandlesActivity : issue et pause', () => {
     expect(w.emitted('done')).toHaveLength(1)
   })
 
-  it('« Passer » apparaît après un long moment sans geste et réussit l’activité', async () => {
-    const w = await monter()
-    expect(w.find('button.skip').exists()).toBe(false)
-    await avancer(14_000)
-    const passer = w.get('button.skip')
-    expect(passer.attributes('aria-disabled')).toBeUndefined()
-    await passer.trigger('click')
-    expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.candles.win)
-    // Après l’issue, le bouton reste monté mais inerte.
-    expect(w.get('button.skip').attributes('aria-disabled')).toBe('true')
-  })
-
   it('la pause fige la minuterie : aucun échec tant que « Reprendre » n’est pas pressé', async () => {
     const w = await monter()
     await avancer(500)

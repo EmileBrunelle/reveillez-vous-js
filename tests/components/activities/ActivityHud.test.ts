@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia } from 'pinia'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import ActivityHud from '@/components/activities/ActivityHud.vue'
-import ActivitySkip from '@/components/activities/ActivitySkip.vue'
 import { ACTIVITY_PROMPTS } from '@/content/activityPrompts'
 import { ACTIVITY_GRACE_MS, durationOf } from '@/engine/activityTiming'
 import { playStinger } from '@/audio/stinger'
@@ -146,30 +145,5 @@ describe('ActivityHud : issue', () => {
     apres.unmount()
     wrapper = undefined
     expect(releaseMusicTension).not.toHaveBeenCalled()
-  })
-})
-
-describe('ActivitySkip', () => {
-  it('invisible tant que `show` est faux, puis monté ; un clic émet « skip »', async () => {
-    const w = mount(ActivitySkip, { props: { show: false } })
-    expect(w.find('button').exists()).toBe(false)
-    await w.setProps({ show: true })
-    expect(w.get('button').text()).toBe('Passer')
-    expect(w.get('button').attributes('aria-disabled')).toBeUndefined()
-    await w.get('button').trigger('click')
-    expect(w.emitted('skip')).toHaveLength(1)
-  })
-
-  it('une fois affiché, le bouton reste monté mais devient inerte quand `show` repasse à faux', async () => {
-    const w = mount(ActivitySkip, { props: { show: true } })
-    await w.setProps({ show: false })
-    const bouton = w.get('button')
-    expect(bouton.attributes('aria-disabled')).toBe('true')
-    expect(bouton.classes()).toContain('cursor-default')
-    expect(bouton.classes()).toContain('pointer-events-none')
-    expect(bouton.attributes('aria-hidden')).toBe('true')
-    expect(bouton.attributes('tabindex')).toBe('-1')
-    await bouton.trigger('click')
-    expect(w.emitted('skip')).toBeUndefined()
   })
 })

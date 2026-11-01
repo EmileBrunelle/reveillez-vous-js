@@ -215,16 +215,6 @@ describe('WindowsActivity : issue', () => {
     await avancer(OUTCOME_MS + 50)
     expect(w.emitted('done')).toHaveLength(1)
   })
-
-  it('« Passer » réussit l’activité', async () => {
-    const w = await monter()
-    await regarderDemo(w)
-    await avancer(12_000)
-    await w.get('button.skip').trigger('click')
-    expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.windows.win)
-    await avancer(OUTCOME_MS + 50)
-    expect(w.emitted('done')).toHaveLength(1)
-  })
 })
 
 describe('WindowsActivity : pause', () => {

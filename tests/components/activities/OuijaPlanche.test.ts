@@ -184,17 +184,6 @@ describe('OuijaActivity : clics et lettres', () => {
     expect(ouijaTick).toHaveBeenCalledTimes(1)
   })
 
-  it('« Passer » complète le mot, joue le salut et réussit', async () => {
-    const w = await monter()
-    await avancer(14_000)
-    await w.get('button.skip').trigger('click')
-    expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.ouija.win)
-    expect(ouijaFarewell).toHaveBeenCalledTimes(1)
-    expect(w.find('button.letter.next').exists()).toBe(false)
-    await avancer(outcomeMsOf('ouija') + 100)
-    expect(w.emitted('done')).toHaveLength(1)
-  })
-
   it('mouvement réduit : le mot se valide sans « pop »', async () => {
     mouvementReduit(true)
     const w = await monter()

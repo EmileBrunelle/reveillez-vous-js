@@ -2,7 +2,6 @@
 import { computed, reactive, ref, useTemplateRef } from 'vue'
 import { useEventListener, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { M as Motion, useMotionValue, useSpring } from 'motion-v'
-import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '@/engine/activityTiming'
 import { useHaptics } from '@/composables/haptics'
@@ -47,7 +46,7 @@ const { start: relightLater, stop: relightStop } = useTimeoutFn(
   { immediate: false },
 )
 
-const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), {
+const { finish, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('candles'),
   // Fin par n’importe quel chemin (dont les 20 s) : la chandelle soufflée se rallume, rien ne reste sombre.
   // Expiration (échec) : rien ne se rallume, les chandelles restent comme elles sont.
@@ -248,7 +247,6 @@ const { pause } = useRafFn(({ delta }) => {
       <span class="match-stick absolute -left-[1.5px] top-0 w-[3px] h-[34px] rounded-xs bg-[#8a5a2b] rotate-14 origin-[50%_0]" />
     </Motion>
     <ActivityHud activity="candles" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
-    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
 

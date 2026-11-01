@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useId, useTemplateRef } from 'vue'
 import { useDeferredText } from '@/composables/useDeferredText'
-import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '@/engine/activityTiming'
 import { useActivityDone } from '@/composables/useActivityDone'
@@ -30,7 +29,7 @@ const clearedAt = ref(0)
 const prompt = useDeferredText(() => (outcome.value !== 'play' ? '' : 'Essuyez la boule de cristal'))
 // Réussite (joueur ou minuterie) : `onFinish` règle la dissipation ; en mouvement réduit la brume disparaît d’un coup.
 const reducedMotion = useReducedMotion()
-const { finish, canSkip, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
+const { finish, outcome, startedAt, paused, elapsed, graceLeft } = useActivityDone(() => emit('done'), {
   durationMs: durationOf('crystal'),
   // Expiration (échec) : on arrête le frottement, la brume reste.
   onFinish: (o) => {
@@ -185,7 +184,6 @@ const { lost: failed } = useGpuEffect(
       {{ prompt }}
     </p>
     <ActivityHud activity="crystal" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
-    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
 

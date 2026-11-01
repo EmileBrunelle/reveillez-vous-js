@@ -69,7 +69,7 @@ const orbe = (w: VueWrapper) => w.find('.wisp-wrap')
 const position = (_w?: VueWrapper) => suivi.pos
 const hud = (w: VueWrapper) => w.get('[data-testid="activity-hud"]')
 const invite = (w: VueWrapper) => w.get('p[aria-live="polite"]')
-const attraper = (w: VueWrapper) => w.get('button:not(.skip)')
+const attraper = (w: VueWrapper) => w.get('button')
 const bouton = (w: VueWrapper) => w.findAll('button').find((b) => b.text() === 'Attraper le feu follet')!
 
 // Suit le feu follet avec le pointeur jusqu’à la capture (le feu ralentit près du pointeur) ; renvoie le nombre d’images utilisées.
@@ -244,15 +244,6 @@ describe('WispsActivity : issue et pause', () => {
     await avancer(durationOf('wisps') + ACTIVITY_GRACE_MS + 100)
     expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.wisps.fail)
     expect(w.emitted('done')).toBeUndefined()
-    await avancer(OUTCOME_MS + 50)
-    expect(w.emitted('done')).toHaveLength(1)
-  })
-
-  it('« Passer » apparaît puis réussit l’activité', async () => {
-    const w = await monter()
-    await avancer(12_500)
-    await w.get('button.skip').trigger('click')
-    expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.wisps.win)
     await avancer(OUTCOME_MS + 50)
     expect(w.emitted('done')).toHaveLength(1)
   })

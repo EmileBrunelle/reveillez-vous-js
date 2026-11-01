@@ -4,7 +4,6 @@ import { useElementSize, useEventListener, useRafFn, useTimeoutFn } from '@vueus
 import { M as Motion, useMotionValue } from 'motion-v'
 import { useDeferredText } from '@/composables/useDeferredText'
 import { useReducedMotion } from '@/composables/useReducedMotion'
-import ActivitySkip from './ActivitySkip.vue'
 import ActivityHud from './ActivityHud.vue'
 import { durationOf } from '@/engine/activityTiming'
 import { useActivityDone } from '@/composables/useActivityDone'
@@ -17,7 +16,7 @@ const { level } = defineProps<{ level: number }>()
 const emit = defineEmits<{ done: [] }>()
 const { pulse } = useHaptics()
 
-const { finish, canSkip, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), { durationMs: durationOf('wisps') })
+const { finish, isFinished, outcome, startedAt, paused, elapsed, graceLeft, afterPause } = useActivityDone(() => emit('done'), { durationMs: durationOf('wisps') })
 const rng: Rng = secureRng()
 
 const TOTAL = 3
@@ -208,7 +207,7 @@ const keyboardHelpId = useId()
     </p>
     <p :id="keyboardHelpId" class="sr-only">Au clavier, activez le bouton « Attraper le feu follet ».</p>
     <!-- Chemin clavier : visible seulement au focus ; Entrée ou Espace attrape le feu follet quand il est là.
-         Toujours monté (sinon le focus tombe sur <body> à la 3e capture) : après l’issue il devient inerte (aria-disabled), comme « Passer ». -->
+         Toujours monté (sinon le focus tombe sur <body> à la 3e capture) : après l’issue il devient inerte (aria-disabled). -->
     <button
       type="button"
       class="font-ui sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:bottom-16 focus-visible:left-1/2 focus-visible:-translate-x-1/2 focus-visible:px-4 focus-visible:py-1 focus-visible:text-xl focus-visible:text-emerald-100 focus-visible:bg-black/70 focus-visible:border-2 focus-visible:border-solid focus-visible:border-emerald-200 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-white"
@@ -244,7 +243,6 @@ const keyboardHelpId = useId()
       </Motion>
     </template>
     <ActivityHud activity="wisps" :outcome="outcome" :started-at="startedAt" :paused="paused" :elapsed="elapsed" :grace-left="graceLeft" />
-    <ActivitySkip :show="canSkip" @skip="finish" />
   </div>
 </template>
 

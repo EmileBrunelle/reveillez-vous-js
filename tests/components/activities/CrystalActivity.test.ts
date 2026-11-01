@@ -310,15 +310,6 @@ describe('CrystalActivity : issue et pause', () => {
     expect(w.emitted('done')).toHaveLength(1)
   })
 
-  it('« Passer » dissipe la brume et réussit', async () => {
-    const w = await monter()
-    await avancer(12_000)
-    await w.get('button.skip').trigger('click')
-    expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.crystal.win)
-    await avancer(OUTCOME_MS + 50)
-    expect(w.emitted('done')).toHaveLength(1)
-  })
-
   it('la pause fige la minuterie jusqu’à « Reprendre »', async () => {
     const w = await monter()
     fenetrePerdFocus()
