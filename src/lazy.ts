@@ -16,6 +16,7 @@ const activities: Record<ActivityId, () => Promise<{ default: Component }>> = {
   ouija: () => import('./components/activities/OuijaActivity.vue'),
   windows: () => import('./components/activities/WindowsActivity.vue'),
   crystal: () => import('./components/activities/CrystalActivity.vue'),
+  pendulum: () => import('./components/activities/PendulumActivity.vue'),
 }
 export const activityFor = (id: ActivityId | null) => (id ? activities[id] : null)
 /** Précharge sans jamais lever (réseau coupé : le chargement « pour de vrai » réessaiera). */

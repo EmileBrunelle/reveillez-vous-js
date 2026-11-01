@@ -1,7 +1,7 @@
 import { paranoiaLevel } from './paranoia'
 import type { Rng } from './rng'
 
-export type ActivityId = 'wisps' | 'candles' | 'ouija' | 'windows' | 'crystal'
+export type ActivityId = 'wisps' | 'candles' | 'ouija' | 'windows' | 'crystal' | 'pendulum'
 
 /**
  * Activités avec leur niveau d’introduction. Ce n’est pas un palier de difficulté : toutes sont jouables dès le niveau 2.
@@ -13,6 +13,7 @@ export const ACTIVITIES: readonly { id: ActivityId; introLevel: number }[] = [
   { id: 'ouija', introLevel: 3 },
   { id: 'windows', introLevel: 4 },
   { id: 'crystal', introLevel: 5 },
+  { id: 'pendulum', introLevel: 4 },
 ]
 
 /** Clé sessionStorage de la dernière activité jouée (survit à un rechargement en pleine visite). */

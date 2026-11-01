@@ -75,12 +75,13 @@ describe('pickActivity', () => {
       const id = pickActivity(2, null, store, mulberry32(seed), [])!
       counts.set(id, (counts.get(id) ?? 0) + 1)
     }
-    expect((counts.get('crystal') ?? 0) / 200).toBeGreaterThan(0.8)
+    // Les deux jamais vues (boule de cristal et pendule) se partagent presque tous les tirages.
+    expect(((counts.get('crystal') ?? 0) + (counts.get('pendulum') ?? 0)) / 200).toBeGreaterThan(0.8)
   })
   it('la découverte pèse double : l’activité du niveau courant sort plus souvent à poids de mémoire égal', () => {
     let wisps = 0
     for (let seed = 1; seed <= 400; seed++) if (pickActivity(2, null, memStore(), mulberry32(seed), []) === 'wisps') wisps++
-    expect(wisps / 400).toBeGreaterThan(0.25) // 2 / 6 attendu, contre 1 / 5 sans bonus
+    expect(wisps / 400).toBeGreaterThan(0.25) // 2 / 7 attendu, contre 1 / 6 sans bonus
   })
   it('préfère une activité débloquée pas encore jouée ; sans liste, retombe sur le sac sans répétition', () => {
     expect(['ouija', 'windows', 'crystal']).toContain(pickActivity(4, 'candles', memStore(), mulberry32(1), ['wisps', 'candles']))
