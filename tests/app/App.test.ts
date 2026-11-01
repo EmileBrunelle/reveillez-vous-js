@@ -56,6 +56,7 @@ import { useCollectionStore } from '@/stores/collection'
 import { useProgressStore } from '@/stores/progress'
 import { WAKE_LABEL } from '@/content/finale'
 import { ACTIVITY_PROMPTS } from '@/content/activityPrompts'
+import { LAST_ACTIVITY_KEY, parseActivityId } from '@/engine/activityPick'
 
 const stubMedia = (reduced: boolean) => vi.stubGlobal('matchMedia', (q: string) => ({ matches: reduced && q.includes('reduce'), media: q, addEventListener: () => {}, removeEventListener: () => {} }))
 const emit = (c: { emit: (e: string, ...a: unknown[]) => void } | null | undefined, ev: string, ...args: unknown[]) => c!.emit(ev, ...args)
@@ -263,7 +264,10 @@ describe('App : déroulement d’une visite', () => {
     await ready()
     emit(ctl.door, 'open')
     await vi.waitFor(() => expect(w.find('[data-testid=activity]').exists()).toBe(true))
-    expect(w.find('[role=group]').attributes('aria-label')).toBe(ACTIVITY_PROMPTS.wisps.verb) // libellé de l’activité (verbe), pas « Activité »
+    // Toutes les activités sont éligibles dès le niveau 2 (tirage) : le libellé est le verbe de celle qui a été tirée, pas « Activité ».
+    const drawn = parseActivityId(sessionStorage.getItem(LAST_ACTIVITY_KEY))
+    expect(drawn).not.toBeNull()
+    expect(w.find('[role=group]').attributes('aria-label')).toBe(ACTIVITY_PROMPTS[drawn!].verb)
     emit(ctl.activity, 'done')
     await vi.waitFor(() => expect(w.find('[data-testid=deck]').exists()).toBe(true))
     w.unmount()
