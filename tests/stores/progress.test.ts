@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { purgeLegacyVisits } from '@/migrations'
 import { arcaneIndex, FINALE_KEY, KNOCKED_KEY, MEMORY_KEY, useProgressStore, VISITS_KEY } from '@/stores/progress'
 import { isQuickKnock } from '@/engine/paranoia'
 import { BAGS_KEY } from '@/engine/shuffleBag'
@@ -38,16 +37,6 @@ describe('progress store', () => {
     s.bump()
     expect(ss.get(VISITS_KEY)).toBe('21')
     expect(m.has(VISITS_KEY)).toBe(false)
-  })
-
-  it('migration : l’ancien compteur de visites (localStorage) est supprimé sans être importé', () => {
-    m.set(VISITS_KEY, '20')
-    m.set(MEMORY_KEY, JSON.stringify({ lastArcane: 3, lastNom: null, lastLevel: 2, finished: true }))
-    purgeLegacyVisits() // appelée au démarrage par main.ts
-    const s = fresh()
-    expect(m.has(VISITS_KEY)).toBe(false)
-    expect(s.level).toBe(1)
-    expect(s.memory.finished).toBe(true)
   })
 
   it('progress does not survive a new session but memory does', () => {

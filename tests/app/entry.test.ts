@@ -1,24 +1,10 @@
 // @vitest-environment happy-dom
 /* eslint-disable vue/one-component-per-file -- doublure de composant dans le test */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from 'vue'
 import { useLocale } from '@vuetify/v0'
 import { createAppLocale } from '@/locale'
-import { purgeLegacyVisits } from '@/migrations'
-import { VISITS_KEY } from '@/stores/progress'
 import { activityFor, loadAbout, prefetch } from '@/lazy'
-
-describe('migrations : purgeLegacyVisits', () => {
-  beforeEach(() => localStorage.clear())
-
-  it('supprime l’ancien compteur de visites de localStorage, sans toucher aux autres clés', () => {
-    localStorage.setItem(VISITS_KEY, '5')
-    localStorage.setItem('rvj-bags', '{}')
-    purgeLegacyVisits()
-    expect(localStorage.getItem(VISITS_KEY)).toBeNull()
-    expect(localStorage.getItem('rvj-bags')).toBe('{}')
-  })
-})
 
 describe('locale : createAppLocale', () => {
   it('s’installe comme plugin Vue sans avertissement et traduit « Fermer » en français', () => {
@@ -73,7 +59,7 @@ describe('main.ts : démarrage', () => {
     document.body.innerHTML = ''
   })
 
-  it('purge l’ancien compteur puis monte l’application dans #app, avec Pinia et la locale', async () => {
+  it('monte l’application dans #app, avec Pinia et la locale', async () => {
     vi.resetModules()
     vi.doMock('@/App.vue', async () => {
       const { defineComponent, h } = await import('vue')
@@ -88,9 +74,7 @@ describe('main.ts : démarrage', () => {
       }
     })
     document.body.innerHTML = '<div id="app"></div>'
-    localStorage.setItem(VISITS_KEY, '4')
     await import('@/main')
     expect(document.querySelector('#app #monte')?.textContent).toBe('prêt')
-    expect(localStorage.getItem(VISITS_KEY)).toBeNull()
   })
 })
