@@ -20,6 +20,8 @@ import { useReducedMotion } from '@/composables/useReducedMotion'
 // Remise de la carte de lecture (sortie) : elle se place à côté du paquet, puis glisse DANS la tranche, à un rang tiré au hasard (voir deckInsert). Les couches du paquet sont dans un contexte 3D isolé : on ne peut
 // pas y glisser la carte par z-index. Un deuxième élément racine, la COUCHE DE RECOUVREMENT (`deckcover`), est donc une copie fixe du dessus du paquet (dos + couches au-dessus du rang visé), partageant les mêmes valeurs
 // Motion (même position, même inclinaison) et rendue PAR-DESSUS la carte (z-10, jamais animé) : éteinte, puis allumée quand la carte est séparée du paquet, éteinte une fois la carte fondue. Identique au paquet dessous : invisible.
+// Sur-échantillonnage : l’intérieur 3D est dessiné à SS× sa taille puis ramené par scale(1/SS) (.deck-ss) ; Chromium lisse mal les bords des plans inclinés en preserve-3d, surtout la tranche. La perspective suit (px × SS).
+const SS = 2
 const reduced = useReducedMotion()
 const box = useTemplateRef<HTMLElement>('box')
 const { width } = useElementSize(box, undefined, { box: 'border-box' })
@@ -48,7 +50,7 @@ const compose = () => {
   rotateX.set(rx)
   rotateY.set(ry)
   y.set(dy * width.value)
-  perspective.set(width.value * DECK_PERSP)
+  perspective.set(width.value * DECK_PERSP * SS)
   deckPose.rx = rx
   deckPose.ry = ry
   deckPose.y = dy
@@ -143,21 +145,25 @@ usePresence({
 
 <template>
   <div ref="box" class="deckbox relative aspect-[7/12] col-start-1 row-start-1 pointer-events-none" aria-hidden="true">
-    <Motion :ref="(c: unknown) => setWrap(c)" :style="{ y, scale, opacity }" class="deckbox__lift absolute top-1/2 left-1/2 w-[100cqw] will-change-transform">
-      <Motion :style="{ transformPerspective: perspective, rotateX, rotateY }" class="relative aspect-[7/12] [transform-style:preserve-3d] will-change-transform">
-        <span class="absolute inset-0 rounded-[4cqw] [background:rgb(5_8_24)] [filter:blur(3cqw)] opacity-60" :style="groundShadow"></span>
-        <span v-for="(l, k) in layers" :key="k" class="absolute inset-0 rounded-[4cqw]" :style="l"></span>
-        <span class="absolute inset-0"><TarotCardBack fill :paquet="dos" /></span>
-      </Motion>
+    <Motion :ref="(c: unknown) => setWrap(c)" :style="{ y, scale, opacity }" class="deckbox__lift absolute top-1/2 left-1/2 w-[100cqw] aspect-[7/12] will-change-transform">
+      <div class="deck-ss">
+        <Motion :style="{ transformPerspective: perspective, rotateX, rotateY }" class="relative aspect-[7/12] [transform-style:preserve-3d] will-change-transform">
+          <span class="absolute inset-0 rounded-[4cqw] [background:rgb(5_8_24)] [filter:blur(3cqw)] opacity-60" :style="groundShadow"></span>
+          <span v-for="(l, k) in layers" :key="k" class="deck-plan absolute inset-0 rounded-[4cqw]" :style="l"></span>
+          <span class="absolute inset-0"><TarotCardBack fill :paquet="dos" /></span>
+        </Motion>
+      </div>
     </Motion>
   </div>
   <!-- Couche de recouvrement : copie fixe du dessus du paquet (dos + couches au-dessus du rang visé), mêmes valeurs Motion donc même pose, PAR-DESSUS la carte de lecture (z-10 constant) ; éteinte hors de la remise. Sans ombre au sol : elle ne doit rien ajouter au paquet. -->
   <div class="deckbox deckcover relative aspect-[7/12] col-start-1 row-start-1 z-10 pointer-events-none" aria-hidden="true">
-    <Motion :ref="(c: unknown) => setCover(c)" :style="{ y, scale, opacity: 0 }" class="deckbox__lift absolute top-1/2 left-1/2 w-[100cqw] will-change-transform">
-      <Motion :style="{ transformPerspective: perspective, rotateX, rotateY }" class="relative aspect-[7/12] [transform-style:preserve-3d] will-change-transform">
-        <span v-for="(l, k) in coverLayers" :key="k" class="absolute inset-0 rounded-[4cqw]" :style="l"></span>
-        <span class="absolute inset-0"><TarotCardBack fill :paquet="dos" /></span>
-      </Motion>
+    <Motion :ref="(c: unknown) => setCover(c)" :style="{ y, scale, opacity: 0 }" class="deckbox__lift absolute top-1/2 left-1/2 w-[100cqw] aspect-[7/12] will-change-transform">
+      <div class="deck-ss">
+        <Motion :style="{ transformPerspective: perspective, rotateX, rotateY }" class="relative aspect-[7/12] [transform-style:preserve-3d] will-change-transform">
+          <span v-for="(l, k) in coverLayers" :key="k" class="deck-plan absolute inset-0 rounded-[4cqw]" :style="l"></span>
+          <span class="absolute inset-0"><TarotCardBack fill :paquet="dos" /></span>
+        </Motion>
+      </div>
     </Motion>
   </div>
 </template>
@@ -170,5 +176,18 @@ usePresence({
 }
 .deckbox__lift {
   translate: -50% -50%;
+}
+.deck-ss {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200%;
+  translate: -50% -50%;
+  scale: 0.5;
+  container-type: inline-size;
+}
+.deck-plan {
+  outline: 1px solid transparent;
+  backface-visibility: hidden;
 }
 </style>

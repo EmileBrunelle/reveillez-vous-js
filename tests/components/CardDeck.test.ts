@@ -52,7 +52,9 @@ describe('CardDeck : le paquet 3D', () => {
     expect(racine.classes()).toContain('col-start-1') // même cellule que l’éventail : même centre
     const enveloppe = wrapper.get('.deckbox__lift')
     expect(enveloppe.classes().join(' ')).not.toContain('preserve-3d') // l’enveloppe reste plate : aucun contexte 3D partagé avec les cartes
-    const interieur = enveloppe.element.firstElementChild as HTMLElement
+    const surech = enveloppe.element.firstElementChild as HTMLElement
+    expect(surech.className).toBe('deck-ss') // rendu en sur-échantillonnage : l’intérieur est dessiné à 2× puis ramené à 1×, pour lisser les bords en escalier
+    const interieur = surech.firstElementChild as HTMLElement
     expect(interieur.className).toContain('preserve-3d')
     // ombre au sol + couches de la tranche + dos du dessus
     expect(interieur.children).toHaveLength(1 + DECK_LAYERS + 1)
@@ -79,7 +81,9 @@ describe('CardDeck : le paquet 3D', () => {
     const couche = wrapper.get('.deckcover')
     expect(couche.classes()).toContain('z-10') // un z-index constant, jamais animé
     expect(couche.classes()).toContain('pointer-events-none')
-    const interieur = couche.get('.deckbox__lift').element.firstElementChild as HTMLElement
+    const surech = couche.get('.deckbox__lift').element.firstElementChild as HTMLElement
+    expect(surech.className).toBe('deck-ss') // même sur-échantillonnage que le paquet : la copie reste identique
+    const interieur = surech.firstElementChild as HTMLElement
     expect(interieur.className).toContain('preserve-3d')
     expect(interieur.children).toHaveLength(deckSlot.value + 1) // les couches au-dessus du rang, plus le dos du dessus (pas d’ombre au sol)
     expect(couche.find('.back').exists()).toBe(true)
