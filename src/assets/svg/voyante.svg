@@ -1,14 +1,213 @@
-<svg viewBox="0 0 60 120" aria-hidden="true" focusable="false">
-  <defs><radialGradient id="seer-orb" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#9ae0ff"/><stop offset="1" stop-color="#5a3ab0"/></radialGradient></defs>
-  <path d="M2 120V92C2 70 14 52 30 48c16 4 28 22 28 44v28z" fill="#1a1030" stroke="#000" stroke-width=".8"/>
-  <path d="M30 14C16 14 11 26 11 38c0 8 2 14 5 18l-6 6 20-4 20 4-6-6c3-4 5-10 5-18 0-12-5-24-19-24z" fill="#1a1030" stroke="#000" stroke-width=".8"/>
-  <path d="M30 24c-6 0-10 5-10 11 0 7 4 12 10 12s10-5 10-12c0-6-4-11-10-11z" fill="#000"/>
-  <ellipse cx="25.5" cy="35" rx="1.6" ry="1" fill="#9ae0ff"/><ellipse cx="34.5" cy="35" rx="1.6" ry="1" fill="#9ae0ff"/>
-  <g fill="#e8e0b0"><path d="M10 78l1 2.5 2.5.5-2 1.7.6 2.6-2.1-1.4-2.1 1.4.6-2.6-2-1.7 2.5-.5z"/><path d="M50 70l.8 2 2 .4-1.6 1.4.5 2-1.7-1.1-1.7 1.1.5-2-1.6-1.4 2-.4z"/><circle cx="18" cy="104" r="1"/><circle cx="44" cy="100" r="1"/><circle cx="32" cy="70" r=".9"/><circle cx="6" cy="100" r=".8"/></g>
-  <circle class="seer-halo" cx="30" cy="96" r="17" fill="#9ae0ff" opacity=".3"/>
-  <circle cx="30" cy="96" r="12" fill="url(#seer-orb)" stroke="#d8f4ff" stroke-width=".6"/>
-  <path d="M23 90a9 9 0 0 1 7-3.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".8"/>
-  <path d="M21 109h18l3 5H18z" fill="#3a2a1a" stroke="#000" stroke-width=".6"/>
-  <path d="M8 102c2-8 8-12 14-10l2 6c-4 0-8 2-10 8zM52 102c-2-8-8-12-14-10l-2 6c4 0 8 2 10 8z" fill="#4a3a7a" stroke="#000" stroke-width=".5"/>
-  <g fill="#c9a24a"><circle cx="14" cy="95" r="1.3"/><circle cx="19" cy="93" r="1"/><circle cx="46" cy="95" r="1.3"/><circle cx="41" cy="93" r="1"/></g>
+<svg viewBox="0 0 80 120" aria-hidden="true" focusable="false">
+  <!--
+    La voyante, en contre-jour devant la lueur de l’intérieur. Calques (classes lues par Seer.vue) :
+    seer-breath (tout le corps) > seer-body, seer-arm-a (bougie), seer-head > seer-eyes, seer-orb, seer-hand-b (main au-dessus de la boule).
+    seer-rim = liseré chaud du contre-jour ; seer-lit-a = lueur de la bougie ; seer-lit-b = lueur de la boule.
+    Tout est dégradé et forme STATIQUES : seuls les attributs transform/opacity des groupes bougent (aucun filtre SVG).
+  -->
+  <defs>
+    <!-- Contre-jour : liseré chaud en haut, qui s’éteint vers le bas (la lueur de l’embrasure est plus faible au sol). -->
+    <linearGradient id="sy-rim" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="120">
+      <stop offset="0" style="stop-color: var(--seer-rim, #ffd27a)" stop-opacity=".95" />
+      <stop offset=".55" style="stop-color: var(--seer-rim, #ffd27a)" stop-opacity=".6" />
+      <stop offset="1" style="stop-color: var(--seer-rim, #ffd27a)" stop-opacity=".1" />
+    </linearGradient>
+    <linearGradient id="sy-robe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2c2250" />
+      <stop offset=".5" stop-color="#21193d" />
+      <stop offset="1" stop-color="#171128" />
+    </linearGradient>
+    <!-- Liseré intérieur : la lumière de derrière effleure les bords du manteau. -->
+    <linearGradient id="sy-edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" style="stop-color: var(--seer-rim, #ffd27a)" stop-opacity=".75" />
+      <stop offset=".22" style="stop-color: var(--seer-rim, #ffd27a)" stop-opacity=".12" />
+      <stop offset=".72" style="stop-color: var(--seer-rim, #ffd27a)" stop-opacity="0" />
+      <stop offset="1" style="stop-color: var(--seer-rim, #ffd27a)" stop-opacity=".8" />
+    </linearGradient>
+    <!-- Lumière ambiante du dehors (lune), très faible, sur le devant du manteau. -->
+    <linearGradient id="sy-moon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color: var(--seer-moon, #8fa4d8)" stop-opacity=".22" />
+      <stop offset=".6" style="stop-color: var(--seer-moon, #8fa4d8)" stop-opacity="0" />
+    </linearGradient>
+    <radialGradient id="sy-hood" cx=".5" cy=".3" r=".8">
+      <stop offset="0" stop-color="#352a5e" />
+      <stop offset="1" stop-color="#1c1535" />
+    </radialGradient>
+    <radialGradient id="sy-void" cx=".5" cy=".4" r=".7">
+      <stop offset="0" stop-color="#171028" />
+      <stop offset="1" stop-color="#0f0a1d" />
+    </radialGradient>
+    <!-- Lueur de la bougie : chaude, par en dessous et à gauche. -->
+    <radialGradient id="sy-flame-glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ffd48a" stop-opacity=".75" />
+      <stop offset=".35" stop-color="#ffa94d" stop-opacity=".32" />
+      <stop offset="1" stop-color="#ff8a30" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="sy-face-light" cx=".12" cy="1.05" r=".95">
+      <stop offset="0" stop-color="#ffc47e" stop-opacity=".7" />
+      <stop offset=".55" stop-color="#e08a4a" stop-opacity=".22" />
+      <stop offset="1" stop-color="#e08a4a" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="sy-robe-light-a" gradientUnits="userSpaceOnUse" cx="17" cy="64" r="30">
+      <stop offset="0" stop-color="#ffb866" stop-opacity=".5" />
+      <stop offset=".5" stop-color="#d9803c" stop-opacity=".16" />
+      <stop offset="1" stop-color="#d9803c" stop-opacity="0" />
+    </radialGradient>
+    <!-- Lueur de la boule : froide, sur les mains et sur les genoux. -->
+    <radialGradient id="sy-robe-light-b" gradientUnits="userSpaceOnUse" cx="57" cy="98" r="30">
+      <stop offset="0" style="stop-color: var(--seer-orb, #9ae0ff)" stop-opacity=".5" />
+      <stop offset=".5" style="stop-color: var(--seer-orb, #9ae0ff)" stop-opacity=".14" />
+      <stop offset="1" style="stop-color: var(--seer-orb, #9ae0ff)" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="sy-orb" cx=".4" cy=".35" r=".7">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset=".45" style="stop-color: var(--seer-orb, #9ae0ff)" />
+      <stop offset="1" stop-color="#5a3ab0" />
+    </radialGradient>
+    <radialGradient id="sy-orb-halo" cx=".5" cy=".5" r=".5">
+      <stop offset="0" style="stop-color: var(--seer-orb, #9ae0ff)" stop-opacity=".55" />
+      <stop offset=".5" style="stop-color: var(--seer-orb, #9ae0ff)" stop-opacity=".18" />
+      <stop offset="1" style="stop-color: var(--seer-orb, #9ae0ff)" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="sy-eye" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#d9f6ff" stop-opacity=".9" />
+      <stop offset="1" stop-color="#9ae0ff" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="sy-hand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e2a878" />
+      <stop offset=".6" stop-color="#9c7260" />
+      <stop offset="1" stop-color="#7d6a86" />
+    </linearGradient>
+    <linearGradient id="sy-wax" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fbe9bb" />
+      <stop offset="1" stop-color="#b8a07a" />
+    </linearGradient>
+    <clipPath id="sy-clip-body"><path d="M7 120C8 104 11 88 17 76C22 66 30 58 41 56C52 56 60 62 64 72C69 84 72 104 74 120Z" /></clipPath>
+    <clipPath id="sy-clip-arma"><path d="M31 64C21 68 12 78 11 92C11 98 14 102 19 101C24 100 25 95 24 90L22 84C21 81 20.4 79.5 20.4 77.5C26 74 32 71 36 67Z" /></clipPath>
+    <clipPath id="sy-clip-armb"><path d="M50 59C60 59 68 66 71 78C73 88 72 97 68 99C64 100 63 95 63 90C63 85 60 82.4 56 80.4C51 78 46 72 46 66Z" /></clipPath>
+    <clipPath id="sy-clip-face"><path d="M41 17C34 17 30 23 30 30C30 38 34 44 41 45C48 44 52 38 52 30C52 23 48 17 41 17Z" /></clipPath>
+  </defs>
+
+  <g class="seer-breath">
+    <!-- Corps : manteau large, épaules inégales, plis du tissu. -->
+    <g class="seer-body">
+      <path class="seer-rim" d="M7 120C8 104 11 88 17 76C22 66 30 58 41 56C52 56 60 62 64 72C69 84 72 104 74 120" fill="none" stroke="#ffd27a" stroke-opacity=".2" stroke-width="5" stroke-linecap="round" />
+      <path class="seer-rim" d="M7 120C8 104 11 88 17 76C22 66 30 58 41 56C52 56 60 62 64 72C69 84 72 104 74 120" fill="none" stroke="url(#sy-rim)" stroke-width="2.4" stroke-linecap="round" />
+      <path d="M7 120C8 104 11 88 17 76C22 66 30 58 41 56C52 56 60 62 64 72C69 84 72 104 74 120Z" fill="url(#sy-robe)" />
+      <g clip-path="url(#sy-clip-body)">
+        <rect x="0" y="50" width="80" height="70" fill="url(#sy-moon)" />
+        <rect class="seer-rim" x="0" y="50" width="80" height="70" fill="url(#sy-edge)" />
+        <!-- Plis : un trait sombre et un trait clair, décalés, pour donner du volume. -->
+        <g fill="none" stroke-linecap="round">
+          <path d="M26 82C28 96 26 110 23 120" stroke="#120d22" stroke-opacity=".55" stroke-width="1.6" />
+          <path d="M27.4 82C29.4 96 27.4 110 24.4 120" stroke="#4a3d7a" stroke-opacity=".5" stroke-width=".7" />
+          <path d="M37 72C36 90 38 108 36 120" stroke="#120d22" stroke-opacity=".5" stroke-width="1.8" />
+          <path d="M38.5 72C37.5 90 39.5 108 37.5 120" stroke="#4a3d7a" stroke-opacity=".45" stroke-width=".7" />
+          <path d="M49 74C51 92 50 108 53 120" stroke="#120d22" stroke-opacity=".5" stroke-width="1.6" />
+          <path d="M50.4 74C52.4 92 51.4 108 54.4 120" stroke="#4a3d7a" stroke-opacity=".45" stroke-width=".7" />
+          <path d="M60 84C63 96 63 108 66 120" stroke="#120d22" stroke-opacity=".4" stroke-width="1.3" />
+          <path d="M14 96C16 104 15 112 13 120" stroke="#120d22" stroke-opacity=".35" stroke-width="1.2" />
+        </g>
+        <!-- Broderies dorées : croissant sur la poitrine, quelques étoiles. -->
+        <g fill="#c9a24a" opacity=".75">
+          <path d="M44 72a4.2 4.2 0 1 0 3.2 6.6A3.4 3.4 0 0 1 44 72z" />
+          <circle cx="31" cy="100" r=".8" />
+          <circle cx="52" cy="106" r=".9" />
+          <circle cx="42" cy="112" r=".7" />
+          <path d="M33 90l.7 1.8 1.9.3-1.5 1.2.5 1.9-1.6-1-1.6 1 .5-1.9-1.5-1.2 1.9-.3z" />
+        </g>
+        <rect class="seer-lit-a" x="0" y="50" width="80" height="70" fill="url(#sy-robe-light-a)" />
+        <rect class="seer-lit-b" x="0" y="50" width="80" height="70" fill="url(#sy-robe-light-b)" />
+      </g>
+      <!-- Pèlerine posée sur les épaules. -->
+      <path d="M24 60C31 54 51 54 59 60C52 65 31 66 24 60z" fill="#2b2150" />
+      <path d="M24.6 60.2C31 56 51 56 58.4 60.2" fill="none" stroke="#c9a24a" stroke-opacity=".5" stroke-width=".6" />
+    </g>
+
+    <!-- Bras de la bougie (à gauche) : manche pendante, main, bougie et flamme. -->
+    <g class="seer-arm-a">
+      <path class="seer-rim" d="M31 64C21 68 12 78 11 92C11 98 14 102 19 101" fill="none" stroke="url(#sy-rim)" stroke-width="2.2" stroke-linecap="round" />
+      <path d="M31 64C21 68 12 78 11 92C11 98 14 102 19 101C24 100 25 95 24 90L22 84C21 81 20.4 79.5 20.4 77.5C26 74 32 71 36 67Z" fill="#2a2049" />
+      <path d="M31 66C22 70 14 80 13.4 92" fill="none" stroke="#4a3d7a" stroke-opacity=".5" stroke-width=".8" stroke-linecap="round" />
+      <path d="M13.5 93C16 97 22 97.6 24 92" fill="none" stroke="#c9a24a" stroke-opacity=".7" stroke-width="1" stroke-linecap="round" />
+      <g class="seer-lit-a" clip-path="url(#sy-clip-arma)"><rect x="6" y="58" width="34" height="50" fill="url(#sy-robe-light-a)" /></g>
+      <!-- Main refermée sur le pied de la bougie ; le pouce est éclairé par la flamme. -->
+      <path d="M13.6 79C13.4 75.6 16 73.6 19.4 73.8C22.4 74 24 76.4 23.6 79.4C23.2 82.4 20.6 84 17.6 83.6C15.4 83.2 13.8 81.4 13.6 79Z" fill="url(#sy-hand)" />
+      <path d="M15.6 76.4C16.6 75.2 18.6 75 20 75.6" fill="none" stroke="#ffd9a6" stroke-opacity=".7" stroke-width=".8" stroke-linecap="round" />
+      <path d="M14.6 79.4h8M15 81.2h7" fill="none" stroke="#5a4252" stroke-opacity=".55" stroke-width=".5" stroke-linecap="round" />
+      <rect x="16.2" y="62" width="3.4" height="13" rx=".8" fill="url(#sy-wax)" />
+      <ellipse cx="17.9" cy="62" rx="1.7" ry=".7" fill="#fff0c8" />
+      <g class="seer-flame">
+        <circle class="seer-lit-a" cx="17.9" cy="57" r="14" fill="url(#sy-flame-glow)" />
+        <path d="M17.9 51.4C20.2 54.2 20.8 57 17.9 59.6C15 57 15.6 54.2 17.9 51.4Z" fill="#ffae4a" />
+        <path d="M17.9 54.2C19 55.8 19.1 57.2 17.9 58.6C16.7 57.2 16.8 55.8 17.9 54.2Z" fill="#fff6d0" />
+      </g>
+    </g>
+
+    <!-- Tête : capuchon, vide du visage, voile, yeux qui luisent. -->
+    <g class="seer-head">
+      <path class="seer-rim" d="M41 6C29 6 23 17 23 29C23 37 25 43 29 48C26 51 24 55 22 58C30 62 52 63 60 59C57 54 55 51 54 47C58 42 60 36 60 28C60 16 53 6 41 6" fill="none" stroke="#ffd27a" stroke-opacity=".2" stroke-width="5" stroke-linejoin="round" />
+      <path class="seer-rim" d="M41 6C29 6 23 17 23 29C23 37 25 43 29 48C26 51 24 55 22 58C30 62 52 63 60 59C57 54 55 51 54 47C58 42 60 36 60 28C60 16 53 6 41 6" fill="none" stroke="url(#sy-rim)" stroke-width="2.4" stroke-linejoin="round" />
+      <path d="M41 6C29 6 23 17 23 29C23 37 25 43 29 48C26 51 24 55 22 58C30 62 52 63 60 59C57 54 55 51 54 47C58 42 60 36 60 28C60 16 53 6 41 6Z" fill="url(#sy-hood)" />
+      <!-- Plis du capuchon. -->
+      <path d="M31 14C27 22 26 32 28 42M52 14C56 22 57 32 56 42" fill="none" stroke="#120d22" stroke-opacity=".35" stroke-width="1.2" stroke-linecap="round" />
+      <path d="M33 9C29 14 27 20 26.4 27" fill="none" stroke="#5a4c92" stroke-opacity=".5" stroke-width=".7" stroke-linecap="round" />
+      <!-- Visage : à peine suggéré. Le vide est éclairé par en dessous, du côté de la bougie. -->
+      <path d="M41 17C34 17 30 23 30 30C30 38 34 44 41 45C48 44 52 38 52 30C52 23 48 17 41 17Z" fill="url(#sy-void)" />
+      <g clip-path="url(#sy-clip-face)">
+        <rect class="seer-lit-a" x="28" y="15" width="26" height="32" fill="url(#sy-face-light)" />
+        <path d="M31 40C34 45 47 46 52 41" fill="none" stroke="#ffcf94" stroke-opacity=".28" stroke-width="1.1" stroke-linecap="round" />
+        <path d="M33.4 25C36 23 40 22.6 42 23" fill="none" stroke="#6a5aa8" stroke-opacity=".3" stroke-width=".7" stroke-linecap="round" />
+        <path d="M41.4 31.5C40.8 34 41 36 42 37" fill="none" stroke="#ffcf94" stroke-opacity=".16" stroke-width=".8" stroke-linecap="round" />
+        <!-- Voile fin sur le bas du visage. -->
+        <path d="M29 36C35 39 47 39 53 36L52 47C46 50 36 50 30 47Z" fill="#2b2150" fill-opacity=".72" />
+        <path d="M29 36C35 39 47 39 53 36" fill="none" stroke="#c9a24a" stroke-opacity=".55" stroke-width=".5" />
+      </g>
+      <path d="M41 17C34 17 30 23 30 30C30 38 34 44 41 45C48 44 52 38 52 30C52 23 48 17 41 17Z" fill="none" stroke="#c9a24a" stroke-opacity=".5" stroke-width=".6" />
+      <!-- Le front, entre les deux yeux : petite pierre à peine lumineuse. -->
+      <circle cx="41" cy="19.4" r=".7" fill="#9ae0ff" opacity=".55" />
+      <g class="seer-eyes">
+        <circle cx="36.2" cy="30.4" r="3.2" fill="url(#sy-eye)" />
+        <circle cx="45.8" cy="30.4" r="3.2" fill="url(#sy-eye)" />
+        <ellipse cx="36.2" cy="30.4" rx="1.6" ry=".8" fill="#e6f9ff" />
+        <ellipse cx="45.8" cy="30.4" rx="1.4" ry=".8" fill="#e6f9ff" />
+      </g>
+    </g>
+
+    <!-- Boule de cristal sur son petit socle, éclairée de l’intérieur. -->
+    <g class="seer-orb">
+      <circle class="seer-lit-b" cx="57" cy="99" r="19" fill="url(#sy-orb-halo)" />
+      <path d="M48 108h18l2.6 5H45.4z" fill="#3a2a1a" />
+      <path d="M48.4 108.4h17.2" stroke="#c98a4a" stroke-opacity=".5" stroke-width=".5" />
+      <circle cx="57" cy="99" r="8.6" fill="url(#sy-orb)" />
+      <circle cx="57" cy="99" r="8.6" fill="none" stroke="#d8f4ff" stroke-opacity=".7" stroke-width=".5" />
+      <path d="M51.4 94.6A7.4 7.4 0 0 1 57 91.6" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="1" stroke-linecap="round" />
+      <path d="M60 105c2-.8 3.6-2.2 4.4-4" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width=".7" stroke-linecap="round" />
+    </g>
+
+    <!-- Bras de la boule (à droite) : la main plane au-dessus ; c’est ce groupe qui fait le geste quand elle parle. -->
+    <g class="seer-hand-b">
+      <path class="seer-rim" d="M50 59C60 59 68 66 71 78C73 88 72 97 68 99" fill="none" stroke="url(#sy-rim)" stroke-width="2.2" stroke-linecap="round" />
+      <path d="M50 59C60 59 68 66 71 78C73 88 72 97 68 99C64 100 63 95 63 90C63 85 60 82.4 56 80.4C51 78 46 72 46 66Z" fill="#2a2049" />
+      <path d="M52 62C60 62 66 68 68.6 78" fill="none" stroke="#4a3d7a" stroke-opacity=".5" stroke-width=".8" stroke-linecap="round" />
+      <path d="M63.6 91C65.6 94.4 69 95.6 71.6 93.4" fill="none" stroke="#c9a24a" stroke-opacity=".7" stroke-width="1" stroke-linecap="round" />
+      <!-- Main ouverte, paume vers la boule : les doigts retombent sur le haut de la sphère, leur dessous prend la lueur froide. -->
+      <path d="M50 83C52 79 60 78 64 81C65 84 62 88 57 88.4C53 88.6 49.6 87 50 83Z" fill="url(#sy-hand)" />
+      <g fill="none" stroke="#a37866" stroke-width="1.7" stroke-linecap="round">
+        <path d="M51.4 86C50 88.6 50.4 90.6 52 91.4" />
+        <path d="M54.4 87.6C53.6 90 54.4 92 56 92.6" />
+        <path d="M57.6 88.2C57.6 90.6 58.6 92.4 60.2 92.8" />
+        <path d="M60.6 87.4C61.4 89.6 62.6 91 64 91.2" stroke-width="1.5" />
+        <path d="M63.6 81.8C66 82.2 67 83.8 66.4 85.4" stroke-width="1.8" />
+      </g>
+      <g fill="none" stroke="#bfeaff" stroke-opacity=".6" stroke-width=".55" stroke-linecap="round">
+        <path d="M52.6 91.4C52.2 91.6 51.8 91.4 51.6 91" />
+        <path d="M56.6 92.6C56.2 92.8 55.6 92.6 55.4 92.2" />
+        <path d="M60.8 92.8C60.4 92.9 59.9 92.8 59.6 92.4" />
+        <path d="M52 87.6C54.4 88.4 58.4 88.4 61 87" />
+      </g>
+      <path d="M52 80.6C55 79 60 79 63 80.6" fill="none" stroke="#ffd9a6" stroke-opacity=".45" stroke-width=".7" stroke-linecap="round" />
+      <g class="seer-lit-b" clip-path="url(#sy-clip-armb)"><rect x="44" y="56" width="30" height="46" fill="url(#sy-robe-light-b)" /></g>
+    </g>
+  </g>
 </svg>

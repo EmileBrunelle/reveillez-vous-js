@@ -82,7 +82,8 @@ describe('DoorScene : rendu', () => {
   })
 
   it('porte avec cadre : le cadre est dessiné', () => {
-    const avecCadre = doors.find((d) => d.frame)!
+    // Une porte de lieu est en 3D (le cadre est dans le canevas) : le SVG du cadre se vérifie sur la même porte sans lieu.
+    const avecCadre = { ...doors.find((d) => d.frame)!, place: undefined }
     const w = monter({ door: avecCadre })
     expect(w.findAll('svg').length).toBeGreaterThan(doors[0].frame ? 2 : 1)
   })

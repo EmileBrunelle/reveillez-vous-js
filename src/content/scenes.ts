@@ -52,8 +52,13 @@ export const doors: SceneVariant[] = [
   { id: 'frigo', label: 'porte de frigo géante', component: DoorFridge, mask: maskFridge },
 ]
 
+// Dev seulement : `?door=<id>` force la porte (par exemple `garde-robe`) quand elle convient au lieu (retiré des versions de production).
+const forcedDoorId = import.meta.env.DEV && typeof location !== 'undefined' ? new URLSearchParams(location.search).get('door') : null
+const forcedDoor = (placeId: PlaceId) => (forcedDoorId ? doors.find((d) => d.id === forcedDoorId && (!d.place || d.place === placeId)) : undefined)
+
 /** Porte d’un lieu : la porte principale du lieu la plupart du temps, une variante comique rare sinon. Tirage via le `Rng` injecté. */
 export const pickDoor = (placeId: PlaceId, rng: Rng): SceneVariant =>
+  forcedDoor(placeId) ??
   pickVariant(
     doors.filter((d) => !d.place || d.place === placeId),
     1,

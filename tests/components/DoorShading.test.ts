@@ -50,3 +50,34 @@ describe('DoorGround', () => {
     })
   })
 })
+
+describe('DoorShading en qualité `low` (flat)', () => {
+  const contenu = { default: () => h('p', { class: 'contenu' }, 'porte') }
+  it('aucun filtre SVG n’est appliqué : ni <filter>, ni propriété `filter` ; le contenu est rendu', () => {
+    const w = mount(DoorShading, { props: { doorId: 'cabane', flat: true, mask: '/m.svg' }, slots: contenu })
+    expect(w.find('filter').exists()).toBe(false)
+    expect(w.find('svg').exists()).toBe(false)
+    expect(w.html()).not.toMatch(/filter\s*:/)
+    expect(w.get('.contenu').text()).toBe('porte')
+  })
+  it('l’ombrage statique est découpé sur la silhouette : teinte, lumière, biseau (dégradés CSS)', () => {
+    const w = mount(DoorShading, { props: { doorId: 'perron', flat: true, mask: '/m.svg' }, slots: contenu })
+    const calques = w.findAll('[aria-hidden="true"]')
+    expect(calques.length).toBeGreaterThanOrEqual(3)
+    expect(calques.every((c) => c.attributes('style')?.includes('mask-image'))).toBe(true)
+    expect(w.html()).toContain('linear-gradient')
+    expect(w.html()).toContain('box-shadow')
+  })
+  it('sans masque (cadre) : le contenu seul, sans calque', () => {
+    const w = mount(DoorShading, { props: { doorId: 'maison', flat: true }, slots: contenu })
+    expect(w.findAll('[aria-hidden="true"]')).toHaveLength(0)
+    expect(w.find('filter').exists()).toBe(false)
+  })
+  it('par défaut (high, medium), le filtre est bien là', () => {
+    expect(
+      mount(DoorShading, { props: { doorId: 'cabane' } })
+        .find('filter')
+        .exists(),
+    ).toBe(true)
+  })
+})

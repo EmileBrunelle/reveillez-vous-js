@@ -32,7 +32,18 @@ export interface DoorLook {
   tug: number
   /** Emprise réelle du battant dans la boîte 120 × 190 (unités du viewBox, identiques à celles des masques) : gonds à gauche, chant du côté serrure,
    *  `top` et `bottom` bornent le tronçon droit du chant (le sommet d’une arche ou d’un fronton n’en fait pas partie). */
-  bounds: { hingeX: number; edgeX: number; top: number; bottom: number }
+  bounds: LeafBounds
+  /** Porte à deux battants (garde-robe) : gauche puis droit, chacun avec ses gonds sur son bord extérieur et son chant au centre.
+   *  Le SVG est découpé en deux moitiés (même dessin rendu deux fois, `clip-path`) ; les battants pivotent en miroir. Absent = un seul battant (`bounds`). */
+  leaves?: readonly [LeafBounds, LeafBounds]
+}
+
+/** Emprise d’un battant dans la boîte 120 × 190 : `hingeX` = côté des gonds, `edgeX` = chant (au centre pour une porte double). */
+export interface LeafBounds {
+  hingeX: number
+  edgeX: number
+  top: number
+  bottom: number
 }
 
 const MOON = { tint: '#c4d0f0', rim: '#e4ecff', fog: '#7686a6' }
@@ -122,6 +133,11 @@ export const doorLooks: Record<string, DoorLook> = {
     handles: ['knob', 'knob'],
     tug: 0,
     bounds: { hingeX: 4, edgeX: 116, top: 4, bottom: 190 },
+    // Deux battants qui se rejoignent à la fente centrale (x = 60) : gonds à gauche et à droite.
+    leaves: [
+      { hingeX: 4, edgeX: 60, top: 4, bottom: 190 },
+      { hingeX: 116, edgeX: 60, top: 4, bottom: 190 },
+    ],
   },
   frigo: {
     ...MOON,

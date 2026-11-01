@@ -2,8 +2,8 @@ import { effectScope, getCurrentScope, onScopeDispose, type EffectScope } from '
 import { useTimeoutFn } from '@vueuse/core'
 import { animate, type AnimationOptions, type AnimationPlaybackControls, type DOMKeyframesDefinition } from 'motion-v'
 
-type Target = Element | NodeListOf<Element> | undefined | null
-type Animate = (el: Element | NodeListOf<Element>, keyframes: DOMKeyframesDefinition, options?: AnimationOptions) => AnimationPlaybackControls
+type Target = Element | Element[] | NodeListOf<Element> | undefined | null
+type Animate = (el: Element | Element[] | NodeListOf<Element>, keyframes: DOMKeyframesDefinition, options?: AnimationOptions) => AnimationPlaybackControls
 
 /**
  * Colle Vue autour de `animate` de Motion : garde les contrôles des animations en cours et des attentes (`wait`, une `useTimeoutFn`

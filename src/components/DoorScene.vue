@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useHaptics } from '@/composables/haptics'
-import { computed, onMounted, ref, shallowRef, useId, watch, useTemplateRef } from 'vue'
+import { computed, onMounted, onScopeDispose, ref, shallowRef, useId, watch, useTemplateRef } from 'vue'
 import { useTimeoutFn } from '@vueuse/core'
-import type { AnimationOptions } from 'motion-v'
+import { animate, motionValue, type AnimationOptions, type AnimationPlaybackControls, type DOMKeyframesDefinition } from 'motion-v'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { useMotionScope } from '@/composables/useMotionScope'
 import { focusQuietly } from '@/composables/focusQuietly'
@@ -19,11 +19,14 @@ import { requestOrientationPermission } from '@/composables/useTilt'
 import { safeStorage } from '@/composables/safeStorage'
 import { secureRng } from '@/engine/rng'
 import { useSessionStore } from '@/stores/session'
-import Seer from '~icons/rvj/voyante'
+import { useQuality } from '@/stores/quality'
+import { DOOR3D_PRESETS, door3dOpening, door3dSilhouette } from '@/effects/door3dMath'
+import Seer from './Seer.vue'
 import SparkPool from './SparkPool.vue'
 import KnockPattern from './KnockPattern.vue'
 import DoorShading from './DoorShading.vue'
 import DoorGround from './DoorGround.vue'
+import Door3D from './doors3d/Door3D.vue'
 import { lookFor } from './doorLook'
 
 const { door, line, level, closing, quick } = defineProps<{ door: SceneVariant; line: string; level: ParanoiaLevel; closing?: boolean; quick?: boolean }>()
@@ -37,15 +40,19 @@ const { pulse: haptic } = useHaptics()
 
 const stage = useTemplateRef<HTMLElement>('stage')
 const hit = useTemplateRef<HTMLButtonElement>('hit')
-const leaf = useTemplateRef<HTMLElement>('leaf')
+// Battants SVG (un, ou deux pour la porte double ; l’ordre des refs d’un v-for n’est pas garanti : le côté se lit dans `data-side`) et canevas 3D.
+const leaf = useTemplateRef<HTMLElement[]>('leaf')
+const leaf3d = useTemplateRef<HTMLElement>('leaf3d')
 const shake = useTemplateRef<HTMLElement>('shake')
-const shade = useTemplateRef<HTMLElement>('shade')
+const shade = useTemplateRef<HTMLElement[]>('shade')
 const glow = useTemplateRef<HTMLElement>('glow')
 const spill = useTemplateRef<HTMLElement>('spill')
 const seer = useTemplateRef<HTMLElement>('seer')
+// Voyante (Seer.vue) : progression d’ouverture 0 → 1 et « elle parle » ; le composant garde ses propres ressorts.
+const seerOpen = ref(0)
+const seerSpeaking = ref(false)
 const dustLayer = useTemplateRef<HTMLElement>('dustLayer')
 const strip = useTemplateRef<HTMLElement>('strip')
-const handleLayer = useTemplateRef<HTMLElement>('handleLayer')
 const ui = useTemplateRef<HTMLElement>('ui')
 const sparks = useTemplateRef<InstanceType<typeof SparkPool>>('sparks')
 const captionLayer = useTemplateRef<HTMLElement>('captionLayer')
@@ -70,7 +77,61 @@ const halt = () => {
   knocks.cancel()
   silence.stop()
   haltMotion()
+  swingCtl?.stop()
 }
+onScopeDispose(() => {
+  swingCtl?.stop()
+  leanCtl?.stop()
+})
+
+// Porte 3D (WebGPU) pour les portes de lieu. Les portes rares sans `place`, un échec du GPU et le niveau de qualité `low` (lu au montage :
+// un changement de niveau en pleine visite ne fait pas sauter la porte d’un rendu à l’autre) laissent le SVG, avec tout son travail CSS.
+const quality = useQuality()
+const lowAtMount = quality.level.value === 'low'
+// Sans filtre de relief en `low` (SVG de repli de la porte 3D compris) : un ombrage CSS statique le remplace. Décidé au montage, jamais en pleine animation.
+const flatShading = lowAtMount || quality.settled.value === 'low'
+const failed3d = ref(false)
+const use3d = computed(() => !!door.place && !failed3d.value && !lowAtMount)
+const preset3d = computed(() => (door.place ? DOOR3D_PRESETS[door.place] : null))
+const opening3d = computed(() => (preset3d.value ? door3dOpening(preset3d.value.look) : null))
+const silhouette3d = computed(() => (preset3d.value ? door3dSilhouette(preset3d.value.look) : null))
+// Angle du battant 3D : une valeur Motion (mêmes courbes que le `rotateY` du SVG), recopiée dans une ref pour la prop `angle`.
+const angle3d = ref(0)
+const angleMv = motionValue(0)
+angleMv.on('change', (v) => (angle3d.value = v))
+// Inclinaison au survol et au focus : même rôle que `.door-tilt` du SVG, mais en valeur Motion (séparée du pivot) passée en prop `lean`.
+const lean3d = ref(0)
+const leanMv = motionValue(0)
+leanMv.on('change', (v) => (lean3d.value = v))
+// Coups transmis au ressort de Door3D (compteur) et force du dernier coup.
+const knockCount = ref(0)
+const knockForce = ref(0.5)
+let swingCtl: AnimationPlaybackControls | null = null
+let leanCtl: AnimationPlaybackControls | null = null
+
+/** Battants animables du moment : le canevas 3D, ou les un ou deux battants SVG. */
+const leafEls = (): HTMLElement[] => (use3d.value ? (leaf3d.value ? [leaf3d.value] : []) : (leaf.value ?? []))
+/** Battant de droite d’une porte double : ses gonds sont à droite, tout ce qui pivote ou penche se lit en miroir. */
+const sideSign = (el: HTMLElement) => (el.dataset.side === 'r' ? -1 : 1)
+const mirrored = (deg: number | number[], k: number) => (Array.isArray(deg) ? deg.map((d) => d * k) : deg * k)
+/** Pivot du battant : `rotateY` du SVG (en miroir pour le battant de droite), ou angle de la porte 3D. Seul maître du pivot dans tous les cas. `extra` ne vaut que pour le SVG. */
+const swing = (deg: number | number[], options?: AnimationOptions, extra?: DOMKeyframesDefinition): Promise<void> => {
+  if (!use3d.value) return Promise.all(leafEls().map((el) => go(el, { rotateY: mirrored(deg, sideSign(el)), ...extra }, options))).then(() => undefined)
+  swingCtl?.stop()
+  // Toujours des images clés (départ = angle courant) : une seule signature d’`animate` pour une valeur numérique.
+  const ctl = animate(angleMv, typeof deg === 'number' ? [angleMv.get(), deg] : deg, options as never)
+  swingCtl = ctl
+  return Promise.resolve(ctl).then(
+    () => undefined,
+    () => undefined,
+  )
+}
+/** Porte double : chaque battant a un petit sursaut vers nous, le battant de droite avec un léger déphasage (`lag`, en secondes). */
+const bumpLeaves = (deg: number, lag: number) =>
+  leafEls().forEach((el) => {
+    const k = sideSign(el)
+    go(el, { rotateY: [-deg * k, 0] }, { type: 'spring', stiffness: 560, damping: 11, delay: k < 0 ? lag : 0 })
+  })
 
 const dust = (n: number) => {
   const layer = dustLayer.value
@@ -106,6 +167,10 @@ const turnHandles = (knob: number | number[], options?: AnimationOptions) => {
 const jitter = (intensity: number) => {
   const el = shake.value
   if (!el || reduced.value) return
+  if (use3d.value) {
+    knockForce.value = intensity
+    knockCount.value++ // porte 3D : le ressort du battant (Door3D ignore le coup en mouvement réduit)
+  } else if (panes.value.length === 2) bumpLeaves(0.8 + 1.4 * intensity, 0.05)
   const dir = Math.random() < 0.5 ? -1 : 1
   const amp = 2 + 5 * intensity
   // Le bâti encaisse le coup : décalage latéral, léger roulis autour du seuil et un petit recul (échelle), puis ressort amorti qui oscille.
@@ -118,21 +183,29 @@ const jitter = (intensity: number) => {
 
 /** Poignée sous la souris : elle s’incline d’un ressort au survol et revient au repos en le quittant (la souris seulement ; le tactile n’a pas de survol). */
 const handleHover = (over: boolean, e: PointerEvent) => {
-  if (e.pointerType !== 'mouse' || reduced.value || state !== 'idle') return
+  if (e.pointerType !== 'mouse') return
+  hovering.value = over
+  if (reduced.value || state !== 'idle') return
   turnHandles(over ? 14 : 0, { type: 'spring', stiffness: 260, damping: 11 })
 }
 
 /** Coup de la voyante, de l’intérieur : le battant pousse vers nous (charnière + léger zoom), poussière du cadre et filet de lumière sous la porte. */
 let lastJolt = 0
 const jitterInside = (intensity: number) => {
-  const el = leaf.value
-  if (!el || reduced.value) return
+  if (!leafEls().length || reduced.value) return
   // Rafale au retour d’un onglet caché : un seul sursaut, pas une pile d’animations.
   const t = performance.now()
   if (t - lastJolt < 90) return
   lastJolt = t
-  snap(el, { rotateY: -(1.5 + 2.5 * intensity), scale: 1.012, x: 0 })
-  go(el, { rotateY: 0, scale: 1 }, { type: 'spring', stiffness: 600, damping: 12 })
+  if (use3d.value) {
+    knockForce.value = intensity
+    knockCount.value++ // le ressort de Door3D pousse le battant vers nous
+  } else if (panes.value.length === 2) bumpLeaves(1.5 + 2.5 * intensity, 0.045)
+  else {
+    const el = leaf.value![0]
+    snap(el, { rotateY: -(1.5 + 2.5 * intensity), scale: 1.012, x: 0 })
+    go(el, { rotateY: 0, scale: 1 }, { type: 'spring', stiffness: 600, damping: 12 })
+  }
   dust(2 + Math.round(intensity * 2))
   // Seul changement de luminance : filet mince (≈2 px), delta modeste.
   snap(strip.value, { opacity: 0.55 })
@@ -141,17 +214,31 @@ const jitterInside = (intensity: number) => {
 
 const look = computed(() => lookFor(door.id))
 const maskStyle = computed(() => ({ maskImage: `url('${door.mask}')`, WebkitMaskImage: `url('${door.mask}')` }))
+// Battants SVG : un seul (emprise `bounds`), ou deux pour la porte double (`leaves`) découpés dans le même SVG par `clip-path` (débord permis sur
+// les côtés extérieurs, pour la lueur du survol et l’anneau du focus ; recouvrement de 0,3 % au centre, pour qu’aucun filet clair ne s’y glisse).
 // Gonds et chant d’après l’emprise réelle du battant (boîte 120 × 190), pas d’après la boîte : le pivot et la tranche suivent la silhouette.
-const hingePct = computed(() => (look.value.bounds.hingeX / 120) * 100)
-const edgeBox = computed(() => {
-  const { edgeX, top, bottom } = look.value.bounds
-  return { left: `${(edgeX / 120) * 100}%`, top: `${(top / 190) * 100}%`, height: `${((bottom - top) / 190) * 100}%` }
+const panes = computed(() => {
+  const toBox = ({ edgeX, top, bottom }: { edgeX: number; top: number; bottom: number }) => ({ top: `${(top / 190) * 100}%`, height: `${((bottom - top) / 190) * 100}%`, edgeX })
+  const leaves = look.value.leaves
+  if (!leaves) {
+    const b = look.value.bounds
+    return [{ side: 'one', hinge: (b.hingeX / 120) * 100, clip: undefined as string | undefined, edge: { left: `${(b.edgeX / 120) * 100}%`, ...toBox(b) } }]
+  }
+  return leaves.map((b, i) => ({
+    side: i === 0 ? 'l' : 'r',
+    hinge: (b.hingeX / 120) * 100,
+    clip: i === 0 ? 'inset(-12% 49.7% -12% -12%)' : 'inset(-12% -12% -12% 49.7%)',
+    // Chant au centre : replié vers l’arrière, collé au bord du battant (à gauche de la fente pour le battant de droite).
+    edge: { left: i === 0 ? `${(b.edgeX / 120) * 100}%` : `calc(${(b.edgeX / 120) * 100}% - 3.5%)`, ...toBox(b) },
+  }))
 })
 
 // Lueur au sol : un trapèze qui part DU seuil (pied réel de l’embrasure) et s’évase vers l’avant ; son bord haut épouse l’ouverture (gonds → chant),
 // et le clip-path (appliqué après le flou) coupe tout ce qui remonterait derrière le seuil.
 const spillStyle = computed(() => {
-  const { hingeX, edgeX, bottom } = look.value.bounds
+  const o = opening3d.value
+  // Porte 3D : le seuil et l’ouverture sont ceux du canevas, pas ceux du SVG de la porte.
+  const { hingeX, edgeX, bottom } = use3d.value && o ? { hingeX: o.left, edgeX: o.right, bottom: o.bottom } : look.value.bounds
   const w = ((edgeX - hingeX) / 120) * 100
   return { left: `${(hingeX / 120) * 100 - w / 2}%`, width: `${w * 2}%`, top: `${(bottom / 190) * 100}%` }
 })
@@ -186,6 +273,15 @@ const saidId = useId()
 const texts = (key: TableKey) => (Array.isArray(prophecies[key]) ? (prophecies[key] as unknown[]).filter((t): t is string => typeof t === 'string') : [])
 const ghosts = computed(() => ['(Cognez à la porte)', line, ...texts(tableKey('rate', level)), ...texts('entrez')])
 watch(phase, (p) => emit('listening', p === 'listen'))
+// Inclinaison au survol (souris) et au focus clavier de la porte 3D, comme `.door-tilt` en CSS : coupée à l’écoute, en mouvement réduit et dès l’ouverture.
+const hovering = ref(false)
+const focusing = ref(false)
+const interactive = ref(true)
+const wantLean = computed(() => use3d.value && interactive.value && !reduced.value && phase.value !== 'listen' && (hovering.value || (focusing.value && keyboardMode.value)))
+watch(wantLean, (on) => {
+  leanCtl?.stop()
+  leanCtl = animate(leanMv, on ? -5 : 0, { duration: 0.25, ease: 'easeOut' })
+})
 const said = ref(quickMode ? line : '(Cognez à la porte)')
 const verdictText = ref('')
 // Invite sans geste depuis ~3 s : on souffle que la porte se touche (respiration lente + ligne d’aide).
@@ -198,11 +294,11 @@ const nudgeTimer = useTimeoutFn(() => (nudge.value = true), 3000, { immediate: f
 const settling = ref(false)
 const stopNudge = () => {
   nudgeTimer.stop()
-  const el = leaf.value
-  if (nudge.value && el && !reduced.value) {
-    const current = getComputedStyle(el).scale
+  const els = leafEls()
+  if (nudge.value && els.length && !reduced.value) {
+    const current = getComputedStyle(els[0]).scale
     if (current && current !== 'none') {
-      el.style.setProperty('--settle', current)
+      els.forEach((el) => el.style.setProperty('--settle', current))
       settling.value = true
     }
   }
@@ -337,13 +433,16 @@ const onDoorMousedown = (e: MouseEvent) => {
 }
 
 onMounted(() => {
-  const layer = handleLayer.value
-  layer?.querySelectorAll<SVGElement>('.door-handle').forEach((el, i) => {
-    const kind = look.value.handles[i] ?? 'bar'
-    el.dataset.kind = kind
-    if (kind === 'lever') el.style.transformOrigin = '0% 50%' // la béquille pivote autour de son axe (extrémité gauche)
-  })
-  doorHandles.value = { knobs: layer?.querySelectorAll('[data-kind=knob]') ?? null, levers: layer?.querySelectorAll('[data-kind=lever]') ?? null }
+  // Un calque de poignées par battant (deux pour la porte double, chacun dessine sa moitié) : même ordre de poignées dans chaque copie du SVG.
+  const layers = stage.value?.querySelectorAll('.door-handles')
+  layers?.forEach((layer) =>
+    layer.querySelectorAll<SVGElement>('.door-handle').forEach((el, i) => {
+      const kind = look.value.handles[i] ?? 'bar'
+      el.dataset.kind = kind
+      if (kind === 'lever') el.style.transformOrigin = '0% 50%' // la béquille pivote autour de son axe (extrémité gauche)
+    }),
+  )
+  doorHandles.value = { knobs: stage.value?.querySelectorAll('.door-handles [data-kind=knob]') ?? null, levers: stage.value?.querySelectorAll('.door-handles [data-kind=lever]') ?? null }
   if (closing) return void slamShut()
   go(ui.value, { opacity: [0, 1] }, { duration: 0.3 })
   nudgeTimer.start()
@@ -355,23 +454,24 @@ const open = async () => {
   state = 'opening'
   unlock()
   halt()
+  interactive.value = false
   snap(shake.value, { x: 0, rotateZ: 0, scale: 1 })
-  snap(leaf.value, { rotateY: 0, scale: 1, z: 0 })
+  snap(leafEls(), use3d.value ? { scale: 1 } : { scale: 1, z: 0 })
+  void swing(0, { duration: 0 })
   creak()
   if (reduced.value) {
-    go(leaf.value, { opacity: 0 }, { duration: 0.2 })
+    go(leafEls(), { opacity: 0 }, { duration: 0.2 })
     go(glow.value, { opacity: 1 }, { duration: 0.2 })
-    go(seer.value, { opacity: 1 }, { duration: 0.2 })
+    snap(seer.value, { opacity: 1 })
+    seerOpen.value = 1
     await wait(400)
     return finish()
   }
   zooming.value = true
   // La poignée tourne, le battant hésite (un léger tirage vers nous), puis il pivote sur ses gonds ; l’ombre du battant suit l’angle.
   turnHandles([0, 38, 0], { duration: 0.34, ease: 'easeInOut' })
-  go(
-    leaf.value,
-    // Porte à joint (frigo) : le battant se décolle d’abord vers nous (translation Z de `tug` px, comme un joint magnétique qui lâche).
-    { rotateY: [0, -2.5, OPEN_DEG], ...(look.value.tug ? { z: [0, look.value.tug, look.value.tug] } : {}) },
+  void swing(
+    [0, -2.5, OPEN_DEG],
     {
       duration: 0.75,
       times: [0, 0.14, 1],
@@ -380,11 +480,16 @@ const open = async () => {
         [0.3, 0, 0.2, 1],
       ],
     },
+    // Porte à joint (frigo) : le battant se décolle d’abord vers nous (translation Z de `tug` px, comme un joint magnétique qui lâche).
+    look.value.tug ? { z: [0, look.value.tug, look.value.tug] } : undefined,
   )
   go(shade.value, { opacity: [0, SHADE_OPEN] }, { duration: 0.75, ease: [0.3, 0, 0.2, 1] })
   go(glow.value, { opacity: [0, 1] }, { duration: 0.5 })
   go(spill.value, { opacity: [0, 1], scaleX: [0.1, 1], scaleY: [0.2, 1] }, { duration: 0.7, ease: 'easeOut' })
-  go(seer.value, { opacity: [0, 1], y: [10, 0], scale: [0.9, 1] }, { duration: 0.4, delay: 0.3 })
+  // Elle émerge de l’ombre de l’embrasure pendant que le battant pivote (Seer.vue : ressort sur « open », avancement + fondu), puis elle « parle ».
+  snap(seer.value, { opacity: 1 })
+  void wait(120).then(() => (seerOpen.value = 1))
+  void wait(450).then(() => (seerSpeaking.value = true))
   await wait(750)
   if (state !== 'opening') return
   go(ui.value, { opacity: 0 }, { duration: 0.2 })
@@ -405,10 +510,11 @@ const finish = () => {
 
 const slamShut = async () => {
   state = 'opening'
+  interactive.value = false
   const full = reduced.value
-  if (full) snap(leaf.value, { opacity: 0 })
+  if (full) snap(leafEls(), { opacity: 0 })
   else {
-    snap(leaf.value, { rotateY: OPEN_DEG })
+    void swing(OPEN_DEG, { duration: 0 })
     snap(shade.value, { opacity: SHADE_OPEN })
   }
   snap(glow.value, { opacity: 1 })
@@ -416,7 +522,7 @@ const slamShut = async () => {
   snap(seer.value, { opacity: 1 })
   await wait(250)
   if (isGone()) return
-  if (!full) await go(leaf.value, { rotateY: -4 }, { duration: 0.14, ease: [0.6, 0, 1, 1] })
+  if (!full) await swing(-4, { duration: 0.14, ease: [0.6, 0, 1, 1] })
   if (isGone()) return
   slam()
   emit('impact', 1)
@@ -424,9 +530,9 @@ const slamShut = async () => {
   go(glow.value, { opacity: 0 }, { duration: 0.1 })
   go(spill.value, { opacity: 0 }, { duration: 0.1 })
   go(seer.value, { opacity: 0 }, { duration: 0.1 })
-  if (full) go(leaf.value, { opacity: 1 }, { duration: 0.15 })
+  if (full) go(leafEls(), { opacity: 1 }, { duration: 0.15 })
   else {
-    go(leaf.value, { rotateY: 0 }, { type: 'spring', stiffness: 500, damping: 9 })
+    void swing(0, { type: 'spring', stiffness: 500, damping: 9 })
     go(shade.value, { opacity: 0 }, { duration: 0.2 })
   }
   await wait(550)
@@ -465,35 +571,71 @@ const onSceneClick = (e: MouseEvent) => {
         <div
           ref="glow"
           class="absolute inset-[1.5px] opacity-0 [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat] [background:radial-gradient(ellipse_at_50%_60%,#fff6c8_0%,#ffd56a_45%,#7a4a10_100%)]"
-          :style="{ maskImage: `url('${door.mask}')`, WebkitMaskImage: `url('${door.mask}')` }"
+          :style="use3d && opening3d ? { inset: opening3d.inset, borderRadius: opening3d.radius } : maskStyle"
         />
-        <div ref="seer" class="absolute left-1/2 bottom-0 w-[38%] -ml-[19%] opacity-0 [&_.seer]:block [&_.seer]:w-full"><Seer class="seer" /></div>
+        <div
+          ref="spill"
+          class="absolute h-[80%] opacity-0 origin-[50%_0] [clip-path:polygon(25%_0,75%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0.85),rgb(255_226_140/0.45)_30%,rgb(255_226_140/0))] blur-[7px] pointer-events-none"
+          :style="spillStyle"
+          aria-hidden="true"
+        />
+        <!-- Voyante : DOM avant le canevas de la porte, donc DERRIÈRE le cadre et le battant qui pivote (elle se voit par l’embrasure, devant la lueur). -->
+        <div ref="seer" class="absolute left-[64%] bottom-0 w-[52%] -ml-[26%] opacity-0"><Seer :open="closing ? 1 : seerOpen" :speaking="seerSpeaking" :reduced="reduced" :place="door.place" /></div>
       </div>
-      <div
-        ref="spill"
-        class="absolute h-[80%] opacity-0 origin-[50%_0] [clip-path:polygon(25%_0,75%_0,100%_100%,0_100%)] [background:linear-gradient(to_bottom,rgb(255_226_140/0.85),rgb(255_226_140/0.45)_30%,rgb(255_226_140/0))] blur-[7px] pointer-events-none"
-        :style="spillStyle"
-        aria-hidden="true"
-      />
       <DoorGround :door-id="door.id" layer="sol" />
-      <DoorShading v-if="door.frame" :door-id="door.id" class="absolute inset-0 pointer-events-none"><component :is="door.frame" class="block w-full h-full" /></DoorShading>
+      <DoorShading v-if="door.frame && !use3d" :door-id="door.id" :flat="flatShading" class="absolute inset-0 pointer-events-none"
+        ><component :is="door.frame" class="block w-full h-full"
+      /></DoorShading>
       <!-- Trois maîtres de transform distincts, emboîtés : `shake` (vibration du cognement, Motion) > `door-tilt` (inclinaison au survol, CSS)
            > `leaf` (pivot sur les gonds, Motion). La perspective vit sur le parent direct, centrée sur la porte ; la 3D ne sort pas de ce bloc. -->
       <div ref="shake" class="absolute inset-0 origin-[50%_85%]">
-        <div class="absolute inset-0 [perspective:1500px] [perspective-origin:50%_50%]">
-          <div class="door-tilt absolute inset-0 transform-3d" :style="{ transformOrigin: `${hingePct}% 50%` }">
+        <!-- Porte de lieu en 3D : cadre et battant dans le même canevas ; le pivot vit dans le SDF (prop `angle`), pas dans un transform. `interior` à 0 :
+             l’ouverture reste transparente et laisse voir la lueur et la voyante, derrière. Lueur du survol et anneau du focus : le débord d’un cadre
+             rectangulaire approchant la silhouette du cadre (`box-shadow` : rien ne se dessine dans l’ouverture). -->
+        <template v-if="use3d && silhouette3d">
+          <div class="door-halo3 absolute pointer-events-none opacity-0" :style="{ inset: silhouette3d.inset }" aria-hidden="true" />
+          <div class="door-ring3 absolute pointer-events-none opacity-0" :style="{ inset: silhouette3d.inset }" aria-hidden="true" />
+          <div
+            ref="leaf3d"
+            data-leaf
+            :data-nudge="nudge && phase === 'invite' ? '' : undefined"
+            :data-settle="settling ? '' : undefined"
+            class="absolute inset-0 select-none [-webkit-tap-highlight-color:transparent]"
+            role="img"
+            :aria-label="door.label"
+            @animationend="settling = false"
+          >
+            <Door3D
+              :variant="door.place!"
+              :angle="angle3d"
+              :lean="lean3d"
+              :knock="knockCount"
+              :knock-intensity="knockForce"
+              :shadows="quality.atLeast('high')"
+              :reduced="reduced"
+              :interior="0"
+              :mist="0"
+              @failed="failed3d = true"
+            />
+          </div>
+        </template>
+        <div v-else class="absolute inset-0 [perspective:1500px] [perspective-origin:50%_50%]">
+          <!-- Un battant, ou deux pour la porte double (même SVG rendu deux fois, découpé par `clip-path`) : chacun a son `door-tilt`, son pivot et ses gonds. -->
+          <div v-for="pane in panes" :key="pane.side" class="door-tilt absolute inset-0 transform-3d" :data-side="pane.side" :style="{ transformOrigin: `${pane.hinge}% 50%` }">
             <div
               ref="leaf"
               data-leaf
+              :data-side="pane.side"
               :data-nudge="nudge && phase === 'invite' ? '' : undefined"
               :data-settle="settling ? '' : undefined"
               class="absolute inset-0 transform-3d will-change-transform select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
-              role="img"
-              :aria-label="door.label"
-              :style="{ transformOrigin: `${hingePct}% 50%` }"
+              :role="pane.side === 'r' ? undefined : 'img'"
+              :aria-label="pane.side === 'r' ? undefined : door.label"
+              :aria-hidden="pane.side === 'r' ? 'true' : undefined"
+              :style="{ transformOrigin: `${pane.hinge}% 50%` }"
               @animationend="settling = false"
             >
-              <div class="absolute inset-0 backface-hidden">
+              <div class="absolute inset-0 backface-hidden" :style="{ clipPath: pane.clip }">
                 <!-- Lueur du survol et anneau du focus clavier : calques frères derrière la porte (silhouette pleine dont seul le débord se voit),
                      jamais un `filter` sur le nœud filtré lui-même, qui se re-rastériserait à chaque image de la transition. -->
                 <div class="door-halo absolute inset-0 pointer-events-none opacity-0" aria-hidden="true">
@@ -503,8 +645,8 @@ const onSceneClick = (e: MouseEvent) => {
                   <div class="absolute inset-0 bg-[var(--accent)] [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat]" :style="maskStyle" />
                 </div>
                 <!-- Porte filtrée, statique (poignées masquées par CSS) ; les poignées, seules à bouger, sont redessinées au-dessus sans filtre. -->
-                <DoorShading class="door-base" :door-id="door.id"><component :is="door.component" class="block w-full h-full" /></DoorShading>
-                <div ref="handleLayer" class="door-handles absolute inset-0 pointer-events-none" :style="{ filter: `brightness(${look.gain})` }" aria-hidden="true">
+                <DoorShading class="door-base" :door-id="door.id" :flat="flatShading" :mask="door.mask"><component :is="door.component" class="block w-full h-full" /></DoorShading>
+                <div class="door-handles absolute inset-0 pointer-events-none" :style="{ filter: `brightness(${look.gain})` }" aria-hidden="true">
                   <component :is="door.component" class="block w-full h-full" />
                 </div>
               </div>
@@ -512,12 +654,13 @@ const onSceneClick = (e: MouseEvent) => {
               <div
                 ref="shade"
                 class="absolute inset-0 bg-[#05060c] opacity-0 pointer-events-none backface-hidden [mask-size:100%_100%] [mask-repeat:no-repeat] [-webkit-mask-size:100%_100%] [-webkit-mask-repeat:no-repeat]"
-                :style="{ maskImage: `url('${door.mask}')`, WebkitMaskImage: `url('${door.mask}')` }"
+                :style="{ ...maskStyle, clipPath: pane.clip }"
               />
-              <!-- Chant du côté serrure : une tranche d’environ 3,5 % de la largeur, repliée vers l’arrière, collée au vrai bord du battant (bornes de doorLook). -->
+              <!-- Chant du côté serrure (au centre pour une porte double) : une tranche d’environ 3,5 % de la largeur, repliée vers l’arrière, collée au vrai bord du battant (bornes de doorLook). -->
               <div
-                class="absolute w-[3.5%] origin-[0_50%] [transform:rotateY(90deg)] pointer-events-none"
-                :style="{ ...edgeBox, background: `linear-gradient(to right, ${look.edge}, color-mix(in srgb, ${look.edge} 55%, black))` }"
+                class="absolute w-[3.5%] pointer-events-none"
+                :class="pane.side === 'r' ? 'origin-[100%_50%] [transform:rotateY(-90deg)]' : 'origin-[0_50%] [transform:rotateY(90deg)]'"
+                :style="{ ...pane.edge, background: `linear-gradient(to right, ${look.edge}, color-mix(in srgb, ${look.edge} 55%, black))` }"
               />
             </div>
           </div>
@@ -538,6 +681,8 @@ const onSceneClick = (e: MouseEvent) => {
         @pointerdown="onDoorPointerdown"
         @pointerenter="handleHover(true, $event)"
         @pointerleave="handleHover(false, $event)"
+        @focus="focusing = true"
+        @blur="focusing = false"
         @keydown="onDoorKeydown"
         @mousedown="onDoorMousedown"
       />
@@ -600,6 +745,10 @@ const onSceneClick = (e: MouseEvent) => {
 .door-tilt {
   transition: transform 0.25s;
 }
+/* Porte double : le battant de droite penche en miroir (ses gonds sont à droite). */
+.door-tilt[data-side='r'] {
+  --tilt: 5deg;
+}
 /* Poignées : la porte filtrée les cache, le calque des poignées cache tout le reste (la visibilité d’un enfant l’emporte sur celle du parent). */
 .door-base :deep(.door-handle) {
   visibility: hidden;
@@ -615,17 +764,25 @@ const onSceneClick = (e: MouseEvent) => {
   filter: drop-shadow(0 0 0.5556rem rgb(255 226 140 / 0.55));
   transition: opacity 0.25s;
 }
+/* Porte 3D : le même halo et le même anneau, sans le masque du SVG, par le débord (`box-shadow`) d’un cadre qui approche la silhouette du cadre. */
+.door-halo3 {
+  box-shadow: 0 0 0.5556rem 0.1rem rgb(255 226 140 / 0.55);
+  transition: opacity 0.25s;
+}
+.door-ring3 {
+  box-shadow: 0 0 0 3px var(--accent);
+}
 /* Focus clavier : anneau qui suit la silhouette de la porte (quatre ombres nettes, une par côté), jamais au clic ni au tap (data-kbd). */
 .door-ring {
   filter: drop-shadow(3px 0 0 var(--accent)) drop-shadow(-3px 0 0 var(--accent)) drop-shadow(0 3px 0 var(--accent)) drop-shadow(0 -3px 0 var(--accent));
 }
 [data-stage]:has(.door-hit[data-kbd='true']:not([data-phase='listen']):focus-visible) .door-tilt {
-  transform: rotateY(-5deg);
+  transform: rotateY(var(--tilt, -5deg));
 }
-[data-stage]:has(.door-hit[data-kbd='true']:not([data-phase='listen']):focus-visible) .door-halo {
+[data-stage]:has(.door-hit[data-kbd='true']:not([data-phase='listen']):focus-visible) :is(.door-halo, .door-halo3) {
   opacity: 1;
 }
-[data-stage]:has(.door-hit[data-kbd='true'][data-phase]:focus-visible) .door-ring {
+[data-stage]:has(.door-hit[data-kbd='true'][data-phase]:focus-visible) :is(.door-ring, .door-ring3) {
   opacity: 1;
 }
 /* Survol : seulement avec un vrai pointeur (le :hover collant du tactile laisserait la porte inclinée). */
@@ -634,9 +791,9 @@ const onSceneClick = (e: MouseEvent) => {
     opacity: 0.75;
   }
   [data-stage]:has(.door-hit:not([data-phase='listen']):hover) .door-tilt {
-    transform: rotateY(-5deg);
+    transform: rotateY(var(--tilt, -5deg));
   }
-  [data-stage]:has(.door-hit:not([data-phase='listen']):hover) .door-halo {
+  [data-stage]:has(.door-hit:not([data-phase='listen']):hover) :is(.door-halo, .door-halo3) {
     opacity: 1;
   }
 }
@@ -666,25 +823,14 @@ const onSceneClick = (e: MouseEvent) => {
     scale: 1.015;
   }
 }
-/* Halo de la boule de cristal : respiration lente (5 s, ≈0,2 Hz), faible amplitude, jamais de scintillement. */
-[data-stage] :deep(.seer-halo) {
-  animation: seer-halo 5s ease-in-out infinite;
-}
-@keyframes seer-halo {
-  50% {
-    opacity: 0.4;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   [data-leaf][data-nudge],
   [data-leaf][data-settle] {
     animation: none;
   }
-  [data-stage] :deep(.seer-halo) {
-    animation: none;
-  }
   .door-tilt,
-  .door-halo {
+  .door-halo,
+  .door-halo3 {
     transition: none;
   }
   [data-stage]:has(.door-hit:not([data-phase='listen']):is(:hover, [data-kbd='true']:focus-visible)) .door-tilt {
