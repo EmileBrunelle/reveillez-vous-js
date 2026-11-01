@@ -4,6 +4,7 @@ import { useMediaQuery, useResizeObserver } from '@vueuse/core'
 import { useGpuEffect } from '@/composables/useGpuEffect'
 import { SHADOWS_OFF_MEDIA } from '@/effects/shadowQuality'
 import { createKnockSpring, door3dParams, DOOR3D_PRESETS, type Door3dLight } from '@/effects/door3dMath'
+import type { QualityLevel } from '@/stores/quality'
 import type { PlaceId } from '@/effects/places/types'
 
 /**
@@ -23,6 +24,7 @@ const {
   interior = 1,
   mist = 1,
   onGpuMs = undefined,
+  quality = 'high',
 } = defineProps<{
   /** Lieu : matériau, couleurs et style du battant. */
   variant: PlaceId
@@ -44,13 +46,16 @@ const {
   interior?: number
   /** 0..1 : brume au pied. */
   mist?: number
+  /** Niveau de qualité posé : règle la résolution interne (voir `door3dDpr`). Lu à la création de la surface. */
+  quality?: QualityLevel
   /** Banc d’essai : durée GPU de chaque image (ms). */
   onGpuMs?: (ms: number) => void
 }>()
 
-const emit = defineEmits<{ failed: [] }>()
+const emit = defineEmits<{ failed: []; ready: [] }>()
 
-// Le canevas apparaît en fondu à la première image : la porte n’arrive pas d’un coup quand le GPU finit son init.
+// Le canevas reste invisible jusqu’à sa première image dessinée (jamais une image vide) ; `ready` prévient l’appelant, qui fait le fondu depuis son repli.
+const shown = ref(false)
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const noShadows = useMediaQuery(SHADOWS_OFF_MEDIA)
 const preset = computed(() => DOOR3D_PRESETS[variant])
@@ -69,7 +74,7 @@ watch(
 watch([() => angle, () => variant, () => light, () => interior, () => mist, () => lean, () => shadows, noShadows], () => (dirty.value = true), { deep: true })
 useResizeObserver(canvas, () => (dirty.value = true))
 
-const { status, lost } = useGpuEffect(
+const { lost } = useGpuEffect(
   canvas,
   async (el, onLost) => {
     const { createDoor3d } = await import('@/effects/door3d')
@@ -94,11 +99,16 @@ const { status, lost } = useGpuEffect(
       },
       dirty: () => dirty.value,
       drawn: () => {
+        if (!shown.value) {
+          shown.value = true
+          emit('ready')
+        }
         if (!spring.active) dirty.value = false
       },
       resized: () => (dirty.value = true),
       onGpuMs,
       onLost,
+      settled: quality,
     })
   },
   // Init bornée : un GPU qui ne répond pas laisse la place au SVG de la scène au lieu d’une porte absente.
@@ -111,8 +121,8 @@ watch(lost, (l) => l && emit('failed'))
   <canvas
     v-show="!lost"
     ref="canvas"
-    class="block w-full h-full select-none pointer-events-none transition-opacity duration-200"
-    :class="[status === 'ready' ? 'opacity-100' : 'opacity-0', { 'door3d-float': variant === 'nuages' && !reduced }]"
+    class="block w-full h-full select-none pointer-events-none"
+    :class="[shown ? 'opacity-100' : 'opacity-0', { 'door3d-float': variant === 'nuages' && !reduced }]"
     aria-hidden="true"
   />
 </template>

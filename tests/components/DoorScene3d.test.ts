@@ -33,8 +33,9 @@ vi.mock('@/components/doors3d/Door3D.vue', async () => {
         reduced: { type: Boolean, default: false },
         interior: { type: Number, default: 1 },
         mist: { type: Number, default: 1 },
+        quality: { type: String, default: 'high' },
       },
-      emits: ['failed'],
+      emits: ['failed', 'ready'],
       setup: (p) => () => h('canvas', { 'data-variant': p.variant }),
     }),
   }
@@ -67,11 +68,18 @@ const monter = (id: string, props: Record<string, unknown> = {}) => {
   wrapper = mount(DoorScene, { props: { door: porte(id), line: 'Entrez.', level: 1, ...props }, attachTo: document.body, global: { plugins: [createPinia()] } })
   return wrapper
 }
+/** Première image de la porte 3D dessinée : le SVG cède la place (fondu de 200 ms, puis le SVG est retiré). */
+const prete = async (w: VueWrapper) => {
+  w.findComponent(Door3D).vm.$emit('ready')
+  await nextTick()
+  await vi.advanceTimersByTimeAsync(250)
+}
 const bouton = (w: VueWrapper) => w.get('button[aria-label="Cogner à la porte"]')
 
 describe('DoorScene : porte 3D des lieux', () => {
-  it.each(doors.filter((d) => d.place).map((d) => [d.id, d.place]))('%s : le canevas 3D du lieu remplace le SVG, le bouton reste par-dessus', (id, place) => {
+  it.each(doors.filter((d) => d.place).map((d) => [d.id, d.place]))('%s : le canevas 3D du lieu remplace le SVG, le bouton reste par-dessus', async (id, place) => {
     const w = monter(id as string)
+    await prete(w)
     expect(w.findComponent(Door3D).props('variant')).toBe(place)
     expect(w.find('.door-base').exists()).toBe(false)
     expect(w.findAll('[role="img"]')).toHaveLength(1)
@@ -142,6 +150,7 @@ describe('DoorScene : porte 3D des lieux', () => {
 
   it('chaque coup du joueur pousse le ressort du battant (compteur `knock`)', async () => {
     const w = monter('perron')
+    await prete(w)
     const avant = w.findComponent(Door3D).props('knock') as number
     await bouton(w).trigger('click')
     expect(w.findComponent(Door3D).props('knock')).toBeGreaterThan(avant)
@@ -150,6 +159,7 @@ describe('DoorScene : porte 3D des lieux', () => {
   it('l’ouverture pivote par la valeur Motion de l’angle (seul maître du pivot), pas par un transform', async () => {
     const r = mount(DoorScene, { props: { door: porte('perron'), line: 'Entrez.', level: 1, quick: true }, attachTo: document.body, global: { plugins: [createPinia()] } })
     wrapper = r
+    await prete(r)
     await bouton(r).trigger('click')
     await vi.advanceTimersByTimeAsync(500)
     const pivot = anim.calls.find((c) => Array.isArray(c[1]) && (c[1] as number[]).includes(72))
@@ -157,6 +167,79 @@ describe('DoorScene : porte 3D des lieux', () => {
     expect(typeof (pivot![0] as { get: () => number }).get).toBe('function') // une valeur Motion, pas un élément
     expect(pivot![1]).toEqual([0, -2.5, 72])
     expect(r.findAll('[data-leaf]')).toHaveLength(1)
+  })
+})
+
+describe('DoorScene : relais SVG → porte 3D', () => {
+  const svgVisible = (w: VueWrapper) => w.find('.door-base').exists()
+
+  it('avant la première image : le SVG reste affiché, le canevas est monté mais ni lu ni annoncé', () => {
+    const w = monter('perron')
+    expect(svgVisible(w)).toBe(true)
+    expect(w.findComponent(Door3D).exists()).toBe(true)
+    expect(w.findAll('[role="img"]')).toHaveLength(1)
+  })
+
+  it('à `ready` : fondu enchaîné (le SVG reste ≤ 200 ms, plus de calque vide), puis le SVG est retiré', async () => {
+    const w = monter('perron')
+    w.findComponent(Door3D).vm.$emit('ready')
+    await nextTick()
+    // Pendant le fondu : les deux sont montés, le SVG s’éteint pendant que le canevas apparaît.
+    expect(svgVisible(w)).toBe(true)
+    expect(w.get('.door-base').element.closest('[aria-hidden="true"]')).not.toBeNull()
+    expect(w.findAll('[role="img"]').filter((e) => !e.element.closest('[aria-hidden="true"]'))).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(svgVisible(w)).toBe(false)
+    expect(w.findAll('[data-leaf]')).toHaveLength(1)
+    expect(w.get('[role="img"]').attributes('aria-label')).toBe(porte('perron').label)
+  })
+
+  it('un cognement avant `ready` : le SVG anime et reste ; le `ready` tardif ne bascule rien', async () => {
+    const w = monter('perron')
+    await bouton(w).trigger('click')
+    expect(w.findComponent(Door3D).exists()).toBe(false)
+    expect(svgVisible(w)).toBe(true)
+    await vi.advanceTimersByTimeAsync(500)
+    expect(svgVisible(w)).toBe(true)
+    expect(w.findAll('[role="img"]')).toHaveLength(1)
+  })
+
+  it('une ouverture avant `ready` (quick) : SVG jusqu’au bout', async () => {
+    const w = monter('perron', { quick: true })
+    await bouton(w).trigger('click')
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(w.findComponent(Door3D).exists()).toBe(false)
+    expect(svgVisible(w)).toBe(true)
+  })
+
+  it('le GPU est perdu PENDANT l’ouverture : la porte 3D reste, pas de battant SVG fermé en plein zoom', async () => {
+    const w = monter('perron', { quick: true })
+    await prete(w)
+    await bouton(w).trigger('click')
+    await vi.advanceTimersByTimeAsync(500)
+    expect(anim.calls.some((c) => Array.isArray(c[1]) && (c[1] as number[]).includes(72))).toBe(true) // l’ouverture est en cours
+    w.findComponent(Door3D).vm.$emit('failed')
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(50)
+    expect(w.findComponent(Door3D).exists()).toBe(true)
+    expect(svgVisible(w)).toBe(false)
+  })
+
+  it('le GPU échoue en idle après le relais : retour au SVG', async () => {
+    const w = monter('perron')
+    await prete(w)
+    w.findComponent(Door3D).vm.$emit('failed')
+    await nextTick()
+    expect(w.findComponent(Door3D).exists()).toBe(false)
+    expect(svgVisible(w)).toBe(true)
+  })
+
+  it('le niveau posé est transmis à la porte 3D', () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useQualityStore().level = 'medium'
+    wrapper = mount(DoorScene, { props: { door: porte('perron'), line: 'Entrez.', level: 1 }, attachTo: document.body, global: { plugins: [pinia] } })
+    expect(wrapper.findComponent(Door3D).props('quality')).toBe(useQualityStore().settled)
   })
 })
 

@@ -37,8 +37,6 @@ import { resetShadowVerdict, SHADOW_BUDGET_MS, SHADOWS_OFF_MEDIA } from '@/effec
  * - Ombres et inclinaison des cartes (`TarotCard.vue`, `CardDeck.vue`) : en `low`, ombre portée unique au lieu de
  *   plusieurs couches et inclinaison (`useCardTilt`) sans lumière dynamique ; lire `level` dans un `computed`, jamais dans un style inline recalculé par image.
  *   (`DeckCut.vue` est branchée : `settled` lu au montage, `low` = sans sur-échantillonnage, sans inclinaison au pointeur, ombre fixe.)
- * - Door3D (`src/effects/door3d*`, `doors3d/*`) : passer `quality.level` à `createRaymarch`-like (`quality: () => level.value`) ou
- *   mettre l’uniforme `shadows` à `atLeast('high') ? 1 : 0` ; réduire le DPR comme `placeDpr` (voir `effects/resolution.ts`).
  * - Tout nouveau chargeur GPU qui passe par `startGpuLoop` : fournir `quality` et `onGpuSample` comme dans `BgPlace.vue`.
  */
 

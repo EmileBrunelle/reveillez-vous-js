@@ -14,7 +14,7 @@ vi.mock('vgpu', () => ({
   timer: vi.fn(),
 }))
 
-import { createDoor3d } from '@/effects/door3d'
+import { createDoor3d, door3dDpr } from '@/effects/door3d'
 import { createKnockSpring, door3dOpening, door3dParams, door3dSilhouette, DOOR3D_PRESETS, KNOCK_DAMPING, KNOCK_STIFFNESS, MAX_ANGLE_DEG, hexLinear } from '@/effects/door3dMath'
 
 const base = () => ({ angleDeg: 0, knockDeg: 0, width: 300, height: 475, shadows: true, ...DOOR3D_PRESETS.perron, interior: 1, mist: 1 })
@@ -153,5 +153,14 @@ describe('createDoor3d', () => {
     expect(state.dirty).toBe(true)
     o.render({ pass: () => {} }, s, { time: 0, deltaTime: 0 })
     expect(state.dirty).toBe(false)
+  })
+})
+
+describe('door3dDpr', () => {
+  it('suit le niveau posé : high 1,5 ; medium 1,25 ; low 1', () => {
+    expect(door3dDpr('high')).toEqual([1, 1.5])
+    expect(door3dDpr('medium')).toEqual([1, 1.25])
+    expect(door3dDpr('low')).toEqual([1, 1])
+    expect(door3dDpr()).toEqual([1, 1.5])
   })
 })

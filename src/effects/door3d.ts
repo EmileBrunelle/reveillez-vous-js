@@ -1,5 +1,6 @@
 import { effect, surface, timer, type Timer, type TimerSpan } from 'vgpu'
 import { startGpuLoop, type GpuLoop } from './gpuLoop'
+import type { QualityLevel } from '@/stores/quality'
 import door3dShader from './door3d.wgsl'
 
 export { door3dShader }
@@ -16,10 +17,15 @@ export interface Door3dOptions {
   /** Mesure GPU (`timer` de vgpu, `timestamp-query`) : reçoit la durée du passage en ms. Banc d’essai seulement. */
   onGpuMs?: (ms: number) => void
   onLost?: () => void
+  /** Niveau de qualité posé (`useQuality().settled`) : règle la résolution interne. Absent = `high`. */
+  settled?: QualityLevel
 }
 
+/** Plage de DPR de la surface selon le niveau posé (comme `placeDpr` pour les fonds) ; `low` laisse normalement le SVG, 1 par prudence. */
+export const door3dDpr = (settled: QualityLevel = 'high'): [number, number] => (settled === 'high' ? [1, 1.5] : settled === 'medium' ? [1, 1.25] : [1, 1])
+
 /**
- * Lance la porte 3D sur `canvas` (fond transparent, alpha prémultiplié, DPR plafonné à 1,5 comme la boule de cristal).
+ * Lance la porte 3D sur `canvas` (fond transparent, alpha prémultiplié, DPR plafonné par le niveau de qualité, 1,5 au plus).
  * Rendu à la demande : la boucle n’existe que tant que `dirty()` est vrai (elle passe par la pause de `startGpuLoop`, qui la coupe
  * aussi quand l’onglet est caché). Lève si l’init échoue ; renvoie `stop()`.
  */
@@ -30,7 +36,7 @@ export const createDoor3d = (canvas: HTMLCanvasElement, opts: Door3dOptions): Pr
     onLost: opts.onLost,
     timing: !!opts.onGpuMs,
     setup: (gpu) => {
-      const surf = surface(gpu, canvas, { dpr: [1, 1.5], clearColor: [0, 0, 0, 0] })
+      const surf = surface(gpu, canvas, { dpr: door3dDpr(opts.settled), clearColor: [0, 0, 0, 0] })
       const off = surf.onResize(() => opts.resized())
       const fx = effect(gpu, door3dShader, { set: { params: opts.params(0, canvas.width, canvas.height) } })
       let tm: Timer | null = null

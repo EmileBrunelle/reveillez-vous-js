@@ -31,6 +31,24 @@ const settle = async () => {
 }
 
 describe('Door3D', () => {
+  it('`ready` à la première image dessinée seulement (une fois) ; le canevas est invisible avant', async () => {
+    const w = mount(Door3D, { props: { variant: 'perron' } })
+    await settle()
+    expect(w.emitted('ready')).toBeUndefined()
+    expect(w.get('canvas').classes()).toContain('opacity-0')
+    opts().drawn()
+    opts().drawn()
+    await nextTick()
+    expect(w.emitted('ready')).toHaveLength(1)
+    expect(w.get('canvas').classes()).toContain('opacity-100')
+  })
+
+  it('transmet le niveau de qualité à createDoor3d', async () => {
+    mount(Door3D, { props: { variant: 'perron', quality: 'medium' } })
+    await settle()
+    expect((gpu.opts as unknown as { settled: string }).settled).toBe('medium')
+  })
+
   it('canevas décoratif : aria-hidden, pas de pointeur', async () => {
     const w = mount(Door3D, { props: { variant: 'perron' } })
     await settle()

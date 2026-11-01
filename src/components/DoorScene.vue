@@ -91,7 +91,36 @@ const lowAtMount = quality.level.value === 'low'
 // Sans filtre de relief en `low` (SVG de repli de la porte 3D compris) : un ombrage CSS statique le remplace. Décidé au montage, jamais en pleine animation.
 const flatShading = lowAtMount || quality.settled.value === 'low'
 const failed3d = ref(false)
-const use3d = computed(() => !!door.place && !failed3d.value && !lowAtMount)
+const wanted3d = computed(() => !!door.place && !failed3d.value && !lowAtMount)
+// `mount3d` : le canevas 3D est monté (caché, derrière le SVG) pendant l’init du GPU. Figé dès que la scène quitte `idle` :
+// une perte du GPU ou l’expiration du délai pendant l’ouverture laisse la scène finir son zoom, le repli ne vaut que pour la porte suivante.
+const mount3d = ref(wanted3d.value)
+watch(wanted3d, (v) => {
+  if (state === 'idle' && !svgLocked) mount3d.value = v
+})
+// `use3d` : la porte 3D est à l’écran (animée, cliquable). Faux tant que sa première image n’est pas dessinée : le SVG reste affiché.
+const use3d = ref(false)
+watch(mount3d, (m) => {
+  if (!m && state === 'idle') use3d.value = false
+})
+// Un cognement ou une ouverture avant la première image : le SVG anime, et il reste le rendu de cette porte (aucune bascule en pleine animation).
+let svgLocked = false
+const lockSvg = () => {
+  if (use3d.value || svgLocked) return
+  svgLocked = true
+  mount3d.value = false
+}
+// Fondu enchaîné SVG → canevas (≤ 200 ms) : le SVG n’est retiré qu’une fois le canevas pleinement visible.
+const SVG_FADE_MS = 200
+const svgFading = ref(false)
+const svgFade = useTimeoutFn(() => (svgFading.value = false), SVG_FADE_MS, { immediate: false })
+const showSvg = computed(() => !use3d.value || svgFading.value)
+const onDoor3dReady = () => {
+  if (state !== 'idle' || svgLocked || !mount3d.value || use3d.value) return
+  use3d.value = true
+  svgFading.value = true
+  svgFade.start()
+}
 const preset3d = computed(() => (door.place ? DOOR3D_PRESETS[door.place] : null))
 const opening3d = computed(() => (preset3d.value ? door3dOpening(preset3d.value.look) : null))
 const silhouette3d = computed(() => (preset3d.value ? door3dSilhouette(preset3d.value.look) : null))
@@ -116,6 +145,7 @@ const sideSign = (el: HTMLElement) => (el.dataset.side === 'r' ? -1 : 1)
 const mirrored = (deg: number | number[], k: number) => (Array.isArray(deg) ? deg.map((d) => d * k) : deg * k)
 /** Pivot du battant : `rotateY` du SVG (en miroir pour le battant de droite), ou angle de la porte 3D. Seul maître du pivot dans tous les cas. `extra` ne vaut que pour le SVG. */
 const swing = (deg: number | number[], options?: AnimationOptions, extra?: DOMKeyframesDefinition): Promise<void> => {
+  lockSvg()
   if (!use3d.value) return Promise.all(leafEls().map((el) => go(el, { rotateY: mirrored(deg, sideSign(el)), ...extra }, options))).then(() => undefined)
   swingCtl?.stop()
   // Toujours des images clés (départ = angle courant) : une seule signature d’`animate` pour une valeur numérique.
@@ -167,6 +197,7 @@ const turnHandles = (knob: number | number[], options?: AnimationOptions) => {
 const jitter = (intensity: number) => {
   const el = shake.value
   if (!el || reduced.value) return
+  lockSvg()
   if (use3d.value) {
     knockForce.value = intensity
     knockCount.value++ // porte 3D : le ressort du battant (Door3D ignore le coup en mouvement réduit)
@@ -197,6 +228,7 @@ const jitterInside = (intensity: number) => {
   const t = performance.now()
   if (t - lastJolt < 90) return
   lastJolt = t
+  lockSvg()
   if (use3d.value) {
     knockForce.value = intensity
     knockCount.value++ // le ressort de Door3D pousse le battant vers nous
@@ -451,6 +483,7 @@ onMounted(() => {
 const open = async () => {
   if (state === 'opening') return finish()
   if (state !== 'idle') return
+  lockSvg()
   state = 'opening'
   unlock()
   halt()
@@ -583,7 +616,7 @@ const onSceneClick = (e: MouseEvent) => {
         <div ref="seer" class="absolute left-[64%] bottom-0 w-[52%] -ml-[26%] opacity-0"><Seer :open="closing ? 1 : seerOpen" :speaking="seerSpeaking" :reduced="reduced" :place="door.place" /></div>
       </div>
       <DoorGround :door-id="door.id" layer="sol" />
-      <DoorShading v-if="door.frame && !use3d" :door-id="door.id" :flat="flatShading" class="absolute inset-0 pointer-events-none"
+      <DoorShading v-if="door.frame && showSvg" :door-id="door.id" :flat="flatShading" class="absolute inset-0 pointer-events-none transition-opacity duration-200" :class="{ 'opacity-0': use3d }"
         ><component :is="door.frame" class="block w-full h-full"
       /></DoorShading>
       <!-- Trois maîtres de transform distincts, emboîtés : `shake` (vibration du cognement, Motion) > `door-tilt` (inclinaison au survol, CSS)
@@ -592,7 +625,7 @@ const onSceneClick = (e: MouseEvent) => {
         <!-- Porte de lieu en 3D : cadre et battant dans le même canevas ; le pivot vit dans le SDF (prop `angle`), pas dans un transform. `interior` à 0 :
              l’ouverture reste transparente et laisse voir la lueur et la voyante, derrière. Lueur du survol et anneau du focus : le débord d’un cadre
              rectangulaire approchant la silhouette du cadre (`box-shadow` : rien ne se dessine dans l’ouverture). -->
-        <template v-if="use3d && silhouette3d">
+        <template v-if="mount3d && silhouette3d">
           <div class="door-halo3 absolute pointer-events-none opacity-0" :style="{ inset: silhouette3d.inset }" aria-hidden="true" />
           <div class="door-ring3 absolute pointer-events-none opacity-0" :style="{ inset: silhouette3d.inset }" aria-hidden="true" />
           <div
@@ -601,25 +634,36 @@ const onSceneClick = (e: MouseEvent) => {
             :data-nudge="nudge && phase === 'invite' ? '' : undefined"
             :data-settle="settling ? '' : undefined"
             class="absolute inset-0 select-none [-webkit-tap-highlight-color:transparent]"
-            role="img"
-            :aria-label="door.label"
+            :role="use3d ? 'img' : undefined"
+            :aria-label="use3d ? door.label : undefined"
+            :aria-hidden="use3d ? undefined : 'true'"
             @animationend="settling = false"
           >
-            <Door3D
-              :variant="door.place!"
-              :angle="angle3d"
-              :lean="lean3d"
-              :knock="knockCount"
-              :knock-intensity="knockForce"
-              :shadows="quality.atLeast('high')"
-              :reduced="reduced"
-              :interior="0"
-              :mist="0"
-              @failed="failed3d = true"
-            />
+            <!-- Fondu du canevas sur un calque à part : `leaf3d` appartient à Motion (opacité de la sortie), une transition CSS dessus lui ferait concurrence. -->
+            <div class="absolute inset-0 transition-opacity duration-200" :class="use3d ? 'opacity-100' : 'opacity-0'">
+              <Door3D
+                :variant="door.place!"
+                :angle="angle3d"
+                :lean="lean3d"
+                :knock="knockCount"
+                :knock-intensity="knockForce"
+                :shadows="quality.atLeast('high')"
+                :reduced="reduced"
+                :interior="0"
+                :mist="0"
+                :quality="quality.settled.value"
+                @ready="onDoor3dReady"
+                @failed="failed3d = true"
+              />
+            </div>
           </div>
         </template>
-        <div v-else class="absolute inset-0 [perspective:1500px] [perspective-origin:50%_50%]">
+        <div
+          v-if="showSvg"
+          class="absolute inset-0 [perspective:1500px] [perspective-origin:50%_50%] transition-opacity duration-200"
+          :class="{ 'opacity-0': use3d }"
+          :aria-hidden="use3d ? 'true' : undefined"
+        >
           <!-- Un battant, ou deux pour la porte double (même SVG rendu deux fois, découpé par `clip-path`) : chacun a son `door-tilt`, son pivot et ses gonds. -->
           <div v-for="pane in panes" :key="pane.side" class="door-tilt absolute inset-0 transform-3d" :data-side="pane.side" :style="{ transformOrigin: `${pane.hinge}% 50%` }">
             <div
