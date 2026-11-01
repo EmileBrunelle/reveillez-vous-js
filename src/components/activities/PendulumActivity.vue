@@ -39,9 +39,10 @@ const ICONS: Record<PendulumSymbolId, typeof IconMoon> = { moon: IconMoon, star:
 
 const tuning = tuningFor(level)
 // Mouvement réduit : période allongée de moitié (le jeu reste jouable), sans traînée.
-const params = computed(() => paramsFor(tuning, reduced.value))
 const symbols = pickSymbols(rand, PENDULUM_SYMBOLS, tuning.count)
 const target = pickTarget(rand, tuning.count)
+// L’aimant du symbole visé : un cristal qui s’arrête près de lui se cale dessus en glissant.
+const params = computed(() => paramsFor(tuning, reduced.value, target))
 const targetOn = symbols[target].on
 
 // État physique : variable simple (la boucle le lit et l’écrit à chaque image, aucun rendu Vue). Départ au point bas, à pleine vitesse.

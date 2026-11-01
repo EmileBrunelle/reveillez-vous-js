@@ -461,14 +461,15 @@ describe('PendulumActivity : mouvement réduit et niveaux', () => {
     expect(hud(w).text()).toContain(ACTIVITY_PROMPTS.pendulum.win)
   })
 
+  // Adapté à l’assouplissement du pendule : 5, 6, 6 puis 7 symboles (au lieu de 5 à 8), pour que le niveau 5 reste jouable.
   it('le nombre de symboles suit le niveau (2 à 5) et se borne hors de cet intervalle', async () => {
     for (const [level, n] of [
       [2, 5],
       [3, 6],
-      [4, 7],
-      [5, 8],
+      [4, 6],
+      [5, 7],
       [1, 5],
-      [9, 8],
+      [9, 7],
     ] as const) {
       const w = await monter(level)
       expect(symboles(w), `niveau ${level}`).toHaveLength(n)

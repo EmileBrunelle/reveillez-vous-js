@@ -213,18 +213,91 @@ describe('pendule : symboles', () => {
   })
 })
 
+describe('pendule : aimant', () => {
+  const level = 4
+  const t = tuningFor(level)
+  const target = 3
+  const aim = symbolAngle(target, t.count)
+  const withMagnet = paramsFor(t, false, target)
+  // Arrête à l’instant où le crâne d’arrêt (simulation à blanc) tombe à `offset` rad du symbole visé ; rend l’état au moment de l’appui.
+  const stopNear = (offset: number) => {
+    let s = launch(withMagnet, AMPLITUDE, 0, 1)
+    const noMagnet = paramsFor(t)
+    for (let time = 0; time < 12; time += 0.002) {
+      s = stepPendulum(s, 0.002, withMagnet)
+      if (s.omega > 0.5 && Math.abs(restAngle(s, noMagnet) - (aim + offset)) < 0.004) return s
+    }
+    throw new Error('aucun instant d’arrêt trouvé')
+  }
+
+  it('près du symbole visé, le cristal se cale dessus en glissant visiblement (plusieurs images, mouvement continu)', () => {
+    const s0 = stopNear(0.5 * 0.5 * symbolSpacing(t.count)) // un quart d’espacement à côté
+    let s = requestStop(s0)
+    const thetas: number[] = []
+    let snapped = false
+    for (let i = 0; i < 600 && !s.rest; i++) {
+      s = stepPendulum(s, DT, withMagnet)
+      if (s.snapTo !== null) snapped = true
+      thetas.push(s.theta)
+    }
+    expect(snapped).toBe(true)
+    expect(s.rest).toBe(true)
+    expect(s.theta).toBe(aim)
+    // Plus de 10 images de glissade avec des pas bien plus petits que la distance : un glissement, pas un saut.
+    const steps = thetas.slice(1).map((v, i) => Math.abs(v - thetas[i]))
+    expect(thetas.length).toBeGreaterThan(10)
+    expect(Math.max(...steps)).toBeLessThan(0.2 * symbolSpacing(t.count))
+    expect(heldSymbol(s.theta, t.count, t.ratio)).toBe(target)
+  })
+
+  it('hors de portée (à plus de `pull` espacements), aucun aimant : il reste où il s’est arrêté', () => {
+    const s0 = stopNear(0.5 * symbolSpacing(t.count) + 0.01)
+    let s = requestStop(s0)
+    let snapped = false
+    for (let i = 0; i < 600 && !s.rest; i++) {
+      s = stepPendulum(s, DT, withMagnet)
+      if (s.snapTo !== null) snapped = true
+    }
+    expect(snapped).toBe(false)
+    expect(s.theta).not.toBeCloseTo(aim, 2)
+  })
+
+  it('sans cible (paramsFor sans indice), l’aimant n’existe pas', () => {
+    expect(paramsFor(t).magnet).toBeUndefined()
+    expect(withMagnet.magnet?.angle).toBeCloseTo(aim, 9)
+    expect(withMagnet.magnet?.reach).toBeCloseTo(t.pull * symbolSpacing(t.count), 9)
+  })
+
+  it('la glissade après l’arrêt est courte (moins d’un demi-espacement au plus fort) et prévisible : ≈ vitesse ÷ amortissement', () => {
+    for (const lv of [2, 3, 4, 5]) {
+      const tn = tuningFor(lv)
+      const p = paramsFor(tn)
+      const s = run(launch(p, AMPLITUDE, 0, 1), p, 0.3)
+      const slide = Math.abs(restAngle(s, p) - s.theta)
+      expect(slide).toBeLessThan(0.5 * symbolSpacing(tn.count))
+      expect(slide).toBeCloseTo((Math.abs(s.omega) - p.hold) / p.stop, 1)
+    }
+  })
+})
+
 describe('pendule : niveaux', () => {
-  it('plus on monte, plus il y a de symboles, plus c’est rapide et plus la tolérance se resserre', () => {
+  // Adapté à l’assouplissement : le nombre de symboles ne croît plus à chaque niveau (5, 6, 6, 7), la tolérance reste large (portée de l’aimant ≥ 0,45 espacement).
+  it('plus on monte, plus il y a de symboles (jamais moins), plus c’est rapide et plus l’aimant se resserre ; le niveau 5 reste indulgent', () => {
     const ts = [2, 3, 4, 5].map(tuningFor)
     for (let i = 1; i < ts.length; i++) {
-      expect(ts[i].count).toBeGreaterThan(ts[i - 1].count)
+      expect(ts[i].count).toBeGreaterThanOrEqual(ts[i - 1].count)
       expect(ts[i].period).toBeLessThan(ts[i - 1].period)
-      expect(ts[i].ratio).toBeLessThan(ts[i - 1].ratio)
+      expect(ts[i].pull).toBeLessThanOrEqual(ts[i - 1].pull)
+      expect(ts[i].ratio).toBeLessThanOrEqual(ts[i - 1].ratio)
     }
+    expect(ts[3].count).toBeGreaterThan(ts[0].count)
+    expect(ts[3].count).toBeLessThanOrEqual(7)
+    expect(ts[3].period).toBeGreaterThanOrEqual(3.4)
     for (const t of ts) {
       expect(t.tries).toBeGreaterThanOrEqual(1)
       expect(t.tries).toBeLessThanOrEqual(2)
-      expect(t.count).toBeLessThanOrEqual(8) // huit icônes dans le jeu
+      expect(t.pull).toBeGreaterThanOrEqual(t.ratio) // l’aimant couvre au moins la zone du symbole
+      expect(t.pull).toBeGreaterThanOrEqual(0.45)
     }
   })
 
@@ -256,4 +329,71 @@ describe('pendule : niveaux', () => {
       }
     }
   })
+})
+
+// Simulation de parties (mulberry32, 500 par niveau). Le joueur anticipe : il vise le milieu de la fenêtre d’arrêt gagnante la plus proche
+// (après un délai de réaction aléatoire), avec une imprécision gaussienne `sd` (s) ; le joueur « au hasard » appuie à un instant uniforme.
+const GAMES = 500
+const gauss = (rng: () => number) => Math.sqrt(-2 * Math.log(1 - rng())) * Math.cos(2 * Math.PI * rng())
+const simulate = (level: number, mode: { sd: number } | 'random', seed: number) => {
+  const rng = mulberry32(seed)
+  const t = tuningFor(level)
+  let first = 0
+  let any = 0
+  for (let g = 0; g < GAMES; g++) {
+    const target = Math.floor(rng() * t.count)
+    const p = paramsFor(t, false, target)
+    let s = launch(p, AMPLITUDE)
+    let won = false
+    for (let tr = 0; tr < t.tries && !won; tr++) {
+      let press: number
+      if (mode === 'random') press = rng() * 2 * t.period
+      else {
+        // Fenêtres gagnantes : instants où l’arrêt (simulation à blanc) tombe dans la zone du symbole visé.
+        const wins: boolean[] = []
+        let probe = s
+        for (let time = 0; time < 2 * t.period; time += 0.01) {
+          wins.push(heldSymbol(restAngle(probe, p), t.count, t.ratio) === target)
+          probe = stepPendulum(probe, 0.01, p)
+        }
+        const from = Math.floor((0.3 + rng() * 0.5 * t.period) / 0.01)
+        press = from * 0.01
+        for (let i = from; i < wins.length; i++) {
+          if (!wins[i]) continue
+          let j = i
+          while (j < wins.length && wins[j]) j++
+          press = ((i + j - 1) / 2) * 0.01
+          break
+        }
+        press += gauss(rng) * mode.sd
+      }
+      press = Math.max(0.05, press)
+      for (let time = 0; time < press; time += DT) s = stepPendulum(s, Math.min(DT, press - time), p)
+      s = requestStop(s)
+      for (let time = 0; time < 4 && !s.rest; time += DT) s = stepPendulum(s, DT, p)
+      won = heldSymbol(s.theta, t.count, t.ratio) === target
+      if (won) {
+        any++
+        if (tr === 0) first++
+      } else s = launch(p, AMPLITUDE, s.theta, pushDir(s.theta))
+    }
+  }
+  return { first: first / GAMES, any: any / GAMES }
+}
+
+describe('pendule : difficulté simulée (500 parties par niveau, imprécision d’appui de 80 ms)', () => {
+  // Cibles : 92 % / 85 % / 80 % / 75 % au premier essai (niveaux 2 à 5), ≥ 95 % avec les 2 essais ; marge de ±5 points pour le bruit d’échantillonnage.
+  const goals: Record<number, number> = { 2: 0.92, 3: 0.85, 4: 0.8, 5: 0.75 }
+  for (const level of [2, 3, 4, 5]) {
+    it(`niveau ${level} : ≈ ${goals[level] * 100} % au premier essai, ≥ 93 % en deux essais, et un appui au hasard gagne rarement`, () => {
+      const skilled = simulate(level, { sd: 0.08 }, 1)
+      expect(skilled.first).toBeGreaterThan(goals[level] - 0.06)
+      expect(skilled.first).toBeLessThan(goals[level] + 0.06)
+      expect(skilled.any).toBeGreaterThanOrEqual(0.93)
+      const random = simulate(level, 'random', 2)
+      expect(random.any).toBeLessThanOrEqual(0.4) // au plus ≈ 35 % en deux essais, même au niveau le plus facile
+      if (level === 5) expect(random.any).toBeLessThanOrEqual(0.35)
+      expect(random.first).toBeLessThanOrEqual(0.25)
+    }, 120_000)
+  }
 })

@@ -21,6 +21,8 @@ export interface PendulumState {
   stopped: boolean
   /** Immobile (seulement après un arrêt) : plus rien ne bouge. */
   rest: boolean
+  /** Angle (rad) vers lequel l’aimant tire le cristal en douceur, `null` hors de la glissade finale. */
+  snapTo: number | null
 }
 
 export interface PendulumParams {
@@ -32,11 +34,17 @@ export interface PendulumParams {
   stop: number
   /** Sous cette vitesse (rad/s), après un arrêt, le cristal est retenu. */
   hold: number
+  /** Aimant du symbole visé : si le cristal s’immobilise à moins de `reach` rad de `angle`, il se cale dessus en glissant. Absent : aucun aimant. */
+  magnet?: { angle: number; reach: number }
 }
 
 export const FREE_DAMPING = 0.012
-export const STOP_DAMPING = 7
+// Amortissement de l’arrêt : fort, donc la glissade (≈ vitesse ÷ 12 rad) est courte et prévisible.
+export const STOP_DAMPING = 12
 export const HOLD_SPEED = 0.3
+/** Raideur (s⁻¹) de l’aimant : le cristal rattrape l’écart de façon exponentielle (≈ 0,5 s pour se poser). */
+export const MAGNET_RATE = 7
+const SNAP_EPS = 0.002
 
 /** Moyenne arithmético-géométrique (convergence quadratique : quelques tours suffisent). */
 const agm = (a: number, b: number): number => {
@@ -57,11 +65,22 @@ export const w2ForPeriod = (period: number, amplitude: number): number => ((2 * 
 
 /** Un pas d’intégration de `dt` (s) : Euler semi-implicite, amortissement implicite (stable même très fort). */
 const substep = (s: PendulumState, p: PendulumParams, dt: number): PendulumState => {
+  if (s.snapTo !== null) {
+    // Aimant : le cristal se pose en glissant sur le symbole visé (approche exponentielle, vitesse continue avec la glissade).
+    const gap = s.snapTo - s.theta
+    if (Math.abs(gap) < SNAP_EPS) return { theta: s.snapTo, omega: 0, stopped: true, rest: true, snapTo: null }
+    const theta = s.theta + gap * (1 - Math.exp(-MAGNET_RATE * dt))
+    return { theta, omega: (theta - s.theta) / dt, stopped: true, rest: false, snapTo: s.snapTo }
+  }
   const c = s.stopped ? p.stop : p.free
   const gravity = s.stopped ? 0 : p.w2 * Math.sin(s.theta)
   const omega = (s.omega - gravity * dt) / (1 + c * dt)
-  if (s.stopped && Math.abs(omega) < p.hold) return { theta: s.theta, omega: 0, stopped: true, rest: true }
-  return { theta: s.theta + omega * dt, omega, stopped: s.stopped, rest: false }
+  if (s.stopped && Math.abs(omega) < p.hold) {
+    const m = p.magnet
+    if (m && Math.abs(s.theta - m.angle) <= m.reach) return { theta: s.theta, omega: 0, stopped: true, rest: false, snapTo: m.angle }
+    return { theta: s.theta, omega: 0, stopped: true, rest: true, snapTo: null }
+  }
+  return { theta: s.theta + omega * dt, omega, stopped: s.stopped, rest: false, snapTo: null }
 }
 
 /** Avance l’état de `dt` secondes (découpé en pas fixes) ; un état immobile est rendu tel quel. */
@@ -82,7 +101,7 @@ export const requestStop = (s: PendulumState): PendulumState => (s.stopped ? s :
  */
 export const launch = (p: PendulumParams, amplitude: number, theta = 0, dir: 1 | -1 = 1): PendulumState => {
   const k = 2 * p.w2 * (Math.cos(theta) - Math.cos(amplitude))
-  return { theta, omega: dir * Math.sqrt(Math.max(0, k)), stopped: false, rest: false }
+  return { theta, omega: dir * Math.sqrt(Math.max(0, k)), stopped: false, rest: false, snapTo: null }
 }
 
 /** Côté vers lequel pousser depuis un repos à `theta` : vers le côté où il y a le plus de place (au centre, vers la droite). */
@@ -120,25 +139,28 @@ export interface PendulumTuning {
   period: number
   /** Demi-largeur de la zone d’un symbole, en part de l’espacement (0,5 = jointives). */
   ratio: number
+  /** Portée de l’aimant du symbole visé, en part de l’espacement (au-delà de 0,5 : il attire aussi un peu dans la zone des voisins). */
+  pull: number
   /** Essais avant l’échec. */
   tries: number
 }
 
 const TUNINGS: readonly PendulumTuning[] = [
-  { count: 5, period: 3.6, ratio: 0.5, tries: 2 },
-  { count: 6, period: 3.3, ratio: 0.46, tries: 2 },
-  { count: 7, period: 3.0, ratio: 0.42, tries: 2 },
-  { count: 8, period: 2.8, ratio: 0.4, tries: 2 },
+  { count: 5, period: 3.8, ratio: 0.5, pull: 0.55, tries: 2 },
+  { count: 6, period: 3.6, ratio: 0.5, pull: 0.5, tries: 2 },
+  { count: 6, period: 3.5, ratio: 0.46, pull: 0.46, tries: 2 },
+  { count: 7, period: 3.4, ratio: 0.46, pull: 0.46, tries: 2 },
 ]
 
 export const tuningFor = (level: number): PendulumTuning => TUNINGS[Math.min(5, Math.max(2, Math.round(level))) - 2]
 
-/** Paramètres physiques d’un niveau ; `slow` (mouvement réduit) allonge la période de moitié. */
-export const paramsFor = (tuning: PendulumTuning, slow = false): PendulumParams => ({
+/** Paramètres physiques d’un niveau ; `slow` (mouvement réduit) allonge la période de moitié ; `target` (indice visé) arme l’aimant. */
+export const paramsFor = (tuning: PendulumTuning, slow = false, target?: number): PendulumParams => ({
   w2: w2ForPeriod(tuning.period * (slow ? 1.5 : 1), AMPLITUDE),
   free: FREE_DAMPING,
   stop: STOP_DAMPING,
   hold: HOLD_SPEED,
+  magnet: target === undefined ? undefined : { angle: symbolAngle(target, tuning.count), reach: tuning.pull * symbolSpacing(tuning.count) },
 })
 
 /** Tire `n` éléments distincts de `pool`, dans un ordre aléatoire (Fisher-Yates, `rng` injecté). */
