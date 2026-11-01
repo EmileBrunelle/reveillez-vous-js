@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DECK_LAYERS, DECK_THICK, DECK_TILT, STOW_SCALE, cardRect, rectsOverlap } from '@/components/deckFan'
-import { INSERT_CARD_MS, INSERT_COVER_OFF_MS, INSERT_MS, INSERT_SIDE_GAP, INSERT_TOTAL_MS, insertPoses, pickSlot, projectDepth, slotDepth } from '@/components/deckInsert'
+import { DECK_LAYERS, DECK_THICK, DECK_TILT, STOW_SCALE, cardRect, rectsOverlap } from '@/engine/deckFan'
+import { INSERT_CARD_MS, INSERT_COVER_OFF_MS, INSERT_MS, INSERT_SIDE_GAP, INSERT_TOTAL_MS, insertPoses, pickSlot, projectDepth, slotDepth } from '@/engine/deckInsert'
 
 const REPOS = { rx: DECK_TILT.x, ry: DECK_TILT.y, y: 0 }
 // Poses extrêmes du paquet : respiration (±1,2°) et inclinaison du pointeur (±7°) ajoutées au repos.

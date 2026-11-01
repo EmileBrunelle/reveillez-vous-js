@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isDrag } from '@/components/deckTouch'
+import { isDrag } from '@/engine/deckTouch'
 
 describe('deckTouch', () => {
   it('distingue tap et glissement', () => {

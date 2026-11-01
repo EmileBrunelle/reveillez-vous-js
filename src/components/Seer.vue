@@ -22,7 +22,7 @@ import {
   orbLevel,
   rimLevel,
   tintFor,
-} from './seerPose'
+} from '@/engine/seerPose'
 
 /**
  * La voyante, vue à contre-jour dans l’embrasure. Décorative (aria-hidden) : le texte reste dans DoorScene.

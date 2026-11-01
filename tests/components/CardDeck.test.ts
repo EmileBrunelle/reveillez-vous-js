@@ -3,9 +3,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { mount, type VueWrapper } from '@vue/test-utils'
-import { DECK_LAYERS, DECK_TILT, deckPose } from '@/components/deckFan'
-import { deckShown } from '@/components/deckShown'
-import { INSERT_TOTAL_MS, deckSlot } from '@/components/deckInsert'
+import { DECK_LAYERS, DECK_TILT, deckPose } from '@/engine/deckFan'
+import { deckShown } from '@/engine/deckShown'
+import { INSERT_TOTAL_MS, deckSlot } from '@/engine/deckInsert'
 
 // Motion simulé : valeurs minimales (get/set), enveloppes transparentes, animations espionnes (WAAPI absent sous happy-dom).
 const exit = vi.hoisted(() => ({ fn: null as null | (() => Promise<void>) }))

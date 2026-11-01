@@ -8,7 +8,7 @@ import { useSessionStore } from '@/stores/session'
 import type { Arcane } from '@/engine/prophecy'
 
 // `~icons/…?raw` n’est pas résoluble sous Vitest : le masque d’emblème est remplacé.
-vi.mock('@/components/emblemMask', () => ({ emblemMask: (s: string) => `url(masque-${s})` }))
+vi.mock('@/engine/emblemMask', () => ({ emblemMask: (s: string) => `url(masque-${s})` }))
 // Le reflet passe par Web Animations (happy-dom annule la promesse de `useAnimate`) : remplacé par un espion.
 const shimmer = vi.hoisted(() => vi.fn())
 vi.mock('@/composables/useCardShimmer', () => ({ useCardShimmer: () => ({ shimmer, shimmering: ref(false) }) }))

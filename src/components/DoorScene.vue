@@ -28,7 +28,7 @@ import KnockPattern from './KnockPattern.vue'
 import DoorShading from './DoorShading.vue'
 import DoorGround from './DoorGround.vue'
 import Door3D from './doors3d/Door3D.vue'
-import { lookFor } from './doorLook'
+import { lookFor } from '@/engine/doorLook'
 
 const { door, line, level, closing, quick } = defineProps<{ door: SceneVariant; line: string; level: ParanoiaLevel; closing?: boolean; quick?: boolean }>()
 const emit = defineEmits<{ open: []; about: []; reset: []; resetLevel: []; impact: [number]; knocked: []; closed: []; listening: [boolean] }>()

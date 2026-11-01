@@ -6,7 +6,7 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import DeckCut from '@/components/DeckCut.vue'
 import { PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets } from '@/engine/paquets'
 import { mulberry32 } from '@/engine/rng'
-import { drawPileOrder } from '@/components/deckFan'
+import { drawPileOrder } from '@/engine/deckFan'
 import { useQualityStore } from '@/stores/quality'
 
 // La boucle rAF et la mesure de la boîte sont pilotées à la main : la géométrie n’existe pas sous happy-dom.

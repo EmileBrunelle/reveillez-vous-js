@@ -28,9 +28,9 @@ import {
   shadowOf,
   stowDelay,
   stowOf,
-} from './deckFan'
-import { deckShown } from './deckShown'
-import { isDrag } from './deckTouch'
+} from '@/engine/deckFan'
+import { deckShown } from '@/engine/deckShown'
+import { isDrag } from '@/engine/deckTouch'
 import { cardDeal } from '@/audio/sfx'
 import { cardHover, cardPick, cardPickStill } from '@/audio/cards'
 import { EMBLEMS, PAQUET_NOMS, PAQUET_PRESAGES, shufflePaquets, type Paquet } from '@/engine/paquets'

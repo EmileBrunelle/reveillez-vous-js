@@ -18,7 +18,7 @@ import {
   ramp,
   rimLevel,
   tintFor,
-} from '@/components/seerPose'
+} from '@/engine/seerPose'
 import { places } from '@/content/scenes'
 
 describe('seerPose : boucles lentes (photosensibilité)', () => {

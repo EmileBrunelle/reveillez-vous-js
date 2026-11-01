@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
-import { lookFor } from './doorLook'
+import { lookFor } from '@/engine/doorLook'
 
 /**
  * Donne du volume à un SVG de porte plat sans le redessiner : un filtre SVG fait de la luminance et de la silhouette une carte de hauteur

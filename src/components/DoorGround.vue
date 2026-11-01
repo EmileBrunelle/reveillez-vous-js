@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { lookFor } from './doorLook'
+import { lookFor } from '@/engine/doorLook'
 
 /**
  * Ancre la porte dans le décor, en calques statiques (dégradés CSS, aucun filtre, aucun coût par image) :

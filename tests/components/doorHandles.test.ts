@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { doorLooks, lookFor } from '@/components/doorLook'
+import { doorLooks, lookFor } from '@/engine/doorLook'
 import { doors } from '@/content/scenes'
 
 // Nombre d’éléments `.door-handle` dans le SVG source de la porte (l’ordre de doorLook.handles suit celui du document).

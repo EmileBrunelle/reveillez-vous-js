@@ -20,7 +20,7 @@ import {
   stowDelay,
   stowFrac,
   stowOf,
-} from '@/components/deckFan'
+} from '@/engine/deckFan'
 
 describe('deckFan : pile de rangement sur le dessus du paquet', () => {
   it('la pile est au centre de la boîte (dessus du paquet), plus petite que l’éventail, légèrement décalée carte par carte', () => {
@@ -67,7 +67,7 @@ describe('deckFan : pile de rangement sur le dessus du paquet', () => {
   })
 })
 
-import { EXIT_SHIFT, cardRect, rectsOverlap, FAN } from '@/components/deckFan'
+import { EXIT_SHIFT, cardRect, rectsOverlap, FAN } from '@/engine/deckFan'
 
 describe('deckFan : séparation avant changement d’ordre', () => {
   const W = 300
@@ -90,7 +90,7 @@ describe('deckFan : séparation avant changement d’ordre', () => {
   })
 })
 
-import { depthOf, shadowOf } from '@/components/deckFan'
+import { depthOf, shadowOf } from '@/engine/deckFan'
 
 describe('deckFan : profondeur et ombre', () => {
   it('la profondeur suit l’échelle, bornée entre la pile (0) et la carte du tirage (1)', () => {
@@ -110,7 +110,7 @@ describe('deckFan : profondeur et ombre', () => {
   })
 })
 
-import { clampExitX } from '@/components/deckFan'
+import { clampExitX } from '@/engine/deckFan'
 
 describe('deckFan : sortie bornée au viewport', () => {
   // boîte centrée à 192 px dans un viewport de 384 px, carte de 80 px de demi-largeur, marge 10

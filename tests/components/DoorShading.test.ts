@@ -4,7 +4,7 @@ import { h } from 'vue'
 import { mount } from '@vue/test-utils'
 import DoorShading from '@/components/DoorShading.vue'
 import DoorGround from '@/components/DoorGround.vue'
-import { doorLooks, lookFor } from '@/components/doorLook'
+import { doorLooks, lookFor } from '@/engine/doorLook'
 import { doors } from '@/content/scenes'
 
 describe('doorLook', () => {
