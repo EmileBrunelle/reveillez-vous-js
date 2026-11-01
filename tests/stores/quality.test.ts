@@ -229,3 +229,22 @@ describe('niveau posé', () => {
     expect(q.settled).toBe('medium')
   })
 })
+
+describe('plafond de cadence à 30 Hz', () => {
+  it('rAF bridé à 30 Hz : le niveau tient ; un temps GPU élevé sous plafond fait descendre', () => {
+    const q = fresh()
+    let t = 0
+    for (let i = 0; i < 300; i++) {
+      t += 1000 / 30
+      q.sample(1000 / 30, t)
+    }
+    expect(q.level).toBe('high')
+    // Le GPU rapporte un passage de fond au-dessus du budget d’ombres : même plafonné, c’est une vraie surcharge.
+    for (let i = 0; i < 300 && q.level === 'high'; i++) {
+      t += 1000 / 30
+      q.sample(1000 / 30, t)
+      q.reportGpuMs(30, t)
+    }
+    expect(q.level).toBe('medium')
+  })
+})

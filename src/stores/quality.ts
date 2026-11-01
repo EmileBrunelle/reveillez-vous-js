@@ -15,6 +15,10 @@ import { resetShadowVerdict, SHADOW_BUDGET_MS, SHADOWS_OFF_MEDIA } from '@/effec
  * depuis un même niveau, on ne revient plus à ce niveau de la session (anti-yoyo : à un niveau bas, les mesures sont meilleures
  * et feraient remonter puis redescendre en boucle).
  *
+ * Plafond de cadence : si le 5e centile des intervalles tombe sur ~33,3 ms (rAF bridé à 30 Hz : économie d’énergie, écran à 30 Hz),
+ * la moyenne ne dit plus rien ; on ne descend alors que sur des images manquées (> ~47 ms, plus de 15 % de la fenêtre) ou sur le
+ * temps GPU (`reportGpuMs`, juge séparé sans détection de plafond).
+ *
  * Douceur : une descente s’applique tout de suite (c’est un secours : la saccade est déjà visible) ; une remontée est seulement
  * mise en attente (`pendingUp`) et appliquée au prochain changement de scène ou de phase (`transition`), jamais en pleine animation.
  *
@@ -30,10 +34,9 @@ import { resetShadowVerdict, SHADOW_BUDGET_MS, SHADOWS_OFF_MEDIA } from '@/effec
  * - Une option coûteuse tout-ou-rien (ombres) s’allume seulement si `atLeast('high')`.
  *
  * ### Encore à brancher (agents au travail sur ces fichiers au moment de l’écriture)
- * - Filtre de relief des portes (`DoorShading.vue`, `doorLook.ts`) : sauter le filtre SVG (feTurbulence/feDiffuseLighting) sous
- *   `!atLeast('medium')`, et le garder tel quel en `high`. Un `v-if` sur le filtre suffit, sans transition (la porte est statique).
- * - Ombres et inclinaison des cartes (`TarotCard.vue`, `CardDeck.vue`, `DeckCut.vue`) : en `low`, ombre portée unique au lieu de
+ * - Ombres et inclinaison des cartes (`TarotCard.vue`, `CardDeck.vue`) : en `low`, ombre portée unique au lieu de
  *   plusieurs couches et inclinaison (`useCardTilt`) sans lumière dynamique ; lire `level` dans un `computed`, jamais dans un style inline recalculé par image.
+ *   (`DeckCut.vue` est branchée : `settled` lu au montage, `low` = sans sur-échantillonnage, sans inclinaison au pointeur, ombre fixe.)
  * - Door3D (`src/effects/door3d*`, `doors3d/*`) : passer `quality.level` à `createRaymarch`-like (`quality: () => level.value`) ou
  *   mettre l’uniforme `shadows` à `atLeast('high') ? 1 : 0` ; réduire le DPR comme `placeDpr` (voir `effects/resolution.ts`).
  * - Tout nouveau chargeur GPU qui passe par `startGpuLoop` : fournir `quality` et `onGpuSample` comme dans `BgPlace.vue`.
@@ -94,7 +97,7 @@ export const useQualityStore = defineStore('quality', () => {
 
   const frameJudge = createFrameJudge()
   // Temps GPU du passage du fond (timer de vgpu, rapporté par `createRaymarch`) : même règle de descente, budget des ombres.
-  const gpuJudge = createFrameJudge({ downMs: SHADOW_BUDGET_MS })
+  const gpuJudge = createFrameJudge({ downMs: SHADOW_BUDGET_MS, capMs: 0 })
   // Meilleur niveau permis (rang le plus petit) : le départ, relevé vers le bas par l’anti-yoyo.
   let bestRank = rank(start)
   const dropsFrom: Record<QualityLevel, number> = { high: 0, medium: 0, low: 0 }

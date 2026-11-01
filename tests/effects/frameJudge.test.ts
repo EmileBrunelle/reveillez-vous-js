@@ -85,4 +85,53 @@ describe('juge de fluidité', () => {
     expect(s.p95).toBe(95)
     expect(j.stats(100, 1000)!.n).toBeLessThanOrEqual(11)
   })
+
+  describe('plafond de cadence à 30 Hz', () => {
+    /** Images de 33,3 ms, dont une sur `every` dure `slowMs` (le retard est rattrapé sur l’image suivante : la cadence reste ~30 Hz). */
+    const capped = (j: ReturnType<typeof createFrameJudge>, durationMs: number, every: number, slowMs: number) => {
+      const verdicts: Verdict[] = []
+      let t = 0
+      for (let i = 1; t < durationMs; i++) {
+        const ms = every > 0 && i % every === 0 ? slowMs : 1000 / 30
+        t += ms
+        const v = j.push(ms, t)
+        if (v) verdicts.push(v)
+      }
+      return verdicts
+    }
+
+    it('un 30 Hz régulier ne fait pas descendre (la moyenne de 33 ms n’est pas une surcharge)', () => {
+      expect(capped(createFrameJudge(), 8000, 0, 0)).not.toContain('down')
+    })
+
+    it('une gigue légère sous plafond (une image sur dix à 40 ms) ne fait pas descendre', () => {
+      expect(capped(createFrameJudge(), 8000, 10, 40)).not.toContain('down')
+    })
+
+    it('un 30 Hz avec des images à 66 ms descend', () => {
+      expect(capped(createFrameJudge(), 8000, 3, 66.7)).toContain('down')
+    })
+
+    it('images de 50 ms irrégulières sous plafond : descente', () => {
+      expect(capped(createFrameJudge(), 8000, 4, 50)).toContain('down')
+    })
+
+    it('60 Hz surchargé (moyenne de 30 ms, pas de plafond) descend toujours', () => {
+      const { verdicts } = feed(createFrameJudge(), 0, 3000, 30)
+      expect(verdicts[0]?.v).toBe('down')
+    })
+
+    it('la détection se désactive avec capMs = 0 (juge GPU)', () => {
+      expect(capped(createFrameJudge({ capMs: 0 }), 8000, 0, 0)).toContain('down')
+    })
+  })
+
+  it('le tampon circulaire déborde proprement : 20 000 mesures à 1 ms gardent une fenêtre cohérente', () => {
+    const j = createFrameJudge({ evalEveryMs: 1e9 })
+    for (let i = 1; i <= 20_000; i++) j.push(1, i)
+    const s = j.stats(5000, 20_000)!
+    expect(s.n).toBeLessThanOrEqual(5001)
+    expect(s.mean).toBe(1)
+    expect(j.stats(5000, 20_000 + 10_000)).toBeNull()
+  })
 })
