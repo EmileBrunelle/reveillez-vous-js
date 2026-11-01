@@ -389,6 +389,7 @@ describe('fadeParam (rampes planifiées)', () => {
 
 describe('niveau de paranoïa dans startAmbience', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.useFakeTimers()
     vi.stubGlobal('window', { AudioContext: FakeCtx })
     Object.assign(stats, { created: 0, started: 0, stopped: 0, disconnected: 0, paramCalls: 0, looped: 0, removed: [], times: [] })

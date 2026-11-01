@@ -24,6 +24,12 @@
 :root {
   --taskbar-h: calc(2.5rem + 4px + var(--safe-b));
 }
+/* Bouton Pause du HUD des activités : sa marge au bord (au moins 0,75 rem, plus la zone de sécurité) et sa largeur (2 rem).
+   `--hud-pause-reserve` = marge + bouton + 0,75 rem d’air : les lignes du haut des activités l’appliquent en padding pour ne jamais s’en approcher. */
+:root {
+  --hud-pause-edge: max(0.75rem, var(--safe-r));
+  --hud-pause-reserve: calc(var(--hud-pause-edge) + 2rem + 0.75rem);
+}
 :root {
   --bg: #000080;
   --fg: #ffffff;

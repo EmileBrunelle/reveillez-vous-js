@@ -231,7 +231,7 @@ const keyboardHelpId = useId()
 
 <template>
   <div ref="stage" class="absolute inset-0 touch-none select-none" data-testid="wisps-stage">
-    <p ref="promptEl" class="font-ui absolute inset-x-0 top-3 m-0 px-4 text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
+    <p ref="promptEl" class="font-ui absolute inset-x-0 top-3 m-0 px-[var(--hud-pause-reserve)] text-center text-xl text-emerald-100" :class="{ invisible: outcome !== 'play' }" aria-live="polite">
       {{ prompt }}
     </p>
     <p :id="keyboardHelpId" class="sr-only">Au clavier, activez le bouton « Attraper le feu follet ».</p>

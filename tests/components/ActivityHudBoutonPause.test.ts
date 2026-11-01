@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+/* eslint-disable vue/one-component-per-file -- hôtes de test : plusieurs petits composants définis dans le même fichier. */
 import { afterEach, describe, expect, it } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia } from 'pinia'
@@ -101,6 +102,33 @@ describe('ActivityHud : bouton Pause', () => {
     window.dispatchEvent(new Event('focus'))
     await nextTick()
     expect(document.body.textContent).toContain('Revenez dans la fenêtre')
+  })
+
+  it('pause en quittant la fenêtre : le contrôle du jeu qui avait le focus le retrouve à la reprise', async () => {
+    // Hôte à deux frères (zone de jeu + HUD), comme dans une activité : `inert` posé sur la zone de jeu lui retire le focus.
+    const hote = defineComponent({
+      setup() {
+        api = useActivityDone(() => {}, { durationMs: 60_000 })
+        return () => [
+          h('div', { 'data-testid': 'jeu' }, [h('button', { id: 'controle', type: 'button' }, 'Pendule')]),
+          h(ActivityHud, { activity: 'pendulum', outcome: api.outcome.value, startedAt: api.startedAt, paused: api.paused.value }),
+        ]
+      },
+    })
+    wrapper = mount(hote, { attachTo: document.body, global: { plugins: [createPinia()] } })
+    const controle = document.body.querySelector<HTMLButtonElement>('#controle')!
+    controle.focus()
+    expect(document.activeElement).toBe(controle)
+    window.dispatchEvent(new Event('blur'))
+    await nextTick()
+    expect(controle.closest('[inert]')).not.toBeNull()
+    window.dispatchEvent(new Event('focus'))
+    await nextTick()
+    reprendre()!.click()
+    await nextTick()
+    await nextTick()
+    expect(controle.closest('[inert]')).toBeNull()
+    expect(document.activeElement).toBe(controle)
   })
 
   it('le bouton disparaît quand l’issue est affichée', async () => {

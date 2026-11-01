@@ -82,6 +82,8 @@ watch(
 // Le voile, le bouton Pause et la barre des tâches (hors de l’activité) restent hors de cette zone. On ne retire `inert` que sur ce qu’on a posé nous-mêmes.
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
 let rendusInertes: Element[] = []
+// Élément de la zone de jeu qui avait le focus au moment de la pause : `inert` le lui retire (le focus tombe sur le body), on le lui rend à la reprise.
+let focusAvantPause: HTMLElement | null = null
 const libererJeu = () => {
   for (const el of rendusInertes) el.removeAttribute('inert')
   rendusInertes = []
@@ -90,11 +92,13 @@ const regler = (on: boolean) => {
   libererJeu()
   if (!on) return
   const racine = rootEl.value
+  const actif = document.activeElement // lu avant de poser `inert` (qui déplace le focus)
   for (const el of racine?.parentElement?.children ?? []) {
     if (el === racine || el.hasAttribute('inert')) continue
     el.setAttribute('inert', '')
     rendusInertes.push(el)
   }
+  focusAvantPause = actif instanceof HTMLElement && rendusInertes.some((el) => el.contains(actif)) ? actif : null
 }
 watch(showPause, regler, { flush: 'sync' })
 onMounted(() => regler(showPause.value)) // monté déjà en pause : la racine n’existait pas encore pour la veille
@@ -111,7 +115,10 @@ watch(
   async (s, avant) => {
     if (s || !avant) return
     await nextTick()
-    focusQuietly(pauseEl.value)
+    // Pause automatique (onglet caché, menu Démarrer) : le contrôle du jeu qui avait le focus le retrouve (Espace et Entrée marchent aussitôt) ; sinon le bouton Pause.
+    const rendre = focusAvantPause?.isConnected && !focusAvantPause.closest('[inert]') ? focusAvantPause : null
+    focusAvantPause = null
+    focusQuietly(rendre ?? pauseEl.value)
   },
   { flush: 'post' },
 )
@@ -191,13 +198,13 @@ watch(
     >
       <div :key="barKey" class="drain h-full origin-left" :style="{ animationDelay: drainFrom }" :class="{ paused: paused || outcome !== 'play' }" />
     </div>
-    <!-- bouton Pause : coin haut droit, zone de toucher de 44 px (pseudo-élément) ; absent une fois l’issue affichée -->
+    <!-- bouton Pause : coin haut droit (marge `--hud-pause-edge`, la réserve `--hud-pause-reserve` est appliquée par les lignes du haut des activités), zone de toucher de 44 px (pseudo-élément) ; absent une fois l’issue affichée -->
     <button
       v-if="outcome === 'play' && pauseByPlayer"
       ref="pauseEl"
       type="button"
       aria-label="Mettre en pause"
-      class="win-btn pointer-events-auto absolute top-2 right-2 z-10 grid size-8 place-content-center before:content-[''] before:absolute before:-inset-[6px]"
+      class="win-btn pointer-events-auto absolute top-3 right-[var(--hud-pause-edge)] z-10 grid size-8 place-content-center before:content-[''] before:absolute before:-inset-[6px]"
       @click="pauseByPlayer"
     >
       <span class="flex gap-[3px]" aria-hidden="true"><span class="block h-3.5 w-[4px] bg-black" /><span class="block h-3.5 w-[4px] bg-black" /></span>
