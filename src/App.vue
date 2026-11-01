@@ -242,7 +242,7 @@ watch(
           >
             <main
               ref="mainEl"
-              class="app relative z-1 min-h-[100vh] min-h-[100dvh] grid place-items-center pt-[var(--pad-t)] pr-[var(--pad-x-r)] pl-[var(--pad-x-l)] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip"
+              class="app relative z-1 min-h-[100dvh] grid place-items-center pt-[var(--pad-t)] pr-[var(--pad-x-r)] pl-[var(--pad-x-l)] pb-[calc(0.75rem+var(--taskbar-h))] overflow-clip"
               :class="{ 'app--reading': phase === 'reading' || phase === 'cut' }"
             >
               <AnimatePresence mode="wait">
