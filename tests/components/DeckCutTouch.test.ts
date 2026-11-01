@@ -58,7 +58,24 @@ describe('DeckCut : toucher', () => {
   const pointer = (cible: Element | null) => Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => cible })
   const paquets = shufflePaquets(mulberry32(7))
 
-  it('un glissement qui finit sur la carte 2 choisit le paquet 2', async () => {
+  it('glisser de la carte 1 à la carte 3 puis relâcher ne choisit rien : l’aperçu suit le doigt', async () => {
+    const w = monter()
+    await vi.advanceTimersByTimeAsync(1100)
+    const cartes = w.findAll('button.deck__card').map((c) => c.element)
+    toucher(cartes[0], 'pointerdown', 0)
+    pointer(cartes[1])
+    toucher(cartes[0], 'pointermove', 40)
+    pointer(cartes[2])
+    toucher(cartes[0], 'pointermove', 90)
+    toucher(cartes[0], 'pointerup', 90)
+    // Le click que le navigateur pourrait émettre au relâchement est ignoré lui aussi.
+    cartes[2].dispatchEvent(new PointerEvent('click', { pointerType: 'touch', bubbles: true }))
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(w.emitted('pick')).toBeUndefined()
+    expect(w.findAll('.deck__line--on')).toHaveLength(1) // aperçu resté sur la dernière carte survolée
+  })
+
+  it('après un glissement, un tap net choisit la carte tapée', async () => {
     const w = monter()
     await vi.advanceTimersByTimeAsync(1100)
     const cartes = w.findAll('button.deck__card').map((c) => c.element)
@@ -66,8 +83,11 @@ describe('DeckCut : toucher', () => {
     toucher(cartes[0], 'pointerdown', 0)
     toucher(cartes[0], 'pointermove', 50)
     toucher(cartes[0], 'pointerup', 50)
+    await vi.advanceTimersByTimeAsync(800)
+    toucher(cartes[1], 'pointerdown', 0)
+    toucher(cartes[1], 'pointerup', 0)
     await vi.advanceTimersByTimeAsync(3000)
-    expect(w.emitted('pick')).toEqual([[paquets[2]]])
+    expect(w.emitted('pick')).toEqual([[paquets[1]]])
   })
 
   it('un glissement qui finit hors des cartes ne choisit rien', async () => {

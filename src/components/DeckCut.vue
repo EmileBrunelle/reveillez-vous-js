@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch, useTemplateRef } from 'vue'
 import { M as Motion, animate, useMotionValue } from 'motion-v'
-import { useEventListener, useElementSize, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
+import { useElementBounding, useEventListener, useElementSize, useMediaQuery, useRafFn, useTimeoutFn } from '@vueuse/core'
 import TarotCardBack from './TarotCardBack.vue'
 import TarotEmblem from './TarotEmblem.vue'
 import {
@@ -235,7 +235,7 @@ let deckCx = 0 // centre de la boîte à l’écran et largeur du viewport, lus 
 let viewW = 0
 let flown = false // la carte choisie a pris le premier plan et part vers la lecture
 let flyAt = 0
-const EXIT_MAX = 900 // filet : si la séparation n’arrive jamais (boîte minuscule), la carte passe devant quand même
+const EXIT_MAX = 900 // filet : si la séparation tarde (écran étroit, images lentes), la carte sort plus loin ; elle ne passe devant qu’une fois séparée
 // Vrai quand le rectangle de la carte i ne touche plus celui d’aucune autre carte encore visible (une carte quasi transparente ne compte plus).
 const separated = (i: number) => {
   const box = (c: Card) => cardRect({ x: c.x.c, y: c.y.c, s: c.s.c, r: c.r.c }, W, 0.03 * W)
@@ -249,7 +249,6 @@ const apartFrom = (i: number, j: number) => {
   return !rectsOverlap(box(state[i]), box(state[j]))
 }
 const DEAL_SHIFT = 0.5 // écart latéral de la carte qui dégage le milieu à la donne (fraction de W, borné au viewport)
-let excursionEnd = 0 // passé cet instant, une carte qui n’a pas pu se séparer revient à sa place : l’ordre reste celui de la pile (aucune permutation en chevauchement)
 
 const apply = () => {
   cards.forEach((i) => {
@@ -308,8 +307,10 @@ const tick = (now: number) => {
       const pile = dealStartOf(i, W)
       const rest = inPile ? { x: pile.x, y: pile.y + deckPose.y * W, r: pile.r, s: pile.s } : restOf(i, hot.value)
       // Une carte latérale qui part du sommet et recouvre encore la carte du milieu s’écarte d’abord sur le côté : dès que leurs rectangles sont séparés, la carte du milieu passe devant, puis elle revient à sa place.
-      if (!inPile && i !== 1 && now < excursionEnd && stack.value.indexOf(i) > stack.value.indexOf(1)) {
-        rest.x = clampExitX(rest.x + Math.sign(FAN[i].x) * DEAL_SHIFT * W, deckCx, viewW, (rest.s * 1.06 * W) / 2, 0.04 * W)
+      // Aucune limite de temps : l’écartement dure tant que la carte du milieu n’est pas passée devant (une image lente ne fige jamais l’ordre de la pile).
+      if (!inPile && i !== 1 && stack.value.indexOf(i) > stack.value.indexOf(1)) {
+        // Pas de bornage au viewport : sur un écran étroit, la carte sort en partie de l’écran le temps que les rectangles se séparent (html/body coupent le débordement).
+        rest.x += Math.sign(FAN[i].x) * Math.max(DEAL_SHIFT, 1.1 * rest.s) * W
       }
       const isHot = hot.value === i
       // Léger balancement propre à chaque carte (mouvement seulement), calmé sous le pointeur.
@@ -337,7 +338,10 @@ const tick = (now: number) => {
         c.s.t = rest.s * (i === 1 ? 0.94 : 1.06) // la carte qui sort se rapproche (elle grossit), comme celles qui se rangent reculent (elles rétrécissent vers la pile)
         c.k = i === 1 ? 420 : 380
         c.zeta = i === 1 ? 0.9 : 0.8
-        if (i === 1 ? now >= pickAt + FLY_DELAY : separated(i) || now >= pickAt + EXIT_MAX) {
+        // Filet de séparation : passé EXIT_MAX, la carte monte encore d’une hauteur de carte (écran étroit) ; le z, lui, attend TOUJOURS `separated`.
+        if (now >= pickAt + EXIT_MAX && !separated(i)) c.y.t -= 1.2 * W
+        const onTop = stack.value[stack.value.length - 1] === i
+        if (separated(i) || (i === 1 && onTop && now >= pickAt + FLY_DELAY)) {
           flown = true
           flyAt = now
           flying.value = true
@@ -470,7 +474,6 @@ onMounted(() => {
     return
   }
   const now = performance.now()
-  excursionEnd = now + DEAL_HOLD_MS + 2 * DEAL_STEP_MS + 520
   const r = deckEl.value?.getBoundingClientRect()
   deckCx = r ? r.left + r.width / 2 : 0
   viewW = window.innerWidth
@@ -515,16 +518,21 @@ const labelOnly = (i: number | null) => {
     layoutStatic() // pas d’animation : les voisines se déplacent d’un coup pour découvrir l’emblème
   }
 }
+// Boîte du paquet suivie par VueUse (ResizeObserver, défilement, redimensionnement) : aucun getBoundingClientRect par pointermove,
+// qui forcerait un recalcul de style et de mise en page à chaque événement pendant que les ressorts écrivent les transforms.
+const deckBox = useElementBounding(deckEl)
 const onEnter = (i: number, e: PointerEvent) => {
   if (e.pointerType === 'touch') return
   if (reduced.value) return labelOnly(i)
+  deckBox.update() // une seule lecture de la boîte à l’entrée (le paquet a pu glisser sans changer de taille), aucune pendant le survol
   if (ready.value && chosen.value === null && hot.value !== i) cardHover() // pas de mouvement en mouvement réduit : pas de frôlement
   setHot(i)
 }
 const onLeave = (i: number, e?: PointerEvent) => (e?.pointerType === 'touch' ? undefined : hot.value === i ? (reduced.value ? labelOnly(null) : setHot(null)) : undefined)
 const onMove = (i: number, e: PointerEvent) => {
-  if (hot.value !== i || e.pointerType === 'touch' || reduced.value || !deckEl.value) return
-  const r = deckEl.value.getBoundingClientRect()
+  if (hot.value !== i || e.pointerType === 'touch' || reduced.value) return
+  const r = { left: deckBox.left.value, top: deckBox.top.value, width: deckBox.width.value, height: deckBox.height.value }
+  if (!r.width) return
   const f = FAN[i]
   const cardW = fanScale() * r.width
   const cx = r.left + r.width / 2 + (fx(i) / 100) * r.width
@@ -533,7 +541,7 @@ const onMove = (i: number, e: PointerEvent) => {
   ny = clamp((e.clientY - cy) / ((cardW * 12) / 7 / 2), -1, 1)
 }
 // Toucher : un tap choisit tout de suite la carte touchée (résolue au pointerdown, avant tout déplacement de la disposition) ;
-// un glissement met l’aperçu sous le doigt et lever le doigt choisit la carte touchée (sinon celle en aperçu) ; un tap hors des cartes annule l’aperçu.
+// un glissement ne fait que déplacer l’aperçu sous le doigt (relâcher ne choisit rien) ; un tap hors des cartes annule l’aperçu.
 // La carte visée est celle que la personne voit sous son doigt : le navigateur résout le z-index, les rotations et les transforms (hit-test réel).
 // Le `click` synthétisé du toucher est ignoré (voir onClick).
 const coarse = useMediaQuery('(pointer: coarse)')
@@ -586,9 +594,9 @@ useEventListener(window, 'pointerup', (e: PointerEvent) => {
   const t = touch
   touch = null
   if (chosen.value !== null) return
-  touchUpAt = performance.now()
-  const i = t.drag ? cardUnder(e.clientX, e.clientY) : t.card // tap : la carte du pointerdown ; glissement : la carte sous le doigt
-  if (i !== null) choose(i) // relever hors de toute carte après un glissement annule : l’aperçu reste, rien n’est choisi
+  touchUpAt = performance.now() // après un glissement aussi : le `click` éventuel qui suit le relâchement est ignoré (voir onClick)
+  // Seul un tap net choisit (la carte du pointerdown) ; relâcher après un glissement ne choisit RIEN : l’aperçu reste sur la dernière carte survolée.
+  if (!t.drag) choose(t.card)
 })
 // Geste interrompu par le système : l’aperçu reste visible, sans choix ; le prochain tap choisit.
 useEventListener(window, 'pointercancel', (e: PointerEvent) => {
