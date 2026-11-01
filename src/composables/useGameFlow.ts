@@ -20,7 +20,7 @@ import { nextClockLine } from '@/engine/horloge'
 import { nextDoorLine, nextProphecy, nextReturnLine, nextTitled, type Prophecy, EMPTY_ARCANE } from '@/engine/prophecy'
 import { secureRng } from '@/engine/rng'
 import { PAQUETS, type Paquet } from '@/engine/paquets'
-import { LAST_ACTIVITY_KEY, PLAYED_ACTIVITIES_KEY, parseActivityId, parsePlayed, pickActivity, type ActivityId } from '@/engine/activityPick'
+import { LAST_ACTIVITY_KEY, PLAYED_ACTIVITIES_KEY, parseActivityId, parsePlayed, pickActivity, recordActivitySeen, type ActivityId } from '@/engine/activityPick'
 import { finaleActive } from '@/engine/finaleFlow'
 import { isFinaleVisit } from '@/engine/paranoia'
 import { hymn, unlock } from '@/audio/sfx'
@@ -111,6 +111,7 @@ export const useGameFlow = () => {
     const played = parsePlayed(safeSessionStorage().getItem(PLAYED_ACTIVITIES_KEY))
     activityId.value = pickActivity(progress.visits, activityId.value, safeStorage(), rng, played)
     if (activityId.value) {
+      recordActivitySeen(safeStorage(), activityId.value)
       safeSessionStorage().setItem(LAST_ACTIVITY_KEY, activityId.value)
       safeSessionStorage().setItem(PLAYED_ACTIVITIES_KEY, JSON.stringify([...new Set([...played, activityId.value])]))
     } else forgetActivities()

@@ -1,10 +1,12 @@
 import { paranoiaLevel } from './paranoia'
-import { drawPersisted } from './shuffleBag'
 import type { Rng } from './rng'
 
 export type ActivityId = 'wisps' | 'candles' | 'ouija' | 'windows' | 'crystal'
 
-/** Activités avec leur niveau d’introduction : chaque mécanique est présentée une fois, dans l’ordre. */
+/**
+ * Activités avec leur niveau d’introduction. Ce n’est pas un palier de difficulté : toutes sont jouables dès le niveau 2.
+ * Le niveau d’introduction sert seulement à favoriser la découverte (poids double tant que l’activité n’est pas jouée à ce niveau).
+ */
 export const ACTIVITIES: readonly { id: ActivityId; introLevel: number }[] = [
   { id: 'wisps', introLevel: 2 },
   { id: 'candles', introLevel: 3 },
@@ -34,23 +36,54 @@ export const parsePlayed = (raw: string | null): ActivityId[] => {
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>
 
+/** Clé localStorage du nombre de fois où chaque activité a été vue, toutes parties confondues (survit à « Recommencer »). */
+export const ACTIVITY_SEEN_KEY = 'rvj-activity-seen'
+
+/** Relit les compteurs stockés : seulement des identifiants connus, des entiers ≥ 0 ; vide si le contenu est illisible. */
+export const parseSeen = (raw: string | null): Partial<Record<ActivityId, number>> => {
+  try {
+    const obj: unknown = JSON.parse(raw ?? '{}')
+    if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return {}
+    const seen: Partial<Record<ActivityId, number>> = {}
+    for (const { id } of ACTIVITIES) {
+      const n = (obj as Record<string, unknown>)[id]
+      if (typeof n === 'number' && Number.isInteger(n) && n > 0) seen[id] = Math.min(n, 1000)
+    }
+    return seen
+  } catch {
+    return {}
+  }
+}
+
+/** Note qu’une activité vient d’être présentée (mémoire entre les parties). */
+export const recordActivitySeen = (storage: Store, id: ActivityId) => {
+  const seen = parseSeen(storage.getItem(ACTIVITY_SEEN_KEY))
+  seen[id] = (seen[id] ?? 0) + 1
+  try {
+    storage.setItem(ACTIVITY_SEEN_KEY, JSON.stringify(seen))
+  } catch {
+    // stockage refusé : la mémoire entre parties est un confort, pas une nécessité
+  }
+}
+
 /**
  * Activité de la visite numéro `visits` (null au niveau 1).
- * - Première visite d’un niveau (le niveau diffère de celui de `visits - 1`) : l’activité introduite à ce niveau (la première de la liste si plusieurs partagent le niveau).
- * - Sinon : une activité débloquée pas encore jouée (`played`), tirée au hasard ; s’il n’y en a plus, tirage au sac sans répétition, jamais `last` (activité de la visite précédente).
+ * - Éligibles : toutes dès le niveau 2, jamais `last` (activité de la visite précédente).
+ * - Parmi elles, celles pas encore jouées dans la partie (`played`) ; s’il n’en reste aucune, toutes les autres.
+ * - Poids : 1 / (1 + vues)² d’après la mémoire entre parties (les moins vues d’abord), doublé pour l’activité introduite au niveau courant tant qu’elle n’est pas jouée.
  */
 export const pickActivity = (visits: number, last: ActivityId | null, storage: Store, rng: Rng, played: readonly ActivityId[] = []): ActivityId | null => {
   const level = paranoiaLevel(visits)
-  const unlocked = ACTIVITIES.filter((a) => a.introLevel <= level)
-  if (unlocked.length === 0) return null
-  if (visits > 0 && paranoiaLevel(visits - 1) !== level) return unlocked.find((a) => a.introLevel === level)!.id
-  if (unlocked.length === 1) return unlocked[0].id
-  const fresh = unlocked.filter((a) => !played.includes(a.id) && a.id !== last)
-  if (fresh.length > 0) return fresh[Math.floor(rng() * fresh.length)].id
-  // Le sac évite déjà les répétitions ; la boucle écarte le cas où le tirage retombe sur `last` (sac neuf après un changement de niveau).
-  for (let i = 0; i <= unlocked.length; i++) {
-    const id = unlocked[drawPersisted(storage, `activite${level}`, unlocked.length, rng)].id
-    if (id !== last) return id
+  if (level < 2) return null
+  const others = ACTIVITIES.filter((a) => a.id !== last)
+  const fresh = others.filter((a) => !played.includes(a.id))
+  const pool = fresh.length > 0 ? fresh : others
+  const seen = parseSeen(storage.getItem(ACTIVITY_SEEN_KEY))
+  const weights = pool.map((a) => (1 / (1 + (seen[a.id] ?? 0)) ** 2) * (a.introLevel === level && !played.includes(a.id) ? 2 : 1))
+  let roll = rng() * weights.reduce((sum, w) => sum + w, 0)
+  for (let i = 0; i < pool.length; i++) {
+    roll -= weights[i]
+    if (roll < 0) return pool[i].id
   }
-  return unlocked.find((a) => a.id !== last)!.id
+  return pool[pool.length - 1].id
 }
