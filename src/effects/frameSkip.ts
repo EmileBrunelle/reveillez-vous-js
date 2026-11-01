@@ -3,8 +3,12 @@
 /** Clé de l’image statique du CRT : seuls la taille du canvas et la paranoïa (à 3 décimales) la changent. */
 export const crtStaticKey = (width: number, height: number, paranoia: number): string => `${width}x${height}|${paranoia.toFixed(3)}`
 
-/** Clé de l’image statique d’un fond raymarché : taille, paranoïa et paramètres de la variante (voir `paramsKey`, hors `time`). */
-export const raymarchStaticKey = (width: number, height: number, paranoia: number, variantKey: string): string => `${width}x${height}|${paranoia.toFixed(3)}|${variantKey}`
+/**
+ * Clé de l’image statique d’un fond raymarché : taille, paranoïa, paramètres de la variante (voir `paramsKey`, hors `time`)
+ * et état des ombres, pour qu’une coupure redessine l’image même en mouvement réduit.
+ */
+export const raymarchStaticKey = (width: number, height: number, paranoia: number, variantKey: string, shadows = false): string =>
+  `${width}x${height}|${paranoia.toFixed(3)}|${variantKey}|${shadows ? 's1' : 's0'}`
 
 export type Vec4Fields = Record<string, number | number[]>
 

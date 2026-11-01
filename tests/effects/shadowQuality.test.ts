@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createShadowBudget, SHADOWS_OFF_MEDIA, SHADOW_BUDGET_MS, SHADOW_WINDOW } from '@/effects/shadowQuality'
+import { createShadowBudget, cutShadowsForSession, resetShadowVerdict, shadowsCutForSession, SHADOWS_OFF_MEDIA, SHADOW_BUDGET_MS, SHADOW_WINDOW } from '@/effects/shadowQuality'
 
 describe('qualité des ombres', () => {
   it('coupe les ombres sur pointeur grossier et sous 641 px de large', () => {
@@ -33,5 +33,14 @@ describe('qualité des ombres', () => {
     b.push(1)
     b.push(1)
     expect(b.over).toBe(false)
+  })
+
+  it('le verdict de session se retient et se remet à zéro', () => {
+    resetShadowVerdict()
+    expect(shadowsCutForSession()).toBe(false)
+    cutShadowsForSession()
+    expect(shadowsCutForSession()).toBe(true)
+    resetShadowVerdict()
+    expect(shadowsCutForSession()).toBe(false)
   })
 })

@@ -27,6 +27,7 @@ import { effect, surface } from 'vgpu'
 import { startCrt } from '@/effects/crt'
 import { createCrystal } from '@/effects/crystal'
 import { createRaymarch } from '@/effects/raymarch'
+import { resetShadowVerdict, shadowsCutForSession } from '@/effects/shadowQuality'
 import { RING_SIZE } from '@/effects/crystalMath'
 
 // Les rappels setup/render/teardown reçoivent un état interne propre à chaque effet (surface, effet, paramètres) : seul le test le consulte.
@@ -42,6 +43,7 @@ beforeEach(() => {
   vi.mocked(surface).mockClear()
   vi.mocked(effect).mockClear()
   loop.opts = null
+  resetShadowVerdict()
 })
 
 describe('startCrt', () => {
@@ -296,6 +298,54 @@ describe('createRaymarch', () => {
     for (let i = 0; i < 40; i++) run(loop.opts!.render, f, s, clk(i, 0.09)) // 90 ms par image : très en deçà de 30 i/s
     run(loop.opts!.render, f, s, clk(41, 1 / 30))
     expect(s.fx.set).toHaveBeenLastCalledWith({ params: expect.objectContaining({ shadows: 0 }) })
+  })
+
+  it('ombres : une règle fournie mais fausse au départ crée tout de même le timer et le budget, qui ne comptent qu’une fois les ombres actives', async () => {
+    const rule = { v: false }
+    const { p } = make({ shadows: () => rule.v })
+    await p
+    expect(loop.opts!.timing).toBe(true)
+    const s = run<Any>(loop.opts!.setup, {})
+    expect(s.cost).not.toBeNull()
+    const f = frame()
+    for (let i = 0; i < 60; i++) run(loop.opts!.render, f, s, clk(i, 0.09)) // lent, mais ombres éteintes : aucune mesure
+    expect(shadowsCutForSession()).toBe(false)
+    rule.v = true // fenêtre élargie : les ombres s’allument et le garde-fou joue
+    for (let i = 0; i < 40; i++) run(loop.opts!.render, f, s, clk(100 + i, 0.09))
+    run(loop.opts!.render, f, s, clk(200, 1 / 30))
+    expect(s.fx.set).toHaveBeenLastCalledWith({ params: expect.objectContaining({ shadows: 0 }) })
+  })
+
+  it('ombres : en mouvement réduit, l’intervalle entre images (~250 ms) n’est pas échantillonné', async () => {
+    const motion = { v: false }
+    const { p } = make({ shadows: () => true, motion: () => motion.v })
+    await p
+    const s = run<Any>(loop.opts!.setup, {})
+    const f = frame()
+    for (let i = 0; i < 60; i++) {
+      ;(s as Any).lastKey = '' // force chaque redessin
+      run(loop.opts!.render, f, s, clk(i, 0.25))
+    }
+    expect(shadowsCutForSession()).toBe(false)
+    expect(s.fx.set).toHaveBeenLastCalledWith({ params: expect.objectContaining({ shadows: 1 }) })
+  })
+
+  it('ombres : le verdict « coupé » dure toute la session, d’un lieu et d’une visite à l’autre, jusqu’à la remise à zéro', async () => {
+    const first = make({ shadows: () => true })
+    await first.p
+    const s = run<Any>(loop.opts!.setup, {})
+    const f = frame()
+    for (let i = 0; i < 40; i++) run(loop.opts!.render, f, s, clk(i, 0.09))
+    run(loop.opts!.render, f, s, clk(41, 1 / 30))
+    expect(shadowsCutForSession()).toBe(true)
+    const second = make({ shadows: () => true }) // nouveau lieu : aucune nouvelle mesure
+    await second.p
+    const s2 = run<Any>(loop.opts!.setup, {})
+    run(loop.opts!.render, f, s2, clk(0, 1 / 30))
+    expect(s2.fx.set).toHaveBeenLastCalledWith({ params: expect.objectContaining({ shadows: 0 }) })
+    resetShadowVerdict()
+    run(loop.opts!.render, f, s2, clk(1, 1 / 30))
+    expect(s2.fx.set).toHaveBeenLastCalledWith({ params: expect.objectContaining({ shadows: 1 }) })
   })
 
   it('CRT éteint (sharp) : la surface est recréée à la résolution nette, l’ancienne est libérée', async () => {

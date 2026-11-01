@@ -12,6 +12,7 @@ describe('clés d’image statique', () => {
     expect(raymarchStaticKey(540, 270, 0.4, 'a=1.000')).toBe(raymarchStaticKey(540, 270, 0.4, 'a=1.000'))
     expect(raymarchStaticKey(540, 270, 0.4, 'a=1.000')).not.toBe(raymarchStaticKey(540, 270, 0.4, 'a=2.000'))
     expect(raymarchStaticKey(540, 270, 0.4, 'a')).not.toBe(raymarchStaticKey(540, 280, 0.4, 'a'))
+    expect(raymarchStaticKey(540, 270, 0.4, 'a', true)).not.toBe(raymarchStaticKey(540, 270, 0.4, 'a', false))
   })
 })
 

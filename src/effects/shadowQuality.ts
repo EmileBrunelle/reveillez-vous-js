@@ -12,6 +12,22 @@ export const SHADOW_WINDOW = 30
 /** Une image plus longue que cela (onglet resté caché, reprise) n’est pas une mesure de coût. */
 const SHADOW_MAX_SAMPLE_MS = 250
 
+/** Verdict de la session : un GPU jugé trop lent le reste pour tous les lieux et toutes les visites (pas de ~30 images lourdes à chaque fois). */
+let cutForSession = false
+
+/** Vrai si un budget a déjà coupé les ombres pour le reste de la session. */
+export const shadowsCutForSession = (): boolean => cutForSession
+
+/** Retient que les ombres sont coupées pour le reste de la session. */
+export const cutShadowsForSession = (): void => {
+  cutForSession = true
+}
+
+/** Remet le verdict à zéro (tests seulement : en production, il dure jusqu’à la fermeture de l’onglet). */
+export const resetShadowVerdict = (): void => {
+  cutForSession = false
+}
+
 export interface ShadowBudget {
   /** Ajoute une mesure en ms (durée GPU du passage, ou intervalle entre images en repli). */
   push: (ms: number) => void

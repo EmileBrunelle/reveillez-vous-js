@@ -4,7 +4,7 @@ import { startGpuLoop, type GpuLoop } from './gpuLoop'
 import { raymarchStaticKey } from './frameSkip'
 import { paramsKey } from './paramsKey'
 import { placeDpr } from './resolution'
-import { createShadowBudget, SHADOW_BUDGET_MS, SHADOW_FALLBACK_FRAME_MS } from './shadowQuality'
+import { createShadowBudget, cutShadowsForSession, SHADOW_BUDGET_MS, SHADOW_FALLBACK_FRAME_MS, shadowsCutForSession } from './shadowQuality'
 
 export type Shader = ShaderSource
 
@@ -54,7 +54,7 @@ const STATIC_FPS = 4
  * Mesure du coût des ombres : durée GPU du passage (`timer`, `timestamp-query`) ou, à défaut, intervalle entre les images.
  * `span` est le repère à passer au passage ; `sample` reçoit l’intervalle de l’image (utile au repli seulement).
  */
-const watchShadowCost = (gpu: Gpu) => {
+const watchShadowCost = (gpu: Gpu, active: () => boolean, motion: () => boolean) => {
   const bg = createShadowBudget(SHADOW_BUDGET_MS)
   const fallback = createShadowBudget(SHADOW_FALLBACK_FRAME_MS)
   let tm: Timer | null = null
@@ -63,7 +63,9 @@ const watchShadowCost = (gpu: Gpu) => {
   try {
     tm = timer(gpu)
     span = tm.span('fond')
-    off = tm.onResults((r) => bg.push(r.fond ?? NaN))
+    off = tm.onResults((r) => {
+      if (active()) bg.push(r.fond ?? NaN) // ombres éteintes (fenêtre étroite) : la mesure ne compte pas
+    })
   } catch {
     tm = null // pas de `timestamp-query` : on juge l’intervalle entre images
   }
@@ -77,7 +79,11 @@ const watchShadowCost = (gpu: Gpu) => {
     },
     span,
     sample: (dt: number) => {
-      if (!tm) fallback.push(dt * 1000)
+      // En mouvement réduit la boucle tourne à ~4 i/s : l’intervalle (~250 ms) ne mesure pas le coût des ombres.
+      // On n’échantillonne donc le repli qu’en mouvement (plutôt que d’abaisser SHADOW_MAX_SAMPLE_MS, qui rejetterait
+      // aussi de vraies images lentes à 30 i/s et masquerait un GPU trop lent). L’image statique n’est de toute façon
+      // redessinée que sur changement, jamais en continu.
+      if (!tm && active() && motion()) fallback.push(dt * 1000)
     },
     dispose: () => {
       off()
@@ -95,7 +101,11 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
   const { motion, paranoia, parallax } = opts
   // Budget mesuré, créé par `setup` seulement si les ombres sont permises ; une fois dépassé, les ombres restent coupées.
   let budget: ReturnType<typeof createShadowBudget> | null = null
-  const shadowsOn = () => !!opts.shadows?.() && !budget?.over
+  // Verdict mémorisé pour la session : un GPU trop lent ne repaie pas la fenêtre de mesure à chaque lieu ou visite.
+  const shadowsOn = () => {
+    if (budget?.over) cutShadowsForSession()
+    return !!opts.shadows?.() && !shadowsCutForSession()
+  }
   const params = (s: { p: number; drift: number; px: number; py: number }, t: number) => {
     const m = motion()
     const base = opts.params({ t, width: canvas.width, height: canvas.height, paranoia: s.p, motion: m, drift: m ? s.drift : 0, px: m ? s.px : 0, py: m ? s.py : 0 })
@@ -107,7 +117,8 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
     // Mouvement réduit : cadence basse, la boucle ne fait que comparer la clé de l’image statique.
     fps: () => (motion() ? 30 : STATIC_FPS),
     onLost: opts.onLost,
-    timing: !!opts.shadows?.(),
+    // La règle peut passer au vrai plus tard (fenêtre élargie) : le timer et le budget existent dès qu’elle est fournie.
+    timing: !!opts.shadows,
     setup: (gpu) => {
       // Taille CSS mise en cache et tenue à jour par l’observateur : aucune lecture de mise en page par trame.
       const css = { w: canvas.clientWidth, h: canvas.clientHeight }
@@ -119,7 +130,7 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
       const anim = { p: paranoia(), drift: 0, px: 0, py: 0 }
       const surf = surface(gpu, canvas, { dpr: dprFor(), clearColor: [0, 0, 0, 1] })
       const fx = effect(gpu, opts.shader, { set: { params: params(anim, 0) } })
-      const cost = opts.shadows?.() ? watchShadowCost(gpu) : null
+      const cost = opts.shadows ? watchShadowCost(gpu, shadowsOn, motion) : null
       budget = cost?.budget ?? null
       return { anim, gpu, dprFor, surf, fx, lastKey: '', cost }
     },
@@ -146,11 +157,11 @@ export const createRaymarch = (canvas: HTMLCanvasElement, opts: RaymarchOptions)
       } else {
         // Image statique : la clé (construite seulement ici) inclut les paramètres de la variante, hors `time` ;
         // on ne redessine que si elle diffère de la dernière image dessinée.
-        const key = raymarchStaticKey(canvas.width, canvas.height, a.p, paramsKey(params(a, 0)))
+        const key = raymarchStaticKey(canvas.width, canvas.height, a.p, paramsKey(params(a, 0)), shadowsOn())
         if (key === s.lastKey) return
         s.lastKey = key
       }
-      s.cost?.sample(time.deltaTime)
+      if (shadowsOn()) s.cost?.sample(time.deltaTime)
       s.fx.set({ params: params(a, time.time) })
       if (s.cost?.span) frame.pass({ target: s.surf, timer: s.cost.span }, s.fx)
       else frame.pass(s.surf, s.fx)
