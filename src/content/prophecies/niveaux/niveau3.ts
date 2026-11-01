@@ -25,7 +25,7 @@ export const niveau3: ContenuNiveau = {
     'Cinq chats noirs dans un grand manteau vous demanderont l’heure. Répondez poliment. L’un de ces chats sera un jour premier ministre.',
     'Les cartes voient un crime : une poutine au fromage râpé, servie dans un festival. Le crime court toujours.',
     'Pleine lune sur la Belle Province. Quelque chose hurlera dans votre rue. Ne lui ouvrez pas : il a déjà le rythme.',
-    'Cet hiver, par −30, vous direz que vous aimez l’hiver. Avec un chapeau de poil et un café. Les cartes savent que vous mentez. Elles mentent aussi.',
+    'Cet hiver, par −30 °C, vous direz que vous aimez l’hiver. Avec un chapeau de poil et un café. Les cartes savent que vous mentez. Elles mentent aussi.',
     'Votre vocation : mener une carriole sous la pleine lune. Demain matin, vous ouvrirez Teams. Les cartes compatissent.',
     'Un béluga de Tadoussac vous a vu passer sur le traversier. Il ne dira rien. Les bélugas savent garder un secret, mais celui-là a pris des notes.',
     'Au large de Tadoussac, un béluga vous regarde depuis ce matin. Il connaît votre horaire. Ne lui faites pas de signe : il pourrait répondre.',
