@@ -199,7 +199,7 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
       <!-- Brume : deux nappes qui dérivent lentement (une seule fois sans fin, hors mouvement réduit). -->
       <span class="mist mist-a pointer-events-none absolute" aria-hidden="true" />
       <span class="mist mist-b pointer-events-none absolute" aria-hidden="true" />
-      <svg class="board absolute" aria-hidden="true" :viewBox="`${-BOARD - 0.02} -0.02 ${2 * BOARD + 0.04} ${BOARD + 0.04}`" preserveAspectRatio="none">
+      <svg class="board absolute overflow-visible" aria-hidden="true" :viewBox="`${-BOARD} 0 ${2 * BOARD} ${BOARD}`" preserveAspectRatio="none">
         <defs>
           <radialGradient id="pendulum-stone" cx="0" cy="0" r="1.12" gradientUnits="userSpaceOnUse">
             <stop offset="0.35" stop-color="#231a33" />
@@ -281,6 +281,7 @@ const GHOST_LAG = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12]
 }
 .board {
   left: 0;
+  /* le viewBox colle à 1 unité = 1 L : les disques SVG coïncident avec les symboles HTML ; les traits débordent du cadre */
   top: var(--P);
   width: 100%;
   height: calc(var(--L) * 1.12);
